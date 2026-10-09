@@ -24,7 +24,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  for unit in thor-display-sleep; do
+  for unit in thor-display-sleep thor-idle-blank; do
     enable_service ${unit}.service
   done
 }
