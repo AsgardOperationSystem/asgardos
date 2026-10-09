@@ -1,0 +1,13 @@
+diff --git a/projects/ROCKNIX/devices/SM8550/options b/projects/ROCKNIX/devices/SM8550/options
+index b42055d58c..cb1a2ef75e 100644
+--- a/projects/ROCKNIX/devices/SM8550/options
++++ b/projects/ROCKNIX/devices/SM8550/options
+@@ -63,7 +63,7 @@
+     FIRMWARE="extra-firmware"
+ 
+   # Additional packages to install
+-    ADDITIONAL_PACKAGES="gamepadcalibration rocknix-abl inputplumber"
++    ADDITIONAL_PACKAGES="gamepadcalibration rocknix-abl inputplumber asgard"
+ 
+   # Debug tty path
+     DEBUG_TTY="/dev/ttyMSM0"
