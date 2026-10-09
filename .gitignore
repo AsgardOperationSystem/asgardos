@@ -3,3 +3,4 @@ build.log
 *.img.gz
 __pycache__/
 asgard.yml
+frontend-dev/
