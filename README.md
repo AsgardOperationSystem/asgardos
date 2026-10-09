@@ -50,6 +50,14 @@ iiSU's dual-screen home with our own code and artwork (Nunito, OFL).
 - `dev.sh shot ["keys"]` renders both screens offscreen on the desktop from `frontend-dev/root` (a git-ignored
   copy of the Thor's library); `dev.sh thor ["keys"]` cross-builds, copies to the Thor and renders there.
 
+## Gyro: ADSP sensors root
+
+The Thor's gyro/accel (SH5001) live in the ADSP's sensor core. `thor-sensorspd.service` (hexagonrpcd) serves the
+sensors PD a HexagonFS root that isn't in the image (Android blobs + this unit's calibration): copy it to
+`/storage/.config/asgard/sensors-root/` (`hexagonrpc.json`, `dsp/` from the Thor's `dsp_a`, `vendor/etc/sensors`,
+`vendor/lib/rfsa/adsp`, `odm/etc`, a writable copy of `persist/sensors`, `socinfo/`). The service starts only when
+it's there. Streaming the readings to games (steps 3–4) isn't done yet.
+
 ## Changes on top of ROCKNIX
 
 One merge request each; its description and commits say what was broken, why, and what changed.
@@ -83,3 +91,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
 | ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
+| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service; the readings aren't streamed to games yet. |
