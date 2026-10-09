@@ -45,3 +45,4 @@ One merge request each; its description and commits say what was broken, why, an
 | UFS HS-G5 (`1024`) | Internal storage ran at HS-G4: 1.5 GB/s instead of 2.6–2.8. |
 | OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
 | Charge limit (`9003`) | **Not working yet:** the ADSP ignores the threshold request. |
+| Azahar 2126.2 (`0005`) | HD texture packs crashed Azahar (OpenGL) or hard-locked the Thor (Vulkan). |
