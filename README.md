@@ -66,3 +66,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Battery logger | Measures sleep drain and records charging state (a not-charging-after-sleep case had no data). |
 | Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
 | Thor Settings | All system settings lived in ROCKNIX ES; Asgard needs them without it. |
+| AYN button → Thor Panel | The AYN key did nothing on Linux; Home was only a hotkey modifier. |
