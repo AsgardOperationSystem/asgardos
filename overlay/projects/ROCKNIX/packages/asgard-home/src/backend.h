@@ -58,7 +58,7 @@ class Gamepad : public QObject
 {
     Q_OBJECT
 public:
-    explicit Gamepad(QObject *parent = nullptr);
+    explicit Gamepad(bool disabled = false, QObject *parent = nullptr);
 signals:
     void pressed(const QString &button);   // up down left right a b x y lb rb lt rt select start guide
 private:

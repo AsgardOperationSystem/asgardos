@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
         qputenv("QT_QPA_PLATFORM", "wayland");
     QGuiApplication app(argc, argv);
     Backend backend(gameEnv);
-    Gamepad pad;
+    Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)
     QQmlApplicationEngine engine;  // after backend/pad: destroyed first, so QML never sees them gone
     engine.rootContext()->setContextProperty("backend", &backend);
     engine.rootContext()->setContextProperty("pad", &pad);

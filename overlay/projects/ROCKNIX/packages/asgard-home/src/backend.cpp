@@ -220,8 +220,10 @@ void Backend::launch(const QVariantMap &game)
 
 static const char *PAD_NAME = "Sony Interactive Entertainment DualSense Wireless Controller";
 
-Gamepad::Gamepad(QObject *parent) : QObject(parent)
+Gamepad::Gamepad(bool disabled, QObject *parent) : QObject(parent)
 {
+    if (disabled)
+        return;
     // /proc/bus/input/devices: find the event node of the exact pad name (not its Motion/Touchpad siblings).
     QFile f("/proc/bus/input/devices");
     if (!f.open(QIODevice::ReadOnly))
