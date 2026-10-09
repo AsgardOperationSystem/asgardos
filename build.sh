@@ -34,6 +34,7 @@ done
 echo "rocknix/ prepared: ${#PATCHES[@]} patches + overlay"
 
 # Never pass LOCAL_WIFI_SSID / LOCAL_WIFI_KEY / LOCAL_SSH_KEYS_FILE: ROCKNIX bakes them into the image.
+# Personal settings go in asgard.yml (see inject-config.sh).
 if [ "$STEP" = build ]; then
   env -u LOCAL_WIFI_SSID -u LOCAL_WIFI_KEY -u LOCAL_SSH_KEYS_FILE make -C rocknix docker-SM8550
   ls -1 rocknix/target/*.img.gz rocknix/target/*.tar 2>/dev/null
