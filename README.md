@@ -47,3 +47,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Charge limit (`9003`) | **Not working yet:** the ADSP ignores the threshold request. |
 | Azahar 2126.2 (`0005`) | HD texture packs crashed Azahar (OpenGL) or hard-locked the Thor (Vulkan). |
 | No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
+| melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
