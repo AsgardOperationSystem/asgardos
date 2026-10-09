@@ -1,0 +1,43 @@
+diff --git a/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts b/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
+index 90ed3e8c1f..342c9f2564 100644
+--- a/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
++++ b/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
+@@ -471,3 +471,26 @@
+ &spk_amp_r {
+ 	firmware-name = "qcom/sm8550/ayn/thor/aw883xx_acf.bin";
+ };
++
++&{/smp2p-adsp} {
++	smp2p_sleepstate_out: sleepstate-out {
++		qcom,entry-name = "sleepstate";
++		#qcom,smem-state-cells = <1>;
++	};
++
++	smp2p_sleepstate_in: sleepstate-in {
++		qcom,entry-name = "sleepstate_see";
++		interrupt-controller;
++		#interrupt-cells = <2>;
++	};
++};
++
++/ {
++	smp2p-sleepstate {
++		compatible = "qcom,smp2p-sleepstate";
++		qcom,smem-states = <&smp2p_sleepstate_out 0>;
++		interrupts-extended = <&smp2p_sleepstate_in 0 IRQ_TYPE_EDGE_RISING>;
++		interrupt-names = "smp2p-sleepstate-in";
++	};
++};
++
+diff --git a/projects/ROCKNIX/devices/SM8550/linux/linux.aarch64.conf b/projects/ROCKNIX/devices/SM8550/linux/linux.aarch64.conf
+index 2f066c89d8..92fcb04c38 100644
+--- a/projects/ROCKNIX/devices/SM8550/linux/linux.aarch64.conf
++++ b/projects/ROCKNIX/devices/SM8550/linux/linux.aarch64.conf
+@@ -6613,6 +6613,7 @@ CONFIG_QCOM_SMEM=y
+ CONFIG_QCOM_SMD_RPM=y
+ CONFIG_QCOM_SMEM_STATE=y
+ CONFIG_QCOM_SMP2P=y
++CONFIG_QCOM_SMP2P_SLEEPSTATE=y
+ CONFIG_QCOM_SMSM=y
+ CONFIG_QCOM_SOCINFO=y
+ CONFIG_QCOM_SPM=y
