@@ -39,3 +39,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Regulator suspend states in s2idle (`0219`, `0002`) | DT `regulator-state-mem` only applied to s2ram; the Thor sleeps with s2idle. |
 | PCIe suspend OPP (`0220`, `0221`) | Without a small DDR vote in sleep, AOP firmware never returns to Linux (hang on wake). |
 | USB autosuspend udev rule | The idle USB controller held a 1 GB/s USB→DDR bandwidth vote. |
+| smp2p sleepstate (`9000`, `0003`) | Experimental: Android tells the ADSP when the CPUs sleep; mainline doesn't. |
