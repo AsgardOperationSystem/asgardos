@@ -710,6 +710,11 @@
 			regulator-allow-set-load;
 			regulator-allowed-modes = <RPMH_REGULATOR_MODE_LPM
 						   RPMH_REGULATOR_MODE_HPM>;
+
+			regulator-state-mem {
+				regulator-on-in-suspend;
+				regulator-mode = <RPMH_REGULATOR_MODE_LPM>;
+			};
 		};
 
 		vreg_l16b_2p8: ldo16 {
