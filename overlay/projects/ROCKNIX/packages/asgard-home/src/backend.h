@@ -29,6 +29,7 @@ public:
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
+    QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
 
 signals:
