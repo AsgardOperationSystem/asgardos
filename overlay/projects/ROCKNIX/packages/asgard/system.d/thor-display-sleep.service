@@ -1,0 +1,13 @@
+[Unit]
+Description=AYN Thor display DPMS sleep hook
+Before=systemd-suspend.service
+StopWhenUnneeded=yes
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/share/asgard/thor-display-sleep.sh pre
+ExecStop=/usr/share/asgard/thor-display-sleep.sh post
+
+[Install]
+WantedBy=sleep.target
