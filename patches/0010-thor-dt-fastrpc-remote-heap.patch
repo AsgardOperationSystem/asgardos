@@ -1,0 +1,38 @@
+diff --git a/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts b/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
+index 342c9f2564..db20f43656 100644
+--- a/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
++++ b/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
+@@ -458,10 +458,33 @@
+ 	};
+ };
+ 
++/ {
++	reserved-memory {
++		/*
++		 * FastRPC static PDs (sensors PD for the SH5001 gyro) need a contiguous
++		 * remote heap below 4 GiB. Same pool as the SM8550 Xiaomi Pad 6S Pro
++		 * (lzxcr/arch-xiaomi-sheng): 16 MiB, 4 MiB aligned, reusable.
++		 */
++		fastrpc_mem: fastrpc {
++			compatible = "shared-dma-pool";
++			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
++			alignment = <0x0 0x400000>;
++			size = <0x0 0x1000000>;
++			reusable;
++		};
++	};
++};
++
+ &remoteproc_adsp {
+ 	firmware-name = "qcom/sm8550/ayn/thor/adsp.mbn",
+ 			"qcom/sm8550/ayn/thor/adsp_dtb.mbn";
+ 	status = "okay";
++
++	glink-edge {
++		fastrpc {
++			memory-region = <&fastrpc_mem>;
++		};
++	};
+ };
+ 
+ &spk_amp_l {
