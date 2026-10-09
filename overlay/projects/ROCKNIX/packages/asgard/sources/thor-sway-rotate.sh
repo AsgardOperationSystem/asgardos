@@ -29,4 +29,6 @@ grep -q '^# thor-assign' "$C" || printf '%s\n' '# thor-assign' \
 grep -q '^# thor-focus' "$C" || printf '%s\n' '# thor-focus' 'focus_follows_mouse no' 'mouse_warping none' >> "$C"
 grep -q '^# thor-fullscreen' "$C" || printf '%s\n' '# thor-fullscreen' \
   'for_window [app_id="^(?!lowerdeck$).*" title="^(?!.*(Secondary|\[w2\]|Sub|Bottom|Screen 2|GamePad)).*"] fullscreen enable' >> "$C"
+# Asgard Home's bottom window: ROCKNIX's "Bottom" rules move it to DSI-1 and power the panel on; fill it.
+grep -q '^# asgard-bottom' "$C" || printf '%s\n' '# asgard-bottom' 'for_window [title="^Asgard Home \(Bottom\)$"] fullscreen enable' >> "$C"
 exit 0

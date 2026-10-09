@@ -5,7 +5,7 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain Python3 SDL2 SDL2_ttf SDL2_image"
+PKG_DEPENDS_TARGET="toolchain Python3 SDL2 SDL2_ttf SDL2_image asgard-home"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
@@ -30,7 +30,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  for unit in thor-ayn-button thor-battery-log thor-display-sleep thor-idle-blank; do
+  for unit in essway thor-ayn-button thor-battery-log thor-display-sleep thor-idle-blank; do
     enable_service ${unit}.service
   done
 }
