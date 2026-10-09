@@ -1,0 +1,6 @@
+[submodule "rocknix"]
+	path = rocknix
+	url = https://github.com/ROCKNIX/distribution.git
+	branch = next
+	shallow = true
+	ignore = dirty

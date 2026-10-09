@@ -1,0 +1,4 @@
+build.log
+*.img
+*.img.gz
+__pycache__/
