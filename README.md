@@ -65,3 +65,4 @@ One merge request each; its description and commits say what was broken, why, an
 | OLED idle blank | Burn-in protection: both screens off after 5 min without input. |
 | Battery logger | Measures sleep drain and records charging state (a not-charging-after-sleep case had no data). |
 | Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
+| Thor Settings | All system settings lived in ROCKNIX ES; Asgard needs them without it. |

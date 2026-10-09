@@ -5,7 +5,7 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain Python3"
+PKG_DEPENDS_TARGET="toolchain Python3 SDL2 SDL2_ttf SDL2_image"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
@@ -17,6 +17,9 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib/autostart/common
   cp ${PKG_DIR}/autostart/* ${INSTALL}/usr/lib/autostart/common/
   chmod 0755 ${INSTALL}/usr/lib/autostart/common/*-asgard-*
+
+  # ROCKNIX's emulator option catalogue (Thor Settings → Game/System Options), without installing ROCKNIX ES.
+  cp $(get_pkg_directory emulationstation)/config/common/es_features.cfg ${INSTALL}/usr/share/asgard/
 
   mkdir -p ${INSTALL}/usr/lib/systemd/system/sway.service.d
   cp ${PKG_DIR}/system.d/*.service ${INSTALL}/usr/lib/systemd/system/
