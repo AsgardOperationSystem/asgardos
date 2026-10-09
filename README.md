@@ -46,3 +46,4 @@ One merge request each; its description and commits say what was broken, why, an
 | OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
 | Charge limit (`9003`) | **Not working yet:** the ADSP ignores the threshold request. |
 | Azahar 2126.2 (`0005`) | HD texture packs crashed Azahar (OpenGL) or hard-locked the Thor (Vulkan). |
+| No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
