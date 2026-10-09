@@ -1,0 +1,12 @@
+[Unit]
+Description=Thor OLED guard: screens off after 5 min without input
+After=essway.service
+
+[Service]
+Environment=IDLE_SECONDS=300
+ExecStart=/usr/bin/python3 /usr/share/asgard/thor-idle-blank.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
