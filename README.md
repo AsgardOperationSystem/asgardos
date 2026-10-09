@@ -44,3 +44,4 @@ One merge request each; its description and commits say what was broken, why, an
 | SD UHS-I SDR104 (`0004`) | A caps mask kept the SD card at 3.3 V high-speed: 16.6 MB/s. |
 | UFS HS-G5 (`1024`) | Internal storage ran at HS-G4: 1.5 GB/s instead of 2.6–2.8. |
 | OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
+| Charge limit (`9003`) | **Not working yet:** the ADSP ignores the threshold request. |
