@@ -12,6 +12,50 @@ inject-config.sh  put your asgard.yml on an image's boot partition
 frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgard-home/src)
 ```
 
+## Status (2026-10-10)
+
+**No Asgard image has been booted yet**; the first build is running. ✅ below means verified on the Thor running
+the ROCKNIX PR #3126 build with the same changes applied by hand, which is what Asgard packages. The packaged
+form of each is untested until the first image boots.
+
+### Working
+- ✅ **Sleep/resume (s2idle):** lid close in the menu and 10+ min asleep mid-game both resume cleanly; the gamepad
+  re-handshakes on the first try. CPU cluster reaches `cluster_sleep_1`. (PR #3126, `0001`, CPU0 idle quirk,
+  regulator mem states, PCIe suspend OPP, USB autosuspend, rsinput `1023`)
+- ✅ **Storage:** SD at UHS-I SDR104 (76.8 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
+- ✅ **OLED Ultra Black** on the top panel.
+- ✅ **Bottom screen:** landscape rotation, dual-screen window rules, display sleep hook (3/3 sleeps).
+- ✅ **OLED idle blank**, **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
+- ✅ **Thor Settings** and **AYN button → Thor Panel** (Home tap opens the emulator menu).
+- ✅ **melonDS** two-window layout without the Qt menu bar (verified as a runtime override; the patch form is new).
+- ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
+
+### In progress / untested
+- **Asgard Home (frontend):** renders correctly on the desktop and on the Thor's GPU (offscreen), never run live on
+  the device; launching a game from it is untested. Missing: trophies/profile/apps tabs, Details/Menu/favourites,
+  sounds, system artwork, our own scraper.
+- **Booting without ROCKNIX ES** (own `essway.service` + `start_frontend.sh`): untested.
+- **asgard.yml:** self-test passes; never applied on a real boot.
+- **hexagonrpc package:** not yet built through ROCKNIX's cargo flow (the Thor runs a separate cross-build).
+- **Gyro steps 3–4:** stream accel/gyro from the sensor core and feed InputPlumber's DualSense motion, so Azahar
+  (3DS) sees a gyro. Not started.
+- **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
+  help is unmeasured.
+
+### Known broken / limitations
+- **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %.
+- **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan (`dpu_encoder_frame_done_timeout`):
+  a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
+  kept but does **not** fix it (correction to !13).
+- **Steam** isn't in the image (FEX thunks don't build).
+- **thor-sensorspd** is stopped for sleep and not restarted after resume; whether the sensor PD survives sleep is
+  untested.
+- Once, the Thor didn't charge after a 4 h sleep until a reboot (cause unknown; the battery logger now records USB
+  and charging state).
+- Occasional `fenced register write (0x8a1)` from the GPU; no hang seen.
+- SD SDR104: Thorch keeps UHS off as unstable; watch for mmc errors after sleep.
+- No locale generation for `system.language` (ROCKNIX ES did it).
+
 ## Building
 
 ```
@@ -76,7 +120,7 @@ One merge request each; its description and commits say what was broken, why, an
 | UFS HS-G5 (`1024`) | Internal storage ran at HS-G4: 1.5 GB/s instead of 2.6–2.8. |
 | OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
 | Charge limit (`9003`) | **Not working yet:** the ADSP ignores the threshold request. |
-| Azahar 2126.2 (`0005`) | HD texture packs crashed Azahar (OpenGL) or hard-locked the Thor (Vulkan). |
+| Azahar 2126.2 (`0005`) | Newer Azahar, kept by choice; it does **not** fix the Alpha Sapphire freeze (see Status). |
 | No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
 | melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
 | asgard package + boot tuning (`0008`) | Hostname, USB autosuspend, charge limit, CPU clock cap at every boot. |
