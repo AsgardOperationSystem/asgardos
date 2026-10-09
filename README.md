@@ -28,11 +28,13 @@ form of each is untested until the first image boots.
 - ✅ **OLED idle blank**, **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
 - ✅ **Thor Settings** and **AYN button → Thor Panel** (Home tap opens the emulator menu).
 - ✅ **melonDS** two-window layout without the Qt menu bar (verified as a runtime override; the patch form is new).
+- ✅ **Trophies tab (RetroAchievements):** 249 of 362 hashed ROMs matched to RA sets; per-game achievements
+  with badges, points and unlock dates. Needs `global.retroachievements.webapikey` in asgard.yml.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 
 ### In progress / untested
 - **Asgard Home (frontend):** renders correctly on the desktop and on the Thor's GPU (offscreen), never run live on
-  the device; launching a game from it is untested. Missing: trophies/profile/apps tabs, Details/Menu/favourites,
+  the device; launching a game from it is untested. Missing: profile/apps tabs, Details/Menu/favourites,
   sounds, system artwork, our own scraper.
 - **Booting without ROCKNIX ES** (own `essway.service` + `start_frontend.sh`): untested.
 - **asgard.yml:** self-test passes; never applied on a real boot.
@@ -143,3 +145,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
 | ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
 | ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service; the readings aren't streamed to games yet. |
+| Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |
