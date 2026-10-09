@@ -197,7 +197,8 @@ QtObject {
                 Repeater {
                     model: app.items
                     Tile {
-                        readonly property var cell: app.cells[index]
+                        // while items change, old delegates briefly see the new (shorter) layout
+                        readonly property var cell: app.cells[index] || ({ col: 0, row: 0, w: 1 })
                         item: modelData
                         selected: index === app.sel
                         x: panel.pad + cell.col * (panel.tile + panel.gap)
