@@ -9,6 +9,7 @@ patches/      changes to existing ROCKNIX files, applied in order with git apply
 overlay/      new files copied over the tree (kernel patches, quirks, packages)
 build.sh      prepare rocknix/ and build the image (./build.sh [prepare|upgrade])
 inject-config.sh  put your asgard.yml on an image's boot partition
+frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgard-home/src)
 ```
 
 ## Building
@@ -36,6 +37,18 @@ Nothing personal is built into the image. Wi-Fi, logins and SSH keys live in `as
 on a local copy of an image. At every boot each key is applied unless the setting was changed on the device:
 **image defaults < asgard.yml < the user's own changes**. Never build with ROCKNIX's `LOCAL_WIFI_SSID` /
 `LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` strips them).
+
+## Asgard Home (frontend)
+
+`frontend/` → `overlay/projects/ROCKNIX/packages/asgard-home/src`: the only frontend. Qt Quick on the image's Qt 6,
+two windows: top 1920x1080 (hero card, status, hints) and bottom 1240x1080 (dock + tile grid), styled after
+iiSU's dual-screen home with our own code and artwork (Nunito, OFL).
+- `backend.cpp`: library from ROCKNIX's `es_systems.cfg` + ROM dirs + ES-DE-format scraped media
+  (`/storage/ES-DE/{gamelists,downloaded_media}`), playtime (`playtime.jsonl`), battery, launching through
+  `runemu.sh`; InputPlumber's pad read from evdev (positional = the Thor's Nintendo layout: A east, B south).
+- `qml/`: `Main.qml` (state + navigation), `HeroCard`, `Tile`, `Dock`, `Backdrop`, small parts.
+- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop from `frontend-dev/root` (a git-ignored
+  copy of the Thor's library); `dev.sh thor ["keys"]` cross-builds, copies to the Thor and renders there.
 
 ## Changes on top of ROCKNIX
 
@@ -67,3 +80,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
 | Thor Settings | All system settings lived in ROCKNIX ES; Asgard needs them without it. |
 | AYN button → Thor Panel | The AYN key did nothing on Linux; Home was only a hotkey modifier. |
+| Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
