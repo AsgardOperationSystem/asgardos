@@ -30,7 +30,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  for unit in thor-battery-log thor-display-sleep thor-idle-blank; do
+  for unit in thor-ayn-button thor-battery-log thor-display-sleep thor-idle-blank; do
     enable_service ${unit}.service
   done
 }

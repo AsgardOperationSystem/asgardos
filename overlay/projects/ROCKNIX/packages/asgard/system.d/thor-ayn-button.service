@@ -1,0 +1,11 @@
+[Unit]
+Description=AYN Thor buttons: AYN key toggles Thor Panel; tapping button 10 opens the emulator menu (or exits)
+After=essway.service
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/share/asgard/thor_ayn_button.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
