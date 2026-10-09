@@ -82,3 +82,4 @@ One merge request each; its description and commits say what was broken, why, an
 | AYN button → Thor Panel | The AYN key did nothing on Linux; Home was only a hotkey modifier. |
 | Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
+| ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
