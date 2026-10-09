@@ -1,0 +1,13 @@
+diff --git a/projects/ROCKNIX/devices/SM8550/options b/projects/ROCKNIX/devices/SM8550/options
+index b42055d58c..cb1a2ef75e 100644
+--- a/projects/ROCKNIX/devices/SM8550/options
++++ b/projects/ROCKNIX/devices/SM8550/options
+@@ -28,7 +28,7 @@
+     KERNEL_MAKE_EXTRACMD=" $(get_kernel_make_extracmd)"
+ 
+   # Kernel cmdline
+-    EXTRA_CMDLINE="quiet rootwait console=tty0 allow_mismatched_32bit_el0 fw_devlink.strict=1 pcie_ports=compat irqaffinity=0-2 cgroup.memory=nokmem,nosocket nosoftlockup usbcore.interrupt_interval_override=045e:028e:2 gpt"
++    EXTRA_CMDLINE="quiet rootwait console=tty0 allow_mismatched_32bit_el0 fw_devlink.strict=0 fw_devlink.sync_state=timeout pcie_ports=compat irqaffinity=0-2 cgroup.memory=nokmem,nosocket nosoftlockup usbcore.interrupt_interval_override=045e:028e:2 ufshcd_core.uic_cmd_timeout=3000 mem_sleep_default=s2idle gpt"
+ 
+   # Bootloader to use (syslinux / u-boot)
+     BOOTLOADER="qcom-abl"
