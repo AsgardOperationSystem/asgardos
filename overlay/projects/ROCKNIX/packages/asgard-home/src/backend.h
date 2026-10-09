@@ -29,6 +29,7 @@ public:
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
+    QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
 
 signals:
@@ -58,7 +59,7 @@ class Gamepad : public QObject
 {
     Q_OBJECT
 public:
-    explicit Gamepad(QObject *parent = nullptr);
+    explicit Gamepad(bool disabled = false, QObject *parent = nullptr);
 signals:
     void pressed(const QString &button);   // up down left right a b x y lb rb lt rt select start guide
 private:

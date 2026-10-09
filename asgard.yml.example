@@ -18,6 +18,7 @@ global:
   retroachievements:
     username: me
     password: "ra password"
+    webapikey: "your web API key"   # retroachievements.org > Settings > Keys; for the Trophies tab
 
 screenscraper:            # used by the Asgard frontend's scraper
   username: me

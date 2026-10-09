@@ -12,6 +12,7 @@ QtObject {
     property var stack: []                   // views opened from a tab: [{items, sel}]
     property var items: homeItems()
     property int sel: 0
+    property var pendingRa: null             // trophy game whose achievement list is being fetched
     readonly property var current: items.length ? items[Math.min(sel, items.length - 1)] : null
     readonly property var cells: layout(items)
 
@@ -29,7 +30,8 @@ QtObject {
     function tabItems(t) {
         if (t === 0) return homeItems()
         if (t === 1) return backend.systems.map(s => ({ kind: "system", sys: s }))
-        return []                            // trophies / profile / apps: not built yet
+        if (t === 2) return achievements.games.map(e => ({ kind: "ra", game: e.game, ra: e }))
+        return []                            // profile / apps: not built yet
     }
 
     // 4-column flow; "jump" takes two cells. Returns [{col, row, w}] parallel to items.
@@ -70,7 +72,12 @@ QtObject {
             if (current.kind === "system") {
                 stack = stack.concat([{ items: items, sel: sel }])
                 items = backend.games(current.sys.name).map(g => ({ kind: "game", game: g })); sel = 0
-            } else if (current.game) {
+            } else if (current.kind === "ra") {
+                stack = stack.concat([{ items: items, sel: sel }])
+                const picked = current               // items = [] below makes current null
+                pendingRa = picked; items = []; sel = 0
+                achievements.details(picked.ra.raId)
+            } else if (current.kind === "game" || current.kind === "jump") {
                 backend.launch(current.game)
             }
         } else if (b === "b" && stack.length) {
@@ -83,6 +90,15 @@ QtObject {
     property Connections library: Connections {
         target: backend
         function onLibraryChanged() { if (!app.stack.length) app.items = app.tabItems(app.tab) }
+    }
+    property Connections trophies: Connections {
+        target: achievements
+        function onGamesChanged() { if (app.tab === 2 && !app.stack.length) app.items = app.tabItems(2) }
+        function onDetailsReady(raId, d) {
+            const p = app.pendingRa
+            if (!p || p.ra.raId !== raId || !app.stack.length) return
+            app.items = d.achievements.map(a => ({ kind: "ach", ach: a, game: p.game, ra: p.ra }))
+        }
     }
 
     function key(event) {
@@ -141,6 +157,7 @@ QtObject {
         HeroCard {
             x: 385; y: 232; width: 1150; height: 650
             item: app.current
+            placeholder: ["Home", "Games", "Trophies", "Profile", "Apps"][app.tab]
         }
 
         Pill {
@@ -148,7 +165,10 @@ QtObject {
             Row {
                 id: hints
                 x: 40; anchors.verticalCenter: parent.verticalCenter; spacing: 30
-                Hint { glyph: "A"; label: app.current && app.current.kind === "system" ? "Open" : "Play" }
+                Hint {
+                    visible: !!app.current && app.current.kind !== "ach"
+                    glyph: "A"; label: app.current && (app.current.kind === "system" || app.current.kind === "ra") ? "Open" : "Play"
+                }
                 Hint { glyph: "B"; label: "Back" }
                 Hint { glyph: "−"; label: "Details" }
                 Hint { glyph: "+"; label: "Menu" }
@@ -197,7 +217,8 @@ QtObject {
                 Repeater {
                     model: app.items
                     Tile {
-                        readonly property var cell: app.cells[index]
+                        // while items change, old delegates briefly see the new (shorter) layout
+                        readonly property var cell: app.cells[index] || ({ col: 0, row: 0, w: 1 })
                         item: modelData
                         selected: index === app.sel
                         x: panel.pad + cell.col * (panel.tile + panel.gap)
@@ -211,7 +232,8 @@ QtObject {
                 visible: app.items.length === 0
                 anchors.centerIn: parent
                 font.family: Theme.font; font.pixelSize: 48; font.weight: Font.Black; color: Theme.textDim
-                text: "Coming soon"
+                text: app.tab === 2 ? (achievements.status || (app.stack.length ? "Loading…" : "No trophies yet")) : "Coming soon"
+                width: parent.width - 120; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
             }
         }
     }

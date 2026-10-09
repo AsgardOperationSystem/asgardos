@@ -2,13 +2,16 @@ import QtQuick
 import QtQuick.Effects
 
 // One cell of the bottom grid. kind: "game" (cover + system badge), "system" (pastel card), "jump" (2-wide
-// "Jump back in!" with the last game). The selected tile grows a little and gets the cyan-violet rim + glow.
+// "Jump back in!" with the last game), "ra" (trophy game: cover + progress), "ach" (one achievement's badge).
+// The selected tile grows a little and gets the cyan-violet rim + glow; a mastered set has a gold rim.
 Item {
     id: tile
     property var item
     property bool selected: false
     readonly property string kind: item ? item.kind : ""
     readonly property var game: item ? item.game : null
+    readonly property bool badged: kind === "game" || kind === "ra"   // gets the little system badge
+    readonly property bool mastered: kind === "ra" && item.ra.total > 0 && item.ra.earned >= item.ra.total
 
     z: selected ? 2 : 1
     scale: selected ? 1.07 : 1.0
@@ -26,8 +29,8 @@ Item {
         anchors.fill: parent; radius: 30
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0; color: tile.selected ? Theme.selA : Theme.tileRim }
-            GradientStop { position: 1; color: tile.selected ? Theme.selB : Theme.tileRim }
+            GradientStop { position: 0; color: tile.selected ? Theme.selA : tile.mastered ? Theme.goldA : Theme.tileRim }
+            GradientStop { position: 1; color: tile.selected ? Theme.selB : tile.mastered ? Theme.goldB : Theme.tileRim }
         }
     }
     Rounded {
@@ -44,12 +47,55 @@ Item {
             text: tile.kind === "game" ? tile.game.name : ""
         }
 
-        // game: the cover, filling the face
+        // game / trophy game: the cover, filling the face
         Image {
-            visible: tile.kind === "game"
+            visible: tile.kind === "game" || tile.kind === "ra"
             anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; smooth: true
             sourceSize: Qt.size(320, 320)
-            source: tile.kind === "game" ? (tile.game.cover || tile.game.shot) : ""
+            source: visible ? (tile.game.cover || tile.game.shot || (tile.kind === "ra" ? tile.item.ra.icon : "")) : ""
+        }
+        // trophy game: progress bar + "earned / total" along the bottom
+        Rectangle {
+            visible: tile.kind === "ra"
+            anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: 62
+            color: "#cc12131f"
+            Rectangle {
+                x: 14; anchors.verticalCenter: parent.verticalCenter; width: parent.width - 120; height: 12; radius: 6
+                color: "#44ffffff"
+                Rectangle {
+                    height: parent.height; radius: 6
+                    width: tile.kind === "ra" && tile.item.ra.total ? parent.width * tile.item.ra.earned / tile.item.ra.total : 0
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0; color: tile.mastered ? Theme.goldA : Theme.selA }
+                        GradientStop { position: 1; color: tile.mastered ? Theme.goldB : Theme.selB }
+                    }
+                }
+            }
+            Text {
+                anchors.right: parent.right; anchors.rightMargin: 14; anchors.verticalCenter: parent.verticalCenter
+                font.family: Theme.font; font.pixelSize: 24; font.weight: Font.Black; color: Theme.text
+                text: tile.kind === "ra" ? tile.item.ra.earned + "/" + tile.item.ra.total : ""
+            }
+        }
+        // achievement: its badge, greyed while locked, points in the corner
+        Image {
+            visible: tile.kind === "ach"
+            anchors.fill: parent; anchors.margins: 14; fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true
+            sourceSize: Qt.size(128, 128)
+            source: visible ? (tile.item.ach.earned ? tile.item.ach.badge : tile.item.ach.badgeLocked) : ""
+            opacity: tile.kind === "ach" && !tile.item.ach.earned ? 0.55 : 1
+        }
+        Pill {
+            visible: tile.kind === "ach"
+            anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 10
+            width: pts.implicitWidth + 26; height: 42; border.width: 2
+            Text {
+                id: pts; anchors.centerIn: parent
+                font.family: Theme.font; font.pixelSize: 22; font.weight: Font.Black
+                color: tile.kind === "ach" && tile.item.ach.earned ? Theme.goldA : Theme.textDim
+                text: tile.kind === "ach" ? tile.item.ach.points : ""
+            }
         }
         // system: faint screenshot watermark + the system's name in its ink colour
         Image {
@@ -95,15 +141,15 @@ Item {
     }
     // system badge on game tiles (top-left), like iiSU's console badge
     Rectangle {
-        visible: tile.kind === "game"
+        visible: tile.badged
         x: 16; y: 16; width: 40; height: 40; radius: 11
-        color: tile.kind === "game" ? Theme.pastel(tile.game.sys) : "transparent"
+        color: tile.badged ? Theme.pastel(tile.game.sys) : "transparent"
         border.color: "#ffffff"; border.width: 2
         Text {
             anchors.centerIn: parent
             font.family: Theme.font; font.pixelSize: 15; font.weight: Font.Black
-            color: tile.kind === "game" ? Theme.ink(tile.game.sys) : "transparent"
-            text: tile.kind === "game" ? tile.game.sys.slice(0, 3).toUpperCase() : ""
+            color: tile.badged ? Theme.ink(tile.game.sys) : "transparent"
+            text: tile.badged ? tile.game.sys.slice(0, 3).toUpperCase() : ""
         }
     }
 }

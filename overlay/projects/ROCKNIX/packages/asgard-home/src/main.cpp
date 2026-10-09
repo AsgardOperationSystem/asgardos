@@ -6,6 +6,7 @@
 #include <QQuickWindow>
 #include <QTimer>
 
+#include "achievements.h"
 #include "backend.h"
 
 int main(int argc, char *argv[])
@@ -19,10 +20,12 @@ int main(int argc, char *argv[])
         qputenv("QT_QPA_PLATFORM", "wayland");
     QGuiApplication app(argc, argv);
     Backend backend(gameEnv);
-    Gamepad pad;
+    Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)
+    Achievements achievements(&backend);
     QQmlApplicationEngine engine;  // after backend/pad: destroyed first, so QML never sees them gone
     engine.rootContext()->setContextProperty("backend", &backend);
     engine.rootContext()->setContextProperty("pad", &pad);
+    engine.rootContext()->setContextProperty("achievements", &achievements);
     engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
     // QML from disk, not resources: the source tree in development, /usr/share/asgard-home/qml when installed.
     const QString qml = qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml");

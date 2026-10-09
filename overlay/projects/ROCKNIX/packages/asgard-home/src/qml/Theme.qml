@@ -19,6 +19,8 @@ QtObject {
     readonly property color tileRim: "#ebe9f7"
     readonly property color selA: "#47d1ff"
     readonly property color selB: "#8f7dff"
+    readonly property color goldA: "#ffd86b"          // trophies: earned / mastered
+    readonly property color goldB: "#f5a524"
     readonly property color tagBg: "#f4f4fb"
     readonly property color tagText: "#3a3b52"
 

@@ -6,7 +6,10 @@ import QtQuick.Effects
 Item {
     id: hero
     property var item
+    property string placeholder                                      // shown when nothing is selected (tab name)
     readonly property var game: item ? item.game : null
+    readonly property var ra: item && item.ra ? item.ra : null       // trophy game / achievement
+    readonly property var ach: item && item.ach ? item.ach : null    // one achievement
 
     onItemChanged: settle.restart()
     SequentialAnimation {
@@ -62,14 +65,16 @@ Item {
                     GradientStop { position: 1; color: "#d8101020" }
                 }
             }
-            Rectangle {
+            Rectangle {  // the cover, or an achievement's badge
                 visible: hero.game !== null
                 x: 56; anchors.bottom: parent.bottom; anchors.bottomMargin: 50
-                width: 250; height: 320; radius: 22; color: "#ffffff"
+                width: hero.ach ? 280 : 250; height: hero.ach ? 280 : 320; radius: 22
+                color: hero.ach && hero.ach.earned ? Theme.goldA : "#ffffff"
                 Image {
                     anchors.fill: parent; anchors.margins: 8; fillMode: Image.PreserveAspectCrop; asynchronous: true
-                    sourceSize: Qt.size(250, 320)
-                    source: hero.game ? (hero.game.cover || "") : ""
+                    sourceSize: Qt.size(280, 320)
+                    source: hero.ach ? (hero.ach.earned ? hero.ach.badge : hero.ach.badgeLocked)
+                                     : hero.game ? (hero.game.cover || (hero.ra ? hero.ra.icon : "")) : ""
                 }
             }
             Column {
@@ -79,13 +84,41 @@ Item {
                 Text {
                     width: parent.width; elide: Text.ElideRight
                     font.family: Theme.font; font.pixelSize: 60; font.weight: Font.Black; color: Theme.text
-                    text: hero.game ? hero.game.name : ""
+                    text: hero.ach ? hero.ach.title : hero.ra ? hero.ra.title : hero.game ? hero.game.name : ""
                 }
                 Text {
-                    width: parent.width; elide: Text.ElideRight
+                    width: parent.width; elide: Text.ElideRight; wrapMode: Text.WordWrap; maximumLineCount: 2
                     font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Bold; color: Theme.textDim
-                    text: hero.game ? [hero.game.sysName, hero.game.developer, hero.game.year].filter(s => s).join("  ·  ") : ""
+                    text: hero.ach ? hero.ach.description
+                        : hero.ra ? hero.ra.earned + " / " + hero.ra.total + " achievements  ·  " + hero.ra.points + " points"
+                        : hero.game ? [hero.game.sysName, hero.game.developer, hero.game.year].filter(s => s).join("  ·  ") : ""
                 }
+                Text {  // achievement: points and when it was unlocked
+                    visible: !!hero.ach
+                    font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Black
+                    color: hero.ach && hero.ach.earned ? Theme.goldA : Theme.textDim
+                    text: hero.ach ? hero.ach.points + " points  ·  " + (hero.ach.earned
+                          ? "Unlocked " + hero.ach.date + (hero.ach.hardcore ? "  ·  Hardcore" : "") : "Locked") : ""
+                }
+                Rectangle {  // trophy game: progress bar
+                    visible: !!hero.ra && !hero.ach
+                    width: parent.width; height: 18; radius: 9; color: "#44ffffff"
+                    Rectangle {
+                        height: parent.height; radius: 9
+                        width: hero.ra && hero.ra.total ? parent.width * hero.ra.earned / hero.ra.total : 0
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0; color: Theme.goldA }
+                            GradientStop { position: 1; color: Theme.goldB }
+                        }
+                    }
+                }
+            }
+            Text {
+                visible: !hero.item
+                anchors.centerIn: parent
+                font.family: Theme.font; font.pixelSize: 132; font.weight: Font.Black; font.letterSpacing: 6
+                color: "#7d74d6"; text: hero.placeholder.toUpperCase()
             }
             Column {
                 visible: hero.item && hero.item.kind === "system"
