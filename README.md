@@ -64,3 +64,4 @@ One merge request each; its description and commits say what was broken, why, an
 | Bottom screen rotation + window rules | The bottom panel was portrait; games opened on the wrong screen or half the screen. |
 | OLED idle blank | Burn-in protection: both screens off after 5 min without input. |
 | Battery logger | Measures sleep drain and records charging state (a not-charging-after-sleep case had no data). |
+| Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
