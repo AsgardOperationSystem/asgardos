@@ -1,0 +1,3 @@
+# From Thorch (thorch-os/thorch#19): the primary DWC3 controller otherwise stays
+# runtime-active and holds a 1 GB/s USB-to-DDR interconnect vote while idle.
+ACTION=="add", SUBSYSTEM=="platform", KERNEL=="a600000.usb", ATTR{power/control}="auto"
