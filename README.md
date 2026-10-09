@@ -102,6 +102,13 @@ sensors PD a HexagonFS root that isn't in the image (Android blobs + this unit's
 `vendor/lib/rfsa/adsp`, `odm/etc`, a writable copy of `persist/sensors`, `socinfo/`). The service starts only when
 it's there. Streaming the readings to games (steps 3–4) isn't done yet.
 
+**Moving from the current ROCKNIX install (one time, first Asgard boot):** the Thor already has a working root at
+`/storage/.config/thor/sensors/root2`. Copy it over, then start the service:
+```
+cp -a /storage/.config/thor/sensors/root2 /storage/.config/asgard/sensors-root
+systemctl start thor-sensorspd
+```
+
 ## Changes on top of ROCKNIX
 
 One merge request each; its description and commits say what was broken, why, and what changed.
