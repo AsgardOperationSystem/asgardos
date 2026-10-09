@@ -33,3 +33,4 @@ One merge request each; its description and commits say what was broken, why, an
 
 | Change | Why |
 |---|---|
+| ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. Delete `0000` once it merges. |
