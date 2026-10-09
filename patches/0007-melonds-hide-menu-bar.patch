@@ -1,0 +1,31 @@
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/config/nomenu.qss b/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/config/nomenu.qss
+new file mode 100644
+index 0000000000..d05921ff35
+--- /dev/null
++++ b/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/config/nomenu.qss
+@@ -0,0 +1 @@
++QMenuBar { max-height: 0px; min-height: 0px; border: 0px; padding: 0px; }
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/package.mk b/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/package.mk
+index 8ef0cd5dce..39806eaa3d 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/package.mk
++++ b/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/package.mk
+@@ -59,6 +59,7 @@ makeinstall_target() {
+   mkdir -p ${INSTALL}/usr/config/melonDS
+     cp -a ${PKG_DIR}/config/${DEVICE}/* ${INSTALL}/usr/config/melonDS
+     cp -a ${PKG_DIR}/config/melonDS.gptk ${INSTALL}/usr/config/melonDS
++    cp -a ${PKG_DIR}/config/nomenu.qss ${INSTALL}/usr/config/melonDS
+ }
+ 
+ post_install() {
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/scripts/start_melonds.sh b/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/scripts/start_melonds.sh
+index 42474b89a1..35d27fe004 100755
+--- a/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/scripts/start_melonds.sh
++++ b/projects/ROCKNIX/packages/emulators/standalone/melonds-sa/scripts/start_melonds.sh
+@@ -224,5 +224,6 @@ rm -rf "${CONF_DIR}/melonDS.toml"
+ 
+ #Run MelonDS emulator
+ $GPTOKEYB "melonDS" -c "${CONF_DIR}/melonDS.gptk" &
+-${EMUPERF} /usr/bin/melonDS -f "${ROM}"
++# Asgard: in two-window layouts melonDS shows its Qt menu bar on the window it does not fullscreen; hide it.
++${EMUPERF} /usr/bin/melonDS -f -stylesheet /usr/config/melonDS/nomenu.qss "${ROM}"
+ kill -9 "$(pidof gptokeyb)"
