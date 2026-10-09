@@ -12,9 +12,18 @@ PKG_TOOLCHAIN="manual"
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/share/asgard
   cp -r ${PKG_DIR}/sources/* ${INSTALL}/usr/share/asgard/
-  chmod 0755 ${INSTALL}/usr/share/asgard/*.py
+  chmod 0755 ${INSTALL}/usr/share/asgard/*.sh ${INSTALL}/usr/share/asgard/*.py
 
   mkdir -p ${INSTALL}/usr/lib/autostart/common
   cp ${PKG_DIR}/autostart/* ${INSTALL}/usr/lib/autostart/common/
   chmod 0755 ${INSTALL}/usr/lib/autostart/common/*-asgard-*
+
+  mkdir -p ${INSTALL}/usr/lib/systemd/system
+  cp ${PKG_DIR}/system.d/*.service ${INSTALL}/usr/lib/systemd/system/
+}
+
+post_install() {
+  for unit in thor-display-sleep; do
+    enable_service ${unit}.service
+  done
 }
