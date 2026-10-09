@@ -1,0 +1,10 @@
+[Unit]
+Description=AYN Thor battery logger (/storage/battery-log.csv, every 30 s)
+
+[Service]
+ExecStart=/usr/share/asgard/battery-log.sh
+Restart=on-failure
+Nice=19
+
+[Install]
+WantedBy=multi-user.target
