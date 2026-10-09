@@ -18,8 +18,9 @@ makeinstall_target() {
   cp ${PKG_DIR}/autostart/* ${INSTALL}/usr/lib/autostart/common/
   chmod 0755 ${INSTALL}/usr/lib/autostart/common/*-asgard-*
 
-  mkdir -p ${INSTALL}/usr/lib/systemd/system
+  mkdir -p ${INSTALL}/usr/lib/systemd/system/sway.service.d
   cp ${PKG_DIR}/system.d/*.service ${INSTALL}/usr/lib/systemd/system/
+  cp ${PKG_DIR}/system.d/asgard-rotate.conf ${INSTALL}/usr/lib/systemd/system/sway.service.d/
 }
 
 post_install() {
