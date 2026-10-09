@@ -1,0 +1,33 @@
+# Asgard OS personal config. Copy to asgard.yml (git-ignored), fill in, then either
+#   ./inject-config.sh <image> asgard.yml        or copy it to the card's FAT partition as asgard.yml.
+# At every boot each key is applied unless you changed that setting on the device: the device wins,
+# this file beats the image defaults. Keys are ROCKNIX system.cfg keys (wifi: ssid: X == wifi.ssid=X).
+# Quote values containing " #" or starting with a quote.
+
+wifi:
+  enabled: 1
+  ssid: MyNetwork
+  key: "my wifi password"
+
+system:
+  hostname: thor
+  timezone: Asia/Jerusalem
+
+"global.retroachievements": 1   # a key that also has children: write it dotted and quoted
+global:
+  retroachievements:
+    username: me
+    password: "ra password"
+
+screenscraper:            # used by the Asgard frontend's scraper
+  username: me
+  password: "screenscraper password"
+
+ssh:
+  enabled: 1
+  authorized_keys:        # appended to /storage/.ssh/authorized_keys (existing lines are kept)
+  - ssh-ed25519 AAAA... me@desktop
+
+asgard:
+  charge_limit: 80        # battery charge limit in %, 100 = off
+  cpu_cap: 1              # ~75 % CPU clock cap for battery/heat, 0 = off

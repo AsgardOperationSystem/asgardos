@@ -8,6 +8,7 @@ rocknix/      ROCKNIX distribution (submodule: branch next, shallow)
 patches/      changes to existing ROCKNIX files, applied in order with git apply
 overlay/      new files copied over the tree (kernel patches, quirks, packages)
 build.sh      prepare rocknix/ and build the image (./build.sh [prepare|upgrade])
+inject-config.sh  put your asgard.yml on an image's boot partition
 ```
 
 ## Building
@@ -26,6 +27,15 @@ cd asgardos && ./build.sh      # ROCKNIX's docker build of the SM8550 image -> r
 git add rocknix patches && git commit -m "ROCKNIX <date>"
 ./build.sh
 ```
+
+## Personal config: asgard.yml
+
+Nothing personal is built into the image. Wi-Fi, logins and SSH keys live in `asgard.yml` (start from
+`asgard.yml.example`; `asgard.yml` is git-ignored) on the boot partition (`/flash/asgard.yml`, or
+`/storage/.config/asgard/asgard.yml` after `installtointernal`). `./inject-config.sh <image> asgard.yml` puts it
+on a local copy of an image. At every boot each key is applied unless the setting was changed on the device:
+**image defaults < asgard.yml < the user's own changes**. Never build with ROCKNIX's `LOCAL_WIFI_SSID` /
+`LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` strips them).
 
 ## Changes on top of ROCKNIX
 
@@ -49,3 +59,4 @@ One merge request each; its description and commits say what was broken, why, an
 | No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
 | melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
 | asgard package + boot tuning (`0008`) | Hostname, USB autosuspend, charge limit, CPU clock cap at every boot. |
+| asgard.yml | ROCKNIX preconfigures Wi-Fi and keys by baking them into the image; Asgard keeps them in a file next to it. |

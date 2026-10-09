@@ -5,11 +5,15 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain"
+PKG_DEPENDS_TARGET="toolchain Python3"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
 makeinstall_target() {
+  mkdir -p ${INSTALL}/usr/share/asgard
+  cp -r ${PKG_DIR}/sources/* ${INSTALL}/usr/share/asgard/
+  chmod 0755 ${INSTALL}/usr/share/asgard/*.py
+
   mkdir -p ${INSTALL}/usr/lib/autostart/common
   cp ${PKG_DIR}/autostart/* ${INSTALL}/usr/lib/autostart/common/
   chmod 0755 ${INSTALL}/usr/lib/autostart/common/*-asgard-*

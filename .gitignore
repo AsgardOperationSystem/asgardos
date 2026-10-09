@@ -2,3 +2,4 @@ build.log
 *.img
 *.img.gz
 __pycache__/
+asgard.yml
