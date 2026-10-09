@@ -59,6 +59,7 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/usr/config/melonDS
     cp -a ${PKG_DIR}/config/${DEVICE}/* ${INSTALL}/usr/config/melonDS
     cp -a ${PKG_DIR}/config/melonDS.gptk ${INSTALL}/usr/config/melonDS
+    cp -a ${PKG_DIR}/config/nomenu.qss ${INSTALL}/usr/config/melonDS
 }
 
 post_install() {

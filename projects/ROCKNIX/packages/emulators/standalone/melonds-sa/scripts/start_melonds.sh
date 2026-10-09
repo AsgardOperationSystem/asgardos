@@ -224,5 +224,6 @@ rm -rf "${CONF_DIR}/melonDS.toml"
 
 #Run MelonDS emulator
 $GPTOKEYB "melonDS" -c "${CONF_DIR}/melonDS.gptk" &
-${EMUPERF} /usr/bin/melonDS -f "${ROM}"
+# Asgard: in two-window layouts melonDS shows its Qt menu bar on the window it does not fullscreen; hide it.
+${EMUPERF} /usr/bin/melonDS -f -stylesheet /usr/config/melonDS/nomenu.qss "${ROM}"
 kill -9 "$(pidof gptokeyb)"
