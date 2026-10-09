@@ -41,3 +41,4 @@ One merge request each; its description and commits say what was broken, why, an
 | USB autosuspend udev rule | The idle USB controller held a 1 GB/s USB→DDR bandwidth vote. |
 | smp2p sleepstate (`9000`, `0003`) | Experimental: Android tells the ADSP when the CPUs sleep; mainline doesn't. |
 | rsinput oversized RX (`1023`) | Gamepad dead after resume: handshake replies arrived in big chunks and were dropped. |
+| SD UHS-I SDR104 (`0004`) | A caps mask kept the SD card at 3.3 V high-speed: 16.6 MB/s. |
