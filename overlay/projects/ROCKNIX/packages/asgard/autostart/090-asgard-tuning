@@ -13,6 +13,13 @@ for u in /sys/bus/platform/devices/*.usb/power/control; do echo auto > "$u" 2>/d
 L=$(get_setting asgard.charge_limit)
 echo "${L:-80}" > /sys/class/power_supply/battery/charge_control_end_threshold 2>/dev/null
 
+# Steam: ROCKNIX's Steam system lists .desktop files, and Steam.desktop opens Steam itself (Big Picture). Steam
+# writes it only after it has run, so on a fresh install there was no Steam tile to start it from.
+if [ -x /usr/bin/start_steam.sh ] && [ ! -e /storage/.local/share/applications/Steam.desktop ]; then
+  mkdir -p /storage/.local/share/applications
+  printf '[Desktop Entry]\nType=Application\nName=Steam\nExec=steam\n' > /storage/.local/share/applications/Steam.desktop
+fi
+
 # A fixed fan speed (asgard.fan_manual) is applied by fancontrol.service itself (asgard-fan.sh).
 
 # CPU clock cap for battery + a cooler shell, ~75 % of each cluster's top. asgard.cpu_cap=0 turns it off.
