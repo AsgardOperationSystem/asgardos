@@ -84,6 +84,13 @@ int main(int argc, char *argv[])
     engine.load(QDir(qml).filePath("Main.qml"));
     if (engine.rootObjects().isEmpty())
         return 1;
+    // The windows hide while a game runs: keep their GL context and scene graph, so Home's in-game menu shows at once
+    // (rebuilding them took ~1.2 s, and a second Home press meanwhile closed the menu as it appeared).
+    for (QWindow *win : QGuiApplication::topLevelWindows())
+        if (auto *w = qobject_cast<QQuickWindow *>(win)) {
+            w->setPersistentGraphics(true);
+            w->setPersistentSceneGraph(true);
+        }
 #ifdef HAVE_LAYERSHELL
     // The OSD is a layer-shell overlay: above fullscreen games, no focus, no input (before it's first shown).
     for (QWindow *win : QGuiApplication::topLevelWindows())
