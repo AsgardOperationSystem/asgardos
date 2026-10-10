@@ -5,7 +5,7 @@ PKG_NAME="asgard-home"
 PKG_VERSION="0.1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain qt6"
+PKG_DEPENDS_TARGET="toolchain qt6 es-theme-art-book-next"  # system artwork + logos
 PKG_LONGDESC="Asgard Home: iiSU-style dual-screen game frontend"
 PKG_TOOLCHAIN="cmake"
 

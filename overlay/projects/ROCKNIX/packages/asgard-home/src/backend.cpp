@@ -76,7 +76,7 @@ void Backend::scan()
             sys.clear();
         } else if (x.isStartElement() && (x.name() == u"name" || x.name() == u"fullname" || x.name() == u"path" ||
                                           x.name() == u"extension" || x.name() == u"manufacturer" ||
-                                          x.name() == u"release")) {
+                                          x.name() == u"release" || x.name() == u"theme")) {
             sys[x.name().toString()] = text(x);
         } else if (x.isStartElement() && x.name() == u"emulator") {
             const QString emu = x.attributes().value("name").toString();
@@ -134,7 +134,14 @@ void Backend::scan()
                 return a.toMap()["name"].toString().compare(b.toMap()["name"].toString(), Qt::CaseInsensitive) < 0;
             });
             sys["count"] = games.size();
-            sys["cover"] = games.first().toMap()["shot"];  // a picture for the system card until we have system art
+            sys["cover"] = games.first().toMap()["shot"];  // fallback picture when the theme has no art
+            // System artwork + white logo from ROCKNIX's Art Book Next theme (es-theme-art-book-next), by <theme>.
+            const QString art = path("/usr/share/themes/es-theme-art-book-next/_inc/systems/");
+            const QString theme = sys.value("theme", name).toString();
+            if (QFile::exists(art + "artwork-default/" + theme + ".png"))
+                sys["art"] = QUrl::fromLocalFile(art + "artwork-default/" + theme + ".png").toString();
+            if (QFile::exists(art + "logos/" + theme + ".svg"))
+                sys["logo"] = QUrl::fromLocalFile(art + "logos/" + theme + ".svg").toString();
             m_games[name] = games;
             m_systems << sys;
         }
@@ -208,8 +215,17 @@ void Backend::launch(const QVariantMap &game)
         return;
     }
     // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys), default core for the system.
+    run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; "
+        "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
+        "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
+        {rom, sys, game["core"].toString(), game["emulator"].toString()}, m_gameEnv);
+}
+
+// Run a game or tool in place of the frontend: our windows hide (playing), the pad is ignored until it exits.
+void Backend::run(const QString &script, const QStringList &args, const QProcessEnvironment &env)
+{
     m_game = new QProcess(this);
-    m_game->setProcessEnvironment(m_gameEnv);
+    m_game->setProcessEnvironment(env);
     m_game->setProcessChannelMode(QProcess::ForwardedChannels);
     connect(m_game, &QProcess::finished, this, [this] {
         m_game->deleteLater();
@@ -217,16 +233,13 @@ void Backend::launch(const QVariantMap &game)
         readPlaytime();
         emit playingChanged();
     });
-    m_game->start("/bin/bash", {"-c",
+    m_game->start("/bin/bash", QStringList{"-c",
         // Our windows are hidden by now, but sway's focus may still be on the bottom screen (our bottom window
-        // maps last), and a new window opens on the focused output: focus the top screen, or the game lands on
-        // the bottom panel. Then the bottom panel goes dark unless the game opens a window there (ROCKNIX's
+        // maps last), and a new window opens on the focused output: focus the top screen, or it lands on the
+        // bottom panel. Then the bottom panel goes dark unless the program opens a window there (ROCKNIX's
         // "Secondary"/"[w2]"/"Bottom" sway rules move it there and power the panel back on).
-        "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; "
-        "python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; "
-        "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
-        "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
-        "run", rom, sys, game["core"].toString(), game["emulator"].toString()});
+        "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; " + script,
+        "run"} + args);
     emit playingChanged();
 }
 

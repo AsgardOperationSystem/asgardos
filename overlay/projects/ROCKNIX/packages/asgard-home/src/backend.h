@@ -45,6 +45,7 @@ private:
     void scan();
     void readPlaytime();
     void readStatus();
+    void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
     QString path(const QString &p) const { return m_root + p; }
 
     QString m_root;

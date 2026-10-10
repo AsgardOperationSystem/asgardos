@@ -105,15 +105,33 @@ Item {
                 text: tile.kind === "ach" ? tile.item.ach.points : ""
             }
         }
-        // system: faint screenshot watermark + the system's name in its ink colour
+        // system: Art Book Next artwork with the white logo over a dark fade; the name in its ink colour if no art
+        readonly property bool sysArt: tile.kind === "system" && !!tile.item.sys.art
         Image {
             visible: tile.kind === "system"
-            anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; opacity: 0.16
-            sourceSize: Qt.size(320, 320)
-            source: !tile.near ? "" : tile.kind === "system" ? (tile.item.sys.cover || "") : ""
+            anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true
+            opacity: face.sysArt ? 1 : 0.16
+            sourceSize: Qt.size(320, 0)
+            source: !tile.near ? "" : tile.kind === "system" ? (tile.item.sys.art || tile.item.sys.cover || "") : ""
+        }
+        Rectangle {
+            visible: face.sysArt
+            anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom; height: parent.height * 0.55
+            gradient: Gradient {
+                GradientStop { position: 0; color: "#00101020" }
+                GradientStop { position: 1; color: "#e0101020" }
+            }
+        }
+        Image {
+            visible: face.sysArt && !!tile.item.sys.logo
+            anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
+            anchors.margins: 22; height: parent.height * 0.3
+            fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true
+            sourceSize: Qt.size(400, 0)
+            source: !tile.near ? "" : (visible ? tile.item.sys.logo : "")
         }
         Text {
-            visible: tile.kind === "system"
+            visible: tile.kind === "system" && !(face.sysArt && tile.item.sys.logo)
             anchors.fill: parent; anchors.margins: 18
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             wrapMode: Text.WordWrap; fontSizeMode: Text.Fit; minimumPixelSize: 26; font.pixelSize: 58

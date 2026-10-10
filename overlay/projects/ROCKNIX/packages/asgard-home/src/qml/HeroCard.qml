@@ -53,11 +53,11 @@ Item {
             Image {
                 anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true
                 sourceSize: Qt.size(1150, 650)
-                opacity: hero.game ? 0.9 : 0.22
-                source: hero.game ? (hero.game.shot || hero.game.cover) : (hero.item && hero.item.sys ? hero.item.sys.cover || "" : "")
+                opacity: hero.game ? 0.9 : hero.item && hero.item.sys && hero.item.sys.art ? 0.55 : 0.22
+                source: hero.game ? (hero.game.shot || hero.game.cover) : (hero.item && hero.item.sys ? hero.item.sys.art || hero.item.sys.cover || "" : "")
             }
             Rectangle {  // readable lower third over game art
-                visible: hero.game !== null
+                visible: !!hero.game
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                 height: parent.height * 0.55
                 gradient: Gradient {
@@ -66,7 +66,7 @@ Item {
                 }
             }
             Rectangle {  // the cover, or an achievement's badge
-                visible: hero.game !== null
+                visible: !!hero.game
                 x: 56; anchors.bottom: parent.bottom; anchors.bottomMargin: 50
                 width: hero.ach ? 280 : 250; height: hero.ach ? 280 : 320; radius: 22
                 color: hero.ach && hero.ach.earned ? Theme.goldA : "#ffffff"
@@ -78,7 +78,7 @@ Item {
                 }
             }
             Column {
-                visible: hero.game !== null
+                visible: !!hero.game
                 x: 340; anchors.bottom: parent.bottom; anchors.bottomMargin: 56; spacing: 6
                 width: parent.width - x - 60
                 Text {
@@ -123,7 +123,18 @@ Item {
             Column {
                 visible: hero.item && hero.item.kind === "system"
                 anchors.centerIn: parent; spacing: 4
+                Image {  // the system's logo (white, from Art Book Next) with a soft shadow
+                    id: sysLogo
+                    visible: !!(hero.item && hero.item.sys && hero.item.sys.logo)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 760; height: 230; fillMode: Image.PreserveAspectFit; smooth: true
+                    sourceSize: Qt.size(1520, 0)
+                    source: visible ? hero.item.sys.logo : ""
+                    layer.enabled: visible
+                    layer.effect: MultiEffect { shadowEnabled: true; shadowColor: "#3b3a66"; shadowBlur: 0.6; shadowOpacity: 0.8 }
+                }
                 Text {
+                    visible: !sysLogo.visible
                     anchors.horizontalCenter: parent.horizontalCenter
                     font.family: Theme.font; font.pixelSize: 132; font.weight: Font.Black; font.letterSpacing: 6
                     color: hero.item && hero.item.sys ? Theme.ink(hero.item.sys.name) : "transparent"
@@ -131,12 +142,14 @@ Item {
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.family: Theme.font; font.pixelSize: 44; font.weight: Font.ExtraBold; color: "#3b3a66"
+                    font.family: Theme.font; font.pixelSize: 44; font.weight: Font.ExtraBold
+                    color: sysLogo.visible ? Theme.text : "#3b3a66"; style: sysLogo.visible ? Text.Raised : Text.Normal; styleColor: "#80000000"
                     text: hero.item && hero.item.sys ? hero.item.sys.fullname : ""
                 }
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Bold; color: "#5b5a88"
+                    font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Bold
+                    color: sysLogo.visible ? Theme.textDim : "#5b5a88"; style: sysLogo.visible ? Text.Raised : Text.Normal; styleColor: "#80000000"
                     text: hero.item && hero.item.sys ? hero.item.sys.count + " games" : ""
                 }
             }
