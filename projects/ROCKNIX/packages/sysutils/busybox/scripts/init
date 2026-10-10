@@ -902,7 +902,15 @@ check_update() {
   mkdir -p ${UPDATE_DIR}/.tmp/avfs &>/dev/null
   sync
 
-  clear >/dev/console
+  # Asgard: the logo with a progress bar (SPLASH_BAR, see functions) instead of the installer's text.
+  if [ -x /usr/bin/rocknix-splash ]; then
+    export SPLASH_BAR=yes
+    exec >/dev/null 2>&1
+    /usr/bin/rocknix-splash
+    /usr/bin/rocknix-splash --bar -1 0
+  else
+    clear >/dev/console
+  fi
   echo "UPDATE IN PROGRESS"
   echo ""
   echo "Please do not reboot or turn off your device!"
