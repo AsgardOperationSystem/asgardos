@@ -39,4 +39,9 @@ grep -q '^# asgard-assign' "$C" || printf '%s\n' '# asgard-assign' \
   'assign [title="^Asgard Home \(Bottom\)$"] output DSI-1' >> "$C"
 # Thor Panel opens over Asgard Home's fullscreen bottom window; tiled, it sat half-width behind it, unseen (2026-10-10).
 grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title="^Thor Panel"] fullscreen enable' >> "$C"
+# Bottom touchscreen: it already reports landscape coordinates (0-1239 x 0-1079), but sway turns touch input with
+# the output it's mapped to, and DSI-1 is rotated 90: taps landed rotated (tapping DS opened Music Player). This
+# matrix turns it back, the same one ROCKNIX gives the top touchscreen. Measured from raw vs delivered taps, 2026-10-10.
+sed -i '/^# thor-touch$/,+1d' "$C"   # an older block with a wrong matrix (2026-10-10) must not stay
+printf '%s\n' '# thor-touch' 'input "0:0:bottom_touchscreen" calibration_matrix 0 -1 1 1 0 0' >> "$C"
 exit 0
