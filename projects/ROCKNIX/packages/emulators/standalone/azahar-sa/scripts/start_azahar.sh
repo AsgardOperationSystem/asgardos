@@ -98,6 +98,16 @@ case "${CUSTOM_TEXTURES}" in
   *) sed -i '/^custom_textures=/c\custom_textures=true' ${CONF_FILE};;
 esac
 
+# Motion: the Thor's gyro (asgard-motiond, a DSU server on 127.0.0.1:26760) while it runs, else Azahar's own
+# mouse-tilt emulation
+if systemctl -q is-active asgard-motiond; then
+  sed -i '/^profiles\\1\\motion_device=/c\profiles\\1\\motion_device="engine:cemuhookudp"' ${CONF_FILE}
+  sed -i '/^profiles\\1\\motion_device\\default=/c\profiles\\1\\motion_device\\default=false' ${CONF_FILE}
+else
+  sed -i '/^profiles\\1\\motion_device=/c\profiles\\1\\motion_device="engine:motion_emu,update_period:100,sensitivity:0.01,tilt_clamp:90.0"' ${CONF_FILE}
+  sed -i '/^profiles\\1\\motion_device\\default=/c\profiles\\1\\motion_device\\default=true' ${CONF_FILE}
+fi
+
 # Resolution Scale - default to Native 3DS
 sed -i '/^resolution_factor\\default=/c\resolution_factor\\default=false' ${CONF_FILE}
 
