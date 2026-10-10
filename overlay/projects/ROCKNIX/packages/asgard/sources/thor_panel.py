@@ -416,7 +416,7 @@ def activate(key, st):
 # --- main loop --------------------------------------------------------------------------------------------------
 def main():
     run_cmd(f"swaymsg '{HOME_BOTTOM_Q} move container to workspace thor-park'")
-    ui = sdlui.UI("Thor Panel (Bottom)", display=1)
+    ui = sdlui.UI("Thor Panel (Bottom)", display=1, grab_pad=True)  # the pad drives only the panel while it's open
     cv = Canvas(ui)
     st = load_state()
     st.setdefault("hz", 120)

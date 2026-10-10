@@ -8,7 +8,9 @@ Buttons follow the Thor's printed Nintendo layout as InputPlumber reports it pos
 physical A = SDL "b" (east) confirms, physical B = SDL "a" (south) goes back (matches ES-DE on this Thor).
 """
 import ctypes as C
+import fcntl
 import os
+import struct
 import subprocess
 import time
 
@@ -28,6 +30,9 @@ BTN = {0: "south", 1: "east", 2: "west", 3: "north", 4: "select", 6: "start", 9:
        11: "up", 12: "down", 13: "left", 14: "right"}
 ACTION = {"east": "a", "south": "b", "north": "x", "west": "y", "up": "up", "down": "down",
           "left": "left", "right": "right", "start": "start", "select": "select", "l1": "pageup", "r1": "pagedown"}
+# evdev codes of InputPlumber's virtual DualSense (positional, so east is the Thor's A), for grab_pad.
+PAD_NAME = "Sony Interactive Entertainment DualSense Wireless Controller"
+EV_BTN = {305: "east", 304: "south", 307: "north", 308: "west", 314: "select", 315: "start", 310: "l1", 311: "r1"}
 KEYS = {1073741906: "up", 1073741905: "down", 1073741904: "left", 1073741903: "right",
         13: "a", 8: "b", 27: "b", 9: "x"}  # keyboard, for testing over SSH
 
@@ -96,7 +101,7 @@ GLYPH = {"a": "help/button_a_switch.svg", "b": "help/button_b_switch.svg", "x": 
 
 
 class UI:
-    def __init__(self, title="Thor Settings", display=0):
+    def __init__(self, title="Thor Settings", display=0, grab_pad=False):
         bg_png = None
         if display == 0 and os.environ.get("WAYLAND_DISPLAY"):
             # Backdrop like ES-DE's menu: what was on screen, tiny (blur-by-upscale), captured before our window maps.
@@ -143,6 +148,9 @@ class UI:
         self.last_action = None
         self.touch = None  # (x, y) in window pixels of the last tap, when poll() returns "touch"
         self.ev = C.create_string_buffer(64)
+        # grab_pad: take the pad for ourselves (EVIOCGRAB) so the frontend and the running game don't also act on
+        # the presses meant for this window; we then read it from evdev, as SDL no longer sees it. Released on exit.
+        self.pad_fd = open_pad_grabbed() if grab_pad else None
         self.bg = None
         if bg_png and os.path.exists(bg_png):
             surf = img.IMG_Load(bg_png.encode())
@@ -265,6 +273,9 @@ class UI:
     # --- input -----------------------------------------------------------------------------------------------------
     def poll(self):
         """Return the next action ('a', 'b', 'up', ...) or None. Held d-pad/stick repeats."""
+        act = self._poll_pad()
+        if act:
+            return act
         ev = self.ev
         while sdl.SDL_PollEvent(ev):
             t = C.cast(ev, C.POINTER(C.c_uint32))[0]
@@ -302,6 +313,27 @@ class UI:
         if self.held and time.monotonic() >= self.held[1]:
             self.held = (self.held[0], time.monotonic() + REPEAT_RATE)
             return self.held[0]
+        return None
+
+    def _poll_pad(self):
+        while self.pad_fd is not None:
+            try:
+                data = os.read(self.pad_fd, 24)
+            except BlockingIOError:
+                return None
+            except OSError:  # pad gone (InputPlumber restarted): fall back to SDL's events
+                self.pad_fd = None
+                return None
+            _, _, etype, code, value = struct.unpack("llHHi", data)
+            if etype == 1 and value == 1 and code in EV_BTN:
+                return ACTION[EV_BTN[code]]
+            if etype == 3 and code in (16, 17):  # ABS_HAT0X / ABS_HAT0Y: the d-pad
+                if value == 0:
+                    self.held = None
+                    continue
+                act = {(16, -1): "left", (16, 1): "right", (17, -1): "up", (17, 1): "down"}[(code, value)]
+                self.held = (act, time.monotonic() + REPEAT_DELAY)
+                return act
         return None
 
     def wait(self):
@@ -459,6 +491,24 @@ class UI:
                 return s
             elif a in ("b", "quit"):
                 return None
+
+
+def open_pad_grabbed():
+    """The virtual pad's evdev node, opened non-blocking and grabbed (None if it isn't there)."""
+    name = None
+    try:
+        for line in open("/proc/bus/input/devices"):
+            if line.startswith("N: Name="):
+                name = line[9:].strip().strip('"')
+            elif line.startswith("H: Handlers=") and name == PAD_NAME:
+                ev = next((h for h in line[12:].split() if h.startswith("event")), None)
+                if ev:
+                    fd = os.open("/dev/input/" + ev, os.O_RDONLY | os.O_NONBLOCK)
+                    fcntl.ioctl(fd, 0x40044590, 1)  # EVIOCGRAB
+                    return fd
+    except OSError:
+        pass
+    return None
 
 
 def run_cmd(cmd, timeout=60):
