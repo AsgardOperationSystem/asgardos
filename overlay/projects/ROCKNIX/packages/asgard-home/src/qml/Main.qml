@@ -112,12 +112,12 @@ QtObject {
     function setTab(t) {
         tab = t; stack = []; items = tabItems(t); sel = 0
     }
-    // Bottom touchscreen: tap selects, tapping the selected tile opens it (like A).
+    // Bottom touchscreen: a tap opens the tile, like moving there and pressing A.
     function tap(i) {
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }
-        if (i === sel) nav("a")
-        else sel = i
+        sel = i
+        nav("a")
     }
 
     function key(event) {
