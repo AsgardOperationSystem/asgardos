@@ -59,6 +59,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("pad", &pad);
     engine.rootContext()->setContextProperty("achievements", &achievements);
     engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
+    engine.rootContext()->setContextProperty("debugInput", qEnvironmentVariableIsSet("ASGARD_DEBUG_INPUT"));
     // QML from disk, not resources: the source tree in development, /usr/share/asgard-home/qml when installed.
     const QString qml = qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml");
     engine.load(QDir(qml).filePath("Main.qml"));

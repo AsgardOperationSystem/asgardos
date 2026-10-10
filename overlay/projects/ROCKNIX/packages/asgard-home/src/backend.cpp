@@ -25,6 +25,7 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     scan();
     readPlaytime();
     readStatus();
+    topScreenOn();
     auto *t = new QTimer(this);
     connect(t, &QTimer::timeout, this, &Backend::readStatus);
     t->start(30000);
@@ -194,6 +195,16 @@ void Backend::readStatus()
     }
 }
 
+// The top panel can be left off when the frontend (re)starts or comes back after a game/tool while the screens
+// were off: ROCKNIX's "Bottom" sway rule powers the bottom panel back on when our bottom window maps, nothing
+// powered the top one, and the top screen stayed dark. The frontend owns both panels while it is shown.
+void Backend::topScreenOn()
+{
+    m_screensOff = false;
+    QProcess::startDetached("swaymsg", {"output DSI-2 power on"});
+    emit screensOffChanged();
+}
+
 // Both OLED panels off (pixels dark, the frontend keeps running and reading the pad) or back on.
 void Backend::setScreensOff(bool off)
 {
@@ -252,6 +263,7 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         m_game->deleteLater();
         m_game = nullptr;
         readPlaytime();
+        topScreenOn();
         emit playingChanged();
     });
     m_game->start("/bin/bash", QStringList{"-c",
