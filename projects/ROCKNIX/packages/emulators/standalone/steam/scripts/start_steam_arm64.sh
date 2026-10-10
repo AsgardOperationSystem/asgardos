@@ -14,6 +14,9 @@ set_kill set "gamescope steam FEX"
 
 steam_ensure_fex_config_template
 steam_prepare_storage_and_vdf
+# Asgard: the pad's Steam settings survive InputPlumber's per-boot serial; art for the installed games.
+/usr/share/asgard/steam-pad-prefs.sh
+( python3 /usr/share/asgard/steam-art.py >/var/log/steam-art.log 2>&1 & )
 steam_load_es_thunk_settings "$@"
 steam_apply_lsfg_settings
 steam_apply_fps_limit
