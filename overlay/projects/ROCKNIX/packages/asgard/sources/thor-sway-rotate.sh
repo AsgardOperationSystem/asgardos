@@ -31,4 +31,10 @@ grep -q '^# thor-fullscreen' "$C" || printf '%s\n' '# thor-fullscreen' \
   'for_window [app_id="^(?!lowerdeck$).*" title="^(?!.*(Secondary|\[w2\]|Sub|Bottom|Screen 2|GamePad)).*"] fullscreen enable' >> "$C"
 # Asgard Home's bottom window: ROCKNIX's "Bottom" rules move it to DSI-1 and power the panel on; fill it.
 grep -q '^# asgard-bottom' "$C" || printf '%s\n' '# asgard-bottom' 'for_window [title="^Asgard Home \(Bottom\)$"] fullscreen enable' >> "$C"
+# Each Asgard Home window on its own panel, every time it maps (start, and after every game/tool, when it is
+# shown again). A new window otherwise opens on the focused output: with focus on the bottom screen the top
+# window landed on DSI-1 behind the bottom one, and the top screen stayed dark (2026-10-10).
+grep -q '^# asgard-assign' "$C" || printf '%s\n' '# asgard-assign' \
+  'assign [title="^Asgard Home$"] output DSI-2' \
+  'assign [title="^Asgard Home \(Bottom\)$"] output DSI-1' >> "$C"
 exit 0
