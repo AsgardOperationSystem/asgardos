@@ -1,0 +1,25 @@
+Splash on /dev/fb0: the whole buffer, turned like sway
+
+The Thor's fbdev buffer is the top panel's 1080x1920 but reports the shared
+1080x1240, so the logo and the update bar sat at one end of the top panel,
+and unrotated. Draw on the whole buffer and rotate 90 as the KMS path does.
+
+--- a/main.c
++++ b/main.c
+@@ -174,9 +174,14 @@
+         fprintf(stderr, "Failed to initialize framebuffer\n");
+         return 1;
+     }
+-    // A KMS buffer is in the panel's native orientation. The Thor's panels are portrait-native but mounted
++    // /dev/fb0 on the Thor is allocated at the largest panel (the top one, 1080x1920) but reports the size the panels
++    // share (1080x1240); each panel scans it from the corner. Draw on all of it, so the picture is centred on the top
++    // panel, where the splash and update bar are meant to be (not a double buffer: that would be twice the height).
++    if (!fb->map && fb->vinfo.yres_virtual > fb->vinfo.yres && fb->vinfo.yres_virtual < 2 * fb->vinfo.yres)
++        fb->vinfo.yres = fb->vinfo.yres_virtual;
++    // Either buffer is in the panel's native orientation. The Thor's panels are portrait-native but mounted
+     // landscape with no rotation in the device tree; sway turns them with "transform 90", so do the same.
+-    if (fb->map && !rotation && fb->vinfo.yres > fb->vinfo.xres)
++    if (!rotation && fb->vinfo.yres > fb->vinfo.xres)
+         rotation = 90;
+ 
+     // Calculate display parameters
