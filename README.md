@@ -51,6 +51,9 @@ live from bind-mounted dev builds before they reach an image.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
   help is unmeasured.
 - Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
+- **Steam (TODO):** dropped from the image because FEX's thunks don't build (see below). Look into running Steam
+  again, or Valve's SteamOS client ("Steam as an app") on ARM under FEX, as reported but not yet checked; what Valve
+  ships for ARM64 decides whether that's practical on the Thor.
 
 ### Known broken / limitations
 - **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %. Thor Settings →
