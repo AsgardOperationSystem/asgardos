@@ -13,6 +13,7 @@ QtObject {
     property var items: homeItems()
     property int sel: 0
     property var pendingRa: null             // trophy game whose achievement list is being fetched
+    property bool swapped: backend.getSetting("asgard.swap_screens", "0") === "1"   // Y: the grid on the top screen
     property bool details: false             // Select: the top card shows the selection's details
     readonly property var current: items.length ? items[Math.min(sel, items.length - 1)] : null
     readonly property var cells: layout(items)
@@ -68,10 +69,10 @@ QtObject {
                       ? (bottom.settingsPanel.open ? "back" : "open") : "move")
         if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
-        if (b === "start") { bottom.settingsPanel.show(); return }
+        if (b === "start") { if (current && current.game) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
         if (b === "guide") { bottom.settingsPanel.showPower(); return }   // Home (in a game it opens the game menu)
         if (b === "select") { details = !details; return }
-        if (b === "y" && current && current.game) { bottom.settingsPanel.showGame(current.game); return }
+        if (b === "y") { swapScreens(); return }
         if (b === "b" && details) { details = false; return }
         const c = cells[sel]
         if (b === "left" && sel > 0) sel--
@@ -114,6 +115,15 @@ QtObject {
         }
     }
 
+    // The two windows trade titles, and so screens: sway's assign rules place them by title whenever they map
+    // (after every game), and they are moved now. The choice survives restarts (asgard.swap_screens).
+    function swapScreens() {
+        swapped = !swapped
+        backend.setSetting("asgard.swap_screens", swapped ? "1" : "")
+        backend.shell("sleep 0.3; swaymsg '[title=\"^Asgard Home$\"] move container to output DSI-2, fullscreen enable';"
+                      + " swaymsg '[title=\"^Asgard Home .Bottom.$\"] move container to output DSI-1, fullscreen enable'")
+    }
+
     function setTab(t) {
         tab = t; stack = []; items = tabItems(t); sel = 0
     }
@@ -139,158 +149,185 @@ QtObject {
 
     // --- top screen -----------------------------------------------------------------------------------------
     property Window top: Window {
-        title: "Asgard Home"
+        title: app.swapped ? "Asgard Home (Bottom)" : "Asgard Home"   // sway places our windows by title
         width: 1920; height: 1080; color: "#0b0c14"
         visible: !shotMode && !backend.playing
 
-        Backdrop { anchors.fill: parent; source: app.art }
+        // Everything is laid out for this panel (1920x1080) and scaled to fit the screen the window is on
+        // (Y swaps the screens: the 1920-wide design then shows on the other panel).
         Item {
-            anchors.fill: parent; focus: true
-            Keys.onPressed: event => app.key(event)
-        }
+            id: topStage
+            width: 1920; height: 1080; anchors.centerIn: parent
+            scale: Math.min(parent.width / width, parent.height / height)
 
-        // status: who / where (left), time · date · battery (right)
-        Pill {
-            x: -60; y: 62; width: 660; height: 96
-            Text {
-                x: 100; anchors.verticalCenter: parent.verticalCenter
-                font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: Theme.text
-                text: "●  " + backend.hostname
+            Backdrop { anchors.fill: parent; source: app.art }
+            Item {
+                anchors.fill: parent; focus: true
+                Keys.onPressed: event => app.key(event)
             }
-        }
-        Pill {
-            x: parent.width - width + 60; y: 62; width: statusRow.implicitWidth + 140; height: 96
-            Row {
-                id: statusRow
-                x: 50; anchors.verticalCenter: parent.verticalCenter; spacing: 22
-                property date now: new Date()
-                Timer { interval: 1000; running: true; repeat: true; onTriggered: statusRow.now = new Date() }
+
+            // status: who / where (left), time · date · battery (right)
+            Pill {
+                x: -60; y: 62; width: 660; height: 96
                 Text {
+                    x: 100; anchors.verticalCenter: parent.verticalCenter
                     font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: Theme.text
-                    text: Qt.formatTime(statusRow.now, "hh:mm") + "  |  " + Qt.formatDate(statusRow.now, "MM/dd") +
-                          (backend.battery >= 0 ? "  |  " + backend.battery + "%" : "")
-                }
-                Battery {
-                    visible: backend.battery >= 0; anchors.verticalCenter: parent.verticalCenter
-                    level: backend.battery; charging: backend.charging
+                    text: "●  " + backend.hostname
                 }
             }
-        }
-
-        PointHandler {
-            enabled: debugInput; target: null
-            acceptedDevices: PointerDevice.AllDevices
-            onActiveChanged: if (active) console.log("input: TOP", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
-                                                     Math.round(point.position.x), Math.round(point.position.y))
-        }
-        HeroCard {
-            x: 385; y: 232; width: 1150; height: 650
-            item: app.current
-            details: app.details
-            placeholder: ["Home", "Games", "Trophies"][app.tab]
-        }
-
-        Pill {
-            x: parent.width - width + 60; y: 984; width: hints.implicitWidth + 130; height: 92
-            Row {
-                id: hints
-                x: 40; anchors.verticalCenter: parent.verticalCenter; spacing: 30
-                Hint {
-                    visible: !!app.current && app.current.kind !== "ach"
-                    glyph: "A"; label: app.current && (app.current.kind === "system" || app.current.kind === "ra") ? "Open" : "Play"
+            Pill {
+                x: parent.width - width + 60; y: 62; width: statusRow.implicitWidth + 140; height: 96
+                Row {
+                    id: statusRow
+                    x: 50; anchors.verticalCenter: parent.verticalCenter; spacing: 22
+                    property date now: new Date()
+                    Timer { interval: 1000; running: true; repeat: true; onTriggered: statusRow.now = new Date() }
+                    Text {
+                        font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: Theme.text
+                        text: Qt.formatTime(statusRow.now, "hh:mm") + "  |  " + Qt.formatDate(statusRow.now, "MM/dd") +
+                              (backend.battery >= 0 ? "  |  " + backend.battery + "%" : "")
+                    }
+                    Battery {
+                        visible: backend.battery >= 0; anchors.verticalCenter: parent.verticalCenter
+                        level: backend.battery; charging: backend.charging
+                    }
                 }
-                Hint { glyph: "B"; label: "Back" }
-                Hint { glyph: "X"; label: "Screens off" }
-                Hint { glyph: "−"; label: "Details" }
-                Hint { visible: !!app.current && !!app.current.game; glyph: "Y"; label: "Game settings" }
-                Hint { glyph: "+"; label: "Settings"; onTapped: { backend.sound("open"); bottom.settingsPanel.show() } }
-                Hint { icon: "glyph-home"; label: "Power"; onTapped: { backend.sound("open"); bottom.settingsPanel.showPower() } }
+            }
+
+            PointHandler {
+                enabled: debugInput; target: null
+                acceptedDevices: PointerDevice.AllDevices
+                onActiveChanged: if (active) console.log("input: TOP", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
+                                                         Math.round(point.position.x), Math.round(point.position.y))
+            }
+            HeroCard {
+                x: 385; y: 232; width: 1150; height: 650
+                item: app.current
+                details: app.details
+                placeholder: ["Home", "Games", "Trophies"][app.tab]
+            }
+
+            Pill {
+                x: parent.width - width + 60; y: 984; width: hints.implicitWidth + 130; height: 92
+                Row {
+                    id: hints
+                    x: 40; anchors.verticalCenter: parent.verticalCenter; spacing: 30
+                    Hint {
+                        visible: !!app.current && app.current.kind !== "ach"
+                        glyph: "A"; label: app.current && (app.current.kind === "system" || app.current.kind === "ra") ? "Open" : "Play"
+                    }
+                    Hint { glyph: "B"; label: "Back" }
+                    Hint { glyph: "X"; label: "Screens off" }
+                    Hint { glyph: "−"; label: "Details" }
+                    Hint { glyph: "Y"; label: "Swap"; onTapped: app.swapScreens() }
+                    Hint { glyph: "+"; label: app.current && app.current.game ? "Game settings" : "Settings"
+                           onTapped: { backend.sound("open"); app.nav("start") } }
+                    Hint { icon: "glyph-home"; label: "Power"; onTapped: { backend.sound("open"); bottom.settingsPanel.showPower() } }
+                }
             }
         }
     }
 
     // --- bottom screen --------------------------------------------------------------------------------------
     property Window bottom: Window {
-        title: "Asgard Home (Bottom)"
+        title: app.swapped ? "Asgard Home" : "Asgard Home (Bottom)"
         width: 1240; height: 1080; color: "#0b0c14"
         visible: !shotMode && (!backend.playing || backend.gameMenu)  // the in-game menu shows here
-
-        Backdrop { anchors.fill: parent; source: app.art; dim: 0.62 }
-        Item {
-            anchors.fill: parent; focus: true
-            Keys.onPressed: event => app.key(event)
-        }
-
-        Dock { x: 10; y: 28; current: app.tab; onTabTapped: index => app.setTab(index) }
-        // ASGARD_DEBUG_INPUT: log every touch/pointer press the bottom window receives (passive, blocks nothing).
-        Component.onCompleted: if (debugInput) console.log("input: debug logging on (bottom window)")
-        PointHandler {
-            enabled: debugInput; target: null
-            acceptedDevices: PointerDevice.AllDevices
-            onActiveChanged: if (active) console.log("input:", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
-                                                     Math.round(point.position.x), Math.round(point.position.y))
-        }
-
-        Rectangle {  // the glass panel holding the grid
-            id: panel
-            x: 0; y: 214; width: parent.width; height: parent.height - y + 60; radius: 48
-            color: Theme.panel; border.color: Theme.panelRim; border.width: 3
-            clip: true
-
-            readonly property int pad: 46
-            readonly property int tile: 253
-            readonly property int gap: 44
-
-            Flickable {
-                id: flick
-                anchors.fill: parent; interactive: false
-                contentHeight: (app.cells.length ? app.cells[app.cells.length - 1].row + 1 : 0) * (panel.tile + panel.gap) + panel.pad * 2
-                // The selected row stays the second visible row once there is one above it.
-                contentY: app.cells.length ? Math.max(0, Math.min((app.cells[Math.min(app.sel, app.cells.length - 1)].row - 1)
-                          * (panel.tile + panel.gap), contentHeight - (1080 - 214) + 20)) : 0
-                Behavior on contentY { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
-
-                // Swipe up/down: on release the selection moves by the rows swiped, and the grid follows it.
-                DragHandler {
-                    target: null; xAxis.enabled: false
-                    onActiveChanged: if (!active && app.cells.length) {
-                        const rows = Math.round(-centroid.position.y + centroid.pressPosition.y) / (panel.tile + panel.gap)
-                        const step = Math.round(rows)
-                        if (!step) return
-                        const c = app.cells[app.sel], last = app.cells[app.cells.length - 1].row
-                        const i = app.itemAt(Math.max(0, Math.min(last, c.row + step)), c.col)
-                        if (i >= 0) app.sel = i
-                    }
-                }
-
-                Repeater {
-                    model: app.items
-                    Tile {
-                        // while items change, old delegates briefly see the new (shorter) layout
-                        readonly property var cell: app.cells[index] || ({ col: 0, row: 0, w: 1 })
-                        item: modelData
-                        selected: index === app.sel
-                        near: y + height > flick.contentY - 400 && y < flick.contentY + flick.height + 400
-                        onTapped: app.tap(index)
-                        x: panel.pad + cell.col * (panel.tile + panel.gap)
-                        y: panel.pad + cell.row * (panel.tile + panel.gap)
-                        width: cell.w * panel.tile + (cell.w - 1) * panel.gap
-                        height: panel.tile
-                    }
-                }
-            }
-            Text {
-                visible: app.items.length === 0
-                anchors.centerIn: parent
-                font.family: Theme.font; font.pixelSize: 48; font.weight: Font.Black; color: Theme.textDim
-                text: app.tab === 2 ? (achievements.status || (app.stack.length ? "Loading…" : "No trophies yet")) : "Coming soon"
-                width: parent.width - 120; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
-            }
-        }
-
         property alias settingsPanel: settingsPanel
-        Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
         property alias gameMenuPanel: gameMenuPanel
-        GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200 }
+
+        // Everything is laid out for this panel (1240x1080) and scaled to fit the screen the window is on
+        // (Y swaps the screens: the 1240-wide design then shows on the other panel).
+        Item {
+            id: bottomStage
+            width: 1240; height: 1080; anchors.centerIn: parent
+            scale: Math.min(parent.width / width, parent.height / height)
+
+            Backdrop { anchors.fill: parent; source: app.art; dim: 0.62 }
+            Item {
+                anchors.fill: parent; focus: true
+                Keys.onPressed: event => app.key(event)
+            }
+
+            Dock { x: 10; y: 28; current: app.tab; onTabTapped: index => app.setTab(index) }
+            // ASGARD_DEBUG_INPUT: log every touch/pointer press the bottom window receives (passive, blocks nothing).
+            Component.onCompleted: if (debugInput) console.log("input: debug logging on (bottom window)")
+            PointHandler {
+                enabled: debugInput; target: null
+                acceptedDevices: PointerDevice.AllDevices
+                onActiveChanged: if (active) console.log("input:", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
+                                                         Math.round(point.position.x), Math.round(point.position.y))
+            }
+
+            Rectangle {  // the glass panel holding the grid
+                id: panel
+                x: 0; y: 214; width: parent.width; height: parent.height - y + 60; radius: 48
+                color: Theme.panel; border.color: Theme.panelRim; border.width: 3
+                clip: true
+
+                readonly property int pad: 46
+                readonly property int tile: 253
+                readonly property int gap: 44
+
+                Flickable {
+                    id: flick
+                    anchors.fill: parent; interactive: false
+                    contentHeight: (app.cells.length ? app.cells[app.cells.length - 1].row + 1 : 0) * (panel.tile + panel.gap) + panel.pad * 2
+                    // The selected row stays the second visible row once there is one above it.
+                    contentY: app.cells.length ? Math.max(0, Math.min((app.cells[Math.min(app.sel, app.cells.length - 1)].row - 1)
+                              * (panel.tile + panel.gap), contentHeight - (1080 - 214) + 20)) : 0
+                    Behavior on contentY { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
+
+                    // Swipe up/down: on release the selection moves by the rows swiped, and the grid follows it.
+                    DragHandler {
+                        target: null; xAxis.enabled: false
+                        onActiveChanged: if (!active && app.cells.length) {
+                            const rows = Math.round(-centroid.position.y + centroid.pressPosition.y) / (panel.tile + panel.gap)
+                            const step = Math.round(rows)
+                            if (!step) return
+                            const c = app.cells[app.sel], last = app.cells[app.cells.length - 1].row
+                            const i = app.itemAt(Math.max(0, Math.min(last, c.row + step)), c.col)
+                            if (i >= 0) app.sel = i
+                        }
+                    }
+
+                    Repeater {
+                        model: app.items
+                        Tile {
+                            // while items change, old delegates briefly see the new (shorter) layout
+                            readonly property var cell: app.cells[index] || ({ col: 0, row: 0, w: 1 })
+                            item: modelData
+                            selected: index === app.sel
+                            near: y + height > flick.contentY - 400 && y < flick.contentY + flick.height + 400
+                            onTapped: app.tap(index)
+                            x: panel.pad + cell.col * (panel.tile + panel.gap)
+                            y: panel.pad + cell.row * (panel.tile + panel.gap)
+                            width: cell.w * panel.tile + (cell.w - 1) * panel.gap
+                            height: panel.tile
+                        }
+                    }
+                }
+                Text {
+                    visible: app.items.length === 0
+                    anchors.centerIn: parent
+                    font.family: Theme.font; font.pixelSize: 48; font.weight: Font.Black; color: Theme.textDim
+                    text: app.tab === 2 ? (achievements.status || (app.stack.length ? "Loading…" : "No trophies yet")) : "Coming soon"
+                    width: parent.width - 120; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
+                }
+            }
+
+            // Every system's artwork and logo stays decoded (same source and size as the tiles, so they share the cache
+            // entry): going back to the systems grid used to reload them from disk, a visible blink of empty tiles.
+            Repeater {
+                model: backend.systems
+                Item {
+                    visible: false
+                    Image { asynchronous: true; sourceSize: Qt.size(320, 0); source: modelData.art || modelData.cover || "" }
+                    Image { asynchronous: true; sourceSize: Qt.size(400, 0); source: modelData.logo || "" }
+                }
+            }
+            Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
+            GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200 }
+        }
     }
 }
