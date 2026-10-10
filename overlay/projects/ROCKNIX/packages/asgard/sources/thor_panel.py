@@ -12,7 +12,6 @@ import json
 import math
 import os
 import re
-import subprocess
 import shlex
 import sys
 import time
@@ -23,7 +22,6 @@ from sdlui import run_cmd, sdl  # noqa: E402
 from thor_settings import conf  # noqa: E402
 import playlog  # noqa: E402
 
-HERE = os.path.dirname(os.path.abspath(__file__))
 CPUFREQ = "/sys/devices/system/cpu/cpufreq"
 POLICIES = ("policy0", "policy3", "policy7")
 BAT = "/sys/class/power_supply/battery"
@@ -113,6 +111,10 @@ class Canvas:
         return self.fonts[key]
 
     def text(self, s, x, y, px, color=TEXT, align="left", bold=False, maxw=None):
+        if maxw:  # too wide: a smaller font (sdlui would squeeze the glyphs instead)
+            w = self.width(s, px, bold)
+            if w > maxw:
+                px = px * maxw / w
         return self.ui.text(s, x, y, self.font(px, bold), color, align, maxw)
 
     def width(self, s, px, bold=False):
@@ -156,13 +158,14 @@ def icon(cv, name, cx, cy, s, col=TEXT):
         cv.rrect(cx - s * .25, cy - s * .09, s * .06, s * .16, 2, CARD2)
         cv.circle(cx + s * .22, cy - s * .03, s * .05, CARD2)
         cv.circle(cx + s * .3, cy + s * .05, s * .05, CARD2)
-    elif name == "plug":
-        cv.rrect(cx - s * .28, cy - s * .2, s * .4, s * .36, s * .06, col)
-        L(cx - s * .2, cy - s * .2, cx - s * .2, cy - s * .38)
-        L(cx + .04 * s, cy - s * .2, cx + .04 * s, cy - s * .38)
-        L(cx + s * .12, cy - s * .02, cx + s * .42, cy - s * .02)
-        cv.tris([(cx + s * .3, cy + s * .05), (cx + s * .18, cy + s * .3), (cx + s * .3, cy + s * .22),
-                 (cx + s * .3, cy + s * .22), (cx + s * .42, cy + s * .2), (cx + s * .3, cy + s * .05)], col)
+    elif name == "wifi":
+        for r in (.2, .38, .56):
+            cv.arc(cx, cy + s * .3, s * r, w, -45, 45, col)
+        cv.circle(cx, cy + s * .3, s * .07, col)
+    elif name == "airplane":
+        cv.rrect(cx - s * .06, cy - s * .46, s * .12, s * .9, s * .06, col)
+        cv.tris([(cx, cy - s * .14), (cx - s * .46, cy + s * .12), (cx + s * .46, cy + s * .12)], col)
+        cv.tris([(cx, cy + s * .24), (cx - s * .2, cy + s * .42), (cx + s * .2, cy + s * .42)], col)
     elif name == "vibrate":
         cv.rrect(cx - s * .16, cy - s * .32, s * .32, s * .64, s * .06, col)
         for k in (-1, 1):
@@ -191,12 +194,6 @@ def icon(cv, name, cx, cy, s, col=TEXT):
         for dx in (-.19, .19):
             for dy in (-.19, .19):
                 cv.rrect(cx + dx * s - s * .15, cy + dy * s - s * .15, s * .3, s * .3, s * .07, col)
-    elif name == "gear":
-        for i in range(8):
-            t = math.radians(i * 45)
-            cv.circle(cx + s * .32 * math.cos(t), cy + s * .32 * math.sin(t), s * .1, col)
-        cv.circle(cx, cy, s * .3, col)
-        cv.circle(cx, cy, s * .13, ON)
 
 
 # --- data -------------------------------------------------------------------------------------------------------
@@ -316,13 +313,14 @@ def set_perf(share):
 
 
 RA_CFG = "/storage/.config/retroarch/retroarch.cfg"
-CHARGE_LIMIT = 80  # our normal stop-charging level (30-thor-charge-limit.sh)
 
 
-def bypass_on():
-    """Direct Power Supply: the user's switch (asgard.direct_power). The firmware ignores charge thresholds until kernel
-    patch 9003 works, so the threshold write below is best effort and the tile shows the choice, not the hardware."""
-    return conf.get("asgard.direct_power", "0") == "1"
+def wifi_on():
+    return conf.get("wifi.enabled", "1") == "1" and not airplane_on()
+
+
+def airplane_on():
+    return conf.get("asgard.airplane", "0") == "1"
 
 
 def ra_rumble():
@@ -336,11 +334,11 @@ def toggles(st):
     page1 = [
         ("focus", "Top screen" if st.get("focus", "top") == "top" else "Bottom screen", st.get("focus", "top") == "top"),
         ("chip", perf[0], perf[1] > 0.75),
-        ("plug", "Direct Power Supply", bypass_on()),
+        ("wifi", "Wi-Fi", wifi_on()),
+        ("airplane", "Airplane mode", airplane_on()),
         ("vibrate", "Vibration", ra_rumble() > 0),
         ("led", "Ambient LED", led != "off"),
         ("clean", "Clean Memory", False),
-        ("gear", "Settings", False),
         ("task", "Quit game", False),
     ]
     page2 = [("landscape", "Force landscape", st.get("landscape", True)), ("shot", "Screenshot", False)]
@@ -366,13 +364,27 @@ def activate(key, st):
         run_cmd("sync; echo 3 > /proc/sys/vm/drop_caches")
         after = int(read("/proc/meminfo").split("MemAvailable:")[1].split()[0])
         toast(st, f"Freed {max(0, after - before) // 1024} MB")
-    elif key == "plug":
-        on = not bypass_on()
-        conf.set("asgard.direct_power", "1" if on else "0")
-        limit = conf.get("asgard.charge_limit", str(CHARGE_LIMIT))
-        level = max(5, int(read(f"{BAT}/capacity", "50"))) if on else limit
-        run_cmd(f"echo {level} > {BAT}/charge_control_end_threshold")
-        toast(st, "Direct power on" if on else "Direct power off")
+    elif key == "wifi":
+        on = not wifi_on()
+        if on and airplane_on():
+            conf.set("asgard.airplane", "0")
+            run_cmd("rfkill unblock all")
+        conf.set("wifi.enabled", "1" if on else "0")
+        run_cmd(f"wifictl {'enable' if on else 'disable'}", 60)
+        toast(st, "Wi-Fi on" if on else "Wi-Fi off")
+    elif key == "airplane":
+        # All radios off (rfkill); off again restores Wi-Fi and Bluetooth as they were. 090-asgard-tuning reapplies it.
+        on = not airplane_on()
+        conf.set("asgard.airplane", "1" if on else "0")
+        if on:
+            run_cmd("rfkill block all")
+        else:
+            run_cmd("rfkill unblock all")
+            if conf.get("wifi.enabled", "1") == "1":
+                run_cmd("wifictl enable", 60)
+            if conf.get("bluetooth.enabled", "0") == "1":
+                run_cmd("rocknix-bluetooth enable", 60)
+        toast(st, "Airplane mode on" if on else "Airplane mode off")
     elif key == "vibrate":
         cur = ra_rumble()
         if cur > 0:
@@ -399,10 +411,6 @@ def activate(key, st):
             st["hz"] = hz
         else:
             toast(st, f"{hz} Hz not available")
-    elif key in ("settings", "gear"):
-        subprocess.Popen(["python3", os.path.join(HERE, "thor_settings.py")], start_new_session=True,
-                         env={**os.environ, "SDL_GAMECONTROLLERCONFIG": ""})
-        return "close"
     elif key == "task":
         target = [w for w in read("/tmp/.process-kill-data").split() if not w.startswith("-")]
         if target and target not in (["emulationstation"],):
@@ -468,7 +476,7 @@ def main():
             cv.rrect(pad, r1y, fpsw, r1h, 28, CARD)
             cv.rrect(*pill, pill[3] / 2, ON_HI if sel == ("pill", 0) else PILL)
             cv.text(f"{st.get('hz', 120)} FPS MODE", pill[0] + pill[2] / 2, pill[1] + pill[3] * 0.12,
-                    pill[3] * 0.62, TEXT, "center")
+                    pill[3] * 0.62, TEXT, "center", maxw=pill[2] * 0.86)
             num = f"{data['fps']:.0f}" if data["fps"] is not None else "--"
             big = r1h * 0.36
             nw = cv.width(num, big, True)
@@ -496,16 +504,18 @@ def main():
             cw = (fpsw - pad) / 2
             fan_mode = FAN[fan_now()][0]
             for k, (ic, label, val) in enumerate((("thermo", "TEMP", f"{data['temp']:.0f}°C"),
-                                                  ("fan", fan_mode.upper(), f"{data['fan']}%"))):
+                                                  ("fan", "FAN", fan_mode.upper()))):
                 x = pad + k * (cw + pad)
                 if k == 1 and sel == ("fan", 0):
                     cv.rrect(x - 5, r2y - 5, cw + 10, r2h + 10, 28, TEXT)
                 cv.rrect(x, r2y, cw, r2h, 24, ON if k == 1 and conf.get("asgard.fan_manual", "") else CARD)
                 icon(cv, ic, x + cw * 0.22, r2y + r2h * 0.25, r2h * 0.2)
                 cv.text(label, x + cw * 0.62, r2y + r2h * 0.15, r2h * 0.13, TEXT, "center", bold=True, maxw=cw * 0.6)
-                cv.text(val, x + cw * 0.5, r2y + r2h * 0.47, r2h * 0.24, TEXT, "center", bold=True)
+                cv.text(val, x + cw * 0.5, r2y + r2h * (0.47 if len(val) <= 4 else 0.5),
+                        r2h * (0.24 if len(val) <= 4 else 0.16), TEXT, "center", bold=True, maxw=cw * 0.9)
                 if k == 1:
-                    cv.text("<  >" if sel == ("fan", 0) else "FAN", x + cw * 0.5, r2y + r2h * 0.8, r2h * 0.1, DIM, "center", bold=True)
+                    # the mode is what a tap changes; the speed it runs at now is underneath
+                    cv.text(f"now {data['fan']}%", x + cw * 0.5, r2y + r2h * 0.8, r2h * 0.1, DIM, "center", bold=True)
             # gauges
             cv.rrect(togx, r2y, togw, r2h, 24, CARD)
             gr = min(togw / 8.6, r2h * 0.42)
