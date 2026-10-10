@@ -39,4 +39,8 @@ grep -q '^# asgard-assign' "$C" || printf '%s\n' '# asgard-assign' \
   'assign [title="^Asgard Home \(Bottom\)$"] output DSI-1' >> "$C"
 # Thor Panel opens over Asgard Home's fullscreen bottom window; tiled, it sat half-width behind it, unseen (2026-10-10).
 grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title="^Thor Panel"] fullscreen enable' >> "$C"
+# Top screen refresh rate (asgard.refresh, Settings > Display or the Thor Panel): 120 Hz unless set to 60.
+R=$(sed -n 's/^asgard\.refresh=//p' /storage/.config/system/configs/system.cfg | tail -1)
+sed -i '/^# asgard-refresh/,+1d' "$C"
+[ "$R" = 60 ] && printf '%s\n' '# asgard-refresh' 'output DSI-2 mode 1080x1920@60Hz' >> "$C"
 exit 0

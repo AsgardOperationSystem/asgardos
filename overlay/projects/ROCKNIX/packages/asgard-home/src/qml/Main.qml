@@ -69,6 +69,7 @@ QtObject {
         if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
         if (b === "start") { bottom.settingsPanel.show(); return }
+        if (b === "guide") { bottom.settingsPanel.showPower(); return }   // Home (in a game it opens the game menu)
         if (b === "select") { details = !details; return }
         if (b === "y" && current && current.game) { bottom.settingsPanel.showGame(current.game); return }
         if (b === "b" && details) { details = false; return }
@@ -202,7 +203,8 @@ QtObject {
                 Hint { glyph: "X"; label: "Screens off" }
                 Hint { glyph: "−"; label: "Details" }
                 Hint { visible: !!app.current && !!app.current.game; glyph: "Y"; label: "Game settings" }
-                Hint { glyph: "+"; label: "Settings" }
+                Hint { glyph: "+"; label: "Settings"; onTapped: { backend.sound("open"); bottom.settingsPanel.show() } }
+                Hint { icon: "glyph-home"; label: "Power"; onTapped: { backend.sound("open"); bottom.settingsPanel.showPower() } }
             }
         }
     }

@@ -24,6 +24,7 @@ Item {
 
     // Y on a game: Settings opened straight on that game's page.
     function showGame(g) { show(); cat = 2; stack = [{ title: g.name, build: () => gamePage(g), closeOnBack: true }]; zone = "list" }
+    function showPower() { show(); cat = categories.findIndex(c => c.title === "Power"); zone = "list" }
     function show() { open = true; zone = "side"; row = 0; stack = []; ask = null; keyboard.open = false; refresh(); rev++ }
     function close() { open = false; closed() }
 
@@ -121,6 +122,8 @@ Item {
              choice("moon", "Screens off after", "Without input (OLED care)", "asgard.idle_blank", "300",
                     [["2 min", "120"], ["5 min", "300"], ["10 min", "600"], ["Never", "0"]],
                     () => backend.shell("systemctl restart thor-idle-blank"))],
+            [choice("display", "Top screen refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh", "120",
+                    [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-2 mode 1080x1920@" + v + "Hz"))],
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             [toggle("chip", "CPU clock cap", "~75% top clock: cooler and longer battery", "asgard.cpu_cap", "1",
