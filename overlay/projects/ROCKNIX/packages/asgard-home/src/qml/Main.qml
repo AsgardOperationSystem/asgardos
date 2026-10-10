@@ -13,6 +13,7 @@ QtObject {
     property var items: homeItems()
     property int sel: 0
     property var pendingRa: null             // trophy game whose achievement list is being fetched
+    property bool details: false             // Select: the top card shows the selection's details
     readonly property var current: items.length ? items[Math.min(sel, items.length - 1)] : null
     readonly property var cells: layout(items)
 
@@ -61,6 +62,9 @@ QtObject {
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
+        if (b === "start") { backend.openSettings(current && current.game ? current.game : {}); return }
+        if (b === "select") { details = !details; return }
+        if (b === "b" && details) { details = false; return }
         const c = cells[sel]
         if (b === "left" && sel > 0) sel--
         else if (b === "right" && sel < items.length - 1) sel++
@@ -169,6 +173,7 @@ QtObject {
         HeroCard {
             x: 385; y: 232; width: 1150; height: 650
             item: app.current
+            details: app.details
             placeholder: ["Home", "Games", "Trophies", "Profile", "Apps"][app.tab]
         }
 

@@ -221,6 +221,23 @@ void Backend::launch(const QVariantMap &game)
         {rom, sys, game["core"].toString(), game["emulator"].toString()}, m_gameEnv);
 }
 
+void Backend::openSettings(const QVariantMap &game)
+{
+    if (m_game)
+        return;
+    // Thor Settings' Game Options opens on the highlighted game.
+    QFile sel("/tmp/thor-selected-game");
+    if (!game.isEmpty() && sel.open(QIODevice::WriteOnly))
+        sel.write((game["sys"].toString() + "\t" + game["path"].toString() + "\n").toUtf8());
+    if (!QFile::exists("/usr/share/asgard/thor_settings.py")) {  // desktop
+        qInfo("settings");
+        return;
+    }
+    QProcessEnvironment env = m_gameEnv;
+    env.insert("SDL_GAMECONTROLLERCONFIG", "");  // sdlui expects the pad's positional mapping
+    run("exec python3 /usr/share/asgard/thor_settings.py", {}, env);
+}
+
 // Run a game or tool in place of the frontend: our windows hide (playing), the pad is ignored until it exits.
 void Backend::run(const QString &script, const QStringList &args, const QProcessEnvironment &env)
 {
@@ -241,6 +258,12 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; " + script,
         "run"} + args);
     emit playingChanged();
+}
+
+QVariantMap Backend::playStats(const QString &path) const
+{
+    const QVariantMap g = m_byPath.value(path);
+    return {{"playtime", g.value("playtime", 0)}, {"lastPlayed", g.value("lastPlayed", 0)}};
 }
 
 // --- Gamepad --------------------------------------------------------------------------------------------------------

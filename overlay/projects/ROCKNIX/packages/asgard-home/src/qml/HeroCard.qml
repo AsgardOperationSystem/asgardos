@@ -7,6 +7,12 @@ Item {
     id: hero
     property var item
     property string placeholder                                      // shown when nothing is selected (tab name)
+    property bool details: false                                     // Select: description + play stats instead of art
+    readonly property var stats: game ? backend.playStats(game.path) : null
+    function duration(s) {
+        const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60)
+        return h ? h + " h " + m + " min" : m + " min"
+    }
     readonly property var game: item ? item.game : null
     readonly property var ra: item && item.ra ? item.ra : null       // trophy game / achievement
     readonly property var ach: item && item.ach ? item.ach : null    // one achievement
@@ -151,6 +157,37 @@ Item {
                     font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Bold
                     color: sysLogo.visible ? Theme.textDim : "#5b5a88"; style: sysLogo.visible ? Text.Raised : Text.Normal; styleColor: "#80000000"
                     text: hero.item && hero.item.sys ? hero.item.sys.count + " games" : ""
+                }
+            }
+        }
+
+        // Details (Select): description and play stats over the dimmed art
+        Rectangle {
+            anchors.fill: parent; color: "#e6101020"
+            visible: hero.details && !!hero.game && !hero.ach
+            Column {
+                x: 70; y: 60; width: parent.width - 140; spacing: 18
+                Text {
+                    width: parent.width; elide: Text.ElideRight
+                    font.family: Theme.font; font.pixelSize: 52; font.weight: Font.Black; color: Theme.text
+                    text: hero.game ? hero.game.name : ""
+                }
+                Text {
+                    width: parent.width; elide: Text.ElideRight
+                    font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Bold; color: Theme.textDim
+                    text: hero.game ? [hero.game.sysName, hero.game.developer, hero.game.year, hero.game.genre].filter(s => s).join("  ·  ") : ""
+                }
+                Text {
+                    width: parent.width
+                    font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Black; color: Theme.goldA
+                    text: hero.stats && hero.stats.playtime > 0
+                          ? "Played " + hero.duration(hero.stats.playtime) + "  ·  last " + new Date(hero.stats.lastPlayed * 1000).toLocaleDateString(Qt.locale(), "yyyy-MM-dd")
+                          : "Not played yet"
+                }
+                Text {
+                    width: parent.width; wrapMode: Text.WordWrap; maximumLineCount: 8; elide: Text.ElideRight
+                    font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Bold; color: Theme.text; lineHeight: 1.15
+                    text: hero.game && hero.game.desc ? hero.game.desc : "No description scraped for this game."
                 }
             }
         }
