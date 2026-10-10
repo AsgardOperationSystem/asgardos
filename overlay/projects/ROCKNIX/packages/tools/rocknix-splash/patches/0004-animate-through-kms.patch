@@ -7,6 +7,8 @@ KMS on the largest connected panel with a buffer of its own size, and turns
 the others off; one-shot modes stay on /dev/fb0 (a KMS picture goes away
 when the process exits). At boot the panels may still be probing, so it
 retries for 5 s before falling back to /dev/fb0, and logs which it used.
+The KMS buffer is portrait-native: rotate 90 like sway when the device tree
+gives no rotation.
 
 --- a/Makefile
 +++ b/Makefile
@@ -73,7 +75,7 @@ retries for 5 s before falling back to /dev/fb0, and logs which it used.
  #include <errno.h>
  #include <signal.h>
  #include <time.h>
-@@ -153,8 +154,18 @@
+@@ -153,12 +154,26 @@
          return 1;
      }
  
@@ -94,7 +96,15 @@ retries for 5 s before falling back to /dev/fb0, and logs which it used.
      if (!fb) {
          fprintf(stderr, "Failed to initialize framebuffer\n");
          return 1;
-@@ -210,8 +221,19 @@
+     }
++    // A KMS buffer is in the panel's native orientation. The Thor's panels are portrait-native but mounted
++    // landscape with no rotation in the device tree; sway turns them with "transform 90", so do the same.
++    if (fb->map && !rotation && fb->vinfo.yres > fb->vinfo.xres)
++        rotation = 90;
+ 
+     // Calculate display parameters
+     DisplayInfo *display_info = calculate_display_info(fb);
+@@ -210,8 +225,19 @@
  
      // Flush changes to the framebuffer
      fb_flush(fb);
