@@ -13,6 +13,7 @@ QtObject {
     property var items: homeItems()
     property int sel: 0
     property var pendingRa: null             // trophy game whose achievement list is being fetched
+    property bool details: false             // Select: the top card shows the selection's details
     readonly property var current: items.length ? items[Math.min(sel, items.length - 1)] : null
     readonly property var cells: layout(items)
 
@@ -23,8 +24,6 @@ QtObject {
             out.push({ kind: "jump", game: recent[0] })
         for (const s of backend.systems)
             out.push({ kind: "system", sys: s })
-        for (const g of recent.slice(1, 9))
-            out.push({ kind: "game", game: g })
         return out
     }
     function tabItems(t) {
@@ -61,6 +60,9 @@ QtObject {
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
+        if (b === "start") { backend.openSettings(current && current.game ? current.game : {}); return }
+        if (b === "select") { details = !details; return }
+        if (b === "b" && details) { details = false; return }
         const c = cells[sel]
         if (b === "left" && sel > 0) sel--
         else if (b === "right" && sel < items.length - 1) sel++
@@ -144,7 +146,6 @@ QtObject {
                 font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: Theme.text
                 text: "●  " + backend.hostname
             }
-            Tag { text: "LT"; anchors.right: parent.right; anchors.rightMargin: 34; y: -22 }
         }
         Pill {
             x: parent.width - width + 60; y: 62; width: statusRow.implicitWidth + 140; height: 96
@@ -163,12 +164,12 @@ QtObject {
                     level: backend.battery; charging: backend.charging
                 }
             }
-            Tag { text: "RT"; x: 34; y: -22 }
         }
 
         HeroCard {
             x: 385; y: 232; width: 1150; height: 650
             item: app.current
+            details: app.details
             placeholder: ["Home", "Games", "Trophies", "Profile", "Apps"][app.tab]
         }
 

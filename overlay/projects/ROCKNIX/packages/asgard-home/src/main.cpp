@@ -65,6 +65,11 @@ int main(int argc, char *argv[])
     if (engine.rootObjects().isEmpty())
         return 1;
     if (!shot.isEmpty()) {
+        // A never-shown window's root item has no size; give it the window's now, so layouts (and which tiles count
+        // as on screen) are right from the start, not only at grab time.
+        for (QWindow *win : QGuiApplication::topLevelWindows())
+            if (auto *w = qobject_cast<QQuickWindow *>(win))
+                w->contentItem()->setSize(w->size());
         // ASGARD_KEYS="right right a": button presses replayed before the shot, to capture any state.
         const QStringList keys = qEnvironmentVariable("ASGARD_KEYS").split(' ', Qt::SkipEmptyParts);
         for (int i = 0; i < keys.size(); i++)

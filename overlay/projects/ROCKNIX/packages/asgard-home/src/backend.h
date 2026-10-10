@@ -34,6 +34,8 @@ public:
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
     QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
+    Q_INVOKABLE void openSettings(const QVariantMap &game = {});   // Thor Settings (Start)
+    Q_INVOKABLE QVariantMap playStats(const QString &path) const;  // {playtime (s), lastPlayed (epoch s)}
 
 signals:
     void libraryChanged();
@@ -45,6 +47,8 @@ private:
     void scan();
     void readPlaytime();
     void readStatus();
+    void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
+    QString setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const;
     QString path(const QString &p) const { return m_root + p; }
 
     QString m_root;
