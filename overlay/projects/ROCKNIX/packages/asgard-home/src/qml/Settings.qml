@@ -111,6 +111,9 @@ Item {
             [info("user", "Account", (user || "Not signed in") + "  ·  web API key " +
                   (get("global.retroachievements.webapikey") ? "set" : "missing (asgard.yml)"))]]
         case "Audio": return [
+            [toggle("speaker", "Menu sounds", "Clicks when moving and selecting", "asgard.sounds", "1"),
+             choice("speaker", "Menu sound volume", "", "asgard.sounds_volume", "50",
+                    [["Quiet", "25"], ["Medium", "50"], ["Loud", "100"]], () => backend.sound("select"))],
             [choice("speaker", "Volume", "Speaker and headphones", "audio.volume", "50",
                     [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v]), v => backend.shell("volume " + v))]]
         case "Display": return [
@@ -365,7 +368,7 @@ Item {
                         }
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: { settings.cat = index; settings.stack = []; settings.zone = "list"; settings.row = 0 }
+                            onClicked: { backend.sound("move"); settings.cat = index; settings.stack = []; settings.zone = "list"; settings.row = 0 }
                         }
                     }
                 }
@@ -465,7 +468,7 @@ Item {
                                     }
                                     MouseArea {
                                         anchors.fill: parent
-                                        onClicked: { settings.zone = "list"; settings.row = parent.flatIndex; settings.openRow(modelData) }
+                                        onClicked: { backend.sound("select"); settings.zone = "list"; settings.row = parent.flatIndex; settings.openRow(modelData) }
                                     }
                                 }
                             }

@@ -5,6 +5,7 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSocketNotifier>
+#include <QSoundEffect>
 #include <QTimer>
 #include <QVariant>
 
@@ -41,6 +42,7 @@ public:
     Q_INVOKABLE void setSetting(const QString &key, const QString &value);                  // "" removes the key
     Q_INVOKABLE QVariantList emulators(const QString &system) const;  // [{name, cores: [...]}], ROCKNIX's choices
     Q_INVOKABLE void shell(const QString &command);
+    Q_INVOKABLE void sound(const QString &name);   // qml/sounds/<name>.wav, unless asgard.sounds=0
     Q_INVOKABLE void exec(const QString &command, const QJSValue &done);  // done(output) when it exits
     Q_INVOKABLE void rescan();
     Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
@@ -62,6 +64,7 @@ private:
     QString path(const QString &p) const { return m_root + p; }
 
     QString m_root;
+    QHash<QString, QSoundEffect *> m_sounds;
     QProcessEnvironment m_gameEnv;  // the environment we were started with, without our own Qt settings
     QVariantList m_systems, m_recent;
     QHash<QString, QVariantList> m_games;

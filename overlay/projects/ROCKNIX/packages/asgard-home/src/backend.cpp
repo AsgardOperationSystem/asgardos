@@ -361,6 +361,21 @@ void Backend::shell(const QString &command)
     QProcess::startDetached("/bin/sh", {"-c", command});
 }
 
+void Backend::sound(const QString &name)
+{
+    // ponytail: reads system.cfg per sound; cache the two keys if that ever shows up in a profile
+    if (qEnvironmentVariableIsSet("ASGARD_SHOT") || getSetting("asgard.sounds", "1") != "1")
+        return;
+    QSoundEffect *&fx = m_sounds[name];
+    if (!fx) {
+        fx = new QSoundEffect(this);
+        fx->setSource(QUrl::fromLocalFile(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml")
+                                          + "/sounds/" + name + ".wav"));
+    }
+    fx->setVolume(getSetting("asgard.sounds_volume", "50").toInt() / 100.0);
+    fx->play();
+}
+
 void Backend::exec(const QString &command, const QJSValue &done)
 {
     auto *p = new QProcess(this);

@@ -63,6 +63,8 @@ QtObject {
     function nav(b) {
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
+        backend.sound(b === "a" ? "select" : b === "b" || b === "x" ? "back" : b === "start" || b === "select"
+                      ? (bottom.settingsPanel.open ? "back" : "open") : "move")
         if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
         if (b === "start") { bottom.settingsPanel.show(); return }
