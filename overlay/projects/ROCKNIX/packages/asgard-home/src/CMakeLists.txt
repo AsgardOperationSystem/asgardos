@@ -11,5 +11,10 @@ target_include_directories(rhash PUBLIC 3rdparty/rcheevos/include PRIVATE 3rdpar
 
 add_executable(asgard-home main.cpp backend.cpp achievements.cpp)
 target_link_libraries(asgard-home PRIVATE Qt6::Gui Qt6::Multimedia Qt6::Network Qt6::Qml Qt6::Quick rhash)
+find_package(LayerShellQt QUIET)   # the OSD overlay; without it (desktop dev builds) a plain window
+if(LayerShellQt_FOUND)
+  target_link_libraries(asgard-home PRIVATE LayerShellQt::Interface)
+  target_compile_definitions(asgard-home PRIVATE HAVE_LAYERSHELL)
+endif()
 install(TARGETS asgard-home DESTINATION bin)
 install(DIRECTORY qml/ DESTINATION share/asgard-home/qml)

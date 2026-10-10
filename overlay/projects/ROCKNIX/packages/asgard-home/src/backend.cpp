@@ -339,6 +339,12 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
 
 void Backend::command(const QString &cmd)
 {
+    if (cmd.startsWith("osd ")) {          // "osd Volume 60" from asgard-osd (input_sense)
+        const QStringList p = cmd.split(' ', Qt::SkipEmptyParts);
+        if (p.size() == 3)
+            emit osd(p[1], p[2].toInt());
+        return;
+    }
     qInfo("command: %s", qPrintable(cmd));
     if (cmd == "menu" && playing()) {
         const bool open = !m_gameMenu;

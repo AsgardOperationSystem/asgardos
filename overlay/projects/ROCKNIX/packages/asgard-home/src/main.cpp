@@ -10,6 +10,10 @@
 #include <QPointerEvent>
 #include <QTimer>
 
+#ifdef HAVE_LAYERSHELL
+#include <LayerShellQt/window.h>
+#endif
+
 #include "achievements.h"
 #include "backend.h"
 
@@ -80,6 +84,18 @@ int main(int argc, char *argv[])
     engine.load(QDir(qml).filePath("Main.qml"));
     if (engine.rootObjects().isEmpty())
         return 1;
+#ifdef HAVE_LAYERSHELL
+    // The OSD is a layer-shell overlay: above fullscreen games, no focus, no input (before it's first shown).
+    for (QWindow *win : QGuiApplication::topLevelWindows())
+        if (win->objectName() == "osd" && shot.isEmpty()) {
+            auto *ls = LayerShellQt::Window::get(win);
+            ls->setScope("asgard-osd");
+            ls->setLayer(LayerShellQt::Window::LayerOverlay);
+            ls->setAnchors(LayerShellQt::Window::AnchorTop);
+            ls->setExclusiveZone(-1);
+            ls->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityNone);
+        }
+#endif
     if (!shot.isEmpty()) {
         // A never-shown window's root item has no size; give it the window's now, so layouts (and which tiles count
         // as on screen) are right from the start, not only at grab time.

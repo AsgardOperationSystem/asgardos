@@ -60,6 +60,7 @@ signals:
     void screensOffChanged();
     void settingsChanged();
     void gameMenuChanged();
+    void osd(const QString &what, int value);   // volume/brightness changed (asgard-osd): show the slider
 
 private:
     void scan();

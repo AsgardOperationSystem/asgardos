@@ -303,6 +303,8 @@ QtObject {
     }
 
     // --- bottom screen --------------------------------------------------------------------------------------
+    property Window osd: Osd {}   // volume/brightness slider, over games too
+
     property Window bottom: Window {
         title: app.swapped ? "Asgard Home" : "Asgard Home (Bottom)"
         width: app.swapped ? 1920 : 1240; height: 1080; color: "#0b0c14"
