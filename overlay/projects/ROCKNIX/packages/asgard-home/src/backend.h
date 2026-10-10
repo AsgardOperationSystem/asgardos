@@ -63,10 +63,13 @@ public:
 signals:
     void pressed(const QString &button);   // up down left right a b x y lb rb lt rt select start guide
 private:
+    void open();
+    void lost();
     void read();
     void hold(const QString &dir, bool down);
     int m_fd = -1;
     QSocketNotifier *m_notifier = nullptr;
+    QTimer m_retry;      // pad not there (yet / any more): look again every 500 ms
     QTimer m_repeat;     // held d-pad direction repeats, like a keyboard
     QString m_held;
 };

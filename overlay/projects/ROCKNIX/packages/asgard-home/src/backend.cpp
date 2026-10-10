@@ -11,6 +11,7 @@
 #include <QXmlStreamReader>
 #include <algorithm>
 
+#include <cerrno>
 #include <fcntl.h>
 #include <linux/input.h>
 #include <unistd.h>
@@ -224,28 +225,52 @@ Gamepad::Gamepad(bool disabled, QObject *parent) : QObject(parent)
 {
     if (disabled)
         return;
-    // /proc/bus/input/devices: find the event node of the exact pad name (not its Motion/Touchpad siblings).
-    QFile f("/proc/bus/input/devices");
-    if (!f.open(QIODevice::ReadOnly))
-        return;
-    QString name;
-    for (const QString &line : QString::fromUtf8(f.readAll()).split('\n')) {
-        if (line.startsWith("N: Name="))
-            name = line.mid(9).chopped(1);
-        else if (line.startsWith("H: Handlers=") && name == PAD_NAME)
-            for (const QString &h : line.mid(12).split(' '))
-                if (h.startsWith("event"))
-                    m_fd = ::open(qPrintable("/dev/input/" + h), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
-    }
-    if (m_fd < 0)
-        return;
-    m_notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
-    connect(m_notifier, &QSocketNotifier::activated, this, &Gamepad::read);
     m_repeat.setInterval(90);
     connect(&m_repeat, &QTimer::timeout, this, [this] {
         m_repeat.setInterval(90);
         emit pressed(m_held);
     });
+    // InputPlumber creates the virtual pad a few seconds into boot and re-creates it whenever it restarts
+    // (stick calibration does), so (re)open it until it's there.
+    m_retry.setInterval(500);
+    connect(&m_retry, &QTimer::timeout, this, &Gamepad::open);
+    open();
+}
+
+void Gamepad::open()
+{
+    // /proc/bus/input/devices: find the event node of the exact pad name (not its Motion/Touchpad siblings).
+    QFile f("/proc/bus/input/devices");
+    QString name;
+    if (f.open(QIODevice::ReadOnly))
+        for (const QString &line : QString::fromUtf8(f.readAll()).split('\n')) {
+            if (line.startsWith("N: Name="))
+                name = line.mid(9).chopped(1);
+            else if (line.startsWith("H: Handlers=") && name == PAD_NAME && m_fd < 0)
+                for (const QString &h : line.mid(12).split(' '))
+                    if (h.startsWith("event"))
+                        m_fd = ::open(qPrintable("/dev/input/" + h), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+        }
+    if (m_fd < 0) {
+        m_retry.start();
+        return;
+    }
+    m_retry.stop();
+    qInfo("gamepad: opened %s", qPrintable(QFileInfo(QString("/proc/self/fd/%1").arg(m_fd)).symLinkTarget()));
+    m_notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
+    connect(m_notifier, &QSocketNotifier::activated, this, &Gamepad::read);
+}
+
+void Gamepad::lost()
+{
+    m_notifier->setEnabled(false);
+    m_notifier->deleteLater();  // we're inside its activated() signal
+    m_notifier = nullptr;
+    ::close(m_fd);
+    m_fd = -1;
+    m_repeat.stop();
+    m_held.clear();
+    m_retry.start();
 }
 
 void Gamepad::hold(const QString &dir, bool down)
@@ -266,7 +291,8 @@ void Gamepad::read()
         {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_NORTH, "x"}, {BTN_WEST, "y"}, {BTN_TL, "lb"}, {BTN_TR, "rb"},
         {BTN_TL2, "lt"}, {BTN_TR2, "rt"}, {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
     input_event ev;
-    while (::read(m_fd, &ev, sizeof ev) == sizeof ev) {
+    ssize_t n;
+    while ((n = ::read(m_fd, &ev, sizeof ev)) == sizeof ev) {
         if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
             emit pressed(buttons[ev.code]);
         else if (ev.type == EV_ABS && ev.code == ABS_HAT0X) {
@@ -277,4 +303,6 @@ void Gamepad::read()
             hold("down", ev.value > 0);
         }
     }
+    if (n < 0 && errno != EAGAIN)  // the pad was removed (InputPlumber restarted): reopen the new one
+        lost();
 }
