@@ -1,0 +1,5 @@
+#!/bin/sh
+# systemd-sleep hook (ROCKNIX installs a package's sleep.d/ into /usr/lib/systemd/system-sleep): thor-sensorspd stops
+# for sleep (Conflicts=suspend.target), so start it again after resume. No-op without a sensors root.
+[ "$1" = post ] && systemctl start --no-block thor-sensorspd.service
+exit 0

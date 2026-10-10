@@ -9,26 +9,18 @@ PKG_DEPENDS_TARGET="toolchain Python3 SDL2 SDL2_ttf SDL2_image asgard-home hexag
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
+# autostart/, system.d/ and sleep.d/ are installed by ROCKNIX's scripts/install (to autostart/common,
+# systemd/system and systemd/system-sleep).
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/share/asgard
   cp -r ${PKG_DIR}/sources/* ${INSTALL}/usr/share/asgard/
   chmod 0755 ${INSTALL}/usr/share/asgard/*.sh ${INSTALL}/usr/share/asgard/*.py
 
-  mkdir -p ${INSTALL}/usr/lib/autostart/common
-  cp ${PKG_DIR}/autostart/* ${INSTALL}/usr/lib/autostart/common/
-  chmod 0755 ${INSTALL}/usr/lib/autostart/common/*-asgard-*
-
   # ROCKNIX's emulator option catalogue (Thor Settings → Game/System Options), without installing ROCKNIX ES.
   cp $(get_pkg_directory emulationstation)/config/common/es_features.cfg ${INSTALL}/usr/share/asgard/
 
   mkdir -p ${INSTALL}/usr/lib/systemd/system/sway.service.d
-  cp ${PKG_DIR}/system.d/*.service ${INSTALL}/usr/lib/systemd/system/
   cp ${PKG_DIR}/system.d/asgard-rotate.conf ${INSTALL}/usr/lib/systemd/system/sway.service.d/
-
-  # ROCKNIX's sleep.sh runs the device quirk's sleep.d hooks around every suspend.
-  mkdir -p "${INSTALL}/usr/lib/autostart/quirks/devices/AYN Thor/sleep.d/post"
-  cp ${PKG_DIR}/sleep.d/post/* "${INSTALL}/usr/lib/autostart/quirks/devices/AYN Thor/sleep.d/post/"
-  chmod 0755 "${INSTALL}/usr/lib/autostart/quirks/devices/AYN Thor/sleep.d/post/"*
 
   mkdir -p ${INSTALL}/usr/lib/systemd/logind.conf.d
   cp ${PKG_DIR}/logind.conf.d/*.conf ${INSTALL}/usr/lib/systemd/logind.conf.d/

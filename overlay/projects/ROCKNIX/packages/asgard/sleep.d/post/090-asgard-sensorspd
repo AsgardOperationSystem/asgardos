@@ -1,3 +1,0 @@
-#!/bin/sh
-# thor-sensorspd stops for sleep (Conflicts=suspend.target): start it again after resume. No-op without a sensors root.
-systemctl start --no-block thor-sensorspd.service
