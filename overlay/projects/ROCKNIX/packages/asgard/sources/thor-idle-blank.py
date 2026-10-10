@@ -8,7 +8,18 @@ Uses sway DPMS on outputs that were on, and restores exactly those.
 """
 import fcntl, json, os, select, struct, subprocess, time
 
-IDLE = int(os.environ.get("IDLE_SECONDS", "300"))
+def idle_seconds():
+    """Settings > Display > Screens off after: asgard.idle_blank in system.cfg (0 = never), else IDLE_SECONDS."""
+    try:
+        for line in open("/storage/.config/system/configs/system.cfg"):
+            if line.startswith("asgard.idle_blank="):
+                return int(line.split("=", 1)[1])
+    except (OSError, ValueError):
+        pass
+    return int(os.environ.get("IDLE_SECONDS", "300"))
+
+
+IDLE = idle_seconds()
 ABS_THRESHOLD = 0.10                      # fraction of axis range; filters stick jitter
 SKIP = ("Motion Sensors", "Jack", "lid", "haptics")
 SWAY = {"SWAYSOCK": "/var/run/0-runtime-dir/sway-ipc.0.sock"}
@@ -107,7 +118,7 @@ def main():
                 for o in blanked:
                     sway(f"output {o} dpms on")
                 blanked = []
-        elif not blanked and now - last_input >= IDLE:
+        elif not blanked and IDLE > 0 and now - last_input >= IDLE:
             blanked = lit_outputs()
             for o in blanked:
                 sway(f"output {o} dpms off")
