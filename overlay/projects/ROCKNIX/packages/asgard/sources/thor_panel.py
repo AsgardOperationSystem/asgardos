@@ -292,14 +292,10 @@ def fan_now():
 
 def set_fan(i):
     name, prof, pwm = FAN[i]
-    pwm_path = (glob.glob("/sys/class/hwmon/hwmon*/pwm1") or [""])[0]
-    if pwm:
-        conf.set("asgard.fan_manual", str(pwm))
-        run_cmd(f"systemctl stop fancontrol; echo 1 > {pwm_path}_enable 2>/dev/null; echo {pwm} > {pwm_path}")
-    else:
-        conf.set("asgard.fan_manual", "")
+    conf.set("asgard.fan_manual", str(pwm) if pwm else None)
+    if not pwm:
         conf.set("cooling.profile", prof)
-        run_cmd("systemctl restart fancontrol")
+    run_cmd("systemctl restart fancontrol")  # asgard-fan.sh applies a fixed speed instead of starting the curve
 
 
 def perf_now():
