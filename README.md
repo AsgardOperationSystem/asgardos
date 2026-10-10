@@ -45,7 +45,8 @@ form of each is untested until the first image boots.
   help is unmeasured.
 
 ### Known broken / limitations
-- **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %.
+- **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %. Thor Settings →
+  System → Charge limit (80 % / Off) already stores the choice and applies it at boot, for when the kernel side works.
 - **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan (`dpu_encoder_frame_done_timeout`):
   a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
   kept but does **not** fix it (correction to !13).
