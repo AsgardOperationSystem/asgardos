@@ -1,13 +1,43 @@
 #include <QDir>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
+#include <QNetworkAccessManager>
+#include <QNetworkDiskCache>
 #include <QQmlContext>
+#include <QQmlNetworkAccessManagerFactory>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTimer>
 
 #include "achievements.h"
 #include "backend.h"
+
+// Images from the web (RA badges and icons) are cached on disk and served from there first: they never change,
+// and the Trophies tab then opens without downloading them again (or offline).
+class CachedNetwork : public QQmlNetworkAccessManagerFactory
+{
+    class Nam : public QNetworkAccessManager
+    {
+        using QNetworkAccessManager::QNetworkAccessManager;
+        QNetworkReply *createRequest(Operation op, const QNetworkRequest &req, QIODevice *data) override
+        {
+            QNetworkRequest r(req);
+            r.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+            return QNetworkAccessManager::createRequest(op, r, data);
+        }
+    };
+
+public:
+    QNetworkAccessManager *create(QObject *parent) override
+    {
+        auto *nam = new Nam(parent);
+        auto *cache = new QNetworkDiskCache(nam);
+        cache->setCacheDirectory(qEnvironmentVariable("ASGARD_ROOT") + "/storage/.cache/asgard-home/http");
+        cache->setMaximumCacheSize(256 * 1024 * 1024);
+        nam->setCache(cache);
+        return nam;
+    }
+};
 
 int main(int argc, char *argv[])
 {
@@ -23,6 +53,8 @@ int main(int argc, char *argv[])
     Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)
     Achievements achievements(&backend);
     QQmlApplicationEngine engine;  // after backend/pad: destroyed first, so QML never sees them gone
+    CachedNetwork network;
+    engine.setNetworkAccessManagerFactory(&network);
     engine.rootContext()->setContextProperty("backend", &backend);
     engine.rootContext()->setContextProperty("pad", &pad);
     engine.rootContext()->setContextProperty("achievements", &achievements);

@@ -9,7 +9,7 @@ Item {
     Item {
         id: inner
         anchors.fill: parent
-        layer.enabled: true
+        layer.enabled: r.visible
         layer.effect: MultiEffect { maskEnabled: true; maskSource: mask; maskThresholdMin: 0.5; maskSpreadAtMin: 1.0 }
     }
     Rectangle { id: mask; anchors.fill: parent; radius: r.radius; visible: false; layer.enabled: true }

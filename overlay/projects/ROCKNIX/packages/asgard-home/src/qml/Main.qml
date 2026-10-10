@@ -221,6 +221,7 @@ QtObject {
                         readonly property var cell: app.cells[index] || ({ col: 0, row: 0, w: 1 })
                         item: modelData
                         selected: index === app.sel
+                        near: y + height > flick.contentY - 400 && y < flick.contentY + flick.height + 400
                         x: panel.pad + cell.col * (panel.tile + panel.gap)
                         y: panel.pad + cell.row * (panel.tile + panel.gap)
                         width: cell.w * panel.tile + (cell.w - 1) * panel.gap

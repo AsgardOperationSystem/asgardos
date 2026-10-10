@@ -40,7 +40,7 @@ private:
     void match();
     QString cache(const QString &name) const;
     void fetch(const QString &endpoint, const QString &query, const QString &cacheFile, int maxAgeHours,
-               std::function<void(const QByteArray &)> done);
+               std::function<void(const QByteArray &)> done, bool staleFirst = false);
 
     Backend *m_backend;
     QNetworkAccessManager m_net;
