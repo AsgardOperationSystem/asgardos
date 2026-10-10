@@ -520,16 +520,17 @@ def page_device(ui):
         _, ip = run_cmd("ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1")
         items = [("Brightness", f"{pct}%"),
                  ("Sleep mode", {"mem": "Sleep", "freeze": "Light sleep", "off": "Screen off only"}
-                  .get(conf.get("system.suspendmode", "mem"), conf.get("system.suspendmode")))]
+                  .get(conf.get("system.suspendmode", "mem"), conf.get("system.suspendmode"))),
+                 ("Charge limit", "80%" if conf.get("asgard.charge_limit", "80") != "100" else "Off (100%)")]
         items += [(label, "On" if conf.get(k) == "1" else "Off") for label, k, _ in SERVICES]
         items += [("Hostname", conf.get("system.hostname", "")), ("IP address", ip or "—"),
                   ("Sleep now", ""), ("Restart", ""), ("Power off", "")]
-        sel = ui.menu("System", items, sel, lr={0, 1})  # only Brightness and Sleep mode step with left/right
+        sel = ui.menu("System", items, sel, lr={0, 1, 2})  # Brightness, Sleep mode, Charge limit step with left/right
         if sel is None:
             return
         label = items[sel][0]
         step = ui.last_action if ui.last_action in ("left", "right") else None
-        if step and label not in ("Brightness", "Sleep mode"):
+        if step and label not in ("Brightness", "Sleep mode", "Charge limit"):
             continue  # left/right only adjusts value rows; actions need the confirm button
         levels = [str(p) for p in (10, 20, 30, 40, 50, 60, 70, 80, 90, 100)]
         sleeps = [("Sleep", "mem"), ("Light sleep", "freeze"), ("Screen off only", "off")]
@@ -544,8 +545,14 @@ def page_device(ui):
             if v:
                 conf.set("system.suspendmode", v)
                 run_cmd(f"suspendmode {v}")
-        elif 2 <= sel < 2 + len(SERVICES):
-            _, key, units = SERVICES[sel - 2]
+        elif label == "Charge limit":
+            # Stop charging at 80 % (battery longevity) or charge to full. 090-asgard-tuning applies it at boot.
+            # ponytail: kernel patch 9003 doesn't make the firmware honour it yet, so today this only stores the choice.
+            v = "100" if conf.get("asgard.charge_limit", "80") != "100" else "80"
+            conf.set("asgard.charge_limit", v)
+            run_cmd(f"echo {v} > /sys/class/power_supply/battery/charge_control_end_threshold")
+        elif 3 <= sel < 3 + len(SERVICES):
+            _, key, units = SERVICES[sel - 3]
             on = conf.get(key) != "1"
             conf.set(key, "1" if on else "0")
             run_cmd(f"systemctl {'start' if on else 'stop'} {units}", 30)
