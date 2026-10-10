@@ -1,0 +1,34 @@
+#!/bin/bash
+# asgard-osd <label> <percent>: volume/brightness slider, drawn by mako as a progress bar.
+# Each call replaces the previous OSD notification, so holding the key moves one bar instead of stacking toasts.
+LABEL=$1 VALUE=$2
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/var/run/0-runtime-dir}
+CONF=/storage/.config/mako/config
+ID=/run/asgard-osd.id
+
+if ! grep -qs '^\[app-name=asgard-osd\]' "$CONF"; then
+  mkdir -p "${CONF%/*}"
+  cat >> "$CONF" <<'EOF'
+
+[app-name=asgard-osd]
+format=%s
+font=Liberation Sans Bold 30
+text-alignment=left
+anchor=top-center
+width=640
+padding=22,28
+margin=24
+border-radius=28
+border-size=2
+border-color=#ffffff33
+background-color=#14162aee
+progress-color=over #7c5cffee
+default-timeout=1200
+EOF
+  makoctl reload >/dev/null 2>&1
+fi
+
+OLD=$(cat "$ID" 2>/dev/null)
+busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications \
+  Notify susssasa{sv}i asgard-osd "${OLD:-0}" "" "$LABEL  $VALUE%" "" 0 1 value i "$VALUE" 1200 2>/dev/null \
+  | awk '{print $2}' > "$ID"
