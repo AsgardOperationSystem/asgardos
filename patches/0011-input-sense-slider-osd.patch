@@ -1,0 +1,62 @@
+From: Chaos Ruler <zmelumian@gmail.com>
+Subject: [PATCH] input_sense: volume/brightness slider OSD instead of a text toast
+
+asgard-osd shows the level as a mako progress bar and replaces its own
+notification, so holding the key moves one bar.
+---
+--- a/projects/ROCKNIX/packages/sysutils/system-utils/sources/scripts/input_sense
++++ b/projects/ROCKNIX/packages/sysutils/system-utils/sources/scripts/input_sense
+@@ -256,7 +256,7 @@
+         ${FN_A_ACTION_UP}
+         if [ "${FN_A_ACTION_UP}" == "brightness up" ]; then
+           CUR_BRIGHTNESS=$(get_setting "display.brightness")
+-          /usr/bin/mako-notify "Brightness: ${CUR_BRIGHTNESS}%" -no-es
++          /usr/share/asgard/asgard-osd Brightness ${CUR_BRIGHTNESS}
+         fi
+         ;;
+       down)
+@@ -264,7 +264,7 @@
+         ${FN_A_ACTION_DOWN}
+         if [ "${FN_A_ACTION_DOWN}" == "brightness down" ]; then
+           CUR_BRIGHTNESS=$(get_setting "display.brightness")
+-          /usr/bin/mako-notify "Brightness: ${CUR_BRIGHTNESS}%" -no-es
++          /usr/share/asgard/asgard-osd Brightness ${CUR_BRIGHTNESS}
+         fi
+         ;;
+     esac
+@@ -413,7 +413,7 @@
+           stop_volume_repeat
+           if [ "${FN_A_PRESSED}" = false ] && [ "${FN_B_PRESSED}" = false ]; then
+             CUR_VOLUME=$(get_setting "audio.volume")
+-            /usr/bin/mako-notify "Volume: ${CUR_VOLUME}%" -no-es
++            /usr/share/asgard/asgard-osd Volume ${CUR_VOLUME}
+           fi
+         fi
+       ;;
+@@ -434,7 +434,7 @@
+           stop_volume_repeat
+           if [ "${FN_A_PRESSED}" = false ] && [ "${FN_B_PRESSED}" = false ]; then
+             CUR_VOLUME=$(get_setting "audio.volume")
+-            /usr/bin/mako-notify "Volume: ${CUR_VOLUME}%" -no-es
++            /usr/share/asgard/asgard-osd Volume ${CUR_VOLUME}
+           fi
+         fi
+       ;;
+@@ -509,7 +509,7 @@
+           ${DEBUG} && log $0 "${FUNCTION_HOTKEY_DPAD_RIGHT_EVENT}${FUNCTION_HOTKEY_HAT_RIGHT_EVENT}: Brightness Up"
+           brightness up
+           CUR_BRIGHTNESS=$(get_setting "display.brightness")
+-          /usr/bin/mako-notify "Brightness: ${CUR_BRIGHTNESS}%" -no-es
++          /usr/share/asgard/asgard-osd Brightness ${CUR_BRIGHTNESS}
+         fi
+       ;;
+       (${FUNCTION_HOTKEY_DPAD_LEFT_EVENT}|${FUNCTION_HOTKEY_HAT_LEFT_EVENT})
+@@ -517,7 +517,7 @@
+           ${DEBUG} && log $0 "${FUNCTION_HOTKEY_DPAD_LEFT_EVENT}${FUNCTION_HOTKEY_HAT_LEFT_EVENT}: Brightness Down"
+           brightness down
+           CUR_BRIGHTNESS=$(get_setting "display.brightness")
+-          /usr/bin/mako-notify "Brightness: ${CUR_BRIGHTNESS}%" -no-es
++          /usr/share/asgard/asgard-osd Brightness ${CUR_BRIGHTNESS}
+         fi
+       ;;
+       (${FUNCTION_HOTKEY_TOUCH_EVENT})
