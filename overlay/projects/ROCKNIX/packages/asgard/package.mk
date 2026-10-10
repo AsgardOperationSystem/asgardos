@@ -22,6 +22,9 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib/systemd/system/sway.service.d
   cp ${PKG_DIR}/system.d/asgard-rotate.conf ${INSTALL}/usr/lib/systemd/system/sway.service.d/
 
+  mkdir -p ${INSTALL}/usr/lib/systemd/system/sway-touch.service.d
+  cp ${PKG_DIR}/sway-touch.service.d/*.conf ${INSTALL}/usr/lib/systemd/system/sway-touch.service.d/
+
   mkdir -p ${INSTALL}/usr/lib/systemd/system/fancontrol.service.d
   cp ${PKG_DIR}/fancontrol.service.d/*.conf ${INSTALL}/usr/lib/systemd/system/fancontrol.service.d/
 

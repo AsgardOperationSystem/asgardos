@@ -1,9 +1,11 @@
 #pragma once
 #include <QHash>
+#include <QJSValue>
 #include <QObject>
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSocketNotifier>
+#include <QSoundEffect>
 #include <QTimer>
 #include <QVariant>
 
@@ -19,6 +21,7 @@ class Backend : public QObject
     Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
     Q_PROPERTY(bool screensOff READ screensOff WRITE setScreensOff NOTIFY screensOffChanged)  // OLED rest (X)
+    Q_PROPERTY(bool gameMenu READ gameMenu WRITE setGameMenu NOTIFY gameMenuChanged)  // in-game menu (Home tap)
 
 public:
     Backend(const QProcessEnvironment &gameEnv, QObject *parent = nullptr);
@@ -29,30 +32,47 @@ public:
     bool playing() const { return m_game != nullptr; }
     bool screensOff() const { return m_screensOff; }
     void setScreensOff(bool off);
+    bool gameMenu() const { return m_gameMenu; }
+    void setGameMenu(bool on) { if (on != m_gameMenu) { m_gameMenu = on; emit gameMenuChanged(); } }
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
     QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
-    Q_INVOKABLE void openSettings(const QVariantMap &game = {});   // Thor Settings (Start)
+    Q_INVOKABLE void openSettings(const QVariantMap &game = {}, const QString &page = {});  // classic Thor Settings
     Q_INVOKABLE QVariantMap playStats(const QString &path) const;  // {playtime (s), lastPlayed (epoch s)}
+    Q_INVOKABLE QString getSetting(const QString &key, const QString &fallback = {}) const;  // system.cfg
+    Q_INVOKABLE void setSetting(const QString &key, const QString &value);                  // "" removes the key
+    Q_INVOKABLE QVariantList emulators(const QString &system) const;  // [{name, cores: [...]}], ROCKNIX's choices
+    Q_INVOKABLE void shell(const QString &command);
+    Q_INVOKABLE void sound(const QString &name);   // qml/sounds/<name>.wav, unless asgard.sounds=0
+    Q_INVOKABLE void exec(const QString &command, const QJSValue &done);  // done(output) when it exits
+    Q_INVOKABLE void rescan();
+    Q_INVOKABLE QStringList runningGame() const;          // the running emulator's process names
+    Q_INVOKABLE void gameKeys(const QString &combo);      // focus the game and press e.g. "F4", "Alt+S"
+    Q_INVOKABLE void quitGame();
+    Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
 
 signals:
     void libraryChanged();
     void statusChanged();
     void playingChanged();
     void screensOffChanged();
+    void settingsChanged();
+    void gameMenuChanged();
 
 private:
     void scan();
     void readPlaytime();
     void readStatus();
     void topScreenOn();
+    void command(const QString &cmd);
     void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
     QString setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const;
     QString path(const QString &p) const { return m_root + p; }
 
     QString m_root;
+    QHash<QString, QSoundEffect *> m_sounds;
     QProcessEnvironment m_gameEnv;  // the environment we were started with, without our own Qt settings
     QVariantList m_systems, m_recent;
     QHash<QString, QVariantList> m_games;
@@ -61,6 +81,9 @@ private:
     int m_battery = -1;
     bool m_charging = false;
     QProcess *m_game = nullptr;
+    bool m_gameMenu = false;
+    int m_keys = -1;   // uinput keyboard for emulator hotkeys
+    int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu")
 };
 
 // InputPlumber's virtual DualSense read straight from evdev (Qt 6 has no gamepad module).
@@ -82,4 +105,5 @@ private:
     QTimer m_retry;      // pad not there (yet / any more): look again every 500 ms
     QTimer m_repeat;     // held d-pad direction repeats, like a keyboard
     QString m_held;
+    bool m_lb = false, m_rb = false, m_combo = false;   // shoulder state for the LB+RB combo
 };

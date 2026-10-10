@@ -7,6 +7,7 @@
 #include <QQmlNetworkAccessManagerFactory>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QPointerEvent>
 #include <QTimer>
 
 #include "achievements.h"
@@ -39,6 +40,17 @@ public:
     }
 };
 
+// ASGARD_DEBUG_INPUT: log every pointer/touch event Qt hands to a window, before Qt Quick sees it.
+class InputLog : public QObject
+{
+    bool eventFilter(QObject *o, QEvent *e) override
+    {
+        if (e->isPointerEvent() && e->type() != QEvent::MouseMove && e->type() != QEvent::HoverMove)
+            qInfo() << "input: qt" << e->type() << o << static_cast<QPointerEvent *>(e)->points().value(0).position();
+        return false;
+    }
+};
+
 int main(int argc, char *argv[])
 {
     // Screenshot mode (development): windows stay hidden, are rendered offscreen and saved as <prefix><title>.png.
@@ -49,6 +61,9 @@ int main(int argc, char *argv[])
     if (qEnvironmentVariableIsSet("WAYLAND_DISPLAY"))
         qputenv("QT_QPA_PLATFORM", "wayland");
     QGuiApplication app(argc, argv);
+    InputLog inputLog;
+    if (qEnvironmentVariableIsSet("ASGARD_DEBUG_INPUT"))
+        app.installEventFilter(&inputLog);
     Backend backend(gameEnv);
     Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)
     Achievements achievements(&backend);

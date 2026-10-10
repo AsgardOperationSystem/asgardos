@@ -6,14 +6,19 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSet>
 #include <QSysInfo>
 #include <QXmlStreamReader>
 #include <algorithm>
 
 #include <cerrno>
+#include <cstring>
 #include <fcntl.h>
 #include <linux/input.h>
+#include <linux/uinput.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 static const char *PLAYLOG = "/storage/.config/thor/playtime.jsonl";  // shared with Thor Panel (playlog.py)
@@ -26,6 +31,36 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     readPlaytime();
     readStatus();
     topScreenOn();
+    if (QFile::exists("/usr/bin/runemu.sh") && !qEnvironmentVariableIsSet("ASGARD_SHOT")) {
+        // A keyboard of our own for emulator hotkeys (made now, so sway knows it before the first press).
+        m_keys = ::open("/dev/uinput", O_WRONLY | O_NONBLOCK | O_CLOEXEC);
+        if (m_keys >= 0) {
+            ioctl(m_keys, UI_SET_EVBIT, EV_KEY);
+            for (int k : {KEY_LEFTALT, KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_F4, KEY_F6, KEY_F7, KEY_F9, KEY_F10,
+                          KEY_S, KEY_L, KEY_P, KEY_M, KEY_ESC})
+                ioctl(m_keys, UI_SET_KEYBIT, k);
+            uinput_setup us{};
+            us.id.bustype = BUS_VIRTUAL;
+            strcpy(us.name, "asgard-home-keys");
+            if (ioctl(m_keys, UI_DEV_SETUP, &us) < 0 || ioctl(m_keys, UI_DEV_CREATE) < 0) {
+                ::close(m_keys);
+                m_keys = -1;
+            }
+        }
+        // Command FIFO. Opened read-write so it never reads EOF when a writer closes.
+        mkfifo("/run/asgard-home.cmd", 0600);
+        m_cmd = ::open("/run/asgard-home.cmd", O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        if (m_cmd >= 0) {
+            auto *n = new QSocketNotifier(m_cmd, QSocketNotifier::Read, this);
+            connect(n, &QSocketNotifier::activated, this, [this] {
+                char buf[256];
+                const ssize_t len = ::read(m_cmd, buf, sizeof buf);
+                if (len > 0)
+                    for (const QString &c : QString::fromUtf8(buf, len).split('\n', Qt::SkipEmptyParts))
+                        command(c.trimmed());
+            });
+        }
+    }
     auto *t = new QTimer(this);
     connect(t, &QTimer::timeout, this, &Backend::readStatus);
     t->start(30000);
@@ -64,6 +99,15 @@ static QString media(const QString &dir, const QString &stem)
     return {};
 }
 
+void Backend::rescan()
+{
+    m_systems.clear();
+    m_games.clear();
+    m_byPath.clear();
+    scan();
+    readPlaytime();
+}
+
 void Backend::scan()
 {
     QFile f(path("/usr/config/emulationstation/es_systems.cfg"));
@@ -81,13 +125,22 @@ void Backend::scan()
             sys[x.name().toString()] = text(x);
         } else if (x.isStartElement() && x.name() == u"emulator") {
             const QString emu = x.attributes().value("name").toString();
+            QStringList cores;
             while (!(x.isEndElement() && x.name() == u"emulator") && !x.atEnd()) {
                 x.readNext();
-                if (x.isStartElement() && x.name() == u"core" && x.attributes().value("default") == u"true") {
-                    sys["emulator"] = emu;
-                    sys["core"] = text(x);
+                if (x.isStartElement() && x.name() == u"core") {
+                    const bool def = x.attributes().value("default") == u"true";
+                    const QString core = text(x);
+                    cores << core;
+                    if (def) {
+                        sys["emulator"] = emu;
+                        sys["core"] = core;
+                    }
                 }
             }
+            QVariantList emus = sys["emulators"].toList();
+            emus << QVariantMap{{"name", emu}, {"cores", cores}};
+            sys["emulators"] = emus;
         } else if (x.isEndElement() && x.name() == u"system" && sys.contains("emulator")) {
             const QString name = sys["name"].toString(), dir = path(sys["path"].toString());
             QSet<QString> exts;
@@ -135,7 +188,12 @@ void Backend::scan()
                 return a.toMap()["name"].toString().compare(b.toMap()["name"].toString(), Qt::CaseInsensitive) < 0;
             });
             sys["count"] = games.size();
-            sys["cover"] = games.first().toMap()["shot"];  // fallback picture when the theme has no art
+            // Backdrop: the first game that has a screenshot (the first one alphabetically often has none: 3DS).
+            for (const QVariant &g : games)
+                if (!g.toMap()["shot"].toString().isEmpty()) {
+                    sys["cover"] = g.toMap()["shot"];
+                    break;
+                }
             // System artwork + white logo from ROCKNIX's Art Book Next theme (es-theme-art-book-next), by <theme>.
             const QString art = path("/usr/share/themes/es-theme-art-book-next/_inc/systems/");
             const QString theme = sys.value("theme", name).toString();
@@ -236,7 +294,7 @@ void Backend::launch(const QVariantMap &game)
         {rom, sys, core, emulator}, m_gameEnv);
 }
 
-void Backend::openSettings(const QVariantMap &game)
+void Backend::openSettings(const QVariantMap &game, const QString &page)
 {
     if (m_game)
         return;
@@ -245,12 +303,12 @@ void Backend::openSettings(const QVariantMap &game)
     if (!game.isEmpty() && sel.open(QIODevice::WriteOnly))
         sel.write((game["sys"].toString() + "\t" + game["path"].toString() + "\n").toUtf8());
     if (!QFile::exists("/usr/share/asgard/thor_settings.py")) {  // desktop
-        qInfo("settings");
+        qInfo("settings page %s", qPrintable(page));
         return;
     }
     QProcessEnvironment env = m_gameEnv;
     env.insert("SDL_GAMECONTROLLERCONFIG", "");  // sdlui expects the pad's positional mapping
-    run("exec python3 /usr/share/asgard/thor_settings.py", {}, env);
+    run("exec python3 /usr/share/asgard/thor_settings.py --page \"$1\"", {page.isEmpty() ? "main" : page}, env);
 }
 
 // Run a game or tool in place of the frontend: our windows hide (playing), the pad is ignored until it exits.
@@ -262,6 +320,7 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
     connect(m_game, &QProcess::finished, this, [this] {
         m_game->deleteLater();
         m_game = nullptr;
+        setGameMenu(false);
         readPlaytime();
         topScreenOn();
         emit playingChanged();
@@ -274,6 +333,173 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         "swaymsg 'focus output DSI-2' >/dev/null 2>&1; (/usr/share/asgard/thor-bottom-idle-off.sh 3 >/dev/null 2>&1 &); " + script,
         "run"} + args);
     emit playingChanged();
+}
+
+// --- in-game menu ----------------------------------------------------------------------------------------------------
+
+void Backend::command(const QString &cmd)
+{
+    qInfo("command: %s", qPrintable(cmd));
+    if (cmd == "menu" && playing()) {
+        const bool open = !m_gameMenu;
+        if (!open)
+            setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
+        if (runningGame().contains("azahar"))
+            gameKeys("F4");      // pause / unpause (Azahar keeps running when it loses focus)
+        if (open)
+            setGameMenu(true);
+    }
+}
+
+QStringList Backend::runningGame() const
+{
+    // ROCKNIX's kill-hotkey target, written by runemu.sh for every emulator it starts.
+    QFile f("/tmp/.process-kill-data");
+    QStringList names;
+    if (f.open(QIODevice::ReadOnly))
+        for (const QString &w : QString::fromUtf8(f.readAll()).split(QRegularExpression("\\s+"), Qt::SkipEmptyParts))
+            if (!w.startsWith('-') && w != "emulationstation")
+                names << w;
+    return names;
+}
+
+void Backend::gameKeys(const QString &combo)
+{
+    const QStringList names = runningGame();
+    if (m_keys < 0 || names.isEmpty())
+        return;
+    // Keys go to the focused window: hand focus back to the game first (any of its windows; Azahar's
+    // shortcuts are application-wide).
+    QProcess::execute("/bin/sh", {"-c", "swaymsg \"[pid=$(pidof -s " + names.first() + ")] focus\" >/dev/null 2>&1"});
+    static const QHash<QString, int> codes = {{"Alt", KEY_LEFTALT}, {"Ctrl", KEY_LEFTCTRL}, {"Shift", KEY_LEFTSHIFT},
+        {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L},
+        {"P", KEY_P}, {"M", KEY_M}, {"Esc", KEY_ESC}};
+    QList<int> keys;
+    for (const QString &k : combo.split('+'))
+        keys << codes.value(k, 0);
+    if (keys.contains(0))
+        return;
+    auto emitKey = [this](int code, int value) {
+        input_event ev[2] = {};
+        ev[0].type = EV_KEY; ev[0].code = code; ev[0].value = value;
+        ev[1].type = EV_SYN; ev[1].code = SYN_REPORT;
+        (void)!::write(m_keys, ev, sizeof ev);
+    };
+    for (int k : keys) emitKey(k, 1);
+    usleep(30000);
+    for (auto it = keys.rbegin(); it != keys.rend(); ++it) emitKey(*it, 0);
+}
+
+void Backend::quitGame()
+{
+    const QStringList names = runningGame();
+    setGameMenu(false);
+    if (names.isEmpty())
+        return;
+    // Like ROCKNIX's quit hotkey: ask nicely, then insist (emulators that ignore SIGTERM).
+    const QString n = names.join(' ');
+    shell("killall -TERM " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
+          "killall -KILL " + n);
+}
+
+// --- settings (system.cfg, ROCKNIX's semantics: one key=value per line, the last one wins) -----------------------
+
+QString Backend::getSetting(const QString &key, const QString &fallback) const
+{
+    QFile f(path("/storage/.config/system/configs/system.cfg"));
+    QString value;
+    if (f.open(QIODevice::ReadOnly))
+        for (const QByteArray &line : f.readAll().split('\n'))
+            if (line.startsWith(key.toUtf8() + "="))
+                value = QString::fromUtf8(line.mid(key.toUtf8().size() + 1));
+    return value.isEmpty() ? fallback : value;
+}
+
+// Like ROCKNIX's set_setting: drop the key's lines, append key=value ("" or "default" just removes it).
+void Backend::setSetting(const QString &key, const QString &value)
+{
+    QFile f(path("/storage/.config/system/configs/system.cfg"));
+    QByteArrayList keep;
+    if (f.open(QIODevice::ReadOnly)) {
+        for (const QByteArray &line : f.readAll().split('\n'))
+            if (!line.isEmpty() && !line.startsWith(key.toUtf8() + "="))
+                keep << line;
+        f.close();
+    }
+    if (!value.isEmpty() && value != "default")
+        keep << (key + "=" + value).toUtf8();
+    QFile tmp(f.fileName() + ".asgard-tmp");
+    if (tmp.open(QIODevice::WriteOnly)) {
+        tmp.write(keep.join('\n') + '\n');
+        tmp.close();
+        QFile::remove(f.fileName());
+        tmp.rename(f.fileName());
+    }
+    emit settingsChanged();
+}
+
+QVariantMap Backend::osInfo() const
+{
+    QVariantMap info;
+    QFile f("/etc/os-release");
+    if (f.open(QIODevice::ReadOnly))
+        for (const QByteArray &line : f.readAll().split('\n')) {
+            const int eq = line.indexOf('=');
+            if (eq > 0)
+                info[QString::fromUtf8(line.left(eq))] = QString::fromUtf8(line.mid(eq + 1)).remove('"');
+        }
+    return info;
+}
+
+QVariantList Backend::emulators(const QString &system) const
+{
+    for (const QVariant &s : m_systems)
+        if (s.toMap()["name"] == system)
+            return s.toMap()["emulators"].toList();
+    return {};
+}
+
+// Settings actions (volume, brightness, services...): a shell command in the frontend's environment.
+void Backend::shell(const QString &command)
+{
+    if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop
+        qInfo("shell: %s", qPrintable(command));
+        return;
+    }
+    QProcess::startDetached("/bin/sh", {"-c", command});
+}
+
+void Backend::sound(const QString &name)
+{
+    // ponytail: reads system.cfg per sound; cache the two keys if that ever shows up in a profile
+    if (qEnvironmentVariableIsSet("ASGARD_SHOT") || getSetting("asgard.sounds", "1") != "1")
+        return;
+    QSoundEffect *&fx = m_sounds[name];
+    if (!fx) {
+        fx = new QSoundEffect(this);
+        fx->setSource(QUrl::fromLocalFile(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml")
+                                          + "/sounds/" + name + ".wav"));
+    }
+    fx->setVolume(getSetting("asgard.sounds_volume", "50").toInt() / 100.0);
+    fx->play();
+}
+
+void Backend::exec(const QString &command, const QJSValue &done)
+{
+    auto *p = new QProcess(this);
+    p->setProcessChannelMode(QProcess::MergedChannels);
+    connect(p, &QProcess::finished, this, [p, done] {
+        QJSValue cb = done;
+        if (cb.isCallable())
+            cb.call({QString::fromUtf8(p->readAll())});
+        p->deleteLater();
+    });
+    if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop: log it, answer with nothing
+        qInfo("exec: %s", qPrintable(command));
+        p->start("/bin/true");
+        return;
+    }
+    p->start("/bin/sh", {"-c", command});
 }
 
 // ROCKNIX's get_setting lookup: <sys>["<file>"].<key>, then <sys>.<key>, then global.<key>, else fallback.
@@ -370,12 +596,27 @@ void Gamepad::hold(const QString &dir, bool down)
 void Gamepad::read()
 {
     static const QHash<int, QString> buttons = {
-        {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_NORTH, "x"}, {BTN_WEST, "y"}, {BTN_TL, "lb"}, {BTN_TR, "rb"},
+        {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_NORTH, "x"}, {BTN_WEST, "y"},
         {BTN_TL2, "lt"}, {BTN_TR2, "rt"}, {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
     input_event ev;
     ssize_t n;
     while ((n = ::read(m_fd, &ev, sizeof ev)) == sizeof ev) {
-        if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
+        if (ev.type == EV_KEY && (ev.code == BTN_TL || ev.code == BTN_TR)) {
+            // Shoulders act on release, so LB+RB together is one "lr" (swap screens) rather than two tab switches.
+            bool &held = ev.code == BTN_TL ? m_lb : m_rb;
+            if (ev.value == 1) {
+                held = true;
+                m_combo = m_combo || (m_lb && m_rb);
+            } else if (ev.value == 0 && held) {
+                held = false;
+                if (!m_combo)
+                    emit pressed(ev.code == BTN_TL ? "lb" : "rb");
+                else if (!m_lb && !m_rb) {
+                    m_combo = false;
+                    emit pressed("lr");
+                }
+            }
+        } else if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
             emit pressed(buttons[ev.code]);
         else if (ev.type == EV_ABS && ev.code == ABS_HAT0X) {
             hold("left", ev.value < 0);

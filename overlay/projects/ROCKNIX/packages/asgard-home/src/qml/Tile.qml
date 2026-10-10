@@ -8,17 +8,29 @@ Item {
     id: tile
     property var item
     property bool selected: false
+    property bool lifted: false   // being moved (reorder): bigger, and it wobbles
     property bool near: true      // inside or close to the visible part of the grid: only then load art and effects
-    signal tapped()               // bottom touchscreen
+    signal tapped()               // touchscreen
+    signal longPressed()          // touchscreen: lift the tile to reorder it
 
-    MouseArea { anchors.fill: parent; onClicked: tile.tapped() }
+    // A handler, not a MouseArea: a MouseArea takes the touch on press, so a swipe that starts on a tile never
+    // reached the grid's DragHandler (no scrolling). TapHandler lets a drag past the threshold go to it.
+    TapHandler { onTapped: tile.tapped(); onLongPressed: tile.longPressed() }
     readonly property string kind: item ? item.kind : ""
     readonly property var game: item ? item.game : null
     readonly property bool badged: kind === "game" || kind === "ra"   // gets the little system badge
     readonly property bool mastered: kind === "ra" && item.ra.total > 0 && item.ra.earned >= item.ra.total
 
     z: selected ? 2 : 1
-    scale: selected ? 1.07 : 1.0
+    scale: lifted ? 1.14 : selected ? 1.07 : 1.0
+    rotation: 0
+    SequentialAnimation on rotation {
+        running: tile.lifted; loops: Animation.Infinite
+        onRunningChanged: if (!running) tile.rotation = 0
+        NumberAnimation { to: 2; duration: 120 }
+        NumberAnimation { to: -2; duration: 240 }
+        NumberAnimation { to: 0; duration: 120 }
+    }
     Behavior on scale { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutBack; easing.overshoot: 2.2 } }
 
     // Glow under the selected tile (only that one carries the effect).
