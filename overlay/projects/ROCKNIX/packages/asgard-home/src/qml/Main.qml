@@ -24,8 +24,6 @@ QtObject {
             out.push({ kind: "jump", game: recent[0] })
         for (const s of backend.systems)
             out.push({ kind: "system", sys: s })
-        for (const g of recent.slice(1, 9))
-            out.push({ kind: "game", game: g })
         return out
     }
     function tabItems(t) {
@@ -148,7 +146,6 @@ QtObject {
                 font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: Theme.text
                 text: "●  " + backend.hostname
             }
-            Tag { text: "LT"; anchors.right: parent.right; anchors.rightMargin: 34; y: -22 }
         }
         Pill {
             x: parent.width - width + 60; y: 62; width: statusRow.implicitWidth + 140; height: 96
@@ -167,7 +164,6 @@ QtObject {
                     level: backend.battery; charging: backend.charging
                 }
             }
-            Tag { text: "RT"; x: 34; y: -22 }
         }
 
         HeroCard {
