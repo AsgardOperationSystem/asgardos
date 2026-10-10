@@ -8,6 +8,7 @@ Item {
     id: tile
     property var item
     property bool selected: false
+    property bool lifted: false   // being moved (reorder): bigger, and it wobbles
     property bool near: true      // inside or close to the visible part of the grid: only then load art and effects
     signal tapped()               // bottom touchscreen
 
@@ -18,7 +19,15 @@ Item {
     readonly property bool mastered: kind === "ra" && item.ra.total > 0 && item.ra.earned >= item.ra.total
 
     z: selected ? 2 : 1
-    scale: selected ? 1.07 : 1.0
+    scale: lifted ? 1.14 : selected ? 1.07 : 1.0
+    rotation: 0
+    SequentialAnimation on rotation {
+        running: tile.lifted; loops: Animation.Infinite
+        onRunningChanged: if (!running) tile.rotation = 0
+        NumberAnimation { to: 2; duration: 120 }
+        NumberAnimation { to: -2; duration: 240 }
+        NumberAnimation { to: 0; duration: 120 }
+    }
     Behavior on scale { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutBack; easing.overshoot: 2.2 } }
 
     // Glow under the selected tile (only that one carries the effect).

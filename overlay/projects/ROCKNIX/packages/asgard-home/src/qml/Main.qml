@@ -27,29 +27,59 @@ QtObject {
         const recent = backend.recent
         if (recent.length)
             out.push({ kind: "jump", game: recent[0] })
-        for (const s of backend.systems)
+        for (const s of ordered(backend.systems))
             out.push({ kind: "system", sys: s })
         return out
     }
     function tabItems(t) {
         if (t === 0) return homeItems()
-        if (t === 1) return backend.systems.map(s => ({ kind: "system", sys: s }))
+        if (t === 1) return ordered(backend.systems).map(s => ({ kind: "system", sys: s }))
         if (t === 2) return achievements.games.map(e => ({ kind: "ra", game: e.game, ra: e }))
         return []                            // profile / apps: not built yet
     }
 
-    // 4-column flow; "jump" takes two cells. Returns [{col, row, w}] parallel to items.
+    // Columns of 253 px tiles with 44 px gaps that fit the grid window (4 on the bottom screen, 6 on the top one).
+    readonly property int cols: Math.max(3, Math.floor((Math.round(1080 * bottom.width / Math.max(1, bottom.height)) - 92 + 44) / 297))
+    // Flow over `cols` columns; "jump" takes two cells. Returns [{col, row, w}] parallel to items.
     function layout(list) {
         const out = []; let col = 0, row = 0
         for (const it of list) {
             const w = it.kind === "jump" ? 2 : 1
-            if (col + w > 4) { col = 0; row++ }
+            if (col + w > cols) { col = 0; row++ }
             out.push({ col: col, row: row, w: w })
             col += w
-            if (col >= 4) { col = 0; row++ }
+            if (col >= cols) { col = 0; row++ }
         }
         return out
     }
+    // --- tile order (Y): the selected system tile lifts, the d-pad moves it, A keeps the order, B cancels ---------
+    property var order: backend.getSetting("asgard.order", "").split(",").filter(x => x)   // system names
+    property bool reordering: false
+    property var reorderBackup: null
+    function ordered(list) {   // saved order first; systems not in it keep their place after
+        const ranked = []
+        for (let i = 0; i < list.length; i++) {   // ranks by position: list elements are fresh wrappers each read
+            const k = order.indexOf(list[i].name)
+            ranked.push({ s: list[i], r: k < 0 ? 1000 + i : k })
+        }
+        return ranked.sort((a, b) => a.r - b.r).map(x => x.s)
+    }
+    function startReorder() {
+        if (stack.length || tab > 1 || !current || current.kind !== "system") return
+        reorderBackup = items; reordering = true
+    }
+    function moveTo(t) {       // the jump tile stays first: only system tiles trade places
+        if (t < 0 || t >= items.length || t === sel || items[t].kind !== "system") return
+        const l = items.slice(); const it = l.splice(sel, 1)[0]; l.splice(t, 0, it)
+        items = l; sel = t
+    }
+    function endReorder(keep) {
+        reordering = false
+        if (!keep) { items = reorderBackup; return }
+        order = items.filter(i => i.kind === "system").map(i => i.sys.name)
+        backend.setSetting("asgard.order", order.join(","))
+    }
+
     function itemAt(row, col) {
         let best = -1
         for (let i = 0; i < cells.length; i++) {
@@ -72,7 +102,17 @@ QtObject {
         if (b === "start") { if (current && current.game) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
         if (b === "guide") { bottom.settingsPanel.showPower(); return }   // Home (in a game it opens the game menu)
         if (b === "select") { details = !details; return }
-        if (b === "y") { swapScreens(); return }
+        if (reordering) {
+            const rc = cells[sel]
+            if (b === "left") moveTo(sel - 1)
+            else if (b === "right") moveTo(sel + 1)
+            else if ((b === "up" || b === "down") && rc) moveTo(itemAt(rc.row + (b === "up" ? -1 : 1), rc.col))
+            else if (b === "a" || b === "y") endReorder(true)
+            else if (b === "b") endReorder(false)
+            return
+        }
+        if (b === "y") { startReorder(); return }
+        if (b === "lr") { swapScreens(); return }
         if (b === "b" && details) { details = false; return }
         const c = cells[sel]
         if (b === "left" && sel > 0) sel--
@@ -139,7 +179,7 @@ QtObject {
         if (debugInput) console.log("input: key", event.key)
         const k = { [Qt.Key_Left]: "left", [Qt.Key_Right]: "right", [Qt.Key_Up]: "up", [Qt.Key_Down]: "down",
                     [Qt.Key_Return]: "a", [Qt.Key_Enter]: "a", [Qt.Key_Escape]: "b", [Qt.Key_Backspace]: "b",
-                    [Qt.Key_X]: "x", [Qt.Key_Y]: "y", [Qt.Key_Q]: "lb", [Qt.Key_E]: "rb",
+                    [Qt.Key_X]: "x", [Qt.Key_Y]: "y", [Qt.Key_Q]: "lb", [Qt.Key_E]: "rb", [Qt.Key_W]: "lr",
                     [Qt.Key_Minus]: "select", [Qt.Key_Plus]: "start", [Qt.Key_Equal]: "start" }[event.key]
         if (k) { nav(k); event.accepted = true }
     }
@@ -150,15 +190,15 @@ QtObject {
     // --- top screen -----------------------------------------------------------------------------------------
     property Window top: Window {
         title: app.swapped ? "Asgard Home (Bottom)" : "Asgard Home"   // sway places our windows by title
-        width: 1920; height: 1080; color: "#0b0c14"
+        width: app.swapped ? 1240 : 1920; height: 1080; color: "#0b0c14"   // sway's fullscreen sets the real size
         visible: !shotMode && !backend.playing
 
-        // Everything is laid out for this panel (1920x1080) and scaled to fit the screen the window is on
-        // (Y swaps the screens: the 1920-wide design then shows on the other panel).
+        // Laid out 1080 tall and as wide as the screen the window is on (1920 on top, 1240 below; L+R swaps them),
+        // scaled to the panel's pixels.
         Item {
             id: topStage
-            width: 1920; height: 1080; anchors.centerIn: parent
-            scale: Math.min(parent.width / width, parent.height / height)
+            width: parent.height > 0 ? Math.round(1080 * parent.width / parent.height) : 1920
+            height: 1080; anchors.centerIn: parent; scale: parent.height / 1080
 
             Backdrop { anchors.fill: parent; source: app.art }
             Item {
@@ -201,7 +241,7 @@ QtObject {
                                                          Math.round(point.position.x), Math.round(point.position.y))
             }
             HeroCard {
-                x: 385; y: 232; width: 1150; height: 650
+                x: (parent.width - width) / 2; y: 232; width: 1150; height: 650
                 item: app.current
                 details: app.details
                 placeholder: ["Home", "Games", "Trophies"][app.tab]
@@ -209,20 +249,27 @@ QtObject {
 
             Pill {
                 x: parent.width - width + 60; y: 984; width: hints.implicitWidth + 130; height: 92
+                transformOrigin: Item.Right; scale: Math.min(1, (parent.width + 40) / width)   // narrow (bottom) screen
                 Row {
                     id: hints
                     x: 40; anchors.verticalCenter: parent.verticalCenter; spacing: 30
+                    Hint { visible: app.reordering; glyph: "✥"; label: "Move" }
+                    Hint { visible: app.reordering; glyph: "A"; label: "Done" }
+                    Hint { visible: app.reordering; glyph: "B"; label: "Cancel" }
                     Hint {
-                        visible: !!app.current && app.current.kind !== "ach"
+                        visible: !app.reordering && !!app.current && app.current.kind !== "ach"
                         glyph: "A"; label: app.current && (app.current.kind === "system" || app.current.kind === "ra") ? "Open" : "Play"
                     }
-                    Hint { glyph: "B"; label: "Back" }
-                    Hint { glyph: "X"; label: "Screens off" }
-                    Hint { glyph: "−"; label: "Details" }
-                    Hint { glyph: "Y"; label: "Swap"; onTapped: app.swapScreens() }
-                    Hint { glyph: "+"; label: app.current && app.current.game ? "Game settings" : "Settings"
+                    Hint { visible: !app.reordering; glyph: "B"; label: "Back" }
+                    Hint { visible: !app.reordering; glyph: "X"; label: "Screens off" }
+                    Hint { visible: !app.reordering; glyph: "−"; label: "Details" }
+                    Hint { visible: !app.reordering && !app.stack.length && app.tab < 2 && !!app.current && app.current.kind === "system"
+                           glyph: "Y"; label: "Reorder"; onTapped: app.startReorder() }
+                    Hint { visible: !app.reordering; glyph: "LR"; label: "Swap"; onTapped: app.swapScreens() }
+                    Hint { visible: !app.reordering; glyph: "+"; label: app.current && app.current.game ? "Game settings" : "Settings"
                            onTapped: { backend.sound("open"); app.nav("start") } }
-                    Hint { icon: "glyph-home"; label: "Power"; onTapped: { backend.sound("open"); bottom.settingsPanel.showPower() } }
+                    Hint { visible: !app.reordering; icon: "glyph-home"; label: "Power"
+                           onTapped: { backend.sound("open"); bottom.settingsPanel.showPower() } }
                 }
             }
         }
@@ -231,17 +278,17 @@ QtObject {
     // --- bottom screen --------------------------------------------------------------------------------------
     property Window bottom: Window {
         title: app.swapped ? "Asgard Home" : "Asgard Home (Bottom)"
-        width: 1240; height: 1080; color: "#0b0c14"
+        width: app.swapped ? 1920 : 1240; height: 1080; color: "#0b0c14"
         visible: !shotMode && (!backend.playing || backend.gameMenu)  // the in-game menu shows here
         property alias settingsPanel: settingsPanel
         property alias gameMenuPanel: gameMenuPanel
 
-        // Everything is laid out for this panel (1240x1080) and scaled to fit the screen the window is on
-        // (Y swaps the screens: the 1240-wide design then shows on the other panel).
+        // Laid out 1080 tall and as wide as the screen the window is on, like the top window; the grid takes as many
+        // columns as fit (4 below, 6 on the top screen).
         Item {
             id: bottomStage
-            width: 1240; height: 1080; anchors.centerIn: parent
-            scale: Math.min(parent.width / width, parent.height / height)
+            width: parent.height > 0 ? Math.round(1080 * parent.width / parent.height) : 1240
+            height: 1080; anchors.centerIn: parent; scale: parent.height / 1080
 
             Backdrop { anchors.fill: parent; source: app.art; dim: 0.62 }
             Item {
@@ -266,6 +313,7 @@ QtObject {
                 clip: true
 
                 readonly property int pad: 46
+                readonly property real xoff: (width - (app.cols * tile + (app.cols - 1) * gap)) / 2   // centre the columns
                 readonly property int tile: 253
                 readonly property int gap: 44
 
@@ -298,9 +346,10 @@ QtObject {
                             readonly property var cell: app.cells[index] || ({ col: 0, row: 0, w: 1 })
                             item: modelData
                             selected: index === app.sel
+                            lifted: app.reordering && index === app.sel
                             near: y + height > flick.contentY - 400 && y < flick.contentY + flick.height + 400
                             onTapped: app.tap(index)
-                            x: panel.pad + cell.col * (panel.tile + panel.gap)
+                            x: panel.xoff + cell.col * (panel.tile + panel.gap)
                             y: panel.pad + cell.row * (panel.tile + panel.gap)
                             width: cell.w * panel.tile + (cell.w - 1) * panel.gap
                             height: panel.tile

@@ -596,12 +596,27 @@ void Gamepad::hold(const QString &dir, bool down)
 void Gamepad::read()
 {
     static const QHash<int, QString> buttons = {
-        {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_NORTH, "x"}, {BTN_WEST, "y"}, {BTN_TL, "lb"}, {BTN_TR, "rb"},
+        {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_NORTH, "x"}, {BTN_WEST, "y"},
         {BTN_TL2, "lt"}, {BTN_TR2, "rt"}, {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
     input_event ev;
     ssize_t n;
     while ((n = ::read(m_fd, &ev, sizeof ev)) == sizeof ev) {
-        if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
+        if (ev.type == EV_KEY && (ev.code == BTN_TL || ev.code == BTN_TR)) {
+            // Shoulders act on release, so LB+RB together is one "lr" (swap screens) rather than two tab switches.
+            bool &held = ev.code == BTN_TL ? m_lb : m_rb;
+            if (ev.value == 1) {
+                held = true;
+                m_combo = m_combo || (m_lb && m_rb);
+            } else if (ev.value == 0 && held) {
+                held = false;
+                if (!m_combo)
+                    emit pressed(ev.code == BTN_TL ? "lb" : "rb");
+                else if (!m_lb && !m_rb) {
+                    m_combo = false;
+                    emit pressed("lr");
+                }
+            }
+        } else if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
             emit pressed(buttons[ev.code]);
         else if (ev.type == EV_ABS && ev.code == ABS_HAT0X) {
             hold("left", ev.value < 0);

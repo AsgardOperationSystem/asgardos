@@ -105,4 +105,5 @@ private:
     QTimer m_retry;      // pad not there (yet / any more): look again every 500 ms
     QTimer m_repeat;     // held d-pad direction repeats, like a keyboard
     QString m_held;
+    bool m_lb = false, m_rb = false, m_combo = false;   // shoulder state for the LB+RB combo
 };
