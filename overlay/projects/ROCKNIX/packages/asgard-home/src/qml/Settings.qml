@@ -12,6 +12,9 @@ Item {
     property string zone: "side"             // "side" (categories) or "list" (rows)
     property int row: 0
     property var stack: []                   // sub-pages: [{title, build}]
+    property var live: ({})                  // command results (Wi-Fi, Bluetooth, USB...): key -> value
+    property var ask: null                   // confirm dialog: {title, text, yes, run}
+    property int askSel: 1                   // 0 = Cancel, 1 = the action
     signal closed()
 
     readonly property color ink: "#2a2b3d"
@@ -19,14 +22,15 @@ Item {
     readonly property color card: "#fbfbfd"
     readonly property color line: "#e4e5ec"
 
-    function show() { open = true; zone = "side"; row = 0; stack = []; rev++ }
+    function show() { open = true; zone = "side"; row = 0; stack = []; ask = null; keyboard.open = false; refresh(); rev++ }
     function close() { open = false; closed() }
 
     // --- content ------------------------------------------------------------------------------------------------
     readonly property var categories: [
         { title: "General", icon: "gear" }, { title: "Appearance", icon: "palette" }, { title: "Library", icon: "list" },
         { title: "Achievements", icon: "trophy" }, { title: "Audio", icon: "speaker" }, { title: "Display", icon: "display" },
-        { title: "Performance", icon: "gauge" }, { title: "Network", icon: "wifi" }, { title: "About", icon: "info" }]
+        { title: "Performance", icon: "gauge" }, { title: "Network", icon: "wifi" }, { title: "About", icon: "info" },
+        { title: "Power", icon: "power" }]
 
     function get(k, d) { return backend.getSetting(k, d === undefined ? "" : d) }
     function set(k, v) { backend.setSetting(k, v); rev++ }
@@ -43,6 +47,28 @@ Item {
     function link(icon, title, sub, page) { return { kind: "link", icon: icon, title: title, sub: sub, page: page } }
     function action(icon, title, sub, run) { return { kind: "action", icon: icon, title: title, sub: sub, run: run } }
     function info(icon, title, sub) { return { kind: "info", icon: icon, title: title, sub: sub } }
+
+    // Run a command, keep its (trimmed, optionally parsed) output in live[key] and redraw.
+    function sh(key, cmd, parse) {
+        backend.exec(cmd, out => note(key, parse ? parse(out) : out.trim()))
+    }
+    function note(key, value) { const l = Object.assign({}, live); l[key] = value; live = l; rev++ }
+    function wifiNow(o) { const p = o.trim().split(":"); return p[1] === "connected" ? p.slice(2).join(":") : "" }
+    function refresh() {
+        sh("ssid", "nmcli -t -f DEVICE,STATE,CONNECTION dev | grep ^wlan", wifiNow)
+        sh("ip", "ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1")
+        sh("usb", "usbgadget")
+        sh("update", "ls /storage/.update/*.tar /storage/.update/*.img.gz 2>/dev/null | head -1")
+        if (get("bluetooth.enabled") === "1") sh("bt", "rocknix-bluetooth list", parseBt)
+    }
+    function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
+        return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
+            const a = n => (l.match(new RegExp(n + '="([^"]*)"')) || [])[1] || ""
+            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes" }
+        })
+    }
+    function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
+    function confirm(title, text, yes, run) { ask = { title: title, text: text, yes: yes, run: run }; askSel = 1 }
 
     readonly property var fanModes: [["Quiet", "quiet"], ["Smart", "moderate"], ["Sport", "aggressive"],
                                      ["30%", "77"], ["50%", "128"], ["75%", "191"], ["100%", "255"]]
@@ -65,7 +91,10 @@ Item {
         switch (categories[cat].title) {
         case "General": return [
             [link("user", "Profile", backend.hostname + "  ·  RetroAchievements: " + (user || "not signed in"), profilePage)],
-            [action("terminal", "Classic settings", "Game and system options, LEDs (Thor Settings)", () => backend.openSettings({}, "main"))]]
+            [action("user", "Device name", backend.hostname + "  ·  applies after a restart",
+                    () => keyboard.ask("Device name", get("system.hostname", backend.hostname), false, v => { if (v) set("system.hostname", v) }))],
+            [action("terminal", "Advanced emulator options", "Shaders, ratios and per-game overrides (classic screen)",
+                    () => backend.openSettings({}, "main"))]]
         case "Appearance": return [
             [choice("palette", "Accent colour", "Selection glow and highlights", "asgard.accent", "aurora",
                     [["Aurora", "aurora"], ["Sunset", "sunset"], ["Mint", "mint"], ["Gold", "gold"]], v => Theme.accent = v)],
@@ -78,6 +107,7 @@ Item {
             [toggle("trophy", "RetroAchievements", "In supported emulators", "global.retroachievements", "0"),
              toggle("trophy", "Hardcore mode", "No savestates, rewind or cheats; earns hardcore unlocks",
                     "global.retroachievements.hardcore", "0")],
+            cheevoOpts.map(o => toggle("trophy", o[0], o[2], "global.retroachievements." + o[1], "0")),
             [info("user", "Account", (user || "Not signed in") + "  ·  web API key " +
                   (get("global.retroachievements.webapikey") ? "set" : "missing (asgard.yml)"))]]
         case "Audio": return [
@@ -88,7 +118,8 @@ Item {
                     [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v]), v => backend.shell("brightness set " + v)),
              choice("moon", "Screens off after", "Without input (OLED care)", "asgard.idle_blank", "300",
                     [["2 min", "120"], ["5 min", "300"], ["10 min", "600"], ["Never", "0"]],
-                    () => backend.shell("systemctl restart thor-idle-blank"))]]
+                    () => backend.shell("systemctl restart thor-idle-blank"))],
+            [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             [toggle("chip", "CPU clock cap", "~75% top clock: cooler and longer battery", "asgard.cpu_cap", "1",
                     () => backend.shell("/usr/lib/autostart/common/090-asgard-tuning")),
@@ -102,20 +133,127 @@ Item {
              choice("moon", "Sleep mode", "What the power button does", "system.suspendmode", "mem",
                     [["Sleep", "mem"], ["Light sleep", "freeze"], ["Screen off only", "off"]], v => backend.shell("suspendmode " + v))]]
         case "Network": return [
-            [action("wifi", "Wi-Fi", get("wifi.ssid") || "Not connected", () => backend.openSettings({}, "wifi")),
-             action("bluetooth", "Bluetooth", "Pair controllers and headphones", () => backend.openSettings({}, "bluetooth"))],
-            [toggle("terminal", "SSH", "Remote shell", "ssh.enabled", "0",
-                    () => backend.shell("systemctl " + (get("ssh.enabled") === "1" ? "start" : "stop") + " sshd")),
-             action("refresh", "Updates", "Check for a new build", () => backend.openSettings({}, "updates"))]]
+            [link("wifi", "Wi-Fi", get("wifi.enabled", "1") !== "1" ? "Off" : live.ssid ? "Connected to " + live.ssid : "Not connected", wifiPage),
+             link("bluetooth", "Bluetooth", get("bluetooth.enabled") === "1" ? "On" : "Off", btPage)],
+            [{ kind: "choice", icon: "chip", title: "USB connection", sub: "To a PC over the USB-C port",
+               value: ({ disabled: "Off", network: "Network", file_transfer: "File transfer" })[live.usb] || "…",
+               step: d => { const m = ["disabled", "network", "file_transfer"]
+                            const v = m[(Math.max(0, m.indexOf(live.usb)) + d + 3) % 3]
+                            note("usb", v); sh("usb", "usbgadget " + v + " >/dev/null 2>&1; usbgadget") } },
+             info("info", "IP address", [live.ip, live.usb === "network" ? "USB 169.254.170.2" : ""].filter(x => x).join("  ·  ") || "—")],
+            services.map(sv => toggle("terminal", sv[0], sv[3], sv[1], "0",
+                    () => backend.shell("systemctl " + (get(sv[1]) === "1" ? "start " : "stop ") + sv[2])))]
         case "About": {
             const os = backend.osInfo()
             return [[info("info", "Asgard OS", "ROCKNIX " + (os.VERSION || "") + "  ·  built " + (os.BUILD_DATE || "")),
                      info("chip", "Device", "AYN Thor  ·  " + (os.HW_DEVICE || "SM8550")),
-                     info("gamepad", "Library", backend.systems.length + " systems")]]
+                     info("gamepad", "Library", backend.systems.length + " systems")],
+                    [live.update
+                     ? action("refresh", "Install update", live.update.split("/").pop() + "  ·  restarts to install",
+                              () => confirm("Install update", "The Thor restarts and installs " + live.update.split("/").pop() + ".",
+                                            "Restart", () => backend.shell("systemctl reboot")))
+                     : info("refresh", "Updates", "Copy an Asgard .tar into /storage/.update to install it")]]
         }
+        case "Power": return [
+            [action("moon", "Sleep", "Suspend now", () => { close(); backend.shell("systemctl suspend") }),
+             action("refresh", "Restart", "Reboot the Thor",
+                    () => confirm("Restart", "Restart the Thor now?", "Restart", () => backend.shell("systemctl reboot"))),
+             action("power", "Power off", "Shut the Thor down",
+                    () => confirm("Power off", "Power off the Thor now?", "Power off", () => backend.shell("systemctl poweroff")))]]
         }
         return []
     }
+    readonly property var services: [["SSH", "ssh.enabled", "sshd", "Remote shell"],
+                                      ["Samba", "samba.enabled", "smbd nmbd", "Share the SD card on the network"],
+                                      ["Syncthing", "syncthing.enabled", "syncthing", "Sync saves with other devices"]]
+    readonly property var cheevoOpts: [["Leaderboards", "leaderboards", "Submit scores"],
+                                       ["Rich presence", "richpresence", "Show what you are doing on your profile"],
+                                       ["Encore mode", "encore", "Unlock achievements again"],
+                                       ["Challenge indicators", "challenge_indicators", "Icon while a challenge is active"],
+                                       ["Screenshot on unlock", "screenshot", "Save a screenshot with each unlock"],
+                                       ["Unofficial achievements", "unofficial", "Include sets still in testing"]]
+
+    function wifiPage() {
+        const on = get("wifi.enabled", "1") === "1"
+        const rows = [[{ kind: "toggle", icon: "wifi", title: "Wi-Fi", sub: live.wifiMsg || (live.ssid ? "Connected to " + live.ssid : "Not connected"),
+                         on: on, activate: () => { set("wifi.enabled", on ? "0" : "1"); note("wifiMsg", on ? "Turning off…" : "Turning on…")
+                                                   backend.exec("wifictl " + (on ? "disable" : "enable"), () => { note("wifiMsg", ""); refresh() }) } }]]
+        if (!on) return rows
+        rows[0].push(action("refresh", "Scan for networks", live.scanning ? "Scanning…" : (live.nets || []).length + " found", scan))
+        if (live.ssid) rows[0].push(action("wifi", "Disconnect", live.ssid,
+                                           () => backend.exec("wifictl disconnect", () => refresh())))
+        if ((live.nets || []).length)
+            rows.push(live.nets.map(n => action("wifi", n, n === live.ssid ? "Connected" : n === get("wifi.ssid") ? "Saved" : "", () => join(n))))
+        return rows
+    }
+    function scan() {
+        note("scanning", true)
+        backend.exec("wifictl list", o => { note("scanning", false); note("nets", o.split("\n").map(x => x.trim()).filter(x => x)) })
+    }
+    function join(ssid) {
+        const go = psk => {
+            set("wifi.ssid", ssid); set("wifi.key", psk)
+            note("wifiMsg", "Connecting to " + ssid + "…")
+            backend.exec("wifictl connect " + q(ssid) + " " + q(psk), () =>
+                backend.exec("nmcli -t -f DEVICE,STATE,CONNECTION dev | grep ^wlan", o => {
+                    const now = wifiNow(o)
+                    note("ssid", now)
+                    note("wifiMsg", now === ssid ? "" : "Could not connect to " + ssid + " — check the password")
+                    sh("ip", "ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1")
+                }))
+        }
+        if (ssid === get("wifi.ssid") && get("wifi.key")) go(get("wifi.key"))
+        else keyboard.ask("Password for " + ssid, "", true, go)
+    }
+
+    function btPage() {
+        const on = get("bluetooth.enabled") === "1"
+        const rows = [[{ kind: "toggle", icon: "bluetooth", title: "Bluetooth", sub: live.btMsg || (on ? "On" : "Off"), on: on,
+                         activate: () => { set("bluetooth.enabled", on ? "0" : "1"); note("btMsg", on ? "Turning off…" : "Turning on…")
+                                           backend.exec("rocknix-bluetooth " + (on ? "disable" : "enable"), () => { note("btMsg", ""); refresh() }) } }]]
+        if (!on) return rows
+        rows[0].push(action("bluetooth", "Pair a new device", live.pairing ? "Put the device in pairing mode now…" : "Controllers, headphones",
+                            () => { if (live.pairing) return; note("pairing", true)
+                                    backend.exec("rocknix-bluetooth trust input", o => {
+                                        note("pairing", false); note("btMsg", (o.trim().split("\n").pop() || "").slice(0, 60)); refresh() }) }))
+        if ((live.bt || []).length)
+            rows.push(live.bt.map(d => link("bluetooth", d.name, d.connected ? "Connected" : "Paired", () => btDevicePage(d))))
+        return rows
+    }
+    function btDevicePage(d) {
+        return [[action("bluetooth", d.connected ? "Disconnect" : "Connect", d.mac,
+                        () => backend.exec("rocknix-bluetooth " + (d.connected ? "disconnect " : "connect ") + d.mac, () => refresh())),
+                 action("power", "Forget this device", d.name,
+                        () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
+                                      () => backend.exec("rocknix-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))]]
+    }
+
+    readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],
+                                       ["Cyan", "0 255 255"], ["Blue", "0 0 255"], ["Purple", "160 0 255"], ["Pink", "255 0 120"],
+                                       ["White", "255 255 255"], ["Off", "0 0 0"]]
+    function ledPage() {
+        let v = get("analogsticks.led", "150 0 0 255 0 0 255").split(" ")
+        if (v.length !== 7) v = "150 0 0 255 0 0 255".split(" ")
+        const apply = nv => { set("analogsticks.led", nv.join(" "))
+                              if (get("led.color") !== "rgb") { set("led.color", "rgb"); backend.shell("ledcontrol rgb") }
+                              backend.shell("analog_sticks_ledcontrol " + nv.join(" ")) }
+        const colour = (title, at) => {
+            const cur = v.slice(at, at + 3).join(" ")
+            const found = ledColours.findIndex(c => c[1] === cur)
+            const i = Math.max(0, found)
+            return { kind: "choice", icon: "palette", title: title, sub: "", value: found < 0 ? "Custom" : ledColours[i][0],
+                     step: d => { const nv = v.slice(); const c = ledColours[(i + d + ledColours.length) % ledColours.length][1].split(" ")
+                                  nv.splice(at, 3, c[0], c[1], c[2]); apply(nv) } }
+        }
+        const levels = [["Low", "60"], ["Medium", "150"], ["High", "255"]]
+        const li = Math.max(0, levels.findIndex(l => l[1] === v[0]))
+        return [[choice("sparkle", "Mode", "", "led.color", "off", [["Off", "off"], ["Colour", "rgb"], ["Battery level", "battery"]],
+                        m => backend.shell("ledcontrol " + m)),
+                 { kind: "choice", icon: "display", title: "Brightness", sub: "", value: levels[li][0],
+                   step: d => { const nv = v.slice(); nv[0] = levels[(li + d + 3) % 3][1]; apply(nv) } }],
+                [colour("Right stick", 1), colour("Left stick", 4)]]
+    }
+
     function profilePage() {
         return [[info("user", "Name", backend.hostname + "  (system.hostname in asgard.yml)"),
                  info("trophy", "RetroAchievements", get("global.retroachievements.username") || "Not signed in"),
@@ -149,7 +287,7 @@ Item {
         if (!r) return
         if (r.kind === "link") {
             const build = typeof r.page === "function" && r.page.length === 0 ? r.page : null
-            if (build) { stack = stack.concat([{ title: r.title, build: build }]); row = 0 }
+            if (build) { stack = stack.concat([{ title: r.title, build: build }]); row = 0; if (build === wifiPage) scan() }
             else { r.page(); }
             rev++
         } else if (r.kind === "toggle") r.activate()
@@ -160,6 +298,13 @@ Item {
     // Returns true if the button was used.
     function nav(b) {
         if (!open) return false
+        if (keyboard.nav(b)) return true
+        if (ask) {
+            if (b === "left" || b === "right") askSel = 1 - askSel
+            else if (b === "b") ask = null
+            else if (b === "a") { const a = ask; ask = null; if (askSel === 1) a.run() }
+            return true
+        }
         if (b === "start" || (b === "b" && zone === "side" && !stack.length)) { close(); return true }
         if (zone === "side") {
             if (b === "up") cat = (cat + categories.length - 1) % categories.length
@@ -336,4 +481,40 @@ Item {
             font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: settings.ink
         }
     }
+
+    // confirm dialog
+    Item {
+        anchors.fill: parent; visible: !!settings.ask
+        Rectangle { anchors.fill: parent; color: "#99000000"; MouseArea { anchors.fill: parent; onClicked: settings.ask = null } }
+        Rectangle {
+            anchors.centerIn: parent; width: 760; height: 380; radius: 44; color: "#ebedf2"; border.color: "white"; border.width: 2
+            MouseArea { anchors.fill: parent }
+            Text {
+                x: 48; y: 44; text: settings.ask ? settings.ask.title : ""
+                font.family: Theme.font; font.pixelSize: 42; font.weight: Font.Black; color: settings.ink
+            }
+            Text {
+                x: 48; y: 116; width: parent.width - 96; wrapMode: Text.WordWrap; text: settings.ask ? settings.ask.text : ""
+                font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Bold; color: settings.inkDim
+            }
+            Row {
+                anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 40; spacing: 22
+                Repeater {
+                    model: ["Cancel", settings.ask ? settings.ask.yes : ""]
+                    Rectangle {
+                        readonly property bool sel: settings.askSel === index
+                        width: 250; height: 92; radius: 46
+                        color: sel ? Theme.selB : "#d6d8e0"; border.color: sel ? Theme.selA : "transparent"; border.width: 3
+                        Text { anchors.centerIn: parent; text: modelData; color: parent.sel ? "white" : settings.ink
+                               font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Black }
+                        MouseArea {
+                            anchors.fill: parent
+                            onClicked: { const a = settings.ask; settings.ask = null; if (index === 1) a.run() }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Keyboard { id: keyboard; anchors.fill: parent }
 }

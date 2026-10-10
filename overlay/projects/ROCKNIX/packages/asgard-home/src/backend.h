@@ -1,5 +1,6 @@
 #pragma once
 #include <QHash>
+#include <QJSValue>
 #include <QObject>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -40,6 +41,7 @@ public:
     Q_INVOKABLE void setSetting(const QString &key, const QString &value);                  // "" removes the key
     Q_INVOKABLE QVariantList emulators(const QString &system) const;  // [{name, cores: [...]}], ROCKNIX's choices
     Q_INVOKABLE void shell(const QString &command);
+    Q_INVOKABLE void exec(const QString &command, const QJSValue &done);  // done(output) when it exits
     Q_INVOKABLE void rescan();
     Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
 

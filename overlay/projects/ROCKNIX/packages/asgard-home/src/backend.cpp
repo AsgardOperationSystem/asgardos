@@ -361,6 +361,24 @@ void Backend::shell(const QString &command)
     QProcess::startDetached("/bin/sh", {"-c", command});
 }
 
+void Backend::exec(const QString &command, const QJSValue &done)
+{
+    auto *p = new QProcess(this);
+    p->setProcessChannelMode(QProcess::MergedChannels);
+    connect(p, &QProcess::finished, this, [p, done] {
+        QJSValue cb = done;
+        if (cb.isCallable())
+            cb.call({QString::fromUtf8(p->readAll())});
+        p->deleteLater();
+    });
+    if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop: log it, answer with nothing
+        qInfo("exec: %s", qPrintable(command));
+        p->start("/bin/true");
+        return;
+    }
+    p->start("/bin/sh", {"-c", command});
+}
+
 // ROCKNIX's get_setting lookup: <sys>["<file>"].<key>, then <sys>.<key>, then global.<key>, else fallback.
 QString Backend::setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const
 {
