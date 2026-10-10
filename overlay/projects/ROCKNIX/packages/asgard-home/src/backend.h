@@ -34,14 +34,21 @@ public:
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
     QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
-    Q_INVOKABLE void openSettings(const QVariantMap &game = {});   // Thor Settings (Start)
+    Q_INVOKABLE void openSettings(const QVariantMap &game = {}, const QString &page = {});  // classic Thor Settings
     Q_INVOKABLE QVariantMap playStats(const QString &path) const;  // {playtime (s), lastPlayed (epoch s)}
+    Q_INVOKABLE QString getSetting(const QString &key, const QString &fallback = {}) const;  // system.cfg
+    Q_INVOKABLE void setSetting(const QString &key, const QString &value);                  // "" removes the key
+    Q_INVOKABLE QVariantList emulators(const QString &system) const;  // [{name, cores: [...]}], ROCKNIX's choices
+    Q_INVOKABLE void shell(const QString &command);
+    Q_INVOKABLE void rescan();
+    Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
 
 signals:
     void libraryChanged();
     void statusChanged();
     void playingChanged();
     void screensOffChanged();
+    void settingsChanged();
 
 private:
     void scan();

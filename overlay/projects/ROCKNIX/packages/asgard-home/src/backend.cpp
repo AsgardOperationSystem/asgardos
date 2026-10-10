@@ -64,6 +64,15 @@ static QString media(const QString &dir, const QString &stem)
     return {};
 }
 
+void Backend::rescan()
+{
+    m_systems.clear();
+    m_games.clear();
+    m_byPath.clear();
+    scan();
+    readPlaytime();
+}
+
 void Backend::scan()
 {
     QFile f(path("/usr/config/emulationstation/es_systems.cfg"));
@@ -81,13 +90,22 @@ void Backend::scan()
             sys[x.name().toString()] = text(x);
         } else if (x.isStartElement() && x.name() == u"emulator") {
             const QString emu = x.attributes().value("name").toString();
+            QStringList cores;
             while (!(x.isEndElement() && x.name() == u"emulator") && !x.atEnd()) {
                 x.readNext();
-                if (x.isStartElement() && x.name() == u"core" && x.attributes().value("default") == u"true") {
-                    sys["emulator"] = emu;
-                    sys["core"] = text(x);
+                if (x.isStartElement() && x.name() == u"core") {
+                    const bool def = x.attributes().value("default") == u"true";
+                    const QString core = text(x);
+                    cores << core;
+                    if (def) {
+                        sys["emulator"] = emu;
+                        sys["core"] = core;
+                    }
                 }
             }
+            QVariantList emus = sys["emulators"].toList();
+            emus << QVariantMap{{"name", emu}, {"cores", cores}};
+            sys["emulators"] = emus;
         } else if (x.isEndElement() && x.name() == u"system" && sys.contains("emulator")) {
             const QString name = sys["name"].toString(), dir = path(sys["path"].toString());
             QSet<QString> exts;
@@ -236,7 +254,7 @@ void Backend::launch(const QVariantMap &game)
         {rom, sys, core, emulator}, m_gameEnv);
 }
 
-void Backend::openSettings(const QVariantMap &game)
+void Backend::openSettings(const QVariantMap &game, const QString &page)
 {
     if (m_game)
         return;
@@ -245,12 +263,12 @@ void Backend::openSettings(const QVariantMap &game)
     if (!game.isEmpty() && sel.open(QIODevice::WriteOnly))
         sel.write((game["sys"].toString() + "\t" + game["path"].toString() + "\n").toUtf8());
     if (!QFile::exists("/usr/share/asgard/thor_settings.py")) {  // desktop
-        qInfo("settings");
+        qInfo("settings page %s", qPrintable(page));
         return;
     }
     QProcessEnvironment env = m_gameEnv;
     env.insert("SDL_GAMECONTROLLERCONFIG", "");  // sdlui expects the pad's positional mapping
-    run("exec python3 /usr/share/asgard/thor_settings.py", {}, env);
+    run("exec python3 /usr/share/asgard/thor_settings.py --page \"$1\"", {page.isEmpty() ? "main" : page}, env);
 }
 
 // Run a game or tool in place of the frontend: our windows hide (playing), the pad is ignored until it exits.
@@ -274,6 +292,73 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; " + script,
         "run"} + args);
     emit playingChanged();
+}
+
+// --- settings (system.cfg, ROCKNIX's semantics: one key=value per line, the last one wins) -----------------------
+
+QString Backend::getSetting(const QString &key, const QString &fallback) const
+{
+    QFile f(path("/storage/.config/system/configs/system.cfg"));
+    QString value;
+    if (f.open(QIODevice::ReadOnly))
+        for (const QByteArray &line : f.readAll().split('\n'))
+            if (line.startsWith(key.toUtf8() + "="))
+                value = QString::fromUtf8(line.mid(key.toUtf8().size() + 1));
+    return value.isEmpty() ? fallback : value;
+}
+
+// Like ROCKNIX's set_setting: drop the key's lines, append key=value ("" or "default" just removes it).
+void Backend::setSetting(const QString &key, const QString &value)
+{
+    QFile f(path("/storage/.config/system/configs/system.cfg"));
+    QByteArrayList keep;
+    if (f.open(QIODevice::ReadOnly)) {
+        for (const QByteArray &line : f.readAll().split('\n'))
+            if (!line.isEmpty() && !line.startsWith(key.toUtf8() + "="))
+                keep << line;
+        f.close();
+    }
+    if (!value.isEmpty() && value != "default")
+        keep << (key + "=" + value).toUtf8();
+    QFile tmp(f.fileName() + ".asgard-tmp");
+    if (tmp.open(QIODevice::WriteOnly)) {
+        tmp.write(keep.join('\n') + '\n');
+        tmp.close();
+        QFile::remove(f.fileName());
+        tmp.rename(f.fileName());
+    }
+    emit settingsChanged();
+}
+
+QVariantMap Backend::osInfo() const
+{
+    QVariantMap info;
+    QFile f("/etc/os-release");
+    if (f.open(QIODevice::ReadOnly))
+        for (const QByteArray &line : f.readAll().split('\n')) {
+            const int eq = line.indexOf('=');
+            if (eq > 0)
+                info[QString::fromUtf8(line.left(eq))] = QString::fromUtf8(line.mid(eq + 1)).remove('"');
+        }
+    return info;
+}
+
+QVariantList Backend::emulators(const QString &system) const
+{
+    for (const QVariant &s : m_systems)
+        if (s.toMap()["name"] == system)
+            return s.toMap()["emulators"].toList();
+    return {};
+}
+
+// Settings actions (volume, brightness, services...): a shell command in the frontend's environment.
+void Backend::shell(const QString &command)
+{
+    if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop
+        qInfo("shell: %s", qPrintable(command));
+        return;
+    }
+    QProcess::startDetached("/bin/sh", {"-c", command});
 }
 
 // ROCKNIX's get_setting lookup: <sys>["<file>"].<key>, then <sys>.<key>, then global.<key>, else fallback.
