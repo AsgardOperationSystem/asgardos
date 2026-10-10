@@ -1,5 +1,7 @@
-rocknix-splash --animate: dots under the logo with a light running along them,
-until SIGTERM or two minutes. Asgard runs it from early boot until sway starts.
+rocknix-splash --animate [backlight]: dots under the logo with a light running along them,
+until SIGTERM or two minutes; the given backlight (a panel the framebuffer is mirrored to)
+is off meanwhile. Logo and dots are centred as one group and sized for the panel rotation.
+Asgard runs it from early boot until sway starts.
 
 --- a/main.c
 +++ b/main.c
@@ -12,7 +14,7 @@ until SIGTERM or two minutes. Asgard runs it from early boot until sway starts.
  #include <string.h>
  #include "fbsplash.h"
  #include "svg_parser.h"
-@@ -38,7 +40,44 @@
+@@ -38,7 +40,80 @@
  /*
   * Main program entry point
   */
@@ -21,6 +23,30 @@ until SIGTERM or two minutes. Asgard runs it from early boot until sway starts.
 + * it takes the display over) or two minutes pass. The dots are SVG paths on the logo's canvas, so the panel
 + * rotation is handled the same way as the logo. */
 +#define DOTS 5
++
++/* Logo + dots are placed as one group: centred on the panel and sized for its rotation. The stock fitting sized
++ * the unrotated canvas, so on the Thor's portrait-scanned top panel the rotated logo came out small and off
++ * centre. Group on the canvas: logo x 95.7-1181.5, y 165.2-334.8; dots at y 448 (r 14). */
++#define GROUP_W 1086.0f
++#define GROUP_H 297.0f
++#define GROUP_DX 3.4f    /* moves the group's centre to the canvas centre (642, 250) */
++#define GROUP_DY -63.6f
++static float place_scale = 1;
++static void place(SVGPath *svg, int rotation, uint32_t w, uint32_t h) {
++    for (uint32_t i = 0; i < svg->num_paths; i++)
++        for (uint32_t j = 0; j < svg->paths[i].num_points; j++) {
++            svg->paths[i].points[j].x += GROUP_DX;
++            svg->paths[i].points[j].y += GROUP_DY;
++        }
++    if (rotation)
++        rotate_svg_path(svg, rotation);   /* about the canvas centre */
++    for (uint32_t i = 0; i < svg->num_paths; i++)
++        for (uint32_t j = 0; j < svg->paths[i].num_points; j++) {
++            Point *p = &svg->paths[i].points[j];
++            p->x = (p->x - 642) * place_scale + w / 2.0f;
++            p->y = (p->y - 250) * place_scale + h / 2.0f;
++        }
++}
 +static volatile sig_atomic_t stop_anim;
 +static void on_term(int sig) { (void)sig; stop_anim = 1; }
 +
@@ -34,14 +60,24 @@ until SIGTERM or two minutes. Asgard runs it from early boot until sway starts.
 +    SVGPath *svg = parse_svg_path(d, color);
 +    if (!svg)
 +        return;
-+    if (rotation)
-+        rotate_svg_path(svg, rotation);
++    place(svg, rotation, di->screen_width, di->screen_height);
 +    render_svg_path(fb, svg, di);
 +    free_svg_path(svg);
 +}
 +
-+static void animate(Framebuffer *fb, DisplayInfo *di, int rotation) {
++/* blank: a backlight (/sys/class/backlight/...) to switch off while animating, the panel the framebuffer is also
++ * mirrored to (the Thor's bottom screen); bl_power keeps its brightness. */
++static void set_bl_power(const char *blank, const char *v) {
++    char path[256];
++    snprintf(path, sizeof path, "%s/bl_power", blank);
++    FILE *f = fopen(path, "w");
++    if (f) { fputs(v, f); fclose(f); }
++}
++
++static void animate(Framebuffer *fb, DisplayInfo *di, int rotation, const char *blank) {
 +    static const char *shade[] = {"rgb(138,107,255)", "rgb(92,72,170)", "rgb(46,36,86)"};  /* lit, near, dim */
++    if (blank)
++        set_bl_power(blank, "4");
 +    signal(SIGTERM, on_term);
 +    signal(SIGINT, on_term);
 +    for (int frame = 0; !stop_anim && frame < 120 * 1000 / 140; frame++) {
@@ -51,6 +87,8 @@ until SIGTERM or two minutes. Asgard runs it from early boot until sway starts.
 +        fb_flush(fb);
 +        nanosleep(&(struct timespec){0, 140 * 1000 * 1000}, NULL);
 +    }
++    if (blank)
++        set_bl_power(blank, "0");
 +}
 +
 +int main(int argc, char **argv) {
@@ -58,12 +96,39 @@ until SIGTERM or two minutes. Asgard runs it from early boot until sway starts.
      const char *fb_device = "/dev/fb0";
  
      // Get rotation from device tree
-@@ -91,6 +130,8 @@
+@@ -64,6 +139,16 @@
+         fb_cleanup(fb);
+         return 1;
+     }
++    // place() maps canvas points to pixels itself; make the renderer's own transform the identity.
++    {
++        const int sideways = rotation == 90 || rotation == 270;
++        const float w = display_info->screen_width, h = display_info->screen_height;
++        const float a = 0.6f * (sideways ? h : w) / GROUP_W, b = 0.6f * (sideways ? w : h) / GROUP_H;
++        place_scale = a < b ? a : b;
++        display_info->svg_width = 1284;
++        display_info->svg_height = 500;
++        display_info->x_offset = display_info->y_offset = 0;
++    }
+ 
+     // Clear screen to black
+     for (uint32_t y = 0; y < fb->vinfo.yres; y++) {
+@@ -81,8 +166,7 @@
+         }
+ 
+         // Apply rotation from device tree if specified
+-        if (rotation)
+-            rotate_svg_path(svg, rotation);
++        place(svg, rotation, display_info->screen_width, display_info->screen_height);
+ 
+         // Render the path
+         render_svg_path(fb, svg, display_info);
+@@ -91,6 +175,8 @@
  
      // Flush changes to the framebuffer
      fb_flush(fb);
 +    if (animated)
-+        animate(fb, display_info, rotation);
++        animate(fb, display_info, rotation, argc > 2 ? argv[2] : NULL);
  
  
      // Clean up

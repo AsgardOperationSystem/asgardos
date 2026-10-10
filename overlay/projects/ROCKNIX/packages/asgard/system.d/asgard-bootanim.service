@@ -7,7 +7,8 @@ Conflicts=sway.service
 Before=sway.service
 
 [Service]
-ExecStart=/usr/bin/rocknix-splash --animate
+# The framebuffer is mirrored to the bottom panel too (cropped there): keep that one dark.
+ExecStart=/usr/bin/rocknix-splash --animate /sys/class/backlight/ae94000.dsi.0
 
 [Install]
 WantedBy=sysinit.target
