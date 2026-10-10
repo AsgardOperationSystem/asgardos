@@ -1,0 +1,32 @@
+From: Chaos Ruler <zmelumian@gmail.com>
+Subject: [PATCH] Install Steam: grep -E instead of grep -P
+
+The image's grep is built without PCRE, so the client manifest and the Proton
+release lookups failed ("Failed to parse target file from manifest").
+---
+--- a/projects/ROCKNIX/packages/virtual/emulators/sources/Install Steam.sh
++++ b/projects/ROCKNIX/packages/virtual/emulators/sources/Install Steam.sh
+@@ -46,12 +46,12 @@
+ 
+   # Extract tag name
+   local version_tag
+-  version_tag=$(echo "${release_json}" | grep -oP '"tag_name":\s*"\K[^"]+' | head -n 1) || die "Failed to parse ${display_name} version tag."
++  version_tag=$(echo "${release_json}" | grep -oE '"tag_name": *"[^"]+"' | head -n 1 | cut -d'"' -f4) || die "Failed to parse ${display_name} version tag."
+   [ -n "${version_tag}" ] || die "${display_name} version tag is empty."
+ 
+   # Extract download URL for specified asset pattern, excluding checksums
+   local download_url
+-  download_url=$(echo "${release_json}" | grep -oP '"browser_download_url":\s*"\K[^"]*'"${asset_pattern}"'[^"]*' | grep -v '\.sha512sum' | head -n 1) || die "Failed to parse ${display_name} download URL."
++  download_url=$(echo "${release_json}" | grep -oE '"browser_download_url": *"[^"]*'"${asset_pattern}"'[^"]*"' | cut -d'"' -f4 | grep -v '\.sha512sum' | head -n 1) || die "Failed to parse ${display_name} download URL."
+   [ -n "${download_url}" ] || die "Could not find ${asset_pattern} asset in ${display_name} release."
+ 
+   # Extract filename from URL
+@@ -169,7 +169,7 @@
+   local manifest target_file zip_path
+ 
+   manifest=$(curl -fsSL "${STEAM_MANIFEST_URL}" | strings) || die "Failed to fetch Steam manifest."
+-  target_file=$(echo "${manifest}" | grep -oP 'bins_linuxarm64_linuxarm64\.zip\.(?!vz\.)[^"]+') || die "Failed to parse target file from manifest."
++  target_file=$(echo "${manifest}" | grep -oE 'bins_linuxarm64_linuxarm64\.zip\.[0-9a-f]+' | grep -v '\.zip\.vz' | head -n 1) || die "Failed to parse target file from manifest."
+   zip_path="${STEAM}/linuxarm64.zip"
+ 
+   wget -c -t 5 -O "${zip_path}" "${STEAM_CDN}/${target_file}" || die "Failed to download Steam client zip."
