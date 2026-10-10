@@ -123,6 +123,10 @@ Item {
                     () => backend.shell("systemctl restart thor-idle-blank"))],
             [choice("display", "Top screen refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh", "120",
                     [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-2 mode 1080x1920@" + v + "Hz"))],
+            // ROCKNIX's own switch (vertical-check): "vc" starts the save-state / brightness controls on the bottom
+            // screen with RetroArch games; anything else leaves that screen off.
+            [choice("gamepad", "RetroArch bottom screen", "Save-state and brightness controls in games",
+                    "rocknix.bottomscreen.type", "vc", [["Controls", "vc"], ["Off", "off"]])],
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             [toggle("chip", "CPU clock cap", "~75% top clock: cooler and longer battery", "asgard.cpu_cap", "1",
