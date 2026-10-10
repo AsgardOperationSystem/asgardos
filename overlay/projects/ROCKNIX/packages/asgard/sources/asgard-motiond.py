@@ -3,8 +3,10 @@
 service that thor-sensorspd brings up) served as a cemuhook/DSU motion source on 127.0.0.1:26760, pad 0.
 Azahar (3DS) and Dolphin read motion from DSU servers.
 
-Axes: asgard.motion_map in system.cfg, e.g. "x,y,z" (default) or "-y,x,z": which sensor axis (and sign) feeds the
-DSU x, y and z. Accel is sent in g, gyro in degrees per second (pitch, yaw, roll = rotation about x, y, z).
+Axes: asgard.motion_map in system.cfg, which sensor axis (and sign) feeds the DSU x, y and z. The default "-y,z,-x"
+was measured on the Thor (2026-10-10): the sensor sits in the base with x towards the hinge, y to the left and z out of
+the face; DSU wants x right, y out of the face, z towards the player. Accel in g, gyro in degrees per second (pitch,
+yaw, roll = rotation about x, y, z). Checked in Azahar (Ocarina of Time 3D aiming).
 """
 import math
 import os
@@ -19,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ssc  # noqa: E402
 
 PORT = 26760
+DEFAULT_MAP = "-y,z,-x"
 G = 9.80665
 CFG = "/storage/.config/system/configs/system.cfg"
 
@@ -36,7 +39,7 @@ def setting(key, default=""):
 def axis_map(spec):
     """'x,-z,y' -> [(index, sign)] for the DSU x, y, z."""
     out = []
-    for part in (spec or "x,y,z").split(","):
+    for part in (spec or DEFAULT_MAP).split(","):
         part = part.strip()
         sign = -1.0 if part.startswith("-") else 1.0
         out.append(("xyz".index(part.lstrip("+-")), sign))
@@ -72,7 +75,7 @@ def pad_data(number, ts_us, accel_g, gyro_dps):
 
 
 def main():
-    amap = gmap = axis_map(setting("asgard.motion_map", "x,y,z"))   # one frame for both sensors
+    amap = gmap = axis_map(setting("asgard.motion_map", DEFAULT_MAP))   # one frame for both sensors
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind(("127.0.0.1", PORT))
     sock.setblocking(False)
