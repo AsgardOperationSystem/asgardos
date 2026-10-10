@@ -37,4 +37,6 @@ grep -q '^# asgard-bottom' "$C" || printf '%s\n' '# asgard-bottom' 'for_window [
 grep -q '^# asgard-assign' "$C" || printf '%s\n' '# asgard-assign' \
   'assign [title="^Asgard Home$"] output DSI-2' \
   'assign [title="^Asgard Home \(Bottom\)$"] output DSI-1' >> "$C"
+# Thor Panel opens over Asgard Home's fullscreen bottom window; tiled, it sat half-width behind it, unseen (2026-10-10).
+grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title="^Thor Panel"] fullscreen enable' >> "$C"
 exit 0
