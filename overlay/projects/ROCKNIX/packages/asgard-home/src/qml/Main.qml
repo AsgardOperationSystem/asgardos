@@ -69,6 +69,7 @@ QtObject {
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
         if (b === "start") { bottom.settingsPanel.show(); return }
         if (b === "select") { details = !details; return }
+        if (b === "y" && current && current.game) { bottom.settingsPanel.showGame(current.game); return }
         if (b === "b" && details) { details = false; return }
         const c = cells[sel]
         if (b === "left" && sel > 0) sel--
@@ -199,6 +200,7 @@ QtObject {
                 Hint { glyph: "B"; label: "Back" }
                 Hint { glyph: "X"; label: "Screens off" }
                 Hint { glyph: "−"; label: "Details" }
+                Hint { visible: !!app.current && !!app.current.game; glyph: "Y"; label: "Game settings" }
                 Hint { glyph: "+"; label: "Settings" }
             }
         }

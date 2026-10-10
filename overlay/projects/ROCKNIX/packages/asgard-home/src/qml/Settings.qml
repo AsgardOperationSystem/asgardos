@@ -22,6 +22,8 @@ Item {
     readonly property color card: "#fbfbfd"
     readonly property color line: "#e4e5ec"
 
+    // Y on a game: Settings opened straight on that game's page.
+    function showGame(g) { show(); cat = 2; stack = [{ title: g.name, build: () => gamePage(g), closeOnBack: true }]; zone = "list" }
     function show() { open = true; zone = "side"; row = 0; stack = []; ask = null; keyboard.open = false; refresh(); rev++ }
     function close() { open = false; closed() }
 
@@ -257,6 +259,33 @@ Item {
                 [colour("Right stick", 1), colour("Left stick", 4)]]
     }
 
+    // Per-game emulator/core: ROCKNIX's <system>["<file>"].<key> settings, which the launcher reads first.
+    function gamePage(g) {
+        const file = g.path.split("/").pop()
+        const k = key => g.sys + '["' + file + '"].' + key
+        const emus = backend.emulators(g.sys)
+        const sysEmu = get(g.sys + ".emulator", g.emulator), sysCore = get(g.sys + ".core", g.core)
+        const emu = get(k("emulator"), sysEmu)
+        const cur = emus.find(e => e.name === emu) || emus[0]
+        const own = get(k("emulator")) !== "" || get(k("core")) !== ""
+        const rows = [{ kind: "choice", icon: "gamepad", title: "Emulator", sub: own ? "This game only" : "Same as " + g.sysName,
+                        value: emu,
+                        step: d => { const i = Math.max(0, emus.findIndex(e => e.name === emu))
+                                     const e = emus[(i + d + emus.length) % emus.length]
+                                     set(k("emulator"), e.name); set(k("core"), e.cores[0] || "") } }]
+        if (cur && cur.cores.length > 1)
+            rows.push({ kind: "choice", icon: "chip", title: "Core", sub: "RetroArch core", value: get(k("core"), sysCore),
+                        step: d => { const c = get(k("core"), sysCore); const i = Math.max(0, cur.cores.indexOf(c))
+                                     set(k("emulator"), emu); set(k("core"), cur.cores[(i + d + cur.cores.length) % cur.cores.length]) } })
+        if (own)
+            rows.push(action("refresh", "Use " + g.sysName + " settings", sysEmu + " / " + sysCore,
+                             () => { set(k("emulator"), ""); set(k("core"), "") }))
+        const st = backend.playStats(g.path)
+        return [rows, [info("info", "Played", st.playtime ? Math.round(st.playtime / 60) + " min" : "Never"),
+                       action("terminal", "More options", "Shaders, ratio and other overrides (classic screen)",
+                              () => backend.openSettings(g, "game"))]]
+    }
+
     function profilePage() {
         return [[info("user", "Name", backend.hostname + "  (system.hostname in asgard.yml)"),
                  info("trophy", "RetroAchievements", get("global.retroachievements.username") || "Not signed in"),
@@ -322,7 +351,8 @@ Item {
         else if (b === "a") openRow(r)
         else if ((b === "left" || b === "right") && r && r.kind === "choice") r.step(b === "left" ? -1 : 1)
         else if (b === "left" || b === "b") {
-            if (stack.length) { stack = stack.slice(0, -1); row = 0 }
+            if (stack.length === 1 && stack[0].closeOnBack) close()
+            else if (stack.length) { stack = stack.slice(0, -1); row = 0 }
             else zone = "side"
         }
         return true
@@ -479,7 +509,7 @@ Item {
         }
         // page title on the right when a sub-page is open
         Text {
-            x: list.x + 8; y: 30; visible: true
+            x: list.x + 8; y: 30; visible: true; width: parent.width - x - 110; elide: Text.ElideRight
             text: settings.stack.length ? settings.stack[settings.stack.length - 1].title : settings.categories[settings.cat].title
             font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: settings.ink
         }
