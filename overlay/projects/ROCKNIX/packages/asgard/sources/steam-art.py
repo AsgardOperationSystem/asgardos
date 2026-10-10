@@ -17,6 +17,7 @@ APPS = "/storage/.local/share/applications"
 MEDIA = "/storage/ES-DE/downloaded_media/steam"
 GAMELIST = "/storage/ES-DE/gamelists/steam/gamelist.xml"
 CDN = "https://shared.cloudflare.steamstatic.com/store_item_assets/steam/apps/{}/{}"
+THEME_ART = "/usr/share/themes/es-theme-art-book-next/_inc/systems/artwork-default/steam.png"
 
 
 def get(url):
@@ -62,7 +63,12 @@ def games():
 
 
 def main():
-    entries = []
+    # Steam itself (Steam.desktop, Big Picture) has no store page: the theme's Steam artwork as its cover.
+    entries = [{"path": "./Steam.desktop", "name": "Steam",
+                "desc": "Steam in Big Picture mode: store, library, downloads and settings."}]
+    if os.path.exists(THEME_ART) and not os.path.exists(f"{MEDIA}/covers/Steam.png"):
+        os.makedirs(f"{MEDIA}/covers", exist_ok=True)
+        os.symlink(THEME_ART, f"{MEDIA}/covers/Steam.png")
     for stem, appid in games():
         try:
             info = json.loads(get(f"https://store.steampowered.com/api/appdetails?appids={appid}&l=english"))
