@@ -13,3 +13,9 @@ unpack() {
   mkdir -p ${PKG_BUILD}
   cp -a ${PKG_DIR}/src/. ${PKG_BUILD}/
 }
+
+# The frontend's font for the rest of the system too (mako's volume/brightness slider).
+post_makeinstall_target() {
+  mkdir -p ${INSTALL}/usr/share/fonts/nunito
+  cp ${PKG_BUILD}/qml/fonts/*.ttf ${INSTALL}/usr/share/fonts/nunito/
+}
