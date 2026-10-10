@@ -98,9 +98,9 @@ QtObject {
         backend.sound(b === "a" ? "select" : b === "b" || b === "x" ? "back" : b === "start" || b === "select"
                       ? (bottom.settingsPanel.open ? "back" : "open") : "move")
         if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
+        if (bottom.powerMenuPanel.nav(b)) return
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
         if (b === "start") { if (current && current.game) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
-        if (b === "guide") { bottom.settingsPanel.showPower(); return }   // Home (in a game it opens the game menu)
         if (b === "select") { details = !details; return }
         if (reordering) {
             const rc = cells[sel]
@@ -268,8 +268,6 @@ QtObject {
                     Hint { visible: !app.reordering; glyph: "LR"; label: "Swap"; onTapped: app.swapScreens() }
                     Hint { visible: !app.reordering; glyph: "+"; label: app.current && app.current.game ? "Game settings" : "Settings"
                            onTapped: { backend.sound("open"); app.nav("start") } }
-                    Hint { visible: !app.reordering; icon: "glyph-home"; label: "Power"
-                           onTapped: { backend.sound("open"); bottom.settingsPanel.showPower() } }
                 }
             }
         }
@@ -282,6 +280,7 @@ QtObject {
         visible: !shotMode && (!backend.playing || backend.gameMenu)  // the in-game menu shows here
         property alias settingsPanel: settingsPanel
         property alias gameMenuPanel: gameMenuPanel
+        property alias powerMenuPanel: powerMenuPanel
 
         // Laid out 1080 tall and as wide as the screen the window is on, like the top window; the grid takes as many
         // columns as fit (4 below, 6 on the top screen).
@@ -297,6 +296,16 @@ QtObject {
             }
 
             Dock { x: 10; y: 28; current: app.tab; onTabTapped: index => app.setTab(index) }
+            // Power: a round button at the right end of the top bar, opening the small power menu.
+            Pill {
+                id: powerButton
+                x: parent.width - width - 24; y: 28; width: 150; height: 150
+                Image {
+                    anchors.centerIn: parent; width: 72; height: 72
+                    source: "icons/power.svg"; sourceSize: Qt.size(144, 144)
+                }
+                TapHandler { onTapped: { backend.sound("open"); powerMenuPanel.anchorRight = powerButton.x + powerButton.width; powerMenuPanel.show() } }
+            }
             // ASGARD_DEBUG_INPUT: log every touch/pointer press the bottom window receives (passive, blocks nothing).
             Component.onCompleted: if (debugInput) console.log("input: debug logging on (bottom window)")
             PointHandler {
@@ -377,6 +386,7 @@ QtObject {
             }
             Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
             GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200 }
+            PowerMenu { id: powerMenuPanel; anchors.fill: parent; z: 150 }
         }
     }
 }
