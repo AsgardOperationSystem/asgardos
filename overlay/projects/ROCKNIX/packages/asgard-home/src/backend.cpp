@@ -188,7 +188,12 @@ void Backend::scan()
                 return a.toMap()["name"].toString().compare(b.toMap()["name"].toString(), Qt::CaseInsensitive) < 0;
             });
             sys["count"] = games.size();
-            sys["cover"] = games.first().toMap()["shot"];  // fallback picture when the theme has no art
+            // Backdrop: the first game that has a screenshot (the first one alphabetically often has none: 3DS).
+            for (const QVariant &g : games)
+                if (!g.toMap()["shot"].toString().isEmpty()) {
+                    sys["cover"] = g.toMap()["shot"];
+                    break;
+                }
             // System artwork + white logo from ROCKNIX's Art Book Next theme (es-theme-art-book-next), by <theme>.
             const QString art = path("/usr/share/themes/es-theme-art-book-next/_inc/systems/");
             const QString theme = sys.value("theme", name).toString();

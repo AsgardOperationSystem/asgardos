@@ -135,7 +135,7 @@ QtObject {
     }
 
     readonly property string art: current ? (current.game ? (current.game.shot || current.game.cover || "")
-                                                          : (current.sys.cover || "")) : ""
+                                                          : (current.sys.cover || current.sys.art || "")) : ""
 
     // --- top screen -----------------------------------------------------------------------------------------
     property Window top: Window {
