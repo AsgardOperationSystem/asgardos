@@ -2,7 +2,7 @@
 """Thor Panel: bottom-screen quick panel opened by the AYN button (KEY_F24, see thor_ayn_button.py).
 
 Layout modelled on AYN's Android DualScreenAssistant panel (status bar; FPS card; 4x2 quick toggles in AYN's order,
-page 2 = force landscape + screenshot; TEMP / FAN cards; CPU/GPU/PWR/RAM ring gauges; Mode / Task / Settings dock), drawn from
+page 2 = force landscape + screenshot; TEMP card, FAN card = fan control; CPU/GPU/PWR/RAM ring gauges), drawn from
 scratch with SDL geometry (no AYN assets). Toggles act on ROCKNIX's interfaces. D-pad + A, touch, L1/R1 = page;
 B or AYN closes. Window title contains "Bottom" so ROCKNIX's sway rules put it on DSI-1.
 """
@@ -28,8 +28,8 @@ CPUFREQ = "/sys/devices/system/cpu/cpufreq"
 POLICIES = ("policy0", "policy3", "policy7")
 BAT = "/sys/class/power_supply/battery"
 STATE = "/run/thor-panel.json"  # panel-only state (focus target, refresh mode)
-SHOTS = "/storage/roms/screenshots"  # RetroArch's screenshot_directory; Thor Home lists them per game
-HOME_BOTTOM_Q = '[title="^Thor Home .Bottom.$"]'  # Thor Home's bottom window steps aside while the panel is open
+SHOTS = "/storage/roms/screenshots"  # RetroArch's screenshot_directory; Asgard Home lists them per game
+HOME_BOTTOM_Q = '[title="^Asgard Home .Bottom.$"]'  # Asgard Home's bottom window steps aside while the panel is open
 
 # palette, picked from the reference photo
 BG = (14, 12, 18)
@@ -276,7 +276,30 @@ def stats():
 
 # --- toggles, in AYN's order ------------------------------------------------------------------------------------
 PERF = [("Standard Performance", 0.75), ("Performance", 0.90), ("High Performance", 1.0)]
-FAN = [("Smart Mode", "moderate"), ("Quiet Mode", "quiet"), ("Turbo Mode", "aggressive")]
+# Fan: ROCKNIX's fancontrol curves (cooling.profile), or a fixed speed (asgard.fan_manual = PWM 0-255; fancontrol is
+# stopped and pwm1 held). No "off": the Thor needs some airflow under load.
+FAN = [("Quiet", "quiet", 0), ("Smart", "moderate", 0), ("Sport", "aggressive", 0),
+       ("30%", "", 77), ("50%", "", 128), ("75%", "", 191), ("100%", "", 255)]
+
+
+def fan_now():
+    manual = conf.get("asgard.fan_manual", "")
+    for i, (_, prof, pwm) in enumerate(FAN):
+        if (manual and str(pwm) == manual) or (not manual and prof == conf.get("cooling.profile", "moderate")):
+            return i
+    return 1
+
+
+def set_fan(i):
+    name, prof, pwm = FAN[i]
+    pwm_path = (glob.glob("/sys/class/hwmon/hwmon*/pwm1") or [""])[0]
+    if pwm:
+        conf.set("asgard.fan_manual", str(pwm))
+        run_cmd(f"systemctl stop fancontrol; echo 1 > {pwm_path}_enable 2>/dev/null; echo {pwm} > {pwm_path}")
+    else:
+        conf.set("asgard.fan_manual", "")
+        conf.set("cooling.profile", prof)
+        run_cmd("systemctl restart fancontrol")
 
 
 def perf_now():
@@ -301,10 +324,9 @@ CHARGE_LIMIT = 80  # our normal stop-charging level (30-thor-charge-limit.sh)
 
 
 def bypass_on():
-    """Direct Power Supply: no charge_behaviour on this kernel, so stop charging at the current level instead."""
-    end = read(f"{BAT}/charge_control_end_threshold", "0")
-    cap = read(f"{BAT}/capacity", "0")
-    return end.isdigit() and cap.isdigit() and 0 < int(end) < CHARGE_LIMIT and abs(int(end) - int(cap)) <= 2
+    """Direct Power Supply: the user's switch (asgard.direct_power). The firmware ignores charge thresholds until kernel
+    patch 9003 works, so the threshold write below is best effort and the tile shows the choice, not the hardware."""
+    return conf.get("asgard.direct_power", "0") == "1"
 
 
 def ra_rumble():
@@ -315,16 +337,15 @@ def ra_rumble():
 def toggles(st):
     led = conf.get("led.color", "off")
     perf = perf_now()
-    fan = conf.get("cooling.profile", "moderate")
     page1 = [
         ("focus", "Top screen" if st.get("focus", "top") == "top" else "Bottom screen", st.get("focus", "top") == "top"),
         ("chip", perf[0], perf[1] > 0.75),
-        ("fan", dict((v, n) for n, v in FAN).get(fan, "Smart Mode"), fan == "moderate"),
-        ("clean", "Clean Memory", False),
-        ("style", "Standard Style", False),
         ("plug", "Direct Power Supply", bypass_on()),
         ("vibrate", "Vibration", ra_rumble() > 0),
         ("led", "Ambient LED", led != "off"),
+        ("clean", "Clean Memory", False),
+        ("gear", "Settings", False),
+        ("task", "Quit game", False),
     ]
     page2 = [("landscape", "Force landscape", st.get("landscape", True)), ("shot", "Screenshot", False)]
     return page1, page2
@@ -340,23 +361,22 @@ def activate(key, st):
     elif key == "chip":
         names = [n for n, _ in PERF]
         set_perf(PERF[(names.index(perf_now()[0]) + 1) % len(PERF)][1])
-    elif key == "fan":
-        vals = [v for _, v in FAN]
-        cur = conf.get("cooling.profile", "moderate")
-        conf.set("cooling.profile", vals[(vals.index(cur) + 1) % len(vals)] if cur in vals else "moderate")
-        run_cmd("systemctl restart fancontrol")
+    elif key in ("fan", "fan+", "fan-"):
+        i = (fan_now() + (-1 if key == "fan-" else 1)) % len(FAN)
+        set_fan(i)
+        toast(st, "Fan: " + FAN[i][0] + (" (fixed)" if FAN[i][2] else ""))
     elif key == "clean":
         before = int(read("/proc/meminfo").split("MemAvailable:")[1].split()[0])
         run_cmd("sync; echo 3 > /proc/sys/vm/drop_caches")
         after = int(read("/proc/meminfo").split("MemAvailable:")[1].split()[0])
         toast(st, f"Freed {max(0, after - before) // 1024} MB")
-    elif key == "style":
-        # ponytail: ROCKNIX's controller_layout is only read by ROCKNIX ES; a system-wide A/B swap needs InputPlumber profiles.
-        toast(st, "Not available yet")
     elif key == "plug":
-        level = CHARGE_LIMIT if bypass_on() else max(5, int(read(f"{BAT}/capacity", "50")))
+        on = not bypass_on()
+        conf.set("asgard.direct_power", "1" if on else "0")
+        limit = conf.get("asgard.charge_limit", str(CHARGE_LIMIT))
+        level = max(5, int(read(f"{BAT}/capacity", "50"))) if on else limit
         run_cmd(f"echo {level} > {BAT}/charge_control_end_threshold")
-        toast(st, "Running from the charger" if level != CHARGE_LIMIT else f"Charging to {CHARGE_LIMIT}% again")
+        toast(st, "Direct power on" if on else "Direct power off")
     elif key == "vibrate":
         cur = ra_rumble()
         if cur > 0:
@@ -371,7 +391,7 @@ def activate(key, st):
         st["landscape"] = not st.get("landscape", True)
         run_cmd(f"swaymsg output DSI-1 transform {90 if st['landscape'] else 'normal'}")
     elif key == "shot":
-        # Top screen only (the panel itself is on the bottom one); named like RetroArch's so Thor Home matches the game.
+        # Top screen only (the panel itself is on the bottom one); named like RetroArch's so Asgard Home matches the game.
         p = playlog.playing()
         stem = os.path.splitext(os.path.basename(p["rom"]))[0] if p else "Thor"
         path = f"{SHOTS}/{stem}-{time.strftime('%y%m%d-%H%M%S')}.png"
@@ -383,7 +403,7 @@ def activate(key, st):
             st["hz"] = hz
         else:
             toast(st, f"{hz} Hz not available")
-    elif key == "settings":
+    elif key in ("settings", "gear"):
         subprocess.Popen(["python3", os.path.join(HERE, "thor_settings.py")], start_new_session=True,
                          env={**os.environ, "SDL_GAMECONTROLLERCONFIG": ""})
         return "close"
@@ -416,19 +436,16 @@ def main():
         tiles = p1 if page == 0 else p2
         pad = W * 0.03
         sb = H * 0.075
-        r1y, r1h = sb + pad * 0.3, H * 0.40
-        r2y, r2h = r1y + r1h + pad * 0.6, H * 0.20
-        r3y = r2y + r2h + pad * 0.6
-        r3h = H - r3y - pad * 0.4
+        # Two rows fill the screen (the old Mode/Task/Settings bar is gone: Settings and Quit are toggles now).
+        r1y, r1h = sb + pad * 0.3, H * 0.53
+        r2y = r1y + r1h + pad * 0.6
+        r2h = H - r2y - pad * 0.5
         fpsw = (W - 3 * pad) * 0.40
         togx, togw = pad * 2 + fpsw, W - 3 * pad - fpsw
         cell_w, cell_h = togw / cols, (r1h - pad * 0.9) / 2
         tog_pos = [(togx + cell_w * (i % cols) + cell_w / 2, r1y + pad * 0.3 + cell_h * (i // cols) + cell_h * 0.38)
                    for i in range(len(tiles))]
         btn_r = min(cell_w, cell_h) * 0.27
-        dock_x = [W * 0.31, W * 0.5, W * 0.69]
-        dock_y = r3y + r3h * 0.40
-        dock = [("mode", "Mode"), ("task", "Task"), ("gear", "Settings")]
         pill = (pad + fpsw * 0.12, r1y + r1h * 0.1, fpsw * 0.76, r1h * 0.15)
         msg = st.get("toast")
         if msg and time.monotonic() > msg[1]:
@@ -479,15 +496,20 @@ def main():
             dots_y = r1y + r1h - pad * 0.55
             for k in range(2):
                 cv.circle(togx + togw / 2 + (k - 0.5) * 22, dots_y, 6, ON_HI if k == page else TEXT)
-            # TEMP / FAN
+            # TEMP card; FAN card = fan control (mode + current speed), selectable
             cw = (fpsw - pad) / 2
+            fan_mode = FAN[fan_now()][0]
             for k, (ic, label, val) in enumerate((("thermo", "TEMP", f"{data['temp']:.0f}°C"),
-                                                  ("fan", "FAN", f"{data['fan']}%"))):
+                                                  ("fan", fan_mode.upper(), f"{data['fan']}%"))):
                 x = pad + k * (cw + pad)
-                cv.rrect(x, r2y, cw, r2h, 24, CARD)
-                icon(cv, ic, x + cw * 0.22, r2y + r2h * 0.3, r2h * 0.26)
-                cv.text(label, x + cw * 0.62, r2y + r2h * 0.17, r2h * 0.17, TEXT, "center", bold=True)
-                cv.text(val, x + cw * 0.14, r2y + r2h * 0.52, r2h * 0.3, TEXT, bold=True)
+                if k == 1 and sel == ("fan", 0):
+                    cv.rrect(x - 5, r2y - 5, cw + 10, r2h + 10, 28, TEXT)
+                cv.rrect(x, r2y, cw, r2h, 24, ON if k == 1 and conf.get("asgard.fan_manual", "") else CARD)
+                icon(cv, ic, x + cw * 0.22, r2y + r2h * 0.25, r2h * 0.2)
+                cv.text(label, x + cw * 0.62, r2y + r2h * 0.15, r2h * 0.13, TEXT, "center", bold=True, maxw=cw * 0.6)
+                cv.text(val, x + cw * 0.5, r2y + r2h * 0.47, r2h * 0.24, TEXT, "center", bold=True)
+                if k == 1:
+                    cv.text("<  >" if sel == ("fan", 0) else "FAN", x + cw * 0.5, r2y + r2h * 0.8, r2h * 0.1, DIM, "center", bold=True)
             # gauges
             cv.rrect(togx, r2y, togw, r2h, 24, CARD)
             gr = min(togw / 8.6, r2h * 0.42)
@@ -498,15 +520,6 @@ def main():
                 cv.text(name, gx, gy - gr * 0.62, gr * 0.3, DIM, "center", bold=True)
                 cv.text(val, gx, gy - gr * 0.3, gr * 0.5, TEXT, "center", bold=True)
                 cv.text(unit, gx, gy + gr * 0.28, gr * 0.26, DIM, "center", bold=True)
-            # dock
-            cv.rrect(pad * 0.6, r3y, W - pad * 1.2, r3h, 30, CARD)
-            dr = r3h * 0.21
-            for k, ((ic, label), dx) in enumerate(zip(dock, dock_x)):
-                if sel == ("dock", k):
-                    cv.circle(dx, dock_y, dr * 1.22, TEXT)
-                cv.circle(dx, dock_y, dr, ON if ic == "gear" else OFF)
-                icon(cv, ic, dx, dock_y, dr * 1.1)
-                cv.text(label, dx, dock_y + dr * 1.2, dr * 0.52, TEXT, "center", bold=True)
             if msg:
                 tw = W * 0.5
                 cv.rrect(W / 2 - tw / 2, H * 0.45, tw, H * 0.1, 20, (60, 56, 66), 235)
@@ -531,9 +544,9 @@ def main():
             for i, (x, y) in enumerate(tog_pos):
                 if math.hypot(tx - x, ty - y) < btn_r * 1.4:
                     hit = ("tog", i)
-            for k, dx in enumerate(dock_x):
-                if math.hypot(tx - dx, ty - dock_y) < r3h * 0.4:
-                    hit = ("dock", k)
+            fan_x = pad + (fpsw - pad) / 2 + pad
+            if fan_x <= tx <= fan_x + (fpsw - pad) / 2 and r2y <= ty <= r2y + r2h:
+                hit = ("fan", 0)
             if pill[0] <= tx <= pill[0] + pill[2] and pill[1] <= ty <= pill[1] + pill[3]:
                 hit = ("pill", 0)
             if hit is None and togx <= tx <= togx + togw and r1y + r1h - pad <= ty <= r1y + r1h:
@@ -548,27 +561,27 @@ def main():
         elif a == "left":
             if kind == "tog":
                 sel = ("pill", 0) if idx % cols == 0 else ("tog", idx - 1)
-            elif kind == "dock":
-                sel = ("dock", (idx - 1) % 3)
+            elif kind == "fan":
+                activate("fan-", st)
         elif a == "right":
             if kind == "pill":
                 sel = ("tog", 0)
             elif kind == "tog" and idx + 1 < len(tiles) and (idx + 1) % cols:
                 sel = ("tog", idx + 1)
-            elif kind == "dock":
-                sel = ("dock", (idx + 1) % 3)
+            elif kind == "fan":
+                activate("fan+", st)
         elif a == "down":
             if kind == "tog" and idx + cols < len(tiles):
                 sel = ("tog", idx + cols)
             elif kind in ("tog", "pill"):
-                sel = ("dock", 1)
+                sel = ("fan", 0)
         elif a == "up":
-            if kind == "dock":
+            if kind == "fan":
                 sel = ("tog", 0)
             elif kind == "tog" and idx >= cols:
                 sel = ("tog", idx - cols)
         elif a == "a":
-            key = tiles[idx][0] if kind == "tog" else "fpsmode" if kind == "pill" else ["mode", "task", "settings"][idx]
+            key = tiles[idx][0] if kind == "tog" else "fpsmode" if kind == "pill" else "fan"
             if activate(key, st) == "close":
                 break
             last_stats = 0.0
@@ -579,12 +592,12 @@ def main():
         def busy(n, o=None):
             if n.get("type") == "output":
                 o = n.get("name")
-            if o == "DSI-1" and n.get("pid") and n.get("name") not in ("Thor Panel (Bottom)", "Thor Home (Bottom)"):
+            if o == "DSI-1" and n.get("pid") and n.get("name") not in ("Thor Panel (Bottom)", "Asgard Home (Bottom)"):
                 return True
             return any(busy(c, o) for c in n.get("nodes", []) + n.get("floating_nodes", []))
         if busy(json.loads(out)):
-            pass  # a game owns the bottom screen; Thor Home keeps its window parked meanwhile
-        elif '"Thor Home (Bottom)"' in out:
+            pass  # a game owns the bottom screen; Asgard Home stays parked meanwhile
+        elif '"Asgard Home (Bottom)"' in out:
             run_cmd(f"swaymsg '{HOME_BOTTOM_Q} move container to output DSI-1'")
         else:
             run_cmd("swaymsg output DSI-1 power off")

@@ -13,6 +13,14 @@ for u in /sys/bus/platform/devices/*.usb/power/control; do echo auto > "$u" 2>/d
 L=$(get_setting asgard.charge_limit)
 echo "${L:-80}" > /sys/class/power_supply/battery/charge_control_end_threshold 2>/dev/null
 
+# Fixed fan speed chosen in Thor Panel (asgard.fan_manual = PWM 0-255): hold it instead of fancontrol's curve.
+FAN=$(get_setting asgard.fan_manual)
+if [ -n "$FAN" ]; then
+  systemctl stop fancontrol
+  P=$(ls /sys/class/hwmon/hwmon*/pwm1 2>/dev/null | head -1)
+  [ -n "$P" ] && { echo 1 > "${P}_enable" 2>/dev/null; echo "$FAN" > "$P"; }
+fi
+
 # CPU clock cap for battery + a cooler shell, ~75 % of each cluster's top. asgard.cpu_cap=0 turns it off.
 # policy0 = little (2016000 max), policy3 = mid (2803200), policy7 = big (2956800); measured 2026-10-09.
 if [ "$(get_setting asgard.cpu_cap)" != "0" ]; then
