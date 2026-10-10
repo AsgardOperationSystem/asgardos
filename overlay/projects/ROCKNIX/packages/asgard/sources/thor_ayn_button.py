@@ -23,6 +23,7 @@ KEY_F24, BTN_MODE, KEY_ESC = 194, 316, 1
 EV_SYN, EV_KEY, EV_ABS = 0, 1, 3
 ABS_HAT0X, ABS_HAT0Y = 16, 17
 TAP_S = 0.5
+DEBOUNCE_S = 0.6
 EXIT_GRACE_S = 4
 PANEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thor_panel.py")
 EVENT_FMT = "llHHi"
@@ -129,7 +130,7 @@ def main():
     except OSError:
         keyboard = None
     panel = None
-    guide_down, other_pressed = None, False
+    guide_down, other_pressed, last_tap = None, False, 0.0
     while True:
         for fd in select.select(list(fds), [], [])[0]:
             _, _, etype, code, value = struct.unpack(EVENT_FMT, os.read(fd, EVENT_SIZE))
@@ -149,7 +150,11 @@ def main():
                 if value == 1:
                     guide_down, other_pressed = time.monotonic(), False
                 elif value == 0 and guide_down is not None:
-                    if not other_pressed and time.monotonic() - guide_down <= TAP_S:
+                    # One Home tap reaches us twice in a row (InputPlumber), which opened the in-game menu and
+                    # closed it again at once: taps closer than DEBOUNCE_S count once.
+                    now = time.monotonic()
+                    if not other_pressed and now - guide_down <= TAP_S and now - last_tap > DEBOUNCE_S:
+                        last_tap = now
                         guide_tap(keyboard)
                     guide_down = None
             elif guide_down is not None and ((etype == EV_KEY and value == 1) or
