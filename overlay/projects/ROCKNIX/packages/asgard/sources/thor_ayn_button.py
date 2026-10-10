@@ -93,7 +93,7 @@ def exit_game(names):
 
 def guide_tap(keyboard):
     names = running_game()
-    if not names:
+    if not names or "steam" in names:   # Steam: Home is its Quick Access button (steam-pad-profile.py)
         return
     if "retroarch" in names:
         socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"MENU_TOGGLE", ("127.0.0.1", 55355))
