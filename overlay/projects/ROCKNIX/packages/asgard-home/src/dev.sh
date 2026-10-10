@@ -14,7 +14,7 @@ case "${1:-shot}" in
   shot)
     cmake -S "$HERE" -B "$OUT/asgard-home-host" -DCMAKE_BUILD_TYPE=Debug >/dev/null
     cmake --build "$OUT/asgard-home-host" -j"$(nproc)" | grep -E "error|warning" || true
-    ASGARD_ROOT="$REPO/frontend-dev/root" ASGARD_HOME_QML="$HERE/qml" ASGARD_SHOT="$OUT/asgard-shot-" \
+    QT_FORCE_STDERR_LOGGING=1 ASGARD_ROOT="$REPO/frontend-dev/root" ASGARD_HOME_QML="$HERE/qml" ASGARD_SHOT="$OUT/asgard-shot-" \
       ASGARD_KEYS="${2:-}" "$OUT/asgard-home-host/asgard-home"
     ls "$OUT"/asgard-shot-*.png ;;
   thor)

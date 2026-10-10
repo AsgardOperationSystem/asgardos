@@ -210,15 +210,19 @@ void Backend::launch(const QVariantMap &game)
     if (m_game)
         return;
     const QString rom = game["path"].toString(), sys = game["sys"].toString();
+    // The emulator/core chosen for this game, else for its system, else ROCKNIX's default (what ROCKNIX ES did).
+    const QString file = QFileInfo(rom).fileName();
+    const QString emulator = setting(sys, file, "emulator", game["emulator"].toString());
+    const QString core = setting(sys, file, "core", game["core"].toString());
     if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop
-        qInfo("launch %s (%s)", qPrintable(rom), qPrintable(sys));
+        qInfo("launch %s (%s) with %s/%s", qPrintable(rom), qPrintable(sys), qPrintable(emulator), qPrintable(core));
         return;
     }
-    // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys), default core for the system.
+    // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys).
     run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; "
         "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
         "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
-        {rom, sys, game["core"].toString(), game["emulator"].toString()}, m_gameEnv);
+        {rom, sys, core, emulator}, m_gameEnv);
 }
 
 void Backend::openSettings(const QVariantMap &game)
@@ -258,6 +262,23 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; " + script,
         "run"} + args);
     emit playingChanged();
+}
+
+// ROCKNIX's get_setting lookup: <sys>["<file>"].<key>, then <sys>.<key>, then global.<key>, else fallback.
+QString Backend::setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const
+{
+    QFile f(path("/storage/.config/system/configs/system.cfg"));
+    QHash<QString, QString> cfg;
+    if (f.open(QIODevice::ReadOnly))
+        for (const QByteArray &line : f.readAll().split('\n')) {
+            const int eq = line.indexOf('=');
+            if (eq > 0)
+                cfg.insert(QString::fromUtf8(line.left(eq)), QString::fromUtf8(line.mid(eq + 1)));
+        }
+    for (const QString &k : {sys + "[\"" + file + "\"]." + key, sys + "." + key, "global." + key})
+        if (!cfg.value(k).isEmpty())
+            return cfg.value(k);
+    return fallback;
 }
 
 QVariantMap Backend::playStats(const QString &path) const
