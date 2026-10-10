@@ -341,6 +341,17 @@ void Backend::openSettings(const QVariantMap &game, const QString &page)
     run("exec python3 /usr/share/asgard/thor_settings.py --page \"$1\"", {page.isEmpty() ? "main" : page}, env);
 }
 
+void Backend::runTool(const QString &script, const QStringList &args)
+{
+    if (m_game)
+        return;
+    if (!QFile::exists(script)) {  // desktop
+        qInfo("tool %s", qPrintable(script));
+        return;
+    }
+    run("exec \"$@\"", QStringList{script} + args, m_gameEnv);
+}
+
 // Run a game or tool in place of the frontend: our windows hide (playing), the pad is ignored until it exits.
 void Backend::run(const QString &script, const QStringList &args, const QProcessEnvironment &env)
 {

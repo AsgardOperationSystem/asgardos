@@ -47,7 +47,11 @@ sed -i '/^# asgard-refresh/,+1d' "$C"
 # the output it's mapped to, and DSI-1 is rotated 90: taps landed rotated (tapping DS opened Music Player). This
 # matrix turns it back, the same one ROCKNIX gives the top touchscreen. Measured from raw vs delivered taps, 2026-10-10.
 # Drop earlier blocks (an older one had a wrong matrix, 2026-10-10), line by line.
+# Settings > Hardware > Calibration (thor_touchcal.py) stores a per-panel matrix that already includes this rotation.
 sed -i '/^# thor-touch$/d;/^input "0:0:\(bottom\|top\)_touchscreen" calibration_matrix/d' "$C"
-printf '%s\n' '# thor-touch' 'input "0:0:bottom_touchscreen" calibration_matrix 0 -1 1 1 0 0' \
-  'input "0:0:top_touchscreen" calibration_matrix 0 -1 1 1 0 0' >> "$C"   # the top panel, likewise (grid there)
+echo '# thor-touch' >> "$C"
+for T in bottom top; do   # the top panel gets the same default (grid there)
+  M=$(sed -n "s/^asgard\.touch\.$T=//p" /storage/.config/system/configs/system.cfg | tail -1)
+  echo "input \"0:0:${T}_touchscreen\" calibration_matrix ${M:-0 -1 1 1 0 0}" >> "$C"
+done
 exit 0

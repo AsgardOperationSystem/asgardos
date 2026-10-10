@@ -40,6 +40,7 @@ public:
     QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
     Q_INVOKABLE void openSettings(const QVariantMap &game = {}, const QString &page = {});  // classic Thor Settings
+    Q_INVOKABLE void runTool(const QString &script, const QStringList &args = {});  // a fullscreen tool (e.g. GPcal) in place of the frontend
     Q_INVOKABLE QVariantMap playStats(const QString &path) const;  // {playtime (s), lastPlayed (epoch s)}
     Q_INVOKABLE QString getSetting(const QString &key, const QString &fallback = {}) const;  // system.cfg
     Q_INVOKABLE void setSetting(const QString &key, const QString &value);                  // "" removes the key

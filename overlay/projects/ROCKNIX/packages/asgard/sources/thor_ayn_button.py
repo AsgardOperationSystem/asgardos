@@ -111,6 +111,10 @@ def guide_tap(keyboard):
     if "retroarch" in names:
         socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"MENU_TOGGLE", ("127.0.0.1", 55355))
     elif any(n in ESC_EMULATORS for n in names) and keyboard:
+        env = frontend_env()   # focus it first, so the Esc reaches it (not the bottom screen)
+        if env:
+            name = next(n for n in names if n in ESC_EMULATORS)
+            subprocess.run(f'swaymsg "[pid=$(pidof -s {name})] focus"', shell=True, env=env, capture_output=True)
         keyboard.tap(KEY_ESC)
     elif not frontend_menu():
         exit_game(names)

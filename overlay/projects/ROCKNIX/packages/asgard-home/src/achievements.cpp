@@ -134,8 +134,11 @@ void Achievements::next()
 // 3. the user's progress; 4. match.
 void Achievements::refresh()
 {
+    // Re-read: Settings > Achievements can change the web API key at runtime.
+    m_user = setting(m_root, "global.retroachievements.username");
+    m_key = setting(m_root, "global.retroachievements.webapikey");
     if (m_user.isEmpty() || m_key.isEmpty()) {
-        setStatus("Add your RetroAchievements username and web API key to asgard.yml");
+        setStatus("Add your RetroAchievements username and web API key in Settings > Achievements");
         return;
     }
     QSet<int> consoles;

@@ -31,8 +31,7 @@ Item {
     // --- content ------------------------------------------------------------------------------------------------
     readonly property var categories: [
         { title: "General", icon: "gear" }, { title: "Appearance", icon: "palette" }, { title: "Library", icon: "list" },
-        { title: "Achievements", icon: "trophy" }, { title: "Audio", icon: "speaker" }, { title: "Display", icon: "display" },
-        { title: "Performance", icon: "gauge" }, { title: "Network", icon: "wifi" }, { title: "About", icon: "info" },
+        { title: "Achievements", icon: "trophy" }, { title: "Hardware", icon: "chip" }, { title: "About", icon: "info" },
         { title: "Power", icon: "power" }]
 
     function get(k, d) { return backend.getSetting(k, d === undefined ? "" : d) }
@@ -73,6 +72,7 @@ Item {
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
     function confirm(title, text, yes, run) { ask = { title: title, text: text, yes: yes, run: run }; askSel = 1 }
 
+    readonly property var percents: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v])
     readonly property var fanModes: [["Quiet", "quiet"], ["Smart", "moderate"], ["Sport", "aggressive"],
                                      ["30%", "77"], ["50%", "128"], ["75%", "191"], ["100%", "255"]]
     function fanNow() { const m = get("asgard.fan_manual"); return m ? m : get("cooling.profile", "moderate") }
@@ -87,8 +87,12 @@ Item {
     function groups() {
         rev                                                   // re-evaluate after changes
         if (stack.length) return stack[stack.length - 1].build()
+        return section(categories[cat].title)
+    }
+    // A category's rows; Hardware's sub-pages (Audio, Display...) reuse it.
+    function section(title) {
         const user = get("global.retroachievements.username")
-        switch (categories[cat].title) {
+        switch (title) {
         case "General": return [
             [link("user", "Profile", backend.hostname + "  ·  RetroAchievements: " + (user || "not signed in"), profilePage)],
             [action("user", "Device name", backend.hostname + "  ·  applies after a restart",
@@ -107,8 +111,16 @@ Item {
              toggle("trophy", "Hardcore mode", "No savestates, rewind or cheats; earns hardcore unlocks",
                     "global.retroachievements.hardcore", "0")],
             cheevoOpts.map(o => toggle("trophy", o[0], o[2], "global.retroachievements." + o[1], "0")),
-            [info("user", "Account", (user || "Not signed in") + "  ·  web API key " +
-                  (get("global.retroachievements.webapikey") ? "set" : "missing (asgard.yml)"))]]
+            [info("user", "Account", user || "Not signed in"),
+             action("user", "Web API key", (get("global.retroachievements.webapikey") ? "Set" : "Missing") +
+                    "  ·  retroachievements.org > Settings > Keys; for the trophy lists",
+                    () => keyboard.ask("Web API key", "", true, v => { if (v) { set("global.retroachievements.webapikey", v.trim()); achievements.refresh() } }))]]
+        case "Hardware": return [
+            [link("speaker", "Audio", "Volume and menu sounds", () => section("Audio")),
+             link("display", "Display", "Brightness, screens and stick lights", () => section("Display")),
+             link("gauge", "Performance", "CPU clocks, fan, charging and sleep", () => section("Performance")),
+             link("wifi", "Network", "Wi-Fi, Bluetooth, USB and services", () => section("Network"))],
+            [link("gamepad", "Calibration", "Touch screens and sticks", calibrationPage)]]
         case "Audio": return [
             [toggle("speaker", "Menu sounds", "Clicks when moving and selecting", "asgard.sounds", "1"),
              choice("speaker", "Menu sound volume", "", "asgard.sounds_volume", "50",
@@ -116,8 +128,14 @@ Item {
             [choice("speaker", "Volume", "Speaker and headphones", "audio.volume", "50",
                     [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v]), v => backend.shell("volume " + v))]]
         case "Display": return [
-            [choice("display", "Brightness", "Both screens", "system.brightness", "50",
-                    [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v]), v => backend.shell("brightness set " + v)),
+            [toggle("display", "Separate screen brightness", "Set the top and bottom screens on their own",
+                    "asgard.brightness_split", "0",
+                    () => { if (get("asgard.brightness_split") !== "1") backend.shell("brightness set " + get("system.brightness", "50")) }),
+             ...(get("asgard.brightness_split") === "1"
+                 // ROCKNIX's brightness script: screen 1 = DSI-1 (bottom), 2 = DSI-2 (top); restored per screen at boot
+                 ? [choice("display", "Top screen brightness", "", "display.brightness2", "50", percents, v => backend.shell("brightness set 2 " + v)),
+                    choice("display", "Bottom screen brightness", "", "display.brightness", "50", percents, v => backend.shell("brightness set 1 " + v))]
+                 : [choice("display", "Brightness", "Both screens", "system.brightness", "50", percents, v => backend.shell("brightness set " + v))]),
              choice("moon", "Screens off after", "Without input (OLED care)", "asgard.idle_blank", "300",
                     [["2 min", "120"], ["5 min", "300"], ["10 min", "600"], ["Never", "0"]],
                     () => backend.shell("systemctl restart thor-idle-blank"))],
@@ -187,6 +205,16 @@ Item {
                                        ["Screenshot on unlock", "screenshot", "Save a screenshot with each unlock"],
                                        ["Unofficial achievements", "unofficial", "Include sets still in testing"]]
 
+    function calibrationPage() {
+        const touch = s => () => { close(); backend.runTool("/usr/share/asgard/thor_touchcal.py", [s]) }
+        return [[action("display", "Touch screen (top)", "Tap 5 targets; the controller confirms", touch("top")),
+                 action("display", "Touch screen (bottom)", "Tap 5 targets; the controller confirms", touch("bottom")),
+                 action("refresh", "Reset touch calibration", "Both screens back to the default",
+                        () => confirm("Reset touch calibration", "Both touch screens go back to the default.", "Reset",
+                                      () => backend.shell("python3 /usr/share/asgard/thor_touchcal.py reset")))],
+                [action("gamepad", "Sticks", "Center, range and deadzone (GPcal; exit with its Quit button)",
+                        () => { close(); backend.runTool("/usr/share/asgard/thor-gpcal.sh") })]]
+    }
     function debugPage() {
         return [[toggle("moon", "Sleep audit", "One line per sleep in /storage/sleep-audit.csv: drain and what slept",
                         "asgard.sleep_audit", "0"),
@@ -416,7 +444,8 @@ Item {
             id: side
             x: 22; y: 22; width: 340; height: parent.height - 44; radius: 32; color: "#e1e3ea"
             Text {
-                x: 32; y: 26; text: settings.stack.length ? "‹  " + settings.categories[settings.cat].title : "Settings"
+                x: 32; y: 26; text: settings.stack.length > 1 ? "‹  " + settings.stack[settings.stack.length - 2].title
+                  : settings.stack.length ? "‹  " + settings.categories[settings.cat].title : "Settings"
                 font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: settings.ink
             }
             Column {
