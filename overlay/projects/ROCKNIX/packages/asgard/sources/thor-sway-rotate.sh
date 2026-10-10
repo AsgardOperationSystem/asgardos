@@ -6,7 +6,7 @@
 C=/storage/.config/sway/config
 grep -q '^output DSI-1 transform' "$C" || echo 'output DSI-1 transform 90' >> "$C"
 grep -q '^# thor-rotate' "$C" || printf '%s\n' '# thor-rotate' \
-  'for_window [title=".*(Secondary|\[w2\]|Sub|Bottom|Screen 2|GamePad).*"] output DSI-1 transform 90' >> "$C"
+  'for_window [title=".*(Secondary|\[w2\]|Sub|Bottom|Screen 2|GamePad).*"] exec /usr/share/asgard/thor-bottom-rotate.sh' >> "$C"
 # A frontend is a plain tiled window, so a game window opening next to it got half the screen (2026-10-09).
 # Fullscreen every new top-screen window except lowerdeck / second-screen windows.
 # ROCKNIX's lowerdeck (bottom-screen companion, e.g. for GB/GBA) isn't matched by the title rule above.
@@ -16,7 +16,7 @@ grep -q '^# thor-rotate' "$C" || printf '%s\n' '# thor-rotate' \
 # vertical-check later re-focuses DSI-1 asynchronously, so also pin RetroArch's bare menu window (title exactly
 # "RetroArch", i.e. after Close Content) to the top screen. Running games have longer titles (DS layouts untouched).
 grep -q '^# thor-lowerdeck' "$C" || printf '%s\n' '# thor-lowerdeck' \
-  'for_window [app_id="lowerdeck"] exec "sleep 1.5; swaymsg output DSI-1 transform 90"' \
+  'for_window [app_id="lowerdeck"] exec /usr/share/asgard/thor-bottom-rotate.sh 1.5' \
   'for_window [app_id="lowerdeck"] focus output DSI-2' \
   'for_window [app_id="com.libretro.RetroArch" title="^RetroArch$"] move window to output DSI-2, focus' >> "$C"
 # Second-screen windows (melonDS [w2], lowerdeck) request fullscreen while still on the top workspace and steal
