@@ -47,6 +47,7 @@ private:
     void scan();
     void readPlaytime();
     void readStatus();
+    void topScreenOn();
     void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
     QString setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const;
     QString path(const QString &p) const { return m_root + p; }
