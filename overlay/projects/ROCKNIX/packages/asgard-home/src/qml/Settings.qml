@@ -75,14 +75,11 @@ Item {
     readonly property var fanModes: [["Quiet", "quiet"], ["Smart", "moderate"], ["Sport", "aggressive"],
                                      ["30%", "77"], ["50%", "128"], ["75%", "191"], ["100%", "255"]]
     function fanNow() { const m = get("asgard.fan_manual"); return m ? m : get("cooling.profile", "moderate") }
-    function setFan(v) {
-        if (/^\d+$/.test(v)) {
-            set("asgard.fan_manual", v)
-            backend.shell("systemctl stop fancontrol; P=$(ls /sys/class/hwmon/hwmon*/pwm1 | head -1); echo 1 > ${P}_enable; echo " + v + " > $P")
-        } else {
-            set("asgard.fan_manual", ""); set("cooling.profile", v)
-            backend.shell("systemctl restart fancontrol")
-        }
+    function setFan(v) {   // fancontrol.service applies a fixed speed itself (asgard-fan.sh) instead of its curve
+        const fixed = /^\d+$/.test(v)
+        set("asgard.fan_manual", fixed ? v : "")
+        if (!fixed) set("cooling.profile", v)
+        backend.shell("systemctl restart fancontrol")
     }
 
     // Groups of rows for a category (or the open sub-page).
