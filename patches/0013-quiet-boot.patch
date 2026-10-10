@@ -1,0 +1,44 @@
+From: Chaos Ruler <zmelumian@gmail.com>
+Subject: [PATCH] Quiet boot behind the Asgard splash
+
+- rocknix-splash is built for the system image too (the boot animation runs it)
+- the initramfs no longer prints /etc/issue and "Loading, please wait"
+- no console cursor, kernel messages below emergencies or systemd status lines
+  on the panel (dmesg and the journal still have them)
+---
+--- a/projects/ROCKNIX/packages/tools/rocknix-splash/package.mk
++++ b/projects/ROCKNIX/packages/tools/rocknix-splash/package.mk
+@@ -8,4 +8,5 @@
+ PKG_SITE="https://rocknix.org"
+ PKG_URL="https://github.com/ROCKNIX/${PKG_NAME}/archive/${PKG_VERSION}.tar.gz"
+ PKG_DEPENDS_INIT="toolchain"
++PKG_DEPENDS_TARGET="toolchain"
+ PKG_LONGDESC="ROCKNIX splash screen application"
+--- a/projects/ROCKNIX/packages/sysutils/busybox/scripts/init
++++ b/projects/ROCKNIX/packages/sysutils/busybox/scripts/init
+@@ -485,14 +485,6 @@
+ 
+ load_splash() {
+   /usr/bin/rocknix-splash
+-
+-  echo -en "\033[1000H\033[2K$(cat /sysroot/etc/issue)\n\n" >/dev/console
+-  if [ -f "/storage/.configured" ]
+-  then
+-    echo -ne "\033[1000H\033[2K==> Loading, please wait..." >/dev/console
+-  else
+-    echo -ne "\033[1000H\033[2K==> Initializing, please wait..." >/dev/console
+-  fi
+ }
+ 
+ do_reboot() {
+--- a/projects/ROCKNIX/devices/SM8550/options
++++ b/projects/ROCKNIX/devices/SM8550/options
+@@ -28,7 +28,7 @@
+     KERNEL_MAKE_EXTRACMD=" $(get_kernel_make_extracmd)"
+ 
+   # Kernel cmdline
+-    EXTRA_CMDLINE="quiet rootwait console=tty0 allow_mismatched_32bit_el0 fw_devlink.strict=0 fw_devlink.sync_state=timeout pcie_ports=compat irqaffinity=0-2 cgroup.memory=nokmem,nosocket nosoftlockup usbcore.interrupt_interval_override=045e:028e:2 ufshcd_core.uic_cmd_timeout=3000 mem_sleep_default=s2idle gpt"
++    EXTRA_CMDLINE="quiet rootwait console=tty0 allow_mismatched_32bit_el0 fw_devlink.strict=0 fw_devlink.sync_state=timeout pcie_ports=compat irqaffinity=0-2 cgroup.memory=nokmem,nosocket nosoftlockup usbcore.interrupt_interval_override=045e:028e:2 ufshcd_core.uic_cmd_timeout=3000 mem_sleep_default=s2idle vt.global_cursor_default=0 loglevel=1 systemd.show_status=false gpt"
+ 
+   # Bootloader to use (syslinux / u-boot)
+     BOOTLOADER="qcom-abl"

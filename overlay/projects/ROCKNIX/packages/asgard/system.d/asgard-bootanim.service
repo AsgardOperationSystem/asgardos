@@ -1,0 +1,14 @@
+[Unit]
+Description=Asgard boot animation (until sway takes the display)
+DefaultDependencies=no
+After=systemd-udevd.service
+# Starting sway stops it first: the animation draws on the framebuffer sway is about to take over.
+Conflicts=sway.service
+Before=sway.service
+
+[Service]
+# The framebuffer is mirrored to the bottom panel too (cropped there): keep that one dark.
+ExecStart=/usr/bin/rocknix-splash --animate /sys/class/backlight/ae94000.dsi.0
+
+[Install]
+WantedBy=sysinit.target
