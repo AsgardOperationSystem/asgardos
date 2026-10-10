@@ -187,6 +187,17 @@ void Backend::readStatus()
     }
 }
 
+// Both OLED panels off (pixels dark, the frontend keeps running and reading the pad) or back on.
+void Backend::setScreensOff(bool off)
+{
+    if (off == m_screensOff)
+        return;
+    m_screensOff = off;
+    const QString power = off ? "off" : "on";
+    QProcess::startDetached("swaymsg", {QString("output DSI-2 power %1, output DSI-1 power %1").arg(power)});
+    emit screensOffChanged();
+}
+
 void Backend::launch(const QVariantMap &game)
 {
     if (m_game)

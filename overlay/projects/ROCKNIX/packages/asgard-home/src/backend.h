@@ -18,6 +18,7 @@ class Backend : public QObject
     Q_PROPERTY(bool charging READ charging NOTIFY statusChanged)
     Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
+    Q_PROPERTY(bool screensOff READ screensOff WRITE setScreensOff NOTIFY screensOffChanged)  // OLED rest (X)
 
 public:
     Backend(const QProcessEnvironment &gameEnv, QObject *parent = nullptr);
@@ -26,6 +27,8 @@ public:
     int battery() const { return m_battery; }
     bool charging() const { return m_charging; }
     bool playing() const { return m_game != nullptr; }
+    bool screensOff() const { return m_screensOff; }
+    void setScreensOff(bool off);
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
@@ -36,6 +39,7 @@ signals:
     void libraryChanged();
     void statusChanged();
     void playingChanged();
+    void screensOffChanged();
 
 private:
     void scan();
@@ -48,6 +52,7 @@ private:
     QVariantList m_systems, m_recent;
     QHash<QString, QVariantList> m_games;
     QHash<QString, QVariantMap> m_byPath;
+    bool m_screensOff = false;
     int m_battery = -1;
     bool m_charging = false;
     QProcess *m_game = nullptr;

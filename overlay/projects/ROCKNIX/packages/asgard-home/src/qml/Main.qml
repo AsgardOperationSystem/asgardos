@@ -59,6 +59,8 @@ QtObject {
 
     function nav(b) {
         if (backend.playing) return
+        if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
+        if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
         const c = cells[sel]
         if (b === "left" && sel > 0) sel--
         else if (b === "right" && sel < items.length - 1) sel++
@@ -170,6 +172,7 @@ QtObject {
                     glyph: "A"; label: app.current && (app.current.kind === "system" || app.current.kind === "ra") ? "Open" : "Play"
                 }
                 Hint { glyph: "B"; label: "Back" }
+                Hint { glyph: "X"; label: "Screens off" }
                 Hint { glyph: "−"; label: "Details" }
                 Hint { glyph: "+"; label: "Menu" }
             }
