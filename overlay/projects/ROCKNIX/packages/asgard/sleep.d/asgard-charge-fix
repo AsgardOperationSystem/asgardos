@@ -1,0 +1,70 @@
+#!/bin/sh
+# Thor: charger plugged in while asleep -> plugged but discharging until reboot (2026-10-09/10).
+# The attach arrives while the CPU ignores ADSP wakeups (charger-attach wake is dropped upstream),
+# so UCSI misses it: stuck looks exactly like unplugged (usb online=0, no typec partner).
+# A normal re-attach after wake shows up within ~30-60 s (seen 2026-10-10), so check after that.
+# A reboot fixes it because ucsi_glink re-inits the PPM; rebinding the driver does the same, and is
+# harmless when nothing is plugged in, so it runs blind whenever we're discharging with no partner.
+# Escalates to a qcom_battmgr rebind if a charger then shows up but still doesn't charge.
+# This is the fallback; the real fix is kernel patch 9005 (wake on USB-C attach), handled in pre/post below.
+# Installed as /usr/lib/systemd/system-sleep/asgard-charge-fix (log: /storage/charge-fix.log). Manual run: asgard-charge-fix check
+S=${SYS:-/sys}
+B=$S/class/power_supply/battery
+U=$S/class/power_supply/qcom-battmgr-usb
+LOG=${LOG:-/storage/charge-fix.log}
+
+discharging() { [ "$(cat $B/status 2>/dev/null)" = Discharging ]; }
+partner() { ls -d $S/class/typec/*-partner >/dev/null 2>&1; }
+online() { [ "$(cat $U/online 2>/dev/null)" = 1 ]; }
+
+state() {
+  echo "$(date '+%F %T') $1: bat=$(cat $B/status 2>/dev/null)/$(cat $B/current_now 2>/dev/null)uA" \
+    "usb_online=$(cat $U/online 2>/dev/null) usb=$(cat $U/current_now 2>/dev/null)uA" \
+    "partners=$(ls -d $S/class/typec/*-partner 2>/dev/null | xargs -rn1 basename | tr '\n' ' ')" >> "$LOG"
+}
+
+# $1 = driver dir glob, $2 = device name
+rebind() {
+  for d in $S/bus/auxiliary/drivers/$1; do
+    [ -e "$d/$2" ] || continue
+    echo "$2" > "$d/unbind"; sleep 1; echo "$2" > "$d/bind"
+    echo "thor-charge-fix: rebound $2" > /dev/kmsg
+    return 0
+  done
+  echo "$(date '+%F %T') $2: driver not found under $1" >> "$LOG"
+}
+
+# Kernel patch 9005 (Asgard) makes a USB-C attach/detach wake the Thor; this counter tells that wake apart.
+# wakeup_active_count, not wakeup_count: the latter only counts when userspace arms /sys/power/wakeup_count.
+WC=$S/bus/auxiliary/devices/pmic_glink.ucsi.0/power/wakeup_active_count
+
+case "$1" in
+  pre)
+    cat $WC > /run/.thor-ucsi-wakeups 2>/dev/null
+    ;;
+  post)
+    # Woken by the cable with the lid shut: let PD settle, then go back to sleep (charging continues asleep).
+    if [ -f $WC ] && [ "$(cat $WC)" != "$(cat /run/.thor-ucsi-wakeups 2>/dev/null)" ] && \
+       busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null | grep -q true; then
+      echo "$(date '+%F %T') usb-c wake with lid closed, re-suspending" >> "$LOG"
+      systemd-run --no-block --on-active=15 --unit="thor-charge-resleep-$(date +%s)" systemctl suspend >/dev/null 2>&1
+    fi
+    # systemd-suspend kills leftover children when it exits, so hand the delayed check to a transient timer.
+    # 75 s leaves room for a normal (slow) re-attach after resume.
+    systemd-run --no-block --on-active=75 --unit="thor-charge-fix-$(date +%s)" "$(readlink -f "$0")" check >/dev/null 2>&1
+    ;;
+  check)
+    discharging || exit 0
+    # Partner attached but not charging = a USB device/dock we power (host role), leave it alone.
+    partner && ! online && exit 0
+    state "stuck"
+    rebind '*ucsi*' pmic_glink.ucsi.0
+    sleep ${WAIT:-10}
+    if discharging && online; then
+      rebind '*battmgr*' pmic_glink.power-supply.0
+      sleep ${WAIT:-10}
+    fi
+    state "after"
+    ;;
+esac
+exit 0

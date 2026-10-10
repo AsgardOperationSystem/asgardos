@@ -61,9 +61,11 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
             });
         }
     }
+    // ponytail: polled, and often: QTimer's clock stops in sleep, so at 30 s the bar kept the pre-sleep battery
+    // level for up to 30 s after a wake (48 % vs the panel's 81 %, 2026-10-10). Two sysfs reads every 5 s.
     auto *t = new QTimer(this);
     connect(t, &QTimer::timeout, this, &Backend::readStatus);
-    t->start(30000);
+    t->start(5000);
 }
 
 QString Backend::hostname() const { return QSysInfo::machineHostName(); }

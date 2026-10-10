@@ -1,0 +1,63 @@
+#!/bin/sh
+# systemd-sleep hook: one CSV line per sleep in /storage/sleep-audit.csv, to find what keeps sleep drain at
+# ~230-330 mA when other SM8550 builds with the same DDR floor reach ~54-80 mA.
+#   mah/avg_ma: battery charge_counter delta. The gauge updates in delayed steps, so only sleeps >= 1 h mean much.
+#   <sub>_cnt/<sub>_acc: qcom_stats deltas (entries / time asleep in 19.2 MHz ticks, /19200000 = s). aosd/cxsd/ddr > 0 =
+#   whole-SoC collapse.
+#   s1_s2idle: cluster_sleep_1 entries during s2idle (pm_genpd S1 'S2idle' column; its Time(ms) excludes s2idle).
+#   exp: what Settings > Debug > Sleep experiment (asgard.sleep_experiment) switched off for this sleep:
+#        wifi, bt (rfkill block before sleep, unblock after). Add a suspect here, one per test.
+# Off unless Settings > Debug > Sleep audit (asgard.sleep_audit=1).
+S=${SYS:-/sys}
+OUT=${OUT:-/storage/sleep-audit.csv}
+CFG=${CFG:-/storage/.config/system/configs/system.cfg}
+SNAP=${SNAP:-/run/.asgard-sleep-audit}
+SUBS="apss adsp cdsp aosd cxsd ddr"
+
+snap() {
+  echo "t=$(date +%s)"
+  echo "uah=$(cat $S/class/power_supply/battery/charge_counter 2>/dev/null)"
+  echo "uv=$(cat $S/class/power_supply/battery/voltage_now 2>/dev/null)"
+  for s in $SUBS; do
+    f=$S/kernel/debug/qcom_stats/$s
+    echo "${s}_cnt=$(awk '/^Count/ {print $2}' $f 2>/dev/null)"
+    echo "${s}_acc=$(awk '/^Accumulated/ {print $3}' $f 2>/dev/null)"
+  done
+  echo "s1=$(awk '$1 == "S1" {print $7}' $S/kernel/debug/pm_genpd/power-domain-cluster/idle_states 2>/dev/null)"
+}
+
+# system.cfg: one key=value per line, the last one wins
+cfg() { sed -n "s/^$1=//p" "$CFG" 2>/dev/null | tail -1; }
+# $1 = block|unblock: apply the experiment's rfkill switches
+radios() {
+  for w in $(cat $SNAP.exp 2>/dev/null); do
+    case $w in wifi) rfkill $1 wlan ;; bt) rfkill $1 bluetooth ;; esac
+  done 2>/dev/null
+}
+
+case "$1" in
+  pre)
+    [ "$(cfg asgard.sleep_audit)" = 1 ] || exit 0
+    snap > $SNAP
+    cfg asgard.sleep_experiment > $SNAP.exp
+    radios block
+    ;;
+  post)
+    [ -r $SNAP ] || exit 0
+    radios unblock
+    snap > $SNAP.post
+    [ -s $OUT ] || { printf 'start,secs,mah,avg_ma,uv_start,uv_end'; for s in $SUBS; do printf ",${s}_cnt,${s}_acc"; done; echo ',s1_s2idle,exp'; } > $OUT
+    # Missing counters read as 0 so one absent file can't break the line.
+    awk -F= -v ex="$(cat $SNAP.exp 2>/dev/null)" -v subs="$SUBS" -v out="$OUT" '
+      FNR == NR { a[$1] = $2; next } { b[$1] = $2 }
+      END {
+        n = split(subs, s, " ")
+        secs = b["t"] - a["t"]; mah = (a["uah"] - b["uah"]) / 1000
+        l = a["t"] "," secs "," mah "," (secs > 0 ? int(mah * 3600 / secs) : 0) "," a["uv"] "," b["uv"]
+        for (i = 1; i <= n; i++) l = l "," (b[s[i] "_cnt"] - a[s[i] "_cnt"]) "," (b[s[i] "_acc"] - a[s[i] "_acc"])
+        print l "," (b["s1"] - a["s1"]) "," ex >> out
+      }' $SNAP $SNAP.post
+    rm -f $SNAP $SNAP.post $SNAP.exp
+    ;;
+esac
+exit 0

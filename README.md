@@ -42,6 +42,8 @@ live from bind-mounted dev builds before they reach an image.
   Azahar uses it while it runs (`0016`). Axis directions still to be tuned in games (`asgard.motion_map`).
 
 ### In progress / untested
+- **D-pad slow to work after boot** (reported 2026-10-10): for a while after the Thor boots the d-pad doesn't respond
+  well. Not investigated yet (suspects: rsinput's boot handshake / RX stream, InputPlumber or the frontend's pad open retry).
 - **In-game menu (Home tap):** plumbing verified (command FIFO, virtual keyboard); not yet tried inside a game.
 - **lowerdeck touch fix** (GB/GBA bottom-screen companion): tested in code, waiting for a try on the device.
 - **Boot splash** ("ASGARD"): compiles; shows from the next image.
@@ -64,8 +66,12 @@ live from bind-mounted dev builds before they reach an image.
 - **Steam** isn't in the image (FEX thunks don't build).
 - **thor-sensorspd** is stopped for sleep and not restarted after resume; whether the sensor PD survives sleep is
   untested.
-- Once, the Thor didn't charge after a 4 h sleep until a reboot (cause unknown; the battery logger now records USB
-  and charging state).
+- **Charger plugged in while asleep isn't seen** (2026-10-10): the Thor stays on the cable discharging, reporting no
+  charger (`qcom-battmgr-usb/online=0`, no typec partner), sometimes until reboot. Likely `0502` masking the IPCC
+  mailbox in suspend, so the UCSI attach is never delivered or acked. Fix in the next image (untested): `9005` keeps
+  IPCC live in s2idle on `ayn,thor` and wakes on a USB-C connector change; `/storage/.config/sleep.d/95-thor-charge-fix.sh`
+  re-suspends a lid-closed cable wake and rebinds `ucsi_glink` if still stuck 75 s after a wake (log
+  `/storage/charge-fix.log`). Watch sleep drain: battmgr messages are now handled during sleep. First `9005` image (15:59) **reset the Thor on an unplug while asleep**: the ucsi/altmode workers programmed dwc3 and the QMP PHY with devices suspended; they now run on `system_freezable_wq` (after resume). Plug-in while asleep produced no UCSI notification at all on that image (ADSP probably holds it while `0003` sleepstate says the AP is asleep). **16:13 image (2026-10-10):** unplug while asleep wakes and re-sleeps without a reset (2/2); plug-in while asleep woke and charged on the 2nd try (1/2, `0003` kept). Still to do: more plug-in repeats, and a ≥1 h unplugged sleep to compare drain with the ~4–5 %/h baseline.
 - Occasional `fenced register write (0x8a1)` from the GPU; no hang seen.
 - SD SDR104: Thorch keeps UHS off as unstable; watch for mmc errors after sleep.
 - No locale generation for `system.language` (ROCKNIX ES did it).

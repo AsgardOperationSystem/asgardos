@@ -165,7 +165,8 @@ Item {
                      ? action("refresh", "Install update", live.update.split("/").pop() + "  ·  restarts to install",
                               () => confirm("Install update", "The Thor restarts and installs " + live.update.split("/").pop() + ".",
                                             "Restart", () => backend.shell("systemctl reboot")))
-                     : info("refresh", "Updates", "Copy an Asgard .tar into /storage/.update to install it")]]
+                     : info("refresh", "Updates", "Copy an Asgard .tar into /storage/.update to install it")],
+                    [link("terminal", "Debug", "Sleep audit and experiments", debugPage)]]
         }
         case "Power": return [
             [action("moon", "Sleep", "Suspend now", () => { close(); backend.shell("systemctl suspend") }),
@@ -186,6 +187,13 @@ Item {
                                        ["Screenshot on unlock", "screenshot", "Save a screenshot with each unlock"],
                                        ["Unofficial achievements", "unofficial", "Include sets still in testing"]]
 
+    function debugPage() {
+        return [[toggle("moon", "Sleep audit", "One line per sleep in /storage/sleep-audit.csv: drain and what slept",
+                        "asgard.sleep_audit", "0"),
+                 choice("moon", "Sleep experiment", "Switched off during sleep, to find what drains the battery",
+                        "asgard.sleep_experiment", "", [["None", ""], ["Wi-Fi off", "wifi"], ["Bluetooth off", "bt"],
+                                                        ["Wi-Fi and Bluetooth off", "wifi bt"]])]]
+    }
     function wifiPage() {
         const on = get("wifi.enabled", "1") === "1"
         const rows = [[{ kind: "toggle", icon: "wifi", title: "Wi-Fi", sub: live.wifiMsg || (live.ssid ? "Connected to " + live.ssid : "Not connected"),
