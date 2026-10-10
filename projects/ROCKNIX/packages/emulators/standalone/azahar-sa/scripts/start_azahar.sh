@@ -70,6 +70,7 @@ ASYNC_SHADER_COMPILATION=$(get_setting async_shader_compilation "${PLATFORM}" "$
 DISABLE_RIGHT_EYE_RENDER=$(get_setting disable_right_eye_render "${PLATFORM}" "${GAME}")
 SIMULATE_3DS_GPU_TIMINGS=$(get_setting simulate_3ds_gpu_timings "${PLATFORM}" "${GAME}")
 SIMULATE_HEADPHONES_PLUGGED=$(get_setting simulate_headphones_plugged "${PLATFORM}" "${GAME}")
+CUSTOM_TEXTURES=$(get_setting custom_textures "${PLATFORM}" "${GAME}")
 
 #Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")
@@ -87,6 +88,14 @@ case "${CPU}" in
   4) sed -i '/^cpu_clock_percentage=/c\cpu_clock_percentage=60' ${CONF_FILE};;
   5) sed -i '/^cpu_clock_percentage=/c\cpu_clock_percentage=50' ${CONF_FILE};;
   *) sed -i '/^cpu_clock_percentage=/c\cpu_clock_percentage=100' ${CONF_FILE};;
+esac
+
+# Custom textures (HD packs in load/textures) - default to on
+sed -i '/^custom_textures\\default=/c\custom_textures\\default=false' ${CONF_FILE}
+
+case "${CUSTOM_TEXTURES}" in
+  0) sed -i '/^custom_textures=/c\custom_textures=false' ${CONF_FILE};;
+  *) sed -i '/^custom_textures=/c\custom_textures=true' ${CONF_FILE};;
 esac
 
 # Resolution Scale - default to Native 3DS
