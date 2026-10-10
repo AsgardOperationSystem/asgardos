@@ -1,0 +1,16 @@
+# Gyro, step 4: the accelerometer and gyro (read from the ADSP sensor core that thor-sensorspd brings up) served to
+# emulators as a cemuhook/DSU motion source on 127.0.0.1:26760. Azahar uses it while this runs (start_azahar.sh).
+[Unit]
+Description=Thor motion sensors as a DSU (cemuhook) server
+After=thor-sensorspd.service
+BindsTo=thor-sensorspd.service
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/share/asgard/asgard-motiond.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/asgard-motiond.log
+StandardError=append:/var/log/asgard-motiond.log
+
+[Install]
+WantedBy=multi-user.target

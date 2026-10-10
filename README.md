@@ -37,6 +37,9 @@ live from bind-mounted dev builds before they reach an image.
 - ✅ **OLED idle blank** (timeout in Settings), **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
 - ✅ **melonDS** two-window layout without the Qt menu bar.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
+- ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
+- 🧪 **Gyro step 4:** `asgard-motiond` serves them as a DSU (cemuhook) motion source on 127.0.0.1:26760, and
+  Azahar uses it while it runs (`0016`). Axis directions still to be tuned in games (`asgard.motion_map`).
 
 ### In progress / untested
 - **In-game menu (Home tap):** plumbing verified (command FIFO, virtual keyboard); not yet tried inside a game.
@@ -46,14 +49,11 @@ live from bind-mounted dev builds before they reach an image.
 - Shaders, ratios and other per-game overrides still open the classic (SDL) screen.
 - **asgard.yml:** self-test passes; not yet applied on a real boot.
 - **hexagonrpc package:** not yet built through ROCKNIX's cargo flow (the Thor runs a separate cross-build).
-- **Gyro steps 3–4:** stream accel/gyro from the sensor core and feed InputPlumber's DualSense motion, so Azahar
-  (3DS) sees a gyro. Not started.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
   help is unmeasured.
 - Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
-- **Steam (TODO):** dropped from the image because FEX's thunks don't build (see below). Look into running Steam
-  again, or Valve's SteamOS client ("Steam as an app") on ARM under FEX, as reported but not yet checked; what Valve
-  ships for ARM64 decides whether that's practical on the Thor.
+- **Steam:** back in the image (Valve's native ARM64 client in gamescope, x86 games through FEX and Proton ARM64).
+  First run installs it with ROCKNIX's Install Steam (`0015` fixes it on the image's grep); games still untested.
 
 ### Known broken / limitations
 - **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %. Thor Settings →
@@ -156,5 +156,6 @@ One merge request each; its description and commits say what was broken, why, an
 | Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
 | ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
-| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service; the readings aren't streamed to games yet. |
+| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service. |
+| Motion server (`asgard-motiond`, `0016`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. |
 | Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |
