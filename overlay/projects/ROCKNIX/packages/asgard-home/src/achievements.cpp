@@ -78,14 +78,16 @@ void Achievements::setStatus(const QString &s)
 // GET <API><endpoint>?<query>&y=<key>, cached in cacheFile for maxAgeHours. A failed request falls back to a
 // stale cache (offline). The key is never logged.
 void Achievements::fetch(const QString &endpoint, const QString &query, const QString &cacheFile, int maxAgeHours,
-                         std::function<void(const QByteArray &)> done)
+                         std::function<void(const QByteArray &)> done, bool staleFirst)
 {
     QFile cached(cache(cacheFile));
     const QFileInfo fi(cached);
-    if (fi.exists() && fi.lastModified().secsTo(QDateTime::currentDateTime()) < maxAgeHours * 3600 && cached.open(QIODevice::ReadOnly)) {
+    const bool fresh = fi.exists() && fi.lastModified().secsTo(QDateTime::currentDateTime()) < maxAgeHours * 3600;
+    if ((fresh || (staleFirst && fi.exists())) && cached.open(QIODevice::ReadOnly)) {
         const QByteArray data = cached.readAll();
         QMetaObject::invokeMethod(this, [done, data] { done(data); }, Qt::QueuedConnection);
-        return;
+        if (fresh)
+            return;   // staleFirst + stale: answer from the cache now, refresh below (done runs again)
     }
     m_queue << [this, endpoint, query, cacheFile, done] {
         QUrl url(QString(API) + endpoint);
@@ -243,6 +245,8 @@ void Achievements::details(int raId)
 {
     fetch("API_GetGameInfoAndUserProgress.php", QString("g=%1&u=%2").arg(raId).arg(QString(QUrl::toPercentEncoding(m_user))),
           QString("game-%1.json").arg(raId), 1, [this, raId](const QByteArray &data) {
+              if (data.isEmpty())
+                  return;
               const QJsonObject o = QJsonDocument::fromJson(data).object();
               QVariantList list;
               for (const QJsonValue &a : o["Achievements"].toObject()) {
@@ -267,5 +271,5 @@ void Achievements::details(int raId)
               });
               emit detailsReady(raId, {{"achievements", list}, {"completion", o["UserCompletionHardcore"].toString()},
                                        {"boxArt", QString(MEDIA) + o["ImageBoxArt"].toString()}});
-          });
+          }, true);
 }

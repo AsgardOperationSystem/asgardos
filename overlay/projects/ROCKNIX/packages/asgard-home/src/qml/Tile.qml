@@ -8,6 +8,10 @@ Item {
     id: tile
     property var item
     property bool selected: false
+    property bool near: true      // inside or close to the visible part of the grid: only then load art and effects
+    signal tapped()               // bottom touchscreen
+
+    MouseArea { anchors.fill: parent; onClicked: tile.tapped() }
     readonly property string kind: item ? item.kind : ""
     readonly property var game: item ? item.game : null
     readonly property bool badged: kind === "game" || kind === "ra"   // gets the little system badge
@@ -17,12 +21,15 @@ Item {
     scale: selected ? 1.07 : 1.0
     Behavior on scale { NumberAnimation { duration: Theme.anim; easing.type: Easing.OutBack; easing.overshoot: 2.2 } }
 
-    // Glow under the selected tile.
-    MultiEffect {
-        source: rim; anchors.fill: rim
-        shadowEnabled: true; shadowColor: Theme.selA; shadowBlur: 1.0; shadowScale: 1.04
-        opacity: tile.selected ? 0.9 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.anim } }
+    // Glow under the selected tile (only that one carries the effect).
+    Loader {
+        active: tile.selected
+        anchors.fill: rim
+        sourceComponent: MultiEffect {
+            source: rim
+            shadowEnabled: true; shadowColor: Theme.selA; shadowBlur: 1.0; shadowScale: 1.04
+            opacity: 0.9
+        }
     }
     Rectangle {
         id: rim
@@ -35,6 +42,7 @@ Item {
     }
     Rounded {
         id: face
+        visible: tile.near                       // far tiles: just the rim, no art, no mask layer
         anchors.fill: parent; anchors.margins: tile.selected ? 7 : 5
         radius: 25
         Rectangle { anchors.fill: parent; color: tile.kind === "system" ? Theme.pastel(tile.item.sys.name) : "#2b2c40" }
@@ -52,7 +60,7 @@ Item {
             visible: tile.kind === "game" || tile.kind === "ra"
             anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; smooth: true
             sourceSize: Qt.size(320, 320)
-            source: visible ? (tile.game.cover || tile.game.shot || (tile.kind === "ra" ? tile.item.ra.icon : "")) : ""
+            source: !tile.near ? "" : visible ? (tile.game.cover || tile.game.shot || (tile.kind === "ra" ? tile.item.ra.icon : "")) : ""
         }
         // trophy game: progress bar + "earned / total" along the bottom
         Rectangle {
@@ -83,7 +91,7 @@ Item {
             visible: tile.kind === "ach"
             anchors.fill: parent; anchors.margins: 14; fillMode: Image.PreserveAspectFit; asynchronous: true; smooth: true
             sourceSize: Qt.size(128, 128)
-            source: visible ? (tile.item.ach.earned ? tile.item.ach.badge : tile.item.ach.badgeLocked) : ""
+            source: !tile.near ? "" : visible ? (tile.item.ach.earned ? tile.item.ach.badge : tile.item.ach.badgeLocked) : ""
             opacity: tile.kind === "ach" && !tile.item.ach.earned ? 0.55 : 1
         }
         Pill {
@@ -102,7 +110,7 @@ Item {
             visible: tile.kind === "system"
             anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true; opacity: 0.16
             sourceSize: Qt.size(320, 320)
-            source: tile.kind === "system" ? (tile.item.sys.cover || "") : ""
+            source: !tile.near ? "" : tile.kind === "system" ? (tile.item.sys.cover || "") : ""
         }
         Text {
             visible: tile.kind === "system"
@@ -118,7 +126,7 @@ Item {
             visible: tile.kind === "jump"
             anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true
             sourceSize: Qt.size(600, 340)
-            source: tile.kind === "jump" ? (tile.game.shot || tile.game.cover) : ""
+            source: !tile.near ? "" : tile.kind === "jump" ? (tile.game.shot || tile.game.cover) : ""
         }
         Rectangle { visible: tile.kind === "jump"; anchors.fill: parent; color: "#66000000" }
         Rectangle {
@@ -129,7 +137,7 @@ Item {
             Image {
                 anchors.fill: parent; anchors.margins: 6; fillMode: Image.PreserveAspectCrop; asynchronous: true
                 sourceSize: Qt.size(200, 240)
-                source: tile.kind === "jump" ? (tile.game.cover || tile.game.shot) : ""
+                source: !tile.near ? "" : tile.kind === "jump" ? (tile.game.cover || tile.game.shot) : ""
             }
         }
         Pill {
@@ -141,7 +149,7 @@ Item {
     }
     // system badge on game tiles (top-left), like iiSU's console badge
     Rectangle {
-        visible: tile.badged
+        visible: tile.badged && tile.near
         x: 16; y: 16; width: 40; height: 40; radius: 11
         color: tile.badged ? Theme.pastel(tile.game.sys) : "transparent"
         border.color: "#ffffff"; border.width: 2

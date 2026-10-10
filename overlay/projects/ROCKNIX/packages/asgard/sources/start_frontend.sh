@@ -13,5 +13,7 @@ for VARIABLE in $(grep _ /etc/profile.d/999-export | sed 's/export//g; s/^\W//g;
 done
 # ponytail: no system.language locale generation (ES did it for its translations); add with the frontend's i18n.
 export SDL_AUDIODRIVER=pulseaudio
+# Qt needs a UTF-8 locale; ROCKNIX ES's es_settings set LANG, nothing does now. C.UTF-8 is built into glibc.
+export LANG=${LANG:-C.UTF-8}
 
 exec /usr/bin/asgard-home >> /var/log/asgard-frontend.log 2>&1
