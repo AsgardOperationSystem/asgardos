@@ -1,13 +1,14 @@
 import QtQuick
 
 // In-game menu on the bottom screen (Home tapped while a game runs; backend.gameMenu). The game is paused while it
-// is open. Azahar gets its hotkeys (quick save/load, screens, textures...); other emulators get Resume and Quit.
+// is open. Azahar and Eden get their hotkeys (quick save/load, screens, docked mode...); others get Resume and Quit.
 Item {
     id: menu
     property bool open: backend.gameMenu
     property int sel: 0
     property var game: []                    // running emulator process names, read when the menu opens
     readonly property bool azahar: game.indexOf("azahar") >= 0
+    readonly property bool eden: game.indexOf("eden") >= 0
 
     property real openedAt: 0
     onOpenChanged: if (open) { game = backend.runningGame(); sel = 0; openedAt = Date.now() }
@@ -15,7 +16,7 @@ Item {
     function resume(keys) {                  // close, run the hotkeys, unpause
         backend.gameMenu = false
         for (const k of keys || []) backend.gameKeys(k)
-        if (azahar) backend.gameKeys("F4")
+        if (azahar || eden) backend.gameKeys("F4")
     }
     readonly property var items: azahar ? [
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
@@ -25,6 +26,16 @@ Item {
         { icon: "list", title: "Change layout", sub: "Next screen layout", run: () => resume(["F10"]) },
         { icon: "palette", title: "Custom textures", sub: "HD texture pack on / off", run: () => resume(["F7"]) },
         { icon: "sparkle", title: "Screenshot", sub: "Saved by Azahar", run: () => resume(["Ctrl+P"]) },
+        { icon: "refresh", title: "Restart", sub: "Unsaved progress is lost",
+          run: () => { backend.gameMenu = false; backend.gameKeys("F6") } },
+        { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }
+    ] : eden ? [
+        // No save states on Switch emulators: games save themselves.
+        { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
+        { icon: "display", title: "Docked mode", sub: "Docked (sharper) / handheld (faster)", run: () => resume(["F10"]) },
+        { icon: "gauge", title: "Speed limit", sub: "Unlock / restore the frame limit", run: () => resume(["Ctrl+U"]) },
+        { icon: "chip", title: "Performance overlay", sub: "FPS and frame times", run: () => resume(["Ctrl+V"]) },
+        { icon: "sparkle", title: "Screenshot", sub: "Saved by Eden", run: () => resume(["Ctrl+P"]) },
         { icon: "refresh", title: "Restart", sub: "Unsaved progress is lost",
           run: () => { backend.gameMenu = false; backend.gameKeys("F6") } },
         { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }

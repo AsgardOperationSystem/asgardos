@@ -164,6 +164,12 @@ void Backend::scan()
                 const QFileInfo fi(file);
                 if (!exts.contains("." + fi.suffix().toLower()))
                     continue;
+                // Switch updates and DLC sit next to their game (Eden loads them from there): not games themselves.
+                // Title IDs: base ends in 000, update in 800, DLC anything else.
+                static const QRegularExpression switchExtra("\\[0100[0-9a-f]{9}(?!000\\])[0-9a-f]{3}\\]|\\[dlc",
+                                                            QRegularExpression::CaseInsensitiveOption);
+                if (name == "switch" && switchExtra.match(fi.fileName()).hasMatch())
+                    continue;
                 const QString rel = QDir(dir).relativeFilePath(file);
                 const QString stem = rel.left(rel.size() - fi.suffix().size() - 1);
                 const QVariantMap meta = gl.value(QDir::cleanPath("./" + rel));
@@ -391,8 +397,8 @@ void Backend::command(const QString &cmd)
         const bool open = !m_gameMenu;
         if (!open)
             setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
-        if (runningGame().contains("azahar"))
-            gameKeys("F4");      // pause / unpause (Azahar keeps running when it loses focus)
+        if (runningGame().contains("azahar") || runningGame().contains("eden"))
+            gameKeys("F4");      // pause / unpause (Azahar and Eden keep running when they lose focus)
         if (open)
             setGameMenu(true);
     }
@@ -420,7 +426,7 @@ void Backend::gameKeys(const QString &combo)
     QProcess::execute("/bin/sh", {"-c", "swaymsg \"[pid=$(pidof -s " + names.first() + ")] focus\" >/dev/null 2>&1"});
     static const QHash<QString, int> codes = {{"Alt", KEY_LEFTALT}, {"Ctrl", KEY_LEFTCTRL}, {"Shift", KEY_LEFTSHIFT},
         {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L},
-        {"P", KEY_P}, {"M", KEY_M}, {"Esc", KEY_ESC}};
+        {"P", KEY_P}, {"M", KEY_M}, {"U", KEY_U}, {"V", KEY_V}, {"Esc", KEY_ESC}};
     QList<int> keys;
     for (const QString &k : combo.split('+'))
         keys << codes.value(k, 0);

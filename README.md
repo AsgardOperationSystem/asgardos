@@ -42,6 +42,20 @@ live from bind-mounted dev builds before they reach an image.
   Azahar uses it while it runs (`0016`). Axis directions still to be tuned in games (`asgard.motion_map`).
 
 ### In progress / untested
+- **Switch: Eden v0.2.1** (`eden-sa`, built from source, NCE on; `0021` adds the `switch` system and Qt Charts
+  for Eden's performance overlay; `eden-sa/patches/0001` fixes the build on GCC 16/fmt 12). Keys and firmware come
+  from the card's `bios/NSO/` (`prod.keys`, `title.keys`, `Firmware.<ver>.zip`, installed on the first start).
+  Handheld mode, pinned to cores 3–7, updates/DLC loaded from the ROM folders (Asgard Home hides them from the
+  library). Home menu: docked toggle, speed limit, overlay, screenshot, restart. `.nsz` isn't supported: convert
+  to `.nsp`. **Tested 2026-10-11:** TWEWY Final Remix, Legends Arceus, Legends Z-A and Violet boot; controls work
+  as Player 1 = Handheld in handheld mode, which in Eden's ini is two slots: `player_0` typed Handheld but
+  disconnected, `player_8` connected with the bindings (Pro Controller is rejected by TWEWY; a Handheld pad on a
+  docked console is rejected by every game). TWEWY is touch-only in handheld, as on hardware.
+  Open: Eden's docked toggle (F10) pops a modal dialog and leaves player 1 on Pro after returning to handheld;
+  Z-A's software keyboard asserts (`SwkbdConfig revision=1048590`; harmless, the 0x4C8 config parses as the newest
+  known layout); Eden reports firmware 22.0.0 with 23.0.1 installed (games boot regardless). Violet's name-entry
+  keyboard once flipped case constantly (pad verified idle over SDL); opening and closing the Home menu (pause/
+  resume) cured it. Suspect Eden's `InputInterpreter` press-state latch; dig in if it recurs.
 - **D-pad slow to work after boot** (reported 2026-10-10): for a while after the Thor boots the d-pad doesn't respond
   well. Not investigated yet (suspects: rsinput's boot handshake / RX stream, InputPlumber or the frontend's pad open retry).
 - **In-game menu (Home tap):** plumbing verified (command FIFO, virtual keyboard); not yet tried inside a game.
