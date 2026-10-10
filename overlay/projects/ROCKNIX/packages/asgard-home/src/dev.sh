@@ -22,7 +22,9 @@ case "${1:-shot}" in
       -DCMAKE_TOOLCHAIN_FILE="$THOR_BUILD/toolchain/etc/cmake-aarch64-rocknix-linux-gnu.conf" >/dev/null
     cmake --build "$OUT/asgard-home-thor" -j"$(nproc)" | grep -E "error|warning" || true
     ssh "$THOR" 'mkdir -p /storage/asgard-dev'
-    scp -q "$OUT/asgard-home-thor/asgard-home" "$THOR:/storage/asgard-dev/"
+    # Upload beside it and rename: the running (or bind-mounted) binary can't be overwritten in place.
+    scp -q "$OUT/asgard-home-thor/asgard-home" "$THOR:/storage/asgard-dev/asgard-home.new"
+    ssh "$THOR" 'mv /storage/asgard-dev/asgard-home.new /storage/asgard-dev/asgard-home'
     rsync -a --delete "$HERE/qml/" "$THOR:/storage/asgard-dev/qml/"
     # Run inside the live sway session (its env comes from the running frontend), windows stay hidden.
     ssh "$THOR" "eval \"\$(tr '\\0' '\\n' < /proc/\$(systemctl show -P MainPID essway)/environ | grep -E '^(WAYLAND_DISPLAY|XDG_RUNTIME_DIR)=' | sed 's/^/export /')\"
