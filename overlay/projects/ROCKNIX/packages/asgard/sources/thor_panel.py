@@ -537,8 +537,11 @@ def main():
         if a == "touch":
             tx, ty = ui.touch
             hit = None
+            # A tile is its whole grid cell (icon and label), not just the icon: taps on the label missed.
+            cw = tog_pos[1][0] - tog_pos[0][0] if len(tog_pos) > 1 else btn_r * 3
+            ch = tog_pos[cols][1] - tog_pos[0][1] if len(tog_pos) > cols else btn_r * 5
             for i, (x, y) in enumerate(tog_pos):
-                if math.hypot(tx - x, ty - y) < btn_r * 1.4:
+                if abs(tx - x) <= cw / 2 and -ch * 0.4 <= ty - y <= ch * 0.6:
                     hit = ("tog", i)
             fan_x = pad + (fpsw - pad) / 2 + pad
             if fan_x <= tx <= fan_x + (fpsw - pad) / 2 and r2y <= ty <= r2y + r2h:
@@ -548,6 +551,8 @@ def main():
             if hit is None and togx <= tx <= togx + togw and r1y + r1h - pad <= ty <= r1y + r1h:
                 page, sel = 1 - page, ("tog", 0)  # tap the page dots
                 continue
+            if sdlui.DEBUG:
+                sdlui.DEBUG.write(f"tap {tx},{ty} -> {hit}\n"); sdlui.DEBUG.flush()
             if hit is None:
                 continue
             sel, a = hit, "a"
