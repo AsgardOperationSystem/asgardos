@@ -93,8 +93,7 @@ Item {
             [link("user", "Profile", backend.hostname + "  ·  RetroAchievements: " + (user || "not signed in"), profilePage)],
             [action("user", "Device name", backend.hostname + "  ·  applies after a restart",
                     () => keyboard.ask("Device name", get("system.hostname", backend.hostname), false, v => { if (v) set("system.hostname", v) }))],
-            [action("terminal", "Advanced emulator options", "Shaders, ratios and per-game overrides (classic screen)",
-                    () => backend.openSettings({}, "main"))]]
+            [link("gamepad", "Emulator options", "Shaders, aspect ratio and more, per console", consolesPage)]]
         case "Appearance": return [
             [choice("palette", "Accent colour", "Selection glow and highlights", "asgard.accent", "aurora",
                     [["Aurora", "aurora"], ["Sunset", "sunset"], ["Mint", "mint"], ["Gold", "gold"]], v => Theme.accent = v)],
@@ -282,8 +281,34 @@ Item {
                              () => { set(k("emulator"), ""); set(k("core"), "") }))
         const st = backend.playStats(g.path)
         return [rows, [info("info", "Played", st.playtime ? Math.round(st.playtime / 60) + " min" : "Never"),
-                       action("terminal", "More options", "Shaders, ratio and other overrides (classic screen)",
-                              () => backend.openSettings(g, "game"))]]
+                       link("chip", "Emulator options", "This game only; unset ones follow " + g.sysName,
+                            () => optionsPage(g.sys + '["' + file + '"]', emu, get(k("core"), sysCore), g.sys))]]
+    }
+
+    // ROCKNIX's per-emulator options (es_features.cfg), read through thor_settings.py --features as JSON.
+    // prefix: "<system>" or '<system>["<file>"]'; inherit: what an unset game option falls back to.
+    function features(emu, core) {
+        const k = "feat:" + emu + "/" + core
+        if (live[k] === undefined) {
+            note(k, null)
+            backend.exec("python3 /usr/share/asgard/thor_settings.py --features " + q(emu) + " " + q(core),
+                         o => { let v = []; try { v = JSON.parse(o) } catch (e) {} note(k, v) })
+        }
+        return live[k]
+    }
+    function optionsPage(prefix, emu, core, inherit) {
+        const feats = features(emu, core)
+        if (feats === null) return [[info("refresh", "Loading options…", emu + " / " + core)]]
+        if (!feats.length) return [[info("info", "No extra options", emu + " / " + core + " has none in ROCKNIX")]]
+        return [feats.map(f => {
+            const key = prefix + "." + f.key
+            const cur = get(key)
+            const label = v => (f.choices.find(c => c[1] === v) || [v])[0]
+            const parent = inherit ? get(inherit + "." + f.key) : ""
+            const values = [""].concat(f.choices.map(c => c[1]))
+            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? "Default (" + label(parent) + ")" : "Default",
+                     step: d => set(key, values[(Math.max(0, values.indexOf(cur)) + d + values.length) % values.length]) }
+        })]
     }
 
     function profilePage() {
@@ -307,6 +332,8 @@ Item {
             rows.push({ kind: "choice", icon: "chip", title: "Core", sub: "RetroArch core", value: get(s.name + ".core", s.core),
                         step: d => { const c = get(s.name + ".core", s.core); const i = Math.max(0, cur.cores.indexOf(c))
                                      set(s.name + ".core", cur.cores[(i + d + cur.cores.length) % cur.cores.length]) } })
+        rows.push(link("chip", "Emulator options", "Shaders, aspect ratio and more for " + s.fullname,
+                       () => optionsPage(s.name, get(s.name + ".emulator", s.emulator), get(s.name + ".core", s.core), "")))
         rows.push(action("refresh", "Use ROCKNIX default", s.emulator + " / " + s.core,
                          () => { set(s.name + ".emulator", ""); set(s.name + ".core", "") }))
         return [rows]

@@ -580,7 +580,18 @@ BY_KEY = {"game": page_game, "system": page_system, "wifi": page_wifi, "bluetoot
           "leds": page_leds, "cheevos": page_cheevos, "updates": page_updates, "device": page_device}
 
 
+def dump_features(emulator, core):
+    """--features EMULATOR CORE: the options as JSON, for Asgard Home's native Settings pages:
+    [{"key", "label", "choices": [[label, value], ...]}]. Keys are system.cfg suffixes (<system>.<key>)."""
+    feats = load_features().get((emulator, core)) or load_features().get((emulator, None), [])
+    print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch]}
+                      for n, ch in feats]))
+
+
 def main():
+    if "--features" in sys.argv:
+        i = sys.argv.index("--features")
+        return dump_features(sys.argv[i + 1], sys.argv[i + 2] if len(sys.argv) > i + 2 else None)
     page = sys.argv[sys.argv.index("--page") + 1] if "--page" in sys.argv else "main"
     ui = sdlui.UI()
     if page in BY_KEY:
