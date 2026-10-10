@@ -17,15 +17,20 @@ QtObject {
     readonly property color panel: "#c43b3c5c"
     readonly property color panelRim: "#33ffffff"
     readonly property color tileRim: "#ebe9f7"
-    readonly property color selA: "#47d1ff"
-    readonly property color selB: "#8f7dff"
+    // Accent (Settings > Appearance): the selection glow and highlights. asgard.accent in system.cfg.
+    property string accent: "aurora"
+    readonly property var accents: ({ aurora: ["#47d1ff", "#8f7dff"], sunset: ["#ffb35c", "#ff4f8b"],
+                                      mint: ["#3ee6b0", "#3fb8ff"], gold: ["#ffd86b", "#f59e24"] })
+    readonly property color selA: (accents[accent] || accents.aurora)[0]
+    readonly property color selB: (accents[accent] || accents.aurora)[1]
+    property bool animations: true             // Settings > Appearance > Animations (asgard.animations)
     readonly property color goldA: "#ffd86b"          // trophies: earned / mastered
     readonly property color goldB: "#f5a524"
     readonly property color tagBg: "#f4f4fb"
     readonly property color tagText: "#3a3b52"
 
-    readonly property int anim: 180            // ms, selection moves
-    readonly property int fade: 320            // ms, art crossfades
+    readonly property int anim: animations ? 180 : 0     // ms, selection moves
+    readonly property int fade: animations ? 320 : 0     // ms, art crossfades
 
     // Pastel colour per system (stable hash), for system tiles and the little system badges.
     readonly property var pastels: ["#c9d4ff", "#ffd3e6", "#cdf3e4", "#fff0c2", "#e4d7ff", "#cdeeff", "#ffdccc", "#dff5c8"]

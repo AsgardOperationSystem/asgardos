@@ -16,6 +16,10 @@ QtObject {
     property bool details: false             // Select: the top card shows the selection's details
     readonly property var current: items.length ? items[Math.min(sel, items.length - 1)] : null
     readonly property var cells: layout(items)
+    Component.onCompleted: {
+        Theme.accent = backend.getSetting("asgard.accent", "aurora")
+        Theme.animations = backend.getSetting("asgard.animations", "1") === "1"
+    }
 
     function homeItems() {
         const out = []
@@ -59,8 +63,9 @@ QtObject {
     function nav(b) {
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
+        if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
-        if (b === "start") { backend.openSettings(current && current.game ? current.game : {}); return }
+        if (b === "start") { bottom.settingsPanel.show(); return }
         if (b === "select") { details = !details; return }
         if (b === "b" && details) { details = false; return }
         const c = cells[sel]
@@ -191,7 +196,7 @@ QtObject {
                 Hint { glyph: "B"; label: "Back" }
                 Hint { glyph: "X"; label: "Screens off" }
                 Hint { glyph: "−"; label: "Details" }
-                Hint { glyph: "+"; label: "Menu" }
+                Hint { glyph: "+"; label: "Settings" }
             }
         }
     }
@@ -216,11 +221,6 @@ QtObject {
             acceptedDevices: PointerDevice.AllDevices
             onActiveChanged: if (active) console.log("input:", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
                                                      Math.round(point.position.x), Math.round(point.position.y))
-        }
-        Rectangle {  // avatar
-            x: 1010; y: 20; width: 166; height: 166; radius: 83
-            color: "#2b2c40"; border.color: Theme.pillRim; border.width: 4
-            Image { anchors.fill: parent; anchors.margins: 10; source: "icons/profile.svg"; sourceSize: Qt.size(300, 300) }
         }
 
         Rectangle {  // the glass panel holding the grid
@@ -279,5 +279,8 @@ QtObject {
                 width: parent.width - 120; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
             }
         }
+
+        property alias settingsPanel: settingsPanel
+        Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
     }
 }
