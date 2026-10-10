@@ -5,6 +5,7 @@ import QtQuick.Effects
 Item {
     id: dock
     property int current: 0
+    signal tabTapped(int index)   // bottom touchscreen
     readonly property var icons: ["home", "games", "trophy", "profile", "apps"]
     width: 900; height: 150
 
@@ -17,6 +18,7 @@ Item {
             Item {
                 width: 112; height: 112
                 readonly property bool on: index === dock.current
+                MouseArea { anchors.fill: parent; anchors.margins: -24; onClicked: dock.tabTapped(index) }
                 Rectangle {  // soft disc behind the current tab
                     anchors.centerIn: parent; width: 124; height: 124; radius: 62
                     color: "#2effffff"; opacity: parent.on ? 1 : 0

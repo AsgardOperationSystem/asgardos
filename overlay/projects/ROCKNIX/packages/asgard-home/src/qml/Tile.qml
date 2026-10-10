@@ -9,6 +9,9 @@ Item {
     property var item
     property bool selected: false
     property bool near: true      // inside or close to the visible part of the grid: only then load art and effects
+    signal tapped()               // bottom touchscreen
+
+    MouseArea { anchors.fill: parent; onClicked: tile.tapped() }
     readonly property string kind: item ? item.kind : ""
     readonly property var game: item ? item.game : null
     readonly property bool badged: kind === "game" || kind === "ra"   // gets the little system badge

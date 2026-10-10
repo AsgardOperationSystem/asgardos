@@ -68,8 +68,7 @@ QtObject {
             const i = itemAt(c.row + (b === "up" ? -1 : 1), c.col)
             if (i >= 0) sel = i
         } else if (b === "lb" || b === "rb") {
-            tab = (tab + (b === "lb" ? 4 : 1)) % 5
-            stack = []; items = tabItems(tab); sel = 0
+            setTab((tab + (b === "lb" ? 4 : 1)) % 5)
         } else if (b === "a" && current) {
             if (current.kind === "system") {
                 stack = stack.concat([{ items: items, sel: sel }])
@@ -101,6 +100,17 @@ QtObject {
             if (!p || p.ra.raId !== raId || !app.stack.length) return
             app.items = d.achievements.map(a => ({ kind: "ach", ach: a, game: p.game, ra: p.ra }))
         }
+    }
+
+    function setTab(t) {
+        tab = t; stack = []; items = tabItems(t); sel = 0
+    }
+    // Bottom touchscreen: tap selects, tapping the selected tile opens it (like A).
+    function tap(i) {
+        if (backend.playing) return
+        if (backend.screensOff) { backend.screensOff = false; return }
+        if (i === sel) nav("a")
+        else sel = i
     }
 
     function key(event) {
@@ -191,7 +201,7 @@ QtObject {
             Keys.onPressed: event => app.key(event)
         }
 
-        Dock { x: 10; y: 28; current: app.tab }
+        Dock { x: 10; y: 28; current: app.tab; onTabTapped: index => app.setTab(index) }
         Rectangle {  // avatar
             x: 1010; y: 20; width: 166; height: 166; radius: 83
             color: "#2b2c40"; border.color: Theme.pillRim; border.width: 4
@@ -217,6 +227,19 @@ QtObject {
                           * (panel.tile + panel.gap), contentHeight - (1080 - 214) + 20)) : 0
                 Behavior on contentY { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
+                // Swipe up/down: on release the selection moves by the rows swiped, and the grid follows it.
+                DragHandler {
+                    target: null; xAxis.enabled: false
+                    onActiveChanged: if (!active && app.cells.length) {
+                        const rows = Math.round(-centroid.position.y + centroid.pressPosition.y) / (panel.tile + panel.gap)
+                        const step = Math.round(rows)
+                        if (!step) return
+                        const c = app.cells[app.sel], last = app.cells[app.cells.length - 1].row
+                        const i = app.itemAt(Math.max(0, Math.min(last, c.row + step)), c.col)
+                        if (i >= 0) app.sel = i
+                    }
+                }
+
                 Repeater {
                     model: app.items
                     Tile {
@@ -225,6 +248,7 @@ QtObject {
                         item: modelData
                         selected: index === app.sel
                         near: y + height > flick.contentY - 400 && y < flick.contentY + flick.height + 400
+                        onTapped: app.tap(index)
                         x: panel.pad + cell.col * (panel.tile + panel.gap)
                         y: panel.pad + cell.row * (panel.tile + panel.gap)
                         width: cell.w * panel.tile + (cell.w - 1) * panel.gap
