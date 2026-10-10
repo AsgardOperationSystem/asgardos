@@ -23,6 +23,8 @@ QtObject {
         Theme.animations = backend.getSetting("asgard.animations", "1") === "1"
     }
 
+    readonly property bool gameSettingsHere: !!(current && current.game && current.kind !== "jump")
+
     function homeItems() {
         const out = []
         const recent = backend.recent
@@ -119,7 +121,8 @@ QtObject {
         if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
         if (bottom.powerMenuPanel.nav(b)) return
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
-        if (b === "start") { if (current && current.game) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
+        // Start: the game's settings in a game list; Settings everywhere else, the "Recently played" tile included.
+        if (b === "start") { if (gameSettingsHere) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
         if (b === "select") { details = !details; return }
         if (reordering) {
             const rc = cells[sel]
@@ -295,7 +298,7 @@ QtObject {
                     Hint { visible: !app.reordering && app.canReorder
                            glyph: "Y"; label: "Reorder"; onTapped: app.startReorder() }
                     Hint { visible: !app.reordering; glyph: "LR"; label: "Swap"; onTapped: app.swapScreens() }
-                    Hint { visible: !app.reordering; glyph: "+"; label: app.current && app.current.game ? "Game settings" : "Settings"
+                    Hint { visible: !app.reordering; glyph: "+"; label: app.gameSettingsHere ? "Game settings" : "Settings"
                            onTapped: { backend.sound("open"); app.nav("start") } }
                 }
             }
