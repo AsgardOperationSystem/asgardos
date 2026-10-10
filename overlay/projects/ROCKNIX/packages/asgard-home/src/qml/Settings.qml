@@ -218,6 +218,10 @@ Item {
     function debugPage() {
         return [[toggle("moon", "Sleep audit", "One line per sleep in /storage/sleep-audit.csv: drain and what slept",
                         "asgard.sleep_audit", "0"),
+                 toggle("gamepad", "Controller wake fix", "After a wake, re-probe the pad if it stopped sending (rsinput stall)",
+                        "asgard.pad_fix", "1"),
+                 toggle("gamepad", "Controller wake fix log", "One line per re-probe in /storage/pad-fix.log",
+                        "asgard.pad_fix_log", "1"),
                  choice("moon", "Sleep experiment", "Switched off during sleep, to find what drains the battery",
                         "asgard.sleep_experiment", "", [["None", ""], ["Wi-Fi off", "wifi"], ["Bluetooth off", "bt"],
                                                         ["Wi-Fi and Bluetooth off", "wifi bt"]])]]
