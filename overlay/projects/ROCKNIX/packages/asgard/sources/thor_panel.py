@@ -406,9 +406,10 @@ def activate(key, st):
         ok = run_cmd(f"mkdir -p {SHOTS} && grim -o DSI-2 {shlex.quote(path)}")[0] == 0
         toast(st, "Screenshot saved" if ok else "Screenshot failed")
     elif key in ("fpsmode", "mode"):
-        hz = 60 if st.get("hz", 120) == 120 else 120
+        # the same setting as Settings > Display; thor-sway-rotate.sh applies it at boot
+        hz = 60 if conf.get("asgard.refresh", "120") == "120" else 120
         if run_cmd(f"swaymsg output DSI-2 mode 1080x1920@{hz}Hz")[0] == 0:
-            st["hz"] = hz
+            conf.set("asgard.refresh", str(hz))
         else:
             toast(st, f"{hz} Hz not available")
     elif key == "task":
@@ -475,7 +476,7 @@ def main():
             # FPS card
             cv.rrect(pad, r1y, fpsw, r1h, 28, CARD)
             cv.rrect(*pill, pill[3] / 2, ON_HI if sel == ("pill", 0) else PILL)
-            cv.text(f"{st.get('hz', 120)} FPS MODE", pill[0] + pill[2] / 2, pill[1] + pill[3] * 0.12,
+            cv.text(f"{conf.get('asgard.refresh', '120')} FPS MODE", pill[0] + pill[2] / 2, pill[1] + pill[3] * 0.12,
                     pill[3] * 0.62, TEXT, "center", maxw=pill[2] * 0.86)
             num = f"{data['fps']:.0f}" if data["fps"] is not None else "--"
             big = r1h * 0.36
@@ -531,7 +532,7 @@ def main():
                 cv.rrect(W / 2 - tw / 2, H * 0.45, tw, H * 0.1, 20, (60, 56, 66), 235)
                 cv.text(msg[0], W / 2, H * 0.47, H * 0.04, TEXT, "center", bold=True)
 
-        shown = (W, H, page, sel, json.dumps(data, default=str), json.dumps(p1 + p2), st.get("hz"), str(msg),
+        shown = (W, H, page, sel, json.dumps(data, default=str), json.dumps(p1 + p2), conf.get("asgard.refresh", "120"), str(msg),
                  time.strftime("%H:%M"))
         if shown != last_shown:  # redraw only when something visible changed
             ui.show(draw)
