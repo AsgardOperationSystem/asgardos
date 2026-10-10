@@ -69,6 +69,12 @@ def main():
     if os.path.exists(THEME_ART) and not os.path.exists(f"{MEDIA}/covers/Steam.png"):
         os.makedirs(f"{MEDIA}/covers", exist_ok=True)
         os.symlink(THEME_ART, f"{MEDIA}/covers/Steam.png")
+    # Other PC apps (no Steam link, e.g. Gen1 Recomp): their own Name and Comment; art is left to whoever added them.
+    for f in sorted(os.listdir(APPS)):
+        text = open(os.path.join(APPS, f), errors="replace").read() if f.endswith(".desktop") else ""
+        if f != "Steam.desktop" and text and "steam://" not in text:
+            field = lambda k: (re.search(rf"^{k}=(.*)$", text, re.M) or [None, ""])[1].strip()
+            entries.append({"path": f"./{f}", "name": field("Name") or f[:-8], "desc": field("Comment")})
     for stem, appid in games():
         try:
             info = json.loads(get(f"https://store.steampowered.com/api/appdetails?appids={appid}&l=english"))

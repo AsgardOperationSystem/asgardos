@@ -194,6 +194,12 @@ void Backend::scan()
                     sys["cover"] = g.toMap()["shot"];
                     break;
                 }
+            // ROCKNIX's Steam system (the .desktop files in ~/.local/share/applications) holds Steam and other PC
+            // apps (Gen1 Recomp...): shown as PC, with the theme's PC art. Steam itself stays an entry inside.
+            if (name == "steam") {
+                sys["fullname"] = "PC";
+                sys["theme"] = "pc";
+            }
             // System artwork + white logo from ROCKNIX's Art Book Next theme (es-theme-art-book-next), by <theme>.
             const QString art = path("/usr/share/themes/es-theme-art-book-next/_inc/systems/");
             const QString theme = sys.value("theme", name).toString();
@@ -286,6 +292,28 @@ void Backend::launch(const QVariantMap &game)
     if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop
         qInfo("launch %s (%s) with %s/%s", qPrintable(rom), qPrintable(sys), qPrintable(emulator), qPrintable(core));
         return;
+    }
+    // A .desktop entry that isn't a Steam link (a PC app in the PC system): its own command, not Steam.
+    if (rom.endsWith(".desktop")) {
+        QFile desk(rom);
+        QString exec, kill;   // X-Asgard-Kill: the process Home's Quit stops (default: the command's own name)
+        if (desk.open(QIODevice::ReadOnly))
+            for (const QString &line : QString::fromUtf8(desk.readAll()).split('\n')) {
+                if (line.startsWith("Exec=") && exec.isEmpty())
+                    exec = line.mid(5).trimmed();
+                if (line.startsWith("X-Asgard-Kill="))
+                    kill = line.mid(14).trimmed();
+            }
+        if (!exec.isEmpty() && !exec.startsWith("steam")) {
+            if (kill.isEmpty())
+                kill = QFileInfo(exec.section(' ', 0, 0)).fileName();
+            // ROCKNIX's kill-hotkey target (runemu.sh writes it for emulators): Home's in-game menu reads it.
+            run(". /etc/profile; set_kill set \"$3\"; python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; " +
+                exec + "; rc=$?; set_kill stop; python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
+                {rom, sys, kill},
+                m_gameEnv);
+            return;
+        }
     }
     // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys).
     run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; "
