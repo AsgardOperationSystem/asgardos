@@ -1,0 +1,30 @@
+Splash on /dev/fb0: top panel only
+
+The bottom panel scans the same fbdev buffer and showed a cut-off part of the
+logo or update bar: its backlight goes off while drawing there (sway turns it
+back on when it starts).
+
+--- a/main.c
++++ b/main.c
+@@ -120,6 +120,7 @@
+ 
+ /* blank: a backlight (/sys/class/backlight/...) to switch off while animating, the panel the framebuffer is also
+  * mirrored to (the Thor's bottom screen); bl_power keeps its brightness. */
++#define THOR_BOTTOM_BL "/sys/class/backlight/ae94000.dsi.0"
+ static void set_bl_power(const char *blank, const char *v) {
+     char path[256];
+     snprintf(path, sizeof path, "%s/bl_power", blank);
+@@ -177,8 +178,12 @@
+     // /dev/fb0 on the Thor is allocated at the largest panel (the top one, 1080x1920) but reports the size the panels
+     // share (1080x1240); each panel scans it from the corner. Draw on all of it, so the picture is centred on the top
+     // panel, where the splash and update bar are meant to be (not a double buffer: that would be twice the height).
+-    if (!fb->map && fb->vinfo.yres_virtual > fb->vinfo.yres && fb->vinfo.yres_virtual < 2 * fb->vinfo.yres)
++    if (!fb->map && fb->vinfo.yres_virtual > fb->vinfo.yres && fb->vinfo.yres_virtual < 2 * fb->vinfo.yres) {
+         fb->vinfo.yres = fb->vinfo.yres_virtual;
++        // The bottom panel scans the same buffer and would show a cut-off part of it: its backlight off (bl_power
++        // keeps the brightness). Sway's start turns it back on (asgard-rotate.conf). ponytail: the Thor's DSI-1.
++        set_bl_power(THOR_BOTTOM_BL, "4");
++    }
+     // Either buffer is in the panel's native orientation. The Thor's panels are portrait-native but mounted
+     // landscape with no rotation in the device tree; sway turns them with "transform 90", so do the same.
+     if (!rotation && fb->vinfo.yres > fb->vinfo.xres)
