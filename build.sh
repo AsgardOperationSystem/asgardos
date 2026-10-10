@@ -4,10 +4,26 @@
 #   ./build.sh prepare    only prepare: reset rocknix/, apply patches, copy overlay
 #   ./build.sh upgrade    move the pin to ROCKNIX's latest next, then prepare. A failing patch means ROCKNIX
 #                         changed that file: fix it in rocknix/, regenerate the patch, commit patch + new pin.
+#   ./build.sh stage [user@host]   put the built .tar in the device's /storage/.update (installs on next boot)
 # rocknix/build.*, sources/ and target/ are git-ignored, so they survive the reset (incremental rebuilds).
 set -euo pipefail
 cd "$(dirname "$0")"
 STEP=${1:-build}
+
+if [ "$STEP" = stage ]; then
+  HOST=${2:-root@192.168.50.30}
+  TAR=$(ls -1 rocknix/target/*.tar | head -1)
+  NAME=$(basename "$TAR")
+  SUM=$(cut -d' ' -f1 "$TAR.sha256")
+  # Copied under a temporary name and renamed only once its checksum matches on the device: a copy cut short
+  # (the device rebooted mid-transfer, 2026-10-10) must never look like an update to ROCKNIX's installer,
+  # which only picks up *.tar.
+  scp -q "$TAR" "$HOST:/storage/.update/$NAME.part"
+  ssh "$HOST" "cd /storage/.update && echo '$SUM  $NAME.part' | sha256sum -c - >/dev/null \
+    && mv '$NAME.part' '$NAME' && echo 'staged $NAME, installs on the next boot' \
+    || { rm -f '$NAME.part'; echo 'checksum mismatch on the device: not staged'; exit 1; }"
+  exit
+fi
 
 if [ "$STEP" = upgrade ]; then
   git -C rocknix fetch -q --depth 1 origin next
