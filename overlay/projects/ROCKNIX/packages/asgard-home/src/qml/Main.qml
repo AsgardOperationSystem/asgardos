@@ -8,7 +8,7 @@ QtObject {
     id: app
 
     // --- state ------------------------------------------------------------------------------------------------
-    property int tab: 0                      // 0 home, 1 games (systems), 2 trophies, 3 profile, 4 apps
+    property int tab: 0                      // 0 home, 1 games (systems), 2 trophies
     property var stack: []                   // views opened from a tab: [{items, sel}]
     property var items: homeItems()
     property int sel: 0
@@ -79,7 +79,7 @@ QtObject {
             const i = itemAt(c.row + (b === "up" ? -1 : 1), c.col)
             if (i >= 0) sel = i
         } else if (b === "lb" || b === "rb") {
-            setTab((tab + (b === "lb" ? 4 : 1)) % 5)
+            setTab((tab + (b === "lb" ? 2 : 1)) % 3)
         } else if (b === "a" && current) {
             if (current.kind === "system") {
                 stack = stack.concat([{ items: items, sel: sel }])
@@ -186,7 +186,7 @@ QtObject {
             x: 385; y: 232; width: 1150; height: 650
             item: app.current
             details: app.details
-            placeholder: ["Home", "Games", "Trophies", "Profile", "Apps"][app.tab]
+            placeholder: ["Home", "Games", "Trophies"][app.tab]
         }
 
         Pill {

@@ -1,13 +1,13 @@
 import QtQuick
 import QtQuick.Effects
 
-// Bottom-screen tab bar: five glossy icons in a pill, LB/RB tags on the rim, the current tab lifted and lit.
+// Bottom-screen tab bar: three glossy icons in a pill, LB/RB tags on the rim, the current tab lifted and lit.
 Item {
     id: dock
     property int current: 0
     signal tabTapped(int index)   // bottom touchscreen
-    readonly property var icons: ["home", "games", "trophy", "profile", "apps"]
-    width: 900; height: 150
+    readonly property var icons: ["home", "games", "trophy"]   // profile lives in Settings
+    width: 620; height: 150
 
     Pill { anchors.fill: parent }
     Row {
