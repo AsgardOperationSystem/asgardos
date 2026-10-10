@@ -9,7 +9,8 @@ Item {
     property var game: []                    // running emulator process names, read when the menu opens
     readonly property bool azahar: game.indexOf("azahar") >= 0
 
-    onOpenChanged: if (open) { game = backend.runningGame(); sel = 0 }
+    property real openedAt: 0
+    onOpenChanged: if (open) { game = backend.runningGame(); sel = 0; openedAt = Date.now() }
 
     function resume(keys) {                  // close, run the hotkeys, unpause
         backend.gameMenu = false
@@ -34,6 +35,9 @@ Item {
 
     function nav(b) {
         if (!open) return false
+        // A short tap of Home comes with an extra event (a long press doesn't) that reached the menu as it opened
+        // and resumed the game at once: input in the first 400 ms is ignored.
+        if (Date.now() - openedAt < 400) return true
         if (b === "up" && sel >= 2) sel -= 2
         else if (b === "down" && sel + 2 < items.length) sel += 2
         else if (b === "left" && sel % 2) sel--
