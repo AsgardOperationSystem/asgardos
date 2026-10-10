@@ -166,6 +166,12 @@ QtObject {
             }
         }
 
+        PointHandler {
+            enabled: debugInput; target: null
+            acceptedDevices: PointerDevice.AllDevices
+            onActiveChanged: if (active) console.log("input: TOP", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
+                                                     Math.round(point.position.x), Math.round(point.position.y))
+        }
         HeroCard {
             x: 385; y: 232; width: 1150; height: 650
             item: app.current
@@ -203,6 +209,14 @@ QtObject {
         }
 
         Dock { x: 10; y: 28; current: app.tab; onTabTapped: index => app.setTab(index) }
+        // ASGARD_DEBUG_INPUT: log every touch/pointer press the bottom window receives (passive, blocks nothing).
+        Component.onCompleted: if (debugInput) console.log("input: debug logging on (bottom window)")
+        PointHandler {
+            enabled: debugInput; target: null
+            acceptedDevices: PointerDevice.AllDevices
+            onActiveChanged: if (active) console.log("input:", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
+                                                     Math.round(point.position.x), Math.round(point.position.y))
+        }
         Rectangle {  // avatar
             x: 1010; y: 20; width: 166; height: 166; radius: 83
             color: "#2b2c40"; border.color: Theme.pillRim; border.width: 4
