@@ -25,6 +25,11 @@ makeinstall_target() {
   cp ${PKG_DIR}/system.d/*.service ${INSTALL}/usr/lib/systemd/system/
   cp ${PKG_DIR}/system.d/asgard-rotate.conf ${INSTALL}/usr/lib/systemd/system/sway.service.d/
 
+  # ROCKNIX's sleep.sh runs the device quirk's sleep.d hooks around every suspend.
+  mkdir -p "${INSTALL}/usr/lib/autostart/quirks/devices/AYN Thor/sleep.d/post"
+  cp ${PKG_DIR}/sleep.d/post/* "${INSTALL}/usr/lib/autostart/quirks/devices/AYN Thor/sleep.d/post/"
+  chmod 0755 "${INSTALL}/usr/lib/autostart/quirks/devices/AYN Thor/sleep.d/post/"*
+
   mkdir -p ${INSTALL}/usr/share/pipewire/pipewire.conf.d
   cp ${PKG_DIR}/pipewire/*.conf ${INSTALL}/usr/share/pipewire/pipewire.conf.d/
 }

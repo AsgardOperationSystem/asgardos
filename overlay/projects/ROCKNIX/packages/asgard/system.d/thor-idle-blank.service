@@ -9,4 +9,5 @@ Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+# rocknix.target, like essway: multi-user.target comes before sway/essway, so ordering After=essway there loops.
+WantedBy=rocknix.target
