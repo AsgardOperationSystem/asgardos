@@ -14,47 +14,67 @@ frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgar
 
 ## Status (2026-10-10)
 
-**No Asgard image has been booted yet**; the first build is running. ✅ below means verified on the Thor running
-the ROCKNIX PR #3126 build with the same changes applied by hand, which is what Asgard packages. The packaged
-form of each is untested until the first image boots.
+Asgard runs on the Thor as its only OS image (installed as `.tar` updates over ROCKNIX, staged with
+`./build.sh stage`). Work in progress lives on feature branches; `main` holds what is merged. ✅ = verified on the
+device; 🧪 = built and on the device, waiting for a try; 🚧 = in progress.
 
 ### Working
-- ✅ **Sleep/resume (s2idle):** lid close in the menu and 10+ min asleep mid-game both resume cleanly; the gamepad
-  re-handshakes on the first try. CPU cluster reaches `cluster_sleep_1`. (PR #3126, `0001`, CPU0 idle quirk,
-  regulator mem states, PCIe suspend OPP, USB autosuspend, rsinput `1023`)
+- ✅ **Boot without ROCKNIX ES:** `essway.service` starts Asgard Home; sound, services and the pad come up. Boot-time
+  suspend fixed (logind holdoff 10 s). Quiet boot: no console text, no cursor (`0013`).
+- ✅ **ASGARD boot splash** instead of the ROCKNIX logo.
+- ✅ **Sleep/resume (s2idle):** lid close in the menu and 10+ min asleep mid-game both resume cleanly.
+  (PR #3126, `0001`, CPU0 idle quirk, regulator mem states, PCIe suspend OPP, USB autosuspend, rsinput `1023`)
 - ✅ **Storage:** SD at UHS-I SDR104 (76.8 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
-- ✅ **OLED Ultra Black** on the top panel.
-- ✅ **Bottom screen:** landscape rotation, dual-screen window rules, display sleep hook (3/3 sleeps).
-- ✅ **OLED idle blank**, **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
-- ✅ **Thor Settings** and **AYN button → Thor Panel** (Home tap opens the emulator menu).
-- ✅ **melonDS** two-window layout without the Qt menu bar (verified as a runtime override; the patch form is new).
-- ✅ **Trophies tab (RetroAchievements):** 249 of 362 hashed ROMs matched to RA sets; per-game achievements
-  with badges, points and unlock dates. Needs `global.retroachievements.webapikey` in asgard.yml.
+- ✅ **OLED Ultra Black** on the top panel; OLED idle blank (timeout in Settings); X turns both panels off.
+- ✅ **Touch on both screens:** sway rotated touch with the 90°-turned panels; a `calibration_matrix` undoes it
+  (measured raw vs delivered taps). Taps land under the finger, swipes scroll the grid.
+- ✅ **Asgard Home (iiSU-style frontend):** library with system artwork and backdrops, launching with emulator/core per
+  system and per game, play time, Trophies tab (RetroAchievements), menu sounds, cached art.
+- ✅ **Settings, native (Start / power button):** Wi-Fi (scan, join, on-screen keyboard), Bluetooth, USB mode,
+  SSH/Samba/Syncthing, stick lights, RetroAchievements, fan, CPU cap, charge limit, sleep mode, updates, power;
+  per console and per game: emulator, core and ROCKNIX's emulator options (aspect ratio, shaders, Azahar's
+  resolution and layouts...) as iiSU rows. No classic SDL screens left.
+- ✅ **Volume/brightness keys** show a slider instead of a text toast.
+- ✅ **AYN button → Thor Panel:** status tiles (Wi-Fi, airplane mode, vibration, LED, performance...), fan modes,
+  touch, takes the pad for itself while open, pauses Azahar while open. A fixed fan speed survives game launches.
+- ✅ **Home in a game:** Azahar pauses and an in-game menu (quick save/load, screens, layout, textures, restart,
+  quit) opens on the bottom screen; other emulators get Resume / Quit.
+- ✅ **Azahar:** HD texture packs on by default (`0012`).
+- ✅ **melonDS** two-window layout without the Qt menu bar.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 
-### In progress / untested
-- **Asgard Home (frontend):** renders correctly on the desktop and on the Thor's GPU (offscreen), never run live on
-  the device; launching a game from it is untested. Missing: profile/apps tabs, Details/Menu/favourites,
-  sounds, system artwork, our own scraper.
-- **Booting without ROCKNIX ES** (own `essway.service` + `start_frontend.sh`): untested.
-- **asgard.yml:** self-test passes; never applied on a real boot.
-- **hexagonrpc package:** not yet built through ROCKNIX's cargo flow (the Thor runs a separate cross-build).
-- **Gyro steps 3–4:** stream accel/gyro from the sensor core and feed InputPlumber's DualSense motion, so Azahar
-  (3DS) sees a gyro. Not started.
-- **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
-  help is unmeasured.
+### On the device, waiting for a try (🧪)
+- 🧪 **Grid on the top screen by default**, detail card below; L+R swaps; layouts fit each screen's shape.
+- 🧪 **Tile reordering:** Y or a long press lifts a tile, d-pad or drag moves it, for consoles and for the games inside
+  each console (saved per console).
+- 🧪 **Boot animation** centred on the top screen through KMS, bottom panel off (the fbdev console is mirrored at the
+  bottom panel's 1080x1240, which put the old splash off centre).
+- 🧪 **60 Hz top panel:** frame-rate register before sleep out, as Android does (`9004`); the panel logs each init.
+- 🧪 **lowerdeck** (GB/GBA bottom-screen companion): follows the panel rotation, one tap counts once.
+- 🧪 **Update progress bar** under the logo instead of text (`0014`; shows from the update after the one that adds it).
+- 🧪 **Fewer modesets at game launch** (bottom panel rotated only when needed, powered off only if unused): lowers the
+  odds of the top-panel hang below; the hang is intermittent, so not proven gone.
+
+### In progress / not started
+- 🚧 **Steam:** ROCKNIX's ARM64 path (native `steamrtarm64` client in gamescope, x86 games via FEX + Proton ARM64)
+  is in our pin; it's dropped from the image (`0006`) because the FEX thunk build failed. Next: rebuild `fex-emu`
+  alone, on our pin and on ROCKNIX's newer FEX commit, and read the error.
+- 🚧 **Our own scraper** (ScreenScraper, with an Asgard developer ID kept out of the repo). Art for a few games was
+  added by hand from libretro-thumbnails into `/storage/ES-DE/downloaded_media`.
+- 🚧 **Thor Panel** rebuilt in Asgard Home's style (it's still SDL).
+- **asgard.yml:** self-test passes; not yet applied on a real boot.
+- **hexagonrpc package:** not yet built through ROCKNIX's cargo flow.
+- **Gyro steps 3–4:** stream accel/gyro from the sensor core into InputPlumber's DualSense motion. Not started.
+- **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) never collapse; the smp2p sleepstate driver is unmeasured.
 
 ### Known broken / limitations
-- **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %. Thor Settings →
-  System → Charge limit (80 % / Off) already stores the choice and applies it at boot, for when the kernel side works.
-- **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan (`dpu_encoder_frame_done_timeout`):
-  a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
-  kept but does **not** fix it (correction to !13).
-- **Steam** isn't in the image (FEX thunks don't build).
-- **thor-sensorspd** is stopped for sleep and not restarted after resume; whether the sensor PD survives sleep is
-  untested.
-- Once, the Thor didn't charge after a 4 h sleep until a reboot (cause unknown; the battery logger now records USB
-  and charging state).
+- **Top panel hang:** occasionally `dpu_encoder_frame_done_timeout`, garbled until reboot, around display changes
+  (seen as a GBC game started). Mitigated, see above.
+- **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %; Settings stores
+  the choice for when the kernel side works.
+- **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan: workaround, that game at 2×.
+- **No persistent journal:** logs from a boot are gone after the next one.
+- **thor-sensorspd** is stopped for sleep and not restarted after resume.
 - Occasional `fenced register write (0x8a1)` from the GPU; no hang seen.
 - SD SDR104: Thorch keeps UHS off as unstable; watch for mmc errors after sleep.
 - No locale generation for `system.language` (ROCKNIX ES did it).
