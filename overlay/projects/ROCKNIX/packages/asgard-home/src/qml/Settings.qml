@@ -334,7 +334,7 @@ Item {
                                      set(s.name + ".core", cur.cores[(i + d + cur.cores.length) % cur.cores.length]) } })
         rows.push(link("chip", "Emulator options", "Shaders, aspect ratio and more for " + s.fullname,
                        () => optionsPage(s.name, get(s.name + ".emulator", s.emulator), get(s.name + ".core", s.core), "")))
-        rows.push(action("refresh", "Use ROCKNIX default", s.emulator + " / " + s.core,
+        rows.push(action("refresh", "Use default", s.emulator + " / " + s.core,
                          () => { set(s.name + ".emulator", ""); set(s.name + ".core", "") }))
         return [rows]
     }

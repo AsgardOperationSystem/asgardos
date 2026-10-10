@@ -13,7 +13,8 @@ QtObject {
     property var items: homeItems()
     property int sel: 0
     property var pendingRa: null             // trophy game whose achievement list is being fetched
-    property bool swapped: backend.getSetting("asgard.swap_screens", "0") === "1"   // Y: the grid on the top screen
+    // The grid (and Settings) on the top screen by default, the detail card below; L+R swaps them.
+    property bool swapped: backend.getSetting("asgard.swap_screens", "1") === "1"
     property bool details: false             // Select: the top card shows the selection's details
     readonly property var current: items.length ? items[Math.min(sel, items.length - 1)] : null
     readonly property var cells: layout(items)
@@ -52,8 +53,11 @@ QtObject {
         }
         return out
     }
-    // --- tile order (Y): the selected system tile lifts, the d-pad moves it, A keeps the order, B cancels ---------
+    // --- tile order: Y or a long press lifts the selected tile; the d-pad or a drag moves it, A / letting go /
+    // a tap where it should go keeps the order, B cancels. Systems (asgard.order) and each system's games
+    // (asgard.order.<system>, file names) have their own order.
     property var order: backend.getSetting("asgard.order", "").split(",").filter(x => x)   // system names
+    property string openSys: ""              // the system whose games are shown, "" at the top level
     property bool reordering: false
     property var reorderBackup: null
     function ordered(list) {   // saved order first; systems not in it keep their place after
@@ -64,18 +68,33 @@ QtObject {
         }
         return ranked.sort((a, b) => a.r - b.r).map(x => x.s)
     }
+    function orderedGames(sys, games) {   // saved order (file names) first, the rest after in their own order
+        const names = backend.getSetting("asgard.order." + sys, "").split("|").filter(x => x)
+        const ranked = []
+        for (let i = 0; i < games.length; i++) {
+            const k = names.indexOf(games[i].path.split("/").pop())
+            ranked.push({ g: games[i], r: k < 0 ? 100000 + i : k })
+        }
+        return ranked.sort((a, b) => a.r - b.r).map(x => x.g)
+    }
+    readonly property bool canReorder: !!current && ((!stack.length && tab < 2 && current.kind === "system")
+                                                     || (openSys !== "" && current.kind === "game"))
     function startReorder() {
-        if (stack.length || tab > 1 || !current || current.kind !== "system") return
+        if (!canReorder) return
         reorderBackup = items; reordering = true
     }
-    function moveTo(t) {       // the jump tile stays first: only system tiles trade places
-        if (t < 0 || t >= items.length || t === sel || items[t].kind !== "system") return
+    function moveTo(t) {       // only tiles of the same kind trade places (the jump tile stays first)
+        if (t < 0 || t >= items.length || t === sel || items[t].kind !== items[sel].kind) return
         const l = items.slice(); const it = l.splice(sel, 1)[0]; l.splice(t, 0, it)
         items = l; sel = t
     }
     function endReorder(keep) {
         reordering = false
         if (!keep) { items = reorderBackup; return }
+        if (openSys !== "") {
+            backend.setSetting("asgard.order." + openSys, items.map(i => i.game.path.split("/").pop()).join("|"))
+            return
+        }
         order = items.filter(i => i.kind === "system").map(i => i.sys.name)
         backend.setSetting("asgard.order", order.join(","))
     }
@@ -92,7 +111,7 @@ QtObject {
     }
 
     function nav(b) {
-        if (backend.gameMenu) { backend.sound(b === "a" ? "select" : b === "b" ? "back" : "move"); bottom.gameMenuPanel.nav(b); return }
+        if (backend.gameMenu) { backend.sound(b === "a" ? "select" : b === "b" ? "back" : "move"); (swapped ? top.gameMenuPanel : bottom.gameMenuPanel).nav(b); return }
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
         backend.sound(b === "a" ? "select" : b === "b" || b === "x" ? "back" : b === "start" || b === "select"
@@ -125,7 +144,8 @@ QtObject {
         } else if (b === "a" && current) {
             if (current.kind === "system") {
                 stack = stack.concat([{ items: items, sel: sel }])
-                items = backend.games(current.sys.name).map(g => ({ kind: "game", game: g })); sel = 0
+                openSys = current.sys.name
+                items = orderedGames(openSys, backend.games(openSys)).map(g => ({ kind: "game", game: g })); sel = 0
             } else if (current.kind === "ra") {
                 stack = stack.concat([{ items: items, sel: sel }])
                 const picked = current               // items = [] below makes current null
@@ -136,7 +156,7 @@ QtObject {
             }
         } else if (b === "b" && stack.length) {
             const top = stack[stack.length - 1]
-            stack = stack.slice(0, -1); items = top.items; sel = top.sel
+            stack = stack.slice(0, -1); items = top.items; sel = top.sel; openSys = ""
         }
     }
 
@@ -159,20 +179,26 @@ QtObject {
     // (after every game), and they are moved now. The choice survives restarts (asgard.swap_screens).
     function swapScreens() {
         swapped = !swapped
-        backend.setSetting("asgard.swap_screens", swapped ? "1" : "")
+        backend.setSetting("asgard.swap_screens", swapped ? "1" : "0")
         backend.shell("sleep 0.3; swaymsg '[title=\"^Asgard Home$\"] move container to output DSI-2, fullscreen enable';"
                       + " swaymsg '[title=\"^Asgard Home .Bottom.$\"] move container to output DSI-1, fullscreen enable'")
     }
 
     function setTab(t) {
-        tab = t; stack = []; items = tabItems(t); sel = 0
+        tab = t; stack = []; items = tabItems(t); sel = 0; openSys = ""
     }
     // Bottom touchscreen: a tap opens the tile, like moving there and pressing A.
     function tap(i) {
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }
+        if (reordering) { moveTo(i); endReorder(true); return }   // tap where the lifted tile goes
         sel = i
         nav("a")
+    }
+    function longPress(i) {   // lift the tile (then drag it, or use the d-pad)
+        if (backend.playing || reordering) return
+        sel = i
+        startReorder()
     }
 
     function key(event) {
@@ -191,7 +217,8 @@ QtObject {
     property Window top: Window {
         title: app.swapped ? "Asgard Home (Bottom)" : "Asgard Home"   // sway places our windows by title
         width: app.swapped ? 1240 : 1920; height: 1080; color: "#0b0c14"   // sway's fullscreen sets the real size
-        visible: !shotMode && !backend.playing
+        visible: !shotMode && (!backend.playing || (backend.gameMenu && app.swapped))  // swapped: it's below, with the in-game menu
+        property alias gameMenuPanel: topGameMenu
 
         // Laid out 1080 tall and as wide as the screen the window is on (1920 on top, 1240 below; L+R swaps them),
         // scaled to the panel's pixels.
@@ -240,6 +267,8 @@ QtObject {
                 onActiveChanged: if (active) console.log("input: TOP", point.device.type === PointerDevice.TouchScreen ? "touch" : "pointer",
                                                          Math.round(point.position.x), Math.round(point.position.y))
             }
+            // The in-game menu belongs on the physical bottom screen: here when the screens are swapped.
+            GameMenu { id: topGameMenu; anchors.fill: parent; z: 200; visible: open && app.swapped }
             HeroCard {
                 x: (parent.width - width) / 2; y: 232; width: 1150; height: 650
                 item: app.current
@@ -263,7 +292,7 @@ QtObject {
                     Hint { visible: !app.reordering; glyph: "B"; label: "Back" }
                     Hint { visible: !app.reordering; glyph: "X"; label: "Screens off" }
                     Hint { visible: !app.reordering; glyph: "−"; label: "Details" }
-                    Hint { visible: !app.reordering && !app.stack.length && app.tab < 2 && !!app.current && app.current.kind === "system"
+                    Hint { visible: !app.reordering && app.canReorder
                            glyph: "Y"; label: "Reorder"; onTapped: app.startReorder() }
                     Hint { visible: !app.reordering; glyph: "LR"; label: "Swap"; onTapped: app.swapScreens() }
                     Hint { visible: !app.reordering; glyph: "+"; label: app.current && app.current.game ? "Game settings" : "Settings"
@@ -277,7 +306,7 @@ QtObject {
     property Window bottom: Window {
         title: app.swapped ? "Asgard Home" : "Asgard Home (Bottom)"
         width: app.swapped ? 1920 : 1240; height: 1080; color: "#0b0c14"
-        visible: !shotMode && (!backend.playing || backend.gameMenu)  // the in-game menu shows here
+        visible: !shotMode && (!backend.playing || (backend.gameMenu && !app.swapped))  // the in-game menu shows below
         property alias settingsPanel: settingsPanel
         property alias gameMenuPanel: gameMenuPanel
         property alias powerMenuPanel: powerMenuPanel
@@ -336,9 +365,17 @@ QtObject {
                     Behavior on contentY { NumberAnimation { duration: 260; easing.type: Easing.OutCubic } }
 
                     // Swipe up/down: on release the selection moves by the rows swiped, and the grid follows it.
+                    // While a tile is lifted, dragging moves it to the cell under the finger and letting go keeps it.
                     DragHandler {
-                        target: null; xAxis.enabled: false
-                        onActiveChanged: if (!active && app.cells.length) {
+                        target: null
+                        onCentroidChanged: if (active && app.reordering) {
+                            const p = centroid.position   // content coordinates (this handler lives in the content)
+                            const col = Math.floor((p.x - panel.xoff) / (panel.tile + panel.gap))
+                            const row = Math.floor((p.y - panel.pad) / (panel.tile + panel.gap))
+                            if (col >= 0 && col < app.cols && row >= 0) app.moveTo(app.itemAt(row, col))
+                        }
+                        onActiveChanged: if (!active && app.reordering) app.endReorder(true)
+                                         else if (!active && app.cells.length) {
                             const rows = Math.round(-centroid.position.y + centroid.pressPosition.y) / (panel.tile + panel.gap)
                             const step = Math.round(rows)
                             if (!step) return
@@ -358,6 +395,7 @@ QtObject {
                             lifted: app.reordering && index === app.sel
                             near: y + height > flick.contentY - 400 && y < flick.contentY + flick.height + 400
                             onTapped: app.tap(index)
+                            onLongPressed: app.longPress(index)
                             x: panel.xoff + cell.col * (panel.tile + panel.gap)
                             y: panel.pad + cell.row * (panel.tile + panel.gap)
                             width: cell.w * panel.tile + (cell.w - 1) * panel.gap
@@ -385,7 +423,7 @@ QtObject {
                 }
             }
             Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
-            GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200 }
+            GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200; visible: open && !app.swapped }
             PowerMenu { id: powerMenuPanel; anchors.fill: parent; z: 150 }
         }
     }
