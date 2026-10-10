@@ -42,6 +42,9 @@ device; 🧪 = built and on the device, waiting for a try; 🚧 = in progress.
 - ✅ **Azahar:** HD texture packs on by default (`0012`).
 - ✅ **melonDS** two-window layout without the Qt menu bar.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
+- ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
+- 🧪 **Gyro step 4:** `asgard-motiond` serves them as a DSU (cemuhook) motion source on 127.0.0.1:26760, and
+  Azahar uses it while it runs (`0016`). Axis directions still to be tuned in games (`asgard.motion_map`).
 
 ### On the device, waiting for a try (🧪)
 - 🧪 **Grid on the top screen by default**, detail card below; L+R swaps; layouts fit each screen's shape.
@@ -64,7 +67,6 @@ device; 🧪 = built and on the device, waiting for a try; 🚧 = in progress.
 - 🚧 **Thor Panel** rebuilt in Asgard Home's style (it's still SDL).
 - **asgard.yml:** self-test passes; not yet applied on a real boot.
 - **hexagonrpc package:** not yet built through ROCKNIX's cargo flow.
-- **Gyro steps 3–4:** stream accel/gyro from the sensor core into InputPlumber's DualSense motion. Not started.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) never collapse; the smp2p sleepstate driver is unmeasured.
 
 ### Known broken / limitations
@@ -165,5 +167,6 @@ One merge request each; its description and commits say what was broken, why, an
 | Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
 | ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
-| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service; the readings aren't streamed to games yet. |
+| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service. |
+| Motion server (`asgard-motiond`, `0016`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. |
 | Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |

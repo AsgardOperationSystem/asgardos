@@ -33,7 +33,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  for unit in essway thor-ayn-button thor-battery-log thor-display-sleep thor-idle-blank thor-sensorspd; do
+  for unit in essway thor-ayn-button thor-battery-log thor-display-sleep thor-idle-blank thor-sensorspd asgard-motiond; do
     enable_service ${unit}.service
   done
 }
