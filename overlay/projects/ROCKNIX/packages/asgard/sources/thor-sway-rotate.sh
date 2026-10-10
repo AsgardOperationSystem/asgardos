@@ -43,4 +43,11 @@ grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title=
 R=$(sed -n 's/^asgard\.refresh=//p' /storage/.config/system/configs/system.cfg | tail -1)
 sed -i '/^# asgard-refresh/,+1d' "$C"
 [ "$R" = 60 ] && printf '%s\n' '# asgard-refresh' 'output DSI-2 mode 1080x1920@60Hz' >> "$C"
+# Bottom touchscreen: it already reports landscape coordinates (0-1239 x 0-1079), but sway turns touch input with
+# the output it's mapped to, and DSI-1 is rotated 90: taps landed rotated (tapping DS opened Music Player). This
+# matrix turns it back, the same one ROCKNIX gives the top touchscreen. Measured from raw vs delivered taps, 2026-10-10.
+# Drop earlier blocks (an older one had a wrong matrix, 2026-10-10), line by line.
+sed -i '/^# thor-touch$/d;/^input "0:0:\(bottom\|top\)_touchscreen" calibration_matrix/d' "$C"
+printf '%s\n' '# thor-touch' 'input "0:0:bottom_touchscreen" calibration_matrix 0 -1 1 1 0 0' \
+  'input "0:0:top_touchscreen" calibration_matrix 0 -1 1 1 0 0' >> "$C"   # the top panel, likewise (grid there)
 exit 0
