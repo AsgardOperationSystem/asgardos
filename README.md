@@ -47,35 +47,45 @@ device; 🧪 = built and on the device, waiting for a try; 🚧 = in progress.
 - ✅ **melonDS** two-window layout without the Qt menu bar.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 - ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
+- ✅ **Grid on the top screen by default**, detail card below; L+R swaps; layouts fit each screen's shape.
+- ✅ **Tile reordering:** Y or a long press lifts a tile, d-pad or drag moves it, for consoles and for the games inside
+  each console (saved per console).
+- ✅ **Gyro step 4:** `asgard-motiond` serves accel/gyro as a DSU (cemuhook) motion source on 127.0.0.1:26760;
+  Azahar uses it while it runs (`0016`). Axis order measured on the device (`-y,z,-x`, `asgard.motion_map`),
+  confirmed aiming in Ocarina of Time 3D.
+- ✅ **Steam pad settings across boots:** InputPlumber's virtual DualSense gets a new serial every boot and Steam
+  keys controller settings by serial; the newest are copied to the new serial before Steam starts (`0017`).
+- ✅ **Steam art:** covers, logos, screenshots and store details for the installed games (`steam-art.py`, Steam CDN
+  + appdetails), refreshed on every Steam start.
+- ✅ **60 Hz top panel:** frame-rate register before sleep out, as Android does (`9004`); the panel logs each init.
+- ✅ **Boot splash "ASGARD OS" on the top panel only:** the animation through KMS (retried for 5 s while the panels
+  probe); the static logo and the update progress bar (`0014`) on fbdev, drawn over the whole buffer (it is the top
+  panel's 1080x1920 but reports the shared 1080x1240) and turned 90° like sway, bottom backlight off meanwhile.
+- ✅ **Steam inside sway** (`0018`, `asgard.steam_nested=0` for ROCKNIX's way): gamescope as a window on the top
+  panel, so the AYN button opens the Thor Panel on the bottom screen; Home opens Steam's Quick Access
+  (`steam-pad-profile.py`). Baba Is You, Hollow Knight and Undertale run well so far.
+- ✅ **hexagonrpc package:** built as a ROCKNIX package and serving the sensors PD (the gyro runs through it). The
+  sensors root (Android's DSP files) can't ship in the image: copy it to the device once (see below).
 
 ### On the device, waiting for a try (🧪)
-- 🧪 **Grid on the top screen by default**, detail card below; L+R swaps; layouts fit each screen's shape.
-- 🧪 **Tile reordering:** Y or a long press lifts a tile, d-pad or drag moves it, for consoles and for the games inside
-  each console (saved per console).
-- 🧪 **Boot animation "ASGARD OS"** centred on the top screen through KMS, bottom panel off. The fbdev console is
-  mirrored at the bottom panel's 1080x1240 (old splash off centre); at boot KMS is retried for 5 s while the panels
-  probe, and drawing is turned 90° like sway, since the panels are portrait-native with no rotation in the DT.
-- 🧪 **Gyro step 4:** `asgard-motiond` serves accel/gyro as a DSU (cemuhook) motion source on 127.0.0.1:26760;
-  Azahar uses it while it runs (`0016`). Axis directions still to be checked in games (`asgard.motion_map`).
-- 🧪 **Steam pad settings across boots:** InputPlumber's virtual DualSense gets a new serial every boot and Steam
-  keys controller settings by serial; the newest are copied to the new serial before Steam starts (`0017`).
-- 🧪 **Steam art:** covers, logos, screenshots and store details for the installed games (`steam-art.py`, Steam CDN
-  + appdetails), refreshed on every Steam start.
+- 🧪 **Home in Azahar opens the in-game menu at once:** the hidden windows keep their graphics (the menu took ~1.2 s,
+  and a second press closed it as it appeared), and input in its first 400 ms is ignored.
+- 🧪 **CPU clock cap per core type** (Settings → Performance): efficiency, performance and prime cores, 25–100 %.
+- 🧪 **PC system:** ROCKNIX's Steam system shown as PC; Steam is an entry inside, and other `.desktop` apps launch
+  directly (`X-Asgard-Kill` for Home's Quit). First one: Gen1 Recomp (LÖVE port of Pokémon Red/Blue/Yellow, from
+  your own ROMs).
+- 🧪 **Start on the Recently played tile** opens Settings, like the console tiles.
 - 🧪 **RetroArch bottom screen** can be switched off (Settings → Display), ROCKNIX's `rocknix.bottomscreen.type`.
-- 🧪 **60 Hz top panel:** frame-rate register before sleep out, as Android does (`9004`); the panel logs each init.
 - 🧪 **lowerdeck** (GB/GBA bottom-screen companion): follows the panel rotation, one tap counts once.
-- 🧪 **Update progress bar** under the logo instead of text (`0014`; shows from the update after the one that adds it).
 - 🧪 **Fewer modesets at game launch** (bottom panel rotated only when needed, powered off only if unused): lowers the
-  odds of the top-panel hang below; the hang is intermittent, so not proven gone.
+  odds of the top-panel hang below; the hang is intermittent, so not proven gone (none
+  seen since, with the rotator also off via `rotator.disabled`; no persistent journal to check older boots).
 
 ### In progress / not started
-- 🚧 **Steam games:** Hollow Knight, Undertale and Baba Is You installed; how they run is untested.
 - 🚧 **Our own scraper** (ScreenScraper, with an Asgard developer ID kept out of the repo). Art for a few games was
   added by hand from libretro-thumbnails into `/storage/ES-DE/downloaded_media`.
 - 🚧 **Thor Panel** rebuilt in Asgard Home's style (it's still SDL).
 - **asgard.yml:** self-test passes; not yet applied on a real boot.
-- **hexagonrpc package:** builds as a ROCKNIX package; the sensors root (Android's DSP files) still has to be copied
-  to the device by hand.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) never collapse; the smp2p sleepstate driver is unmeasured.
 
 ### Known broken / limitations
