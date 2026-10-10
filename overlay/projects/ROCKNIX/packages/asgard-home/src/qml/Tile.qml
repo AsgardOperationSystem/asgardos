@@ -12,7 +12,9 @@ Item {
     property bool near: true      // inside or close to the visible part of the grid: only then load art and effects
     signal tapped()               // bottom touchscreen
 
-    MouseArea { anchors.fill: parent; onClicked: tile.tapped() }
+    // A handler, not a MouseArea: a MouseArea takes the touch on press, so a swipe that starts on a tile never
+    // reached the grid's DragHandler (no scrolling). TapHandler lets a drag past the threshold go to it.
+    TapHandler { onTapped: tile.tapped() }
     readonly property string kind: item ? item.kind : ""
     readonly property var game: item ? item.game : null
     readonly property bool badged: kind === "game" || kind === "ra"   // gets the little system badge
