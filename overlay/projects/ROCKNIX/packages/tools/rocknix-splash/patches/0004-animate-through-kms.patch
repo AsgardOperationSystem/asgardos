@@ -5,7 +5,8 @@ Thor's bottom panel, 1080x1240), so on the top panel the splash covered only
 part of the screen and could not be centred. --animate now draws through
 KMS on the largest connected panel with a buffer of its own size, and turns
 the others off; one-shot modes stay on /dev/fb0 (a KMS picture goes away
-when the process exits). Falls back to /dev/fb0 without DRM master.
+when the process exits). At boot the panels may still be probing, so it
+retries for 5 s before falling back to /dev/fb0, and logs which it used.
 
 --- a/Makefile
 +++ b/Makefile
@@ -72,7 +73,7 @@ when the process exits). Falls back to /dev/fb0 without DRM master.
  #include <errno.h>
  #include <signal.h>
  #include <time.h>
-@@ -153,8 +154,11 @@
+@@ -153,8 +154,18 @@
          return 1;
      }
  
@@ -80,13 +81,20 @@ when the process exits). Falls back to /dev/fb0 without DRM master.
 -    Framebuffer *fb = fb_init(fb_device);
 +    // Initialize framebuffer: the animation draws through KMS on the top panel only (centred on its real size);
 +    // one-shot modes stay on /dev/fb0, since a KMS picture goes away when the process exits.
-+    Framebuffer *fb = animated ? drm_init() : NULL;
++    // At boot the panels can still be probing when this starts (no connected connector yet): retry for 5 s.
++    Framebuffer *fb = NULL;
++    for (int i = 0; animated && !fb && i < 25; i++) {
++        fb = drm_init();
++        if (!fb)
++            usleep(200 * 1000);
++    }
++    fprintf(stderr, "rocknix-splash: drawing through %s\n", fb ? "KMS" : "/dev/fb0");
 +    if (!fb)
 +        fb = fb_init(fb_device);
      if (!fb) {
          fprintf(stderr, "Failed to initialize framebuffer\n");
          return 1;
-@@ -210,8 +214,19 @@
+@@ -210,8 +221,19 @@
  
      // Flush changes to the framebuffer
      fb_flush(fb);
