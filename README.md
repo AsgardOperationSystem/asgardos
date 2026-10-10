@@ -14,35 +14,43 @@ frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgar
 
 ## Status (2026-10-10)
 
-**No Asgard image has been booted yet**; the first build is running. ✅ below means verified on the Thor running
-the ROCKNIX PR #3126 build with the same changes applied by hand, which is what Asgard packages. The packaged
-form of each is untested until the first image boots.
+Asgard runs on the Thor (installed 2026-10-10 as a `.tar` update over ROCKNIX). Newer frontend changes are tested
+live from bind-mounted dev builds before they reach an image.
 
 ### Working
+- ✅ **Boot without ROCKNIX ES:** `essway.service` starts Asgard Home; sound, services and the pad come up. Boot-time
+  suspend is gone (logind holdoff 10 s; with 0 the lid's boot state suspended the Thor and broke ADSP audio).
 - ✅ **Sleep/resume (s2idle):** lid close in the menu and 10+ min asleep mid-game both resume cleanly; the gamepad
   re-handshakes on the first try. CPU cluster reaches `cluster_sleep_1`. (PR #3126, `0001`, CPU0 idle quirk,
   regulator mem states, PCIe suspend OPP, USB autosuspend, rsinput `1023`)
 - ✅ **Storage:** SD at UHS-I SDR104 (76.8 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
 - ✅ **OLED Ultra Black** on the top panel.
-- ✅ **Bottom screen:** landscape rotation, dual-screen window rules, display sleep hook (3/3 sleeps).
-- ✅ **OLED idle blank**, **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
-- ✅ **Thor Settings** and **AYN button → Thor Panel** (Home tap opens the emulator menu).
-- ✅ **melonDS** two-window layout without the Qt menu bar (verified as a runtime override; the patch form is new).
-- ✅ **Trophies tab (RetroAchievements):** 249 of 362 hashed ROMs matched to RA sets; per-game achievements
-  with badges, points and unlock dates. Needs `global.retroachievements.webapikey` in asgard.yml.
+- ✅ **Bottom screen:** landscape rotation, dual-screen window rules, display sleep hook.
+- ✅ **Asgard Home:** library with system artwork, launching (emulator/core per system and per game), play time,
+  Trophies tab (RetroAchievements: 249 of 362 hashed ROMs matched; needs `global.retroachievements.webapikey`),
+  X turns both OLEDs off, touch on the bottom screen, menu sounds.
+- ✅ **Settings (Start), iiSU layout:** Wi-Fi (scan/join with an on-screen keyboard), Bluetooth, USB mode, SSH/Samba/
+  Syncthing, stick lights, RA options, fan, CPU cap, charge limit, sleep mode, Power (sleep/restart/off), updates
+  from `/storage/.update`. Y on a game: its own emulator/core.
+- ✅ **Volume/brightness keys** show a slider.
+- ✅ **AYN button → Thor Panel** (status tiles, fan modes, touch); a fixed fan speed now survives game launches.
+- ✅ **OLED idle blank** (timeout in Settings), **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
+- ✅ **melonDS** two-window layout without the Qt menu bar.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 
 ### In progress / untested
-- **Asgard Home (frontend):** renders correctly on the desktop and on the Thor's GPU (offscreen), never run live on
-  the device; launching a game from it is untested. Missing: profile/apps tabs, Details/Menu/favourites,
-  sounds, system artwork, our own scraper.
-- **Booting without ROCKNIX ES** (own `essway.service` + `start_frontend.sh`): untested.
-- **asgard.yml:** self-test passes; never applied on a real boot.
+- **In-game menu (Home tap):** plumbing verified (command FIFO, virtual keyboard); not yet tried inside a game.
+- **lowerdeck touch fix** (GB/GBA bottom-screen companion): tested in code, waiting for a try on the device.
+- **Boot splash** ("ASGARD"): compiles; shows from the next image.
+- **Thor Panel** labels don't scale well; a rebuild in Asgard Home's style is planned.
+- Shaders, ratios and other per-game overrides still open the classic (SDL) screen.
+- **asgard.yml:** self-test passes; not yet applied on a real boot.
 - **hexagonrpc package:** not yet built through ROCKNIX's cargo flow (the Thor runs a separate cross-build).
 - **Gyro steps 3–4:** stream accel/gyro from the sensor core and feed InputPlumber's DualSense motion, so Azahar
   (3DS) sees a gyro. Not started.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
   help is unmeasured.
+- Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
 
 ### Known broken / limitations
 - **Charge limit (`9003`) doesn't work:** the threshold reads back 0 and charging continues past 80 %. Thor Settings →
