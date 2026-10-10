@@ -1,8 +1,14 @@
 #!/bin/bash
-# asgard-osd <label> <percent>: volume/brightness slider, drawn by mako: a dark glass pill whose fill grows with the
-# level, an icon for what changes, and the percentage. Each call replaces the previous OSD notification, so holding
-# the key moves one bar instead of stacking toasts.
+# asgard-osd <label> <percent>: volume/brightness slider. Fallback when Asgard Home is not running: drawn by mako,
+# a dark glass pill whose fill grows with the level, and the percentage. Each call replaces the previous OSD
+# notification, so holding the key moves one bar instead of stacking toasts.
 LABEL=$1 VALUE=$2
+
+# Asgard Home draws it (an overlay in its own style, over games too) when it's running; mako otherwise.
+FIFO=/run/asgard-home.cmd
+if [ -p "$FIFO" ] && pidof asgard-home >/dev/null; then
+  timeout 1 sh -c 'echo "osd $1 $2" > '"$FIFO" _ "$LABEL" "$VALUE" && exit 0
+fi
 export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/var/run/0-runtime-dir}
 CONF=/storage/.config/mako/config
 ID=/run/asgard-osd.id
