@@ -56,9 +56,9 @@ device; 🧪 = built and on the device, waiting for a try; 🚧 = in progress.
   odds of the top-panel hang below; the hang is intermittent, so not proven gone.
 
 ### In progress / not started
-- 🚧 **Steam:** ROCKNIX's ARM64 path (native `steamrtarm64` client in gamescope, x86 games via FEX + Proton ARM64)
-  is in our pin; it's dropped from the image (`0006`) because the FEX thunk build failed. Next: rebuild `fex-emu`
-  alone, on our pin and on ROCKNIX's newer FEX commit, and read the error.
+- 🚧 **Steam:** ROCKNIX's ARM64 path (native `steamrtarm64` client in gamescope, x86 games via FEX + Proton ARM64).
+  FEX now builds on our pin, thunks included, so Steam is back in the image (`0006` dropped); first run on the
+  Thor not tried yet.
 - 🚧 **Our own scraper** (ScreenScraper, with an Asgard developer ID kept out of the repo). Art for a few games was
   added by hand from libretro-thumbnails into `/storage/ES-DE/downloaded_media`.
 - 🚧 **Thor Panel** rebuilt in Asgard Home's style (it's still SDL).
