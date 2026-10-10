@@ -42,6 +42,8 @@ grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title=
 # Bottom touchscreen: it already reports landscape coordinates (0-1239 x 0-1079), but sway turns touch input with
 # the output it's mapped to, and DSI-1 is rotated 90: taps landed rotated (tapping DS opened Music Player). This
 # matrix turns it back, the same one ROCKNIX gives the top touchscreen. Measured from raw vs delivered taps, 2026-10-10.
-sed -i '/^# thor-touch$/,+1d' "$C"   # an older block with a wrong matrix (2026-10-10) must not stay
-printf '%s\n' '# thor-touch' 'input "0:0:bottom_touchscreen" calibration_matrix 0 -1 1 1 0 0' >> "$C"
+# Drop earlier blocks (an older one had a wrong matrix, 2026-10-10), line by line.
+sed -i '/^# thor-touch$/d;/^input "0:0:\(bottom\|top\)_touchscreen" calibration_matrix/d' "$C"
+printf '%s\n' '# thor-touch' 'input "0:0:bottom_touchscreen" calibration_matrix 0 -1 1 1 0 0' \
+  'input "0:0:top_touchscreen" calibration_matrix 0 -1 1 1 0 0' >> "$C"   # the top panel, likewise (grid there)
 exit 0
