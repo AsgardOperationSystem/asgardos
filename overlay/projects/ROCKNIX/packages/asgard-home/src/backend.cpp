@@ -402,9 +402,16 @@ void Backend::quitGame()
     setGameMenu(false);
     if (names.isEmpty())
         return;
-    // Like ROCKNIX's quit hotkey: ask nicely, then insist (emulators that ignore SIGTERM).
+    // The signal ROCKNIX's quit hotkey uses for this emulator (runemu.sh writes it, e.g. "-9 azahar": Azahar asks to
+    // confirm on SIGTERM, so a polite quit sat there until the fallback). Otherwise ask nicely, then insist.
+    QFile f("/tmp/.process-kill-data");
+    QString sig = "-TERM";
+    if (f.open(QIODevice::ReadOnly))
+        for (const QString &w : QString::fromUtf8(f.readAll()).split(QRegularExpression("\\s+"), Qt::SkipEmptyParts))
+            if (w.startsWith('-'))
+                sig = w;
     const QString n = names.join(' ');
-    shell("killall -TERM " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
+    shell("killall " + sig + " " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
           "killall -KILL " + n);
 }
 
