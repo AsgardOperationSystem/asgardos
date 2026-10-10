@@ -25,13 +25,5 @@ fi
 
 # A fixed fan speed (asgard.fan_manual) is applied by fancontrol.service itself (asgard-fan.sh).
 
-# CPU clock cap for battery + a cooler shell, ~75 % of each cluster's top. asgard.cpu_cap=0 turns it off.
-# policy0 = little (2016000 max), policy3 = mid (2803200), policy7 = big (2956800); measured 2026-10-09.
-if [ "$(get_setting asgard.cpu_cap)" != "0" ]; then
-  CAP_KHZ=(1785600 2054400 2227200)
-  i=0
-  for p in 0 3 7; do
-    echo "${CAP_KHZ[$i]}" > /sys/devices/system/cpu/cpufreq/policy$p/scaling_max_freq 2>/dev/null
-    i=$((i + 1))
-  done
-fi
+# CPU clock cap per core type (Settings > Performance), percent of each cluster's top clock.
+/usr/share/asgard/asgard-cpu-cap.sh

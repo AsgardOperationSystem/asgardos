@@ -129,8 +129,13 @@ Item {
                     "rocknix.bottomscreen.type", "vc", [["Controls", "vc"], ["Off", "off"]])],
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
-            [toggle("chip", "CPU clock cap", "~75% top clock: cooler and longer battery", "asgard.cpu_cap", "1",
-                    () => backend.shell("/usr/lib/autostart/common/090-asgard-tuning")),
+            // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.
+            [...[["little", "Efficiency cores", "3× Cortex-A510", "90"], ["mid", "Performance cores", "2× A715 + 2× A710", "75"],
+                ["prime", "Prime core", "1× Cortex-X3", "75"]].map(c =>
+                choice("chip", c[1] + " clock", c[2] + ", % of top clock", "asgard.cpu_cap." + c[0],
+                       get("asgard.cpu_cap") === "0" ? "100" : c[3],
+                       Array.from({ length: 16 }, (_, i) => 25 + 5 * i).map(v => [v + "%", "" + v]),
+                       () => backend.shell("/usr/share/asgard/asgard-cpu-cap.sh"))),
              { kind: "choice", icon: "fan", title: "Fan", sub: "Curve, or a fixed speed",
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
                step: d => { const i = Math.max(0, fanModes.findIndex(m => m[1] === fanNow()));
