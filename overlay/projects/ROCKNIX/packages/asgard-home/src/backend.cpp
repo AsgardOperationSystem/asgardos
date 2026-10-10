@@ -207,9 +207,11 @@ void Backend::launch(const QVariantMap &game)
         emit playingChanged();
     });
     m_game->start("/bin/bash", {"-c",
-        // Our windows are hidden by now; the bottom panel goes dark unless the game opens a window there
-        // (ROCKNIX's "Bottom"/"[w2]" sway rules power it back on).
-        "swaymsg 'output DSI-1 power off' >/dev/null 2>&1; "
+        // Our windows are hidden by now, but sway's focus may still be on the bottom screen (our bottom window
+        // maps last), and a new window opens on the focused output: focus the top screen, or the game lands on
+        // the bottom panel. Then the bottom panel goes dark unless the game opens a window there (ROCKNIX's
+        // "Secondary"/"[w2]"/"Bottom" sway rules move it there and power the panel back on).
+        "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; "
         "python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; "
         "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
         "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
