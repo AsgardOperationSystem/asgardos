@@ -269,9 +269,9 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
     m_game->start("/bin/bash", QStringList{"-c",
         // Our windows are hidden by now, but sway's focus may still be on the bottom screen (our bottom window
         // maps last), and a new window opens on the focused output: focus the top screen, or it lands on the
-        // bottom panel. Then the bottom panel goes dark unless the program opens a window there (ROCKNIX's
-        // "Secondary"/"[w2]"/"Bottom" sway rules move it there and power the panel back on).
-        "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; " + script,
+        // bottom panel. The bottom panel goes dark a few seconds later unless the program opened a window there
+        // (not at once: a dual-screen game would power it straight back on, two modesets that can hang the top panel).
+        "swaymsg 'focus output DSI-2' >/dev/null 2>&1; (/usr/share/asgard/thor-bottom-idle-off.sh 3 >/dev/null 2>&1 &); " + script,
         "run"} + args);
     emit playingChanged();
 }
