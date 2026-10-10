@@ -13,5 +13,5 @@ Row {
         id: t; anchors.verticalCenter: parent.verticalCenter
         font.family: Theme.font; font.pixelSize: parent.size * 0.86; font.weight: Font.Black; color: Theme.text
     }
-    MouseArea { width: parent.width; height: parent.height; onClicked: parent.tapped() }
+    TapHandler { onTapped: parent.tapped() }   // a handler, not an item: a MouseArea child made the Row re-layout forever
 }
