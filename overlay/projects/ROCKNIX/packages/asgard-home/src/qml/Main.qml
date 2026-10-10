@@ -121,6 +121,7 @@ QtObject {
     }
 
     function key(event) {
+        if (debugInput) console.log("input: key", event.key)
         const k = { [Qt.Key_Left]: "left", [Qt.Key_Right]: "right", [Qt.Key_Up]: "up", [Qt.Key_Down]: "down",
                     [Qt.Key_Return]: "a", [Qt.Key_Enter]: "a", [Qt.Key_Escape]: "b", [Qt.Key_Backspace]: "b",
                     [Qt.Key_X]: "x", [Qt.Key_Y]: "y", [Qt.Key_Q]: "lb", [Qt.Key_E]: "rb",
