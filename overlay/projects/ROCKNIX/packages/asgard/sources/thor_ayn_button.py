@@ -19,7 +19,7 @@ import struct
 import subprocess
 import time
 
-KEY_F24, BTN_MODE, KEY_ESC = 194, 316, 1
+KEY_F24, BTN_MODE, KEY_ESC, KEY_F4 = 194, 316, 1, 62
 EV_SYN, EV_KEY, EV_ABS = 0, 1, 3
 ABS_HAT0X, ABS_HAT0Y = 16, 17
 TAP_S = 0.5
@@ -56,12 +56,13 @@ def frontend_env():
 
 
 class Keyboard:
-    """Minimal uinput keyboard that can press Esc."""
+    """Minimal uinput keyboard that can press Esc and F4 (Azahar's pause)."""
 
     def __init__(self):
         self.fd = os.open("/dev/uinput", os.O_WRONLY | os.O_NONBLOCK)
         fcntl.ioctl(self.fd, 0x40045564, EV_KEY)   # UI_SET_EVBIT
-        fcntl.ioctl(self.fd, 0x40045565, KEY_ESC)  # UI_SET_KEYBIT
+        for key in (KEY_ESC, KEY_F4):
+            fcntl.ioctl(self.fd, 0x40045565, key)  # UI_SET_KEYBIT
         dev = struct.pack("80sHHHHi", b"Thor Buttons Keyboard", 0x06, 0x1234, 0x5678, 1, 0) + bytes(4 * 64 * 4)
         os.write(self.fd, dev)                     # legacy struct uinput_user_dev
         fcntl.ioctl(self.fd, 0x5501)               # UI_DEV_CREATE
@@ -72,6 +73,15 @@ class Keyboard:
             os.write(self.fd, struct.pack(EVENT_FMT, 0, 0, EV_KEY, code, value))
             os.write(self.fd, struct.pack(EVENT_FMT, 0, 0, EV_SYN, 0, 0))
             time.sleep(0.05)
+
+
+def azahar_pause(keyboard, env):
+    """F4 to Azahar (pause / resume) after focusing it, so the key reaches it. True if Azahar is running."""
+    if "azahar" not in running_game() or not keyboard or not env:
+        return False
+    subprocess.run('swaymsg "[pid=$(pidof -s azahar)] focus"', shell=True, env=env, capture_output=True)
+    keyboard.tap(KEY_F4)
+    return True
 
 
 def running_game():
@@ -119,28 +129,51 @@ def frontend_menu():
 
 
 def main():
-    ayn = find_device("gpio-keys-ayn")
-    pad = find_device("Sony Interactive Entertainment DualSense Wireless Controller")
+    # The virtual pad appears a few seconds into boot and InputPlumber re-creates it when it restarts (stick
+    # calibration does, at boot): look for it again whenever it's missing, and when reading it fails. Without
+    # this the daemon started before the pad and never saw button 10 (2026-10-10).
     fds = {}
-    for path, role in ((ayn, "ayn"), (pad, "pad")):
+    ayn = find_device("gpio-keys-ayn")
+    if ayn:
+        fds[os.open(ayn, os.O_RDONLY)] = "ayn"
+
+    def pad_fd():
+        return next((fd for fd, role in fds.items() if role == "pad"), None)
+
+    def open_pad():
+        path = find_device("Sony Interactive Entertainment DualSense Wireless Controller")
         if path:
-            fds[os.open(path, os.O_RDONLY)] = role
+            fds[os.open(path, os.O_RDONLY)] = "pad"
+
     try:
         keyboard = Keyboard()
     except OSError:
         keyboard = None
-    panel = None
+    panel, paused = None, False
     guide_down, other_pressed, last_tap = None, False, 0.0
     while True:
-        for fd in select.select(list(fds), [], [])[0]:
-            _, _, etype, code, value = struct.unpack(EVENT_FMT, os.read(fd, EVENT_SIZE))
+        if pad_fd() is None:
+            open_pad()
+        if paused and panel and panel.poll() is not None:  # panel closed (AYN again, B, or a tile): resume
+            paused = False
+            azahar_pause(keyboard, frontend_env())
+        waiting = pad_fd() is None or paused  # poll for the pad to appear / the panel to close
+        for fd in select.select(list(fds), [], [], 0.5 if waiting else None)[0]:
+            try:
+                data = os.read(fd, EVENT_SIZE)
+            except OSError:  # the pad went away (InputPlumber restarted): drop it, the loop finds the new one
+                os.close(fd)
+                del fds[fd]
+                continue
+            _, _, etype, code, value = struct.unpack(EVENT_FMT, data)
             if fds[fd] == "ayn":
                 if etype == EV_KEY and code == KEY_F24 and value == 1:
                     if panel and panel.poll() is None:
-                        panel.send_signal(signal.SIGTERM)
+                        panel.send_signal(signal.SIGTERM)  # the loop below resumes a paused game
                     else:
                         env = frontend_env()
                         if env:
+                            paused = azahar_pause(keyboard, env)  # the game waits while the panel is open
                             panel = subprocess.Popen(["python3", PANEL], env=env, start_new_session=True,
                                                      stdout=subprocess.DEVNULL,
                                                      stderr=open("/tmp/thor-panel.log", "a"))
