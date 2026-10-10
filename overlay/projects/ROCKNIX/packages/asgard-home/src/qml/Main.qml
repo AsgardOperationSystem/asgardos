@@ -61,6 +61,7 @@ QtObject {
     }
 
     function nav(b) {
+        if (backend.gameMenu) { backend.sound(b === "a" ? "select" : b === "b" ? "back" : "move"); bottom.gameMenuPanel.nav(b); return }
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
         backend.sound(b === "a" ? "select" : b === "b" || b === "x" ? "back" : b === "start" || b === "select"
@@ -210,7 +211,7 @@ QtObject {
     property Window bottom: Window {
         title: "Asgard Home (Bottom)"
         width: 1240; height: 1080; color: "#0b0c14"
-        visible: !shotMode && !backend.playing
+        visible: !shotMode && (!backend.playing || backend.gameMenu)  // the in-game menu shows here
 
         Backdrop { anchors.fill: parent; source: app.art; dim: 0.62 }
         Item {
@@ -287,5 +288,7 @@ QtObject {
 
         property alias settingsPanel: settingsPanel
         Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
+        property alias gameMenuPanel: gameMenuPanel
+        GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200 }
     }
 }

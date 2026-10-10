@@ -7,7 +7,8 @@
   is left alone, so ROCKNIX's hotkey combos (it's their modifier) keep working.
   - RetroArch: MENU_TOGGLE over its network command port (runemu.sh enables it on dual-screen devices).
   - PPSSPP, ARMSX2, AetherSX2: Esc (their pause menus), from a small uinput keyboard.
-  - anything else (Azahar, melonDS, Dolphin, ...): exit: SIGTERM, then SIGKILL after EXIT_GRACE_S.
+  - anything else (Azahar, melonDS, Dolphin, ...): Asgard Home's in-game menu (paused, save/load, quit...), through
+    its command FIFO; exit (SIGTERM, then SIGKILL after EXIT_GRACE_S) if the frontend isn't there to show it.
 """
 import fcntl
 import os
@@ -27,6 +28,7 @@ PANEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thor_panel.py"
 EVENT_FMT = "llHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FMT)
 ESC_EMULATORS = ("ppsspp", "armsx2-qt", "aethersx2")
+MENU_FIFO = "/run/asgard-home.cmd"
 
 
 def find_device(want):
@@ -99,8 +101,20 @@ def guide_tap(keyboard):
         socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"MENU_TOGGLE", ("127.0.0.1", 55355))
     elif any(n in ESC_EMULATORS for n in names) and keyboard:
         keyboard.tap(KEY_ESC)
-    else:
+    elif not frontend_menu():
         exit_game(names)
+
+
+def frontend_menu():
+    try:
+        fd = os.open(MENU_FIFO, os.O_WRONLY | os.O_NONBLOCK)  # fails without a reader
+    except OSError:
+        return False
+    try:
+        os.write(fd, b"menu\n")
+        return True
+    finally:
+        os.close(fd)
 
 
 def main():

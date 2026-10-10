@@ -21,6 +21,7 @@ class Backend : public QObject
     Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
     Q_PROPERTY(bool screensOff READ screensOff WRITE setScreensOff NOTIFY screensOffChanged)  // OLED rest (X)
+    Q_PROPERTY(bool gameMenu READ gameMenu WRITE setGameMenu NOTIFY gameMenuChanged)  // in-game menu (Home tap)
 
 public:
     Backend(const QProcessEnvironment &gameEnv, QObject *parent = nullptr);
@@ -31,6 +32,8 @@ public:
     bool playing() const { return m_game != nullptr; }
     bool screensOff() const { return m_screensOff; }
     void setScreensOff(bool off);
+    bool gameMenu() const { return m_gameMenu; }
+    void setGameMenu(bool on) { if (on != m_gameMenu) { m_gameMenu = on; emit gameMenuChanged(); } }
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
@@ -45,6 +48,9 @@ public:
     Q_INVOKABLE void sound(const QString &name);   // qml/sounds/<name>.wav, unless asgard.sounds=0
     Q_INVOKABLE void exec(const QString &command, const QJSValue &done);  // done(output) when it exits
     Q_INVOKABLE void rescan();
+    Q_INVOKABLE QStringList runningGame() const;          // the running emulator's process names
+    Q_INVOKABLE void gameKeys(const QString &combo);      // focus the game and press e.g. "F4", "Alt+S"
+    Q_INVOKABLE void quitGame();
     Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
 
 signals:
@@ -53,12 +59,14 @@ signals:
     void playingChanged();
     void screensOffChanged();
     void settingsChanged();
+    void gameMenuChanged();
 
 private:
     void scan();
     void readPlaytime();
     void readStatus();
     void topScreenOn();
+    void command(const QString &cmd);
     void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
     QString setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const;
     QString path(const QString &p) const { return m_root + p; }
@@ -73,6 +81,9 @@ private:
     int m_battery = -1;
     bool m_charging = false;
     QProcess *m_game = nullptr;
+    bool m_gameMenu = false;
+    int m_keys = -1;   // uinput keyboard for emulator hotkeys
+    int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu")
 };
 
 // InputPlumber's virtual DualSense read straight from evdev (Qt 6 has no gamepad module).

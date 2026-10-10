@@ -6,14 +6,19 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QSet>
 #include <QSysInfo>
 #include <QXmlStreamReader>
 #include <algorithm>
 
 #include <cerrno>
+#include <cstring>
 #include <fcntl.h>
 #include <linux/input.h>
+#include <linux/uinput.h>
+#include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
 static const char *PLAYLOG = "/storage/.config/thor/playtime.jsonl";  // shared with Thor Panel (playlog.py)
@@ -26,6 +31,36 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     readPlaytime();
     readStatus();
     topScreenOn();
+    if (QFile::exists("/usr/bin/runemu.sh") && !qEnvironmentVariableIsSet("ASGARD_SHOT")) {
+        // A keyboard of our own for emulator hotkeys (made now, so sway knows it before the first press).
+        m_keys = ::open("/dev/uinput", O_WRONLY | O_NONBLOCK | O_CLOEXEC);
+        if (m_keys >= 0) {
+            ioctl(m_keys, UI_SET_EVBIT, EV_KEY);
+            for (int k : {KEY_LEFTALT, KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_F4, KEY_F6, KEY_F7, KEY_F9, KEY_F10,
+                          KEY_S, KEY_L, KEY_P, KEY_M, KEY_ESC})
+                ioctl(m_keys, UI_SET_KEYBIT, k);
+            uinput_setup us{};
+            us.id.bustype = BUS_VIRTUAL;
+            strcpy(us.name, "asgard-home-keys");
+            if (ioctl(m_keys, UI_DEV_SETUP, &us) < 0 || ioctl(m_keys, UI_DEV_CREATE) < 0) {
+                ::close(m_keys);
+                m_keys = -1;
+            }
+        }
+        // Command FIFO. Opened read-write so it never reads EOF when a writer closes.
+        mkfifo("/run/asgard-home.cmd", 0600);
+        m_cmd = ::open("/run/asgard-home.cmd", O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        if (m_cmd >= 0) {
+            auto *n = new QSocketNotifier(m_cmd, QSocketNotifier::Read, this);
+            connect(n, &QSocketNotifier::activated, this, [this] {
+                char buf[256];
+                const ssize_t len = ::read(m_cmd, buf, sizeof buf);
+                if (len > 0)
+                    for (const QString &c : QString::fromUtf8(buf, len).split('\n', Qt::SkipEmptyParts))
+                        command(c.trimmed());
+            });
+        }
+    }
     auto *t = new QTimer(this);
     connect(t, &QTimer::timeout, this, &Backend::readStatus);
     t->start(30000);
@@ -280,6 +315,7 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
     connect(m_game, &QProcess::finished, this, [this] {
         m_game->deleteLater();
         m_game = nullptr;
+        setGameMenu(false);
         readPlaytime();
         topScreenOn();
         emit playingChanged();
@@ -292,6 +328,73 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         "swaymsg 'focus output DSI-2' >/dev/null 2>&1; swaymsg 'output DSI-1 power off' >/dev/null 2>&1; " + script,
         "run"} + args);
     emit playingChanged();
+}
+
+// --- in-game menu ----------------------------------------------------------------------------------------------------
+
+void Backend::command(const QString &cmd)
+{
+    qInfo("command: %s", qPrintable(cmd));
+    if (cmd == "menu" && playing()) {
+        const bool open = !m_gameMenu;
+        if (!open)
+            setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
+        if (runningGame().contains("azahar"))
+            gameKeys("F4");      // pause / unpause (Azahar keeps running when it loses focus)
+        if (open)
+            setGameMenu(true);
+    }
+}
+
+QStringList Backend::runningGame() const
+{
+    // ROCKNIX's kill-hotkey target, written by runemu.sh for every emulator it starts.
+    QFile f("/tmp/.process-kill-data");
+    QStringList names;
+    if (f.open(QIODevice::ReadOnly))
+        for (const QString &w : QString::fromUtf8(f.readAll()).split(QRegularExpression("\\s+"), Qt::SkipEmptyParts))
+            if (!w.startsWith('-') && w != "emulationstation")
+                names << w;
+    return names;
+}
+
+void Backend::gameKeys(const QString &combo)
+{
+    const QStringList names = runningGame();
+    if (m_keys < 0 || names.isEmpty())
+        return;
+    // Keys go to the focused window: hand focus back to the game first (any of its windows; Azahar's
+    // shortcuts are application-wide).
+    QProcess::execute("/bin/sh", {"-c", "swaymsg \"[pid=$(pidof -s " + names.first() + ")] focus\" >/dev/null 2>&1"});
+    static const QHash<QString, int> codes = {{"Alt", KEY_LEFTALT}, {"Ctrl", KEY_LEFTCTRL}, {"Shift", KEY_LEFTSHIFT},
+        {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L},
+        {"P", KEY_P}, {"M", KEY_M}, {"Esc", KEY_ESC}};
+    QList<int> keys;
+    for (const QString &k : combo.split('+'))
+        keys << codes.value(k, 0);
+    if (keys.contains(0))
+        return;
+    auto emitKey = [this](int code, int value) {
+        input_event ev[2] = {};
+        ev[0].type = EV_KEY; ev[0].code = code; ev[0].value = value;
+        ev[1].type = EV_SYN; ev[1].code = SYN_REPORT;
+        (void)!::write(m_keys, ev, sizeof ev);
+    };
+    for (int k : keys) emitKey(k, 1);
+    usleep(30000);
+    for (auto it = keys.rbegin(); it != keys.rend(); ++it) emitKey(*it, 0);
+}
+
+void Backend::quitGame()
+{
+    const QStringList names = runningGame();
+    setGameMenu(false);
+    if (names.isEmpty())
+        return;
+    // Like ROCKNIX's quit hotkey: ask nicely, then insist (emulators that ignore SIGTERM).
+    const QString n = names.join(' ');
+    shell("killall -TERM " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
+          "killall -KILL " + n);
 }
 
 // --- settings (system.cfg, ROCKNIX's semantics: one key=value per line, the last one wins) -----------------------
