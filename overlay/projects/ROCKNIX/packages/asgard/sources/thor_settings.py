@@ -546,11 +546,9 @@ def page_device(ui):
                 conf.set("system.suspendmode", v)
                 run_cmd(f"suspendmode {v}")
         elif label == "Charge limit":
-            # Stop charging at 80 % (battery longevity) or charge to full. 090-asgard-tuning applies it at boot.
-            # ponytail: kernel patch 9003 doesn't make the firmware honour it yet, so today this only stores the choice.
+            # Stop charging at 80 % (battery longevity) or charge to full; asgard-charge-limit.sh holds it.
             v = "100" if conf.get("asgard.charge_limit", "80") != "100" else "80"
             conf.set("asgard.charge_limit", v)
-            run_cmd(f"echo {v} > /sys/class/power_supply/battery/charge_control_end_threshold")
         elif 3 <= sel < 3 + len(SERVICES):
             _, key, units = SERVICES[sel - 3]
             on = conf.get(key) != "1"

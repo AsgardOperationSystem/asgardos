@@ -1,0 +1,12 @@
+[Unit]
+Description=Thor: bottom touchscreen only while the bottom panel is on
+After=essway.service
+
+[Service]
+ExecStart=/usr/share/asgard/thor-bottom-touch.sh
+Restart=always
+RestartSec=5
+
+[Install]
+# rocknix.target, like essway (see thor-idle-blank.service)
+WantedBy=rocknix.target

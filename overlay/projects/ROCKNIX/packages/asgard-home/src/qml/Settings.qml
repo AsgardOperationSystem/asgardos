@@ -158,9 +158,8 @@ Item {
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
                step: d => { const i = Math.max(0, fanModes.findIndex(m => m[1] === fanNow()));
                             setFan(fanModes[(i + d + fanModes.length) % fanModes.length][1]) } }],
-            [choice("battery", "Charge limit", "Stop charging at 80% (needs kernel patch 9003 to work)", "asgard.charge_limit", "80",
-                    [["80%", "80"], ["Off", "100"]],
-                    v => backend.shell("echo " + v + " > /sys/class/power_supply/battery/charge_control_end_threshold")),
+            [choice("battery", "Charge limit", "Stop charging at 80%, resume at 75%", "asgard.charge_limit", "80",
+                    [["80%", "80"], ["Off", "100"]]),  // asgard-charge-limit.sh reads the setting
              choice("moon", "Sleep mode", "What the power button does", "system.suspendmode", "mem",
                     [["Sleep", "mem"], ["Light sleep", "freeze"], ["Screen off only", "off"]], v => backend.shell("suspendmode " + v))]]
         case "Network": return [

@@ -24,7 +24,7 @@ img = C.CDLL("libSDL2_image-2.0.so.0")
 INIT_VIDEO, INIT_GAMECONTROLLER, INIT_EVENTS = 0x20, 0x2000, 0x4000
 WINDOW_FULLSCREEN_DESKTOP = 0x1001
 RENDERER_SOFTWARE = 0x1
-QUIT, KEYDOWN, FINGERDOWN = 0x100, 0x300, 0x700
+QUIT, KEYDOWN, FINGERDOWN, FINGERUP, FINGERMOTION = 0x100, 0x300, 0x700, 0x701, 0x702
 CONTROLLERAXISMOTION, CONTROLLERBUTTONDOWN, CONTROLLERBUTTONUP, CONTROLLERDEVICEADDED = 0x650, 0x651, 0x652, 0x653
 BTN = {0: "south", 1: "east", 2: "west", 3: "north", 4: "select", 6: "start", 9: "l1", 10: "r1",
        11: "up", 12: "down", 13: "left", 14: "right"}
@@ -147,6 +147,7 @@ class UI:
         self.held = None  # (action, next_repeat_time)
         self.last_action = None
         self.touch = None  # (x, y) in window pixels of the last tap, when poll() returns "touch"
+        self.drags = False  # also return "drag" / "release" (finger moved / lifted; self.touch updated), for sliders
         self.ev = C.create_string_buffer(64)
         # grab_pad: take the pad for ourselves (EVIOCGRAB) so the frontend and the running game don't also act on
         # the presses meant for this window; we then read it from evdev, as SDL no longer sees it. Released on exit.
@@ -277,6 +278,7 @@ class UI:
         if act:
             return act
         ev = self.ev
+        moved = False  # finger motion is merged: only the latest position counts (a slider can't keep up with each)
         while sdl.SDL_PollEvent(ev):
             t = C.cast(ev, C.POINTER(C.c_uint32))[0]
             if DEBUG:
@@ -306,10 +308,18 @@ class UI:
                 fx, fy = C.cast(C.addressof(ev) + 24, C.POINTER(C.c_float))[0:2]
                 self.touch = (int(fx * self.w), int(fy * self.h))
                 return "touch"
+            elif t in (FINGERMOTION, FINGERUP) and self.drags:
+                fx, fy = C.cast(C.addressof(ev) + 24, C.POINTER(C.c_float))[0:2]
+                self.touch = (int(fx * self.w), int(fy * self.h))
+                if t == FINGERUP:
+                    return "release"
+                moved = True
             elif t == KEYDOWN:
                 act = KEYS.get(C.cast(C.addressof(ev) + 20, C.POINTER(C.c_int32))[0])
                 if act:
                     return act
+        if moved:
+            return "drag"
         if self.held and time.monotonic() >= self.held[1]:
             self.held = (self.held[0], time.monotonic() + REPEAT_RATE)
             return self.held[0]

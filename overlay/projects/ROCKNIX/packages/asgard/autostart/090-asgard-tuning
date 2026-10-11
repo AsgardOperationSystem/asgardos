@@ -9,10 +9,6 @@ H=$(get_setting system.hostname)
 # USB autosuspend so DWC3 + PHY can idle (udev covers a600000.usb only).
 for u in /sys/bus/platform/devices/*.usb/power/control; do echo auto > "$u" 2>/dev/null; done
 
-# Battery charge limit in % (kernel patch 9003, AYN firmware property). asgard.charge_limit=100 turns it off.
-L=$(get_setting asgard.charge_limit)
-echo "${L:-80}" > /sys/class/power_supply/battery/charge_control_end_threshold 2>/dev/null
-
 # Airplane mode (Thor Panel): every radio stays off across reboots until it's turned off there.
 [ "$(get_setting asgard.airplane)" = "1" ] && rfkill block all
 

@@ -1,0 +1,10 @@
+[Unit]
+Description=Asgard charge limit (asgard.charge_limit, held with the charger's charge current)
+
+[Service]
+ExecStart=/usr/share/asgard/asgard-charge-limit.sh
+Restart=on-failure
+Nice=19
+
+[Install]
+WantedBy=multi-user.target
