@@ -185,9 +185,8 @@ if [ "${QUIRK_DEVICE}" = "AYN Thor" ]; then
   echo 'exec_always swaymsg input "0:0:top_touchscreen" map_to_output DSI-2' >> $SWAY_HOME/config
   echo 'exec_always swaymsg input "0:0:bottom_touchscreen" map_to_output DSI-1' >> $SWAY_HOME/config
   echo 'exec_always swaymsg input "0:0:bottom_touchscreen" events disabled' >> $SWAY_HOME/config
-  echo "exec_always swaymsg '[app_id=\"emulationstation\"]' seat seat1 attach \"0:0:top_touchscreen\"" >> $SWAY_HOME/config
-  echo "exec_always swaymsg '[app_id=\"emulationstation\"]' seat seat1 attach \"0:0:bottom_touchscreen\"" >> $SWAY_HOME/config
-  echo "exec_always swaymsg '[app_id=\"emulationstation\"]' seat seat1 attach \"4660:22136:InputPlumber_Keyboard\"" >> $SWAY_HOME/config
+  # Asgard: no seat1 attach for the touchscreens. Attached to seat0 and seat1, every touch reached Asgard Home
+  # twice (the second at a wrong spot), and the phantom press stole taps, e.g. the Home power button.
 fi
 
 if [ "${QUIRK_DEVICE}" = "AYN Thor Lite" ]; then
