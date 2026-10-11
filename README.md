@@ -79,8 +79,9 @@ live from bind-mounted dev builds before they reach an image.
   a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
   kept but does **not** fix it (correction to !13).
 - **Steam** isn't in the image (FEX thunks don't build).
-- **thor-sensorspd** is stopped for sleep and not restarted after resume; whether the sensor PD survives sleep is
-  untested.
+- **thor-sensorspd** stops for sleep and is restarted 3 s after resume (fixed 2026-10-11: the resume hook's direct
+  start was rejected while suspend.target's job was queued, so gyro was gone after any sleep). Restart verified
+  over a 30 s RTC sleep.
 - **Charger plugged in while asleep isn't seen** (2026-10-10): the Thor stays on the cable discharging, reporting no
   charger (`qcom-battmgr-usb/online=0`, no typec partner), sometimes until reboot. Likely `0502` masking the IPCC
   mailbox in suspend, so the UCSI attach is never delivered or acked. Fix in the next image (untested): `9005` keeps

@@ -12,6 +12,11 @@ PKG_TOOLCHAIN="manual"
 # autostart/, system.d/ and sleep.d/ are installed by ROCKNIX's scripts/install (to autostart/common,
 # systemd/system and systemd/system-sleep).
 makeinstall_target() {
+  # LÖVE ports run outside PortMaster (Gen1recomp's love.aarch64) need libtheoradec.so.1, which only PortMaster's
+  # /usr/lib/compat ships (not on the linker path): without it they fail to start.
+  mkdir -p ${INSTALL}/usr/lib
+  ln -sf compat/libtheoradec.so.1 ${INSTALL}/usr/lib/libtheoradec.so.1
+
   mkdir -p ${INSTALL}/usr/share/asgard
   cp -r ${PKG_DIR}/sources/* ${INSTALL}/usr/share/asgard/
   chmod 0755 ${INSTALL}/usr/share/asgard/*.sh ${INSTALL}/usr/share/asgard/*.py
