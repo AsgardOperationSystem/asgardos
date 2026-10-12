@@ -20,8 +20,10 @@ global:
     password: "ra password"
     webapikey: "your web API key"   # retroachievements.org > Settings > Keys; for the Trophies tab
 
-screenscraper:            # used by the Asgard frontend's scraper
-  username: me
+screenscraper:            # Select on a game > Scrape this game; off (libretro thumbnails only) until devid is set
+  devid: ""               # ScreenScraper developer ID + password: request them on screenscraper.fr's forum
+  devpassword: ""
+  username: me            # your account: optional, raises the daily quota
   password: "screenscraper password"
 
 ssh:

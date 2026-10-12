@@ -61,6 +61,7 @@ Item {
         sh("ip", "ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1")
         sh("usb", "usbgadget")
         sh("update", "ls /storage/.update/*.tar /storage/.update/*.img.gz 2>/dev/null | head -1")
+        sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
         if (get("bluetooth.enabled") === "1") sh("bt", "rocknix-bluetooth list", parseBt)
     }
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
@@ -119,14 +120,21 @@ Item {
             [link("speaker", "Audio", "Volume and menu sounds", () => section("Audio")),
              link("display", "Display", "Brightness, screens and stick lights", () => section("Display")),
              link("gauge", "Performance", "CPU clocks, fan, charging and sleep", () => section("Performance")),
-             link("wifi", "Network", "Wi-Fi, Bluetooth, USB and services", () => section("Network"))],
+             link("wifi", "Network", "Wi-Fi, Bluetooth, USB and services", () => section("Network")),
+             link("battery", "Battery", "What used it since it was unplugged", batteryPage)],
             [link("gamepad", "Calibration", "Touch screens and sticks", calibrationPage)]]
         case "Audio": return [
             [toggle("speaker", "Menu sounds", "Clicks when moving and selecting", "asgard.sounds", "1"),
              choice("speaker", "Menu sound volume", "", "asgard.sounds_volume", "50",
                     [["Quiet", "25"], ["Medium", "50"], ["Loud", "100"]], () => backend.sound("select"))],
             [choice("speaker", "Volume", "Speaker and headphones", "audio.volume", "50",
-                    [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v]), v => backend.shell("volume " + v))]]
+                    [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v]), v => backend.shell("volume " + v))],
+            [eqRow("speaker", "Speaker EQ", "Joey's: louder, fuller bass and wider (community JamesDSP tuning)"),
+             eqRow("headphones", "Headphone EQ", live.eqMsg || (live.eq && live.eq.headphones_name ? "AutoEQ profile: " + live.eq.headphones_name
+                                                                                               : "Follows the headphone jack")),
+             action("speaker", "Find your headphones", "AutoEQ corrects your model's sound; needs internet",
+                    () => keyboard.ask("Headphone model", "", false, v => { if (v && v.trim()) eqSearch(v.trim()) }))],
+            [toggle("battery", "Charger sounds", "A chime when the charger is plugged in or out", "asgard.charger_sounds", "1")]]
         case "Display": return [
             [toggle("display", "Separate screen brightness", "Set the top and bottom screens on their own",
                     "asgard.brightness_split", "0",
@@ -283,6 +291,60 @@ Item {
     readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],
                                        ["Cyan", "0 255 255"], ["Blue", "0 0 255"], ["Purple", "160 0 255"], ["Pink", "255 0 120"],
                                        ["White", "255 255 255"], ["Off", "0 0 0"]]
+    // asgard-eq.py: Thor tuning / off / an AutoEQ profile (headphones), applied by restarting PipeWire.
+    function eqRun(args, then) {
+        note("eqMsg", "Applying…")
+        backend.exec("python3 /usr/share/asgard/asgard-eq.py " + args, out => {
+            const r = JSON.parse(out || "{}")
+            note("eqMsg", r.error || "")
+            sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
+            if (then && !r.error) then()
+        })
+    }
+    function eqRow(which, title, sub) {
+        const modes = which === "speaker" ? [["Thor tuning", "thor"], ["Joey (Retro Handhelds)", "joey"], ["Off", "off"]]
+                                          : [["Thor tuning", "thor"], ["Off", "off"]]
+        if (which === "headphones" && live.eq && live.eq.headphones_name) modes.push(["AutoEQ", "autoeq"])
+        const cur = live.eq ? live.eq[which] : "thor"
+        const i = Math.max(0, modes.findIndex(m => m[1] === cur))
+        return { kind: "choice", icon: "speaker", title: title, sub: sub, value: live.eq ? modes[i][0] : "…",
+                 step: d => eqRun("set " + which + " " + modes[(i + d + modes.length) % modes.length][1]) }
+    }
+    function eqSearch(text) {
+        note("eqMsg", "Searching AutoEQ…")
+        backend.exec("python3 /usr/share/asgard/asgard-eq.py search " + q(text), out => {
+            const r = JSON.parse(out || "{}")
+            note("eqMsg", r.error || (r.results.length ? "" : "No AutoEQ profile matches \"" + text + "\""))
+            if (r.results && r.results.length) {
+                note("eqResults", r.results)
+                stack = stack.concat([{ title: "AutoEQ: " + text, build: eqResultsPage }]); row = 0; rev++
+            }
+        })
+    }
+    function eqResultsPage() {
+        return [[info("info", "Pick your model", "Measured by the source shown; the first ones are the most reliable")],
+                (live.eqResults || []).map(h => action("speaker", h.name, h.by,
+                    () => eqRun("autoeq " + q(h.path) + " " + q(h.name), () => { stack = stack.slice(0, -1); row = 0; rev++ })))]
+    }
+
+    // battery-report.py: the battery logger's samples since the last unplug, split by what was running (or asleep).
+    function batteryPage() {
+        const b = live.battery
+        if (!b) return [[info("battery", "Battery", "Reading the battery log…")]]
+        if (b.error) return [[info("battery", "Battery", b.error)]]
+        const hm = h => { const m = Math.round(h * 60); return m < 60 ? m + " min" : Math.floor(m / 60) + " h " + m % 60 + " min" }
+        const at = ts => Qt.formatDateTime(new Date(ts * 1000), "ddd hh:mm")
+        const n = b.now, s = b.session
+        const top = [info("battery", "Now", n.pct + "%  ·  " + (n.charging ? "charging" : n.ma + " mA") +
+                          (n.hours_left ? "  ·  about " + hm(n.hours_left) + " left at this rate" : ""))]
+        if (b.charge)
+            top.push(info("battery", "Charging since " + at(b.charge.start), b.charge.from_pct + "% → " + b.charge.to_pct + "% in " + hm(b.charge.hours)))
+        if (!s) return [top]
+        top.push(info("battery", "Since unplugged " + at(s.start), s.from_pct + "% → " + s.to_pct + "% over " + hm(s.hours)))
+        return [top, s.activities.map(a => info(a.name === "Sleep" ? "moon" : a.name === "Home" ? "list" : "gamepad", a.name,
+                                                 hm(a.hours) + "  ·  " + a.pct + "% used  ·  " + a.ma + " mA average"))]
+    }
+
     function ledPage() {
         let v = get("analogsticks.led", "150 0 0 255 0 0 255").split(" ")
         if (v.length !== 7) v = "150 0 0 255 0 0 255".split(" ")
@@ -362,7 +424,8 @@ Item {
     function profilePage() {
         return [[info("user", "Name", backend.hostname + "  (system.hostname in asgard.yml)"),
                  info("trophy", "RetroAchievements", get("global.retroachievements.username") || "Not signed in"),
-                 info("list", "ScreenScraper", get("screenscraper.username") || "Not set (asgard.yml)")]]
+                 info("list", "ScreenScraper", !get("screenscraper.devid") ? "Off until a developer ID is set (screenscraper.devid in asgard.yml); scraping uses libretro"
+                                              : get("screenscraper.username") || "Developer ID set, no account (asgard.yml)")]]
     }
     function consolesPage() {
         return [backend.systems.map(s => link("gamepad", s.fullname,
@@ -394,7 +457,11 @@ Item {
         if (!r) return
         if (r.kind === "link") {
             const build = typeof r.page === "function" && r.page.length === 0 ? r.page : null
-            if (build) { stack = stack.concat([{ title: r.title, build: build }]); row = 0; if (build === wifiPage) scan() }
+            if (build) {
+                stack = stack.concat([{ title: r.title, build: build }]); row = 0
+                if (build === wifiPage) scan()
+                if (build === batteryPage) { note("battery", null); sh("battery", "python3 /usr/share/asgard/battery-report.py", JSON.parse) }
+            }
             else { r.page(); }
             rev++
         } else if (r.kind === "toggle") r.activate()

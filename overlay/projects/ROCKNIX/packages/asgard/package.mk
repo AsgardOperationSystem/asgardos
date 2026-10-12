@@ -38,6 +38,15 @@ makeinstall_target() {
 
   mkdir -p ${INSTALL}/usr/share/pipewire/pipewire.conf.d
   cp ${PKG_DIR}/pipewire/*.conf ${INSTALL}/usr/share/pipewire/pipewire.conf.d/
+
+  # Speaker EQ "Joey" (asgard-eq.py): its impulse response and the limiter after its +15 dB.
+  mkdir -p ${INSTALL}/usr/share/asgard/eq ${INSTALL}/usr/lib/ladspa
+  cp ${PKG_DIR}/eq/joey-speaker.wav ${INSTALL}/usr/share/asgard/eq/
+  ${CC} ${CFLAGS} -O2 -shared -fPIC ${LDFLAGS} -o ${INSTALL}/usr/lib/ladspa/asgard-limiter.so ${PKG_DIR}/eq/asgard-limiter.c -lm
+
+  # Headphones outrank the speaker so the default output follows the jack (thor_dsp_* smart filters follow it).
+  mkdir -p ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d
+  cp ${PKG_DIR}/wireplumber/*.conf ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d/
 }
 
 post_install() {

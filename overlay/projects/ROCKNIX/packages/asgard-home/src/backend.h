@@ -5,7 +5,6 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSocketNotifier>
-#include <QSoundEffect>
 #include <QTimer>
 #include <QVariant>
 
@@ -67,6 +66,7 @@ private:
     void scan();
     void readPlaytime();
     void readStatus();
+    void play(const QString &name);     // a sound, without the menu-sounds setting
     void topScreenOn();
     void command(const QString &cmd);
     void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
@@ -74,7 +74,6 @@ private:
     QString path(const QString &p) const { return m_root + p; }
 
     QString m_root;
-    QHash<QString, QSoundEffect *> m_sounds;
     QProcessEnvironment m_gameEnv;  // the environment we were started with, without our own Qt settings
     QVariantList m_systems, m_recent;
     QHash<QString, QVariantList> m_games;
@@ -82,6 +81,7 @@ private:
     bool m_screensOff = false;
     int m_battery = -1;
     bool m_charging = false;
+    int m_plugged = -1;                   // charger online flag, -1 until first read
     QProcess *m_game = nullptr;
     bool m_gameMenu = false;
     int m_keys = -1;   // uinput keyboard for emulator hotkeys

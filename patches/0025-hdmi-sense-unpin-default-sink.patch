@@ -1,0 +1,31 @@
+diff --git a/projects/ROCKNIX/packages/sysutils/system-utils/sources/scripts/hdmi_sense b/projects/ROCKNIX/packages/sysutils/system-utils/sources/scripts/hdmi_sense
+index 29fdb13..23eb3b0 100755
+--- a/projects/ROCKNIX/packages/sysutils/system-utils/sources/scripts/hdmi_sense
++++ b/projects/ROCKNIX/packages/sysutils/system-utils/sources/scripts/hdmi_sense
+@@ -33,21 +33,18 @@ then
+   DEFAULT_ID=$(pactl list short cards | awk '! /hdmi/ {print $1; exit}')
+   DEFAULT_SINK=$(pactl list short sinks | awk '! /hdmi/ {print $2; exit}')
+ 
+-  if [ ! -z "${DEFAULT_SINK}" ]
+-  then
+-    ### Set the default sink ignoring HDMI
+-    pactl set-default-sink ${DEFAULT_SINK}
+-    pactl set-default-source ${DEFAULT_SINK}.monitor
+-  fi
++  ### Asgard: no HDMI, so unpin instead of pinning the first sink. The first one listed can be a filter (the
++  ### Thor's speaker EQ), and a pinned default never follows the headphone jack; WirePlumber picks by priority.
++  wpctl clear-default
+ 
+   if [ ! -z "${DEVICE_PIPEWIRE_PROFILE}" ]
+   then
+     pactl set-card-profile ${DEFAULT_ID} ${DEVICE_PIPEWIRE_PROFILE}
+   fi
+ 
++else
++  pactl set-default-sink ${DEFAULT_SINK}
+ fi
+-
+-pactl set-default-sink ${DEFAULT_SINK}
+ # Save the HDMI port connection status to avoid duplicate handling.
+ # The udev event can be triggered multiple times, so we skip if the status hasn't changed.
+ [ -z "${CURRENT_STATE}" ] && exit 0

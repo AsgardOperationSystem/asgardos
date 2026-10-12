@@ -176,6 +176,7 @@ void Backend::scan()
                 QVariantMap g;
                 g["path"] = file.mid(m_root.size());  // device path, without the dev fixture prefix
                 g["sys"] = name;
+                g["stem"] = stem;  // media file name (asgard-scrape.py writes <mediaDir>/<kind>/<stem>.png)
                 g["sysName"] = sys["fullname"];
                 g["name"] = meta.value("name", fi.completeBaseName());
                 g["desc"] = meta.value("desc");
@@ -260,6 +261,12 @@ void Backend::readStatus()
     QFile cap("/sys/class/power_supply/battery/capacity"), st("/sys/class/power_supply/battery/status");
     const int battery = cap.open(QIODevice::ReadOnly) ? cap.readAll().trimmed().toInt() : -1;
     const bool charging = st.open(QIODevice::ReadOnly) && st.readAll().trimmed() == "Charging";
+    // Charger in/out chime. The charger's own online flag: the battery reads "Not charging" at the charge limit.
+    QFile usb("/sys/class/power_supply/qcom-battmgr-usb/online");
+    const int plugged = usb.open(QIODevice::ReadOnly) ? usb.readAll().trimmed().toInt() : -1;
+    if (m_plugged >= 0 && plugged >= 0 && plugged != m_plugged && getSetting("asgard.charger_sounds", "1") == "1")
+        play(plugged ? "charger-in" : "charger-out");
+    m_plugged = plugged;
     if (battery != m_battery || charging != m_charging) {
         m_battery = battery;
         m_charging = charging;
@@ -368,6 +375,9 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         m_game->deleteLater();
         m_game = nullptr;
         setGameMenu(false);
+        // ROCKNIX's Steam/Heroic launchers set seat1 as a fallback seat and only undo it on a clean exit. Left on,
+        // every touch reaches us on seat0 and seat1, and the phantom second press steals taps (the power button).
+        QProcess::startDetached("swaymsg", {"seat seat1 fallback false"});
         readPlaytime();
         topScreenOn();
         emit playingChanged();
@@ -532,16 +542,18 @@ void Backend::shell(const QString &command)
 void Backend::sound(const QString &name)
 {
     // ponytail: reads system.cfg per sound; cache the two keys if that ever shows up in a profile
-    if (qEnvironmentVariableIsSet("ASGARD_SHOT") || getSetting("asgard.sounds", "1") != "1")
+    if (getSetting("asgard.sounds", "1") == "1")
+        play(name);
+}
+
+void Backend::play(const QString &name)
+{
+    if (qEnvironmentVariableIsSet("ASGARD_SHOT"))
         return;
-    QSoundEffect *&fx = m_sounds[name];
-    if (!fx) {
-        fx = new QSoundEffect(this);
-        fx->setSource(QUrl::fromLocalFile(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml")
-                                          + "/sounds/" + name + ".wav"));
-    }
-    fx->setVolume(getSetting("asgard.sounds_volume", "50").toInt() / 100.0);
-    fx->play();
+    // A detached pw-play per sound: QSoundEffect's audio thread once spun at 100 % at startup while holding a lock
+    // the UI thread waited on, freezing Home (2026-10-12). A stuck player now only costs its own process.
+    QProcess::startDetached("pw-play", {"--volume=" + QString::number(getSetting("asgard.sounds_volume", "50").toInt() / 100.0),
+        qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml") + "/sounds/" + name + ".wav"});
 }
 
 void Backend::exec(const QString &command, const QJSValue &done)

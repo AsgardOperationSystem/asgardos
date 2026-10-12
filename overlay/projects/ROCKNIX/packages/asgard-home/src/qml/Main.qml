@@ -101,6 +101,20 @@ QtObject {
         backend.setSetting("asgard.order", order.join(","))
     }
 
+    // asgard-scrape.py: cover + screenshot (libretro; ScreenScraper once a developer ID is set) into ES-DE's media.
+    function scrape() {
+        const g = current && current.game, m = bottom.gameActionsPanel
+        if (!g) return
+        const q = v => "'" + String(v).replace(/'/g, "'\\''") + "'"
+        m.status = "Scraping " + g.name + "…"
+        backend.exec("python3 /usr/share/asgard/asgard-scrape.py " + [g.sys, g.path, g.stem].map(q).join(" "), out => {
+            let r
+            try { r = JSON.parse(out) } catch (e) { r = { error: "The scraper failed" } }
+            m.status = r.error || "Got the " + r.media.join(" and ") + " from " + r.source + (r.matched ? " (" + r.matched + ")" : "")
+            if (!r.error) backend.rescan()
+        })
+    }
+
     function itemAt(row, col) {
         let best = -1
         for (let i = 0; i < cells.length; i++) {
@@ -123,7 +137,9 @@ QtObject {
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
         // Start: the game's settings in a game list; Settings everywhere else, the "Recently played" tile included.
         if (b === "start") { if (gameSettingsHere) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
-        if (b === "select") { details = !details; return }
+        if (bottom.gameActionsPanel.nav(b)) return
+        // Select: a game's menu (scrape, details); details anywhere else.
+        if (b === "select") { if (gameSettingsHere) { bottom.gameActionsPanel.status = ""; bottom.gameActionsPanel.show() } else details = !details; return }
         if (reordering) {
             const rc = cells[sel]
             if (b === "left") moveTo(sel - 1)
@@ -315,6 +331,7 @@ QtObject {
         property alias settingsPanel: settingsPanel
         property alias gameMenuPanel: gameMenuPanel
         property alias powerMenuPanel: powerMenuPanel
+        property alias gameActionsPanel: gameActionsPanel
 
         // Laid out 1080 tall and as wide as the screen the window is on, like the top window; the grid takes as many
         // columns as fit (4 below, 6 on the top screen).
@@ -430,6 +447,11 @@ QtObject {
             Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
             GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200; visible: open && !app.swapped }
             PowerMenu { id: powerMenuPanel; anchors.fill: parent; z: 150 }
+            PowerMenu {
+                id: gameActionsPanel; anchors.fill: parent; z: 150; anchorRight: parent.width - 24
+                items: [{ icon: "refresh", title: "Scrape this game", keep: true, run: app.scrape },
+                        { icon: "info", title: "Details", run: () => app.details = !app.details }]
+            }
         }
     }
 }

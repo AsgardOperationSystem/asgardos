@@ -37,6 +37,13 @@ live from bind-mounted dev builds before they reach an image.
   game is frozen (SIGSTOP) while it's open. Page 2: volume and per-screen brightness sliders in the OSD's style, with a link lock.
 - ✅ **OLED idle blank** (timeout in Settings), **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
 - ✅ **melonDS** two-window layout without the Qt menu bar.
+- ✅ **Settings → Hardware → Battery** (2026-10-12): since the last unplug, what used it (Sleep, Home, each emulator) with
+  time, % and mA, time left at that rate, and the charge in progress (`battery-report.py` over the battery log).
+- ✅ **Audio** (2026-10-12): the default output follows the headphone jack (`0025` + WirePlumber priority);
+  Settings → Hardware → Audio: speaker EQ Thor / Joey / off, headphone EQ Thor / off / **AutoEQ** (type a model,
+  pick from AutoEQ's ~8,850 profiles, needs internet; `asgard-eq.py`); charger in/out chimes.
+- ✅ **Select on a game → Scrape this game** (2026-10-12): cover + screenshot from libretro thumbnails into ES-DE's
+  media (`asgard-scrape.py`); ScreenScraper is wired in but off until a developer ID is set (`asgard.yml`).
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 - ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
 - 🧪 **Gyro step 4:** `asgard-motiond` serves them as a DSU (cemuhook) motion source on 127.0.0.1:26760, and
@@ -57,6 +64,12 @@ live from bind-mounted dev builds before they reach an image.
   known layout); Eden reports firmware 22.0.0 with 23.0.1 installed (games boot regardless). Violet's name-entry
   keyboard once flipped case constantly (pad verified idle over SDL); opening and closing the Home menu (pause/
   resume) cured it. Suspect Eden's `InputInterpreter` press-state latch; dig in if it recurs.
+- **Batch B sleep drain** (2026-10-12): MCU rail and stick-LED controllers off in sleep, fan tach/timer quiesced
+  (`9032`–`9035`, `0024`). Pad resumes first try over 3 RTC sleeps; CX/AOSS still never collapse and DDR stays at
+  1555 MHz asleep. ≥1 h unplugged sleep not measured yet.
+- **gen1recomp touch:** its on-screen controls need `POKEPORT_TOUCH=1`, and under native Wayland (SDL3 via sdl2-compat)
+  its window got no input at all, not even a keymap; under XWayland (`SDL_VIDEODRIVER=x11`) touch works. Both are set
+  in the port's own launcher (`/storage/apps/gen1recomp/gen1recomp-sbc.sh`). Root cause in SDL3's Wayland path not found.
 - **D-pad slow to work after boot** (reported 2026-10-10): for a while after the Thor boots the d-pad doesn't respond
   well. Not investigated yet (suspects: rsinput's boot handshake / RX stream, InputPlumber or the frontend's pad open retry).
 - **In-game menu (Home tap):** plumbing verified (command FIFO, virtual keyboard); not yet tried inside a game.
@@ -66,6 +79,11 @@ live from bind-mounted dev builds before they reach an image.
 - Shaders, ratios and other per-game overrides still open the classic (SDL) screen.
 - **asgard.yml:** self-test passes; not yet applied on a real boot.
 - **hexagonrpc package:** not yet built through ROCKNIX's cargo flow (the Thor runs a separate cross-build).
+- **Persistent event log (wanted):** the journal is RAM-only, so a crash or reboot loses the previous boot. On
+  2026-10-12 (~20:40) the Thor came up after a reboot, had Wi-Fi for a minute, then went into airplane mode by
+  itself; something had crashed, and nothing survived to say what. Log to `/storage` across boots: kernel
+  oopses/WARNs/panics (pstore/ramoops too), rfkill/airplane and NetworkManager radio changes, USB/PHY resume
+  failures (`dwc3_qcom_pm_resume returns -110`), sway seat changes, and suspend/resume. Then they can be monitored.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
   help is unmeasured.
 - Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
@@ -170,7 +188,7 @@ One merge request each; its description and commits say what was broken, why, an
 | asgard.yml | ROCKNIX preconfigures Wi-Fi and keys by baking them into the image; Asgard keeps them in a file next to it. |
 | Kettle sleep/GPU fixes (`9007`–`9017`) | Kettle `1150` `1160` `1180` `1291`–`1293` `1350`–`1352` `1384` `1385` (see Projects to learn from). Flashed 2026-10-11 20:02: GPU boot DDR vote gone, 60 s RTC sleep resumes clean (pad handshake first try, Wi-Fi, audio). Sleep drain over ≥1 h not measured yet. |
 | Bottom touch follows the panel (`thor-bottom-touch`) | Single-screen games run with DSI-1 off but its touchscreen on: a touch moved sway focus to the empty bottom workspace and RetroArch paused (`pause_nonactive`). The watcher enables/disables the touchscreen with every DSI-1 power change. Also: the AYN panel now powers DSI-1 off when it closes during a game. |
-| No seat1 touch (`0022`) | ROCKNIX attached both touchscreens to seat0 and seat1, so every touch reached Asgard Home twice; the phantom second press stole taps (Home power button did nothing). |
+| No seat1 touch (`0022`) | ROCKNIX attached both touchscreens to seat0 and seat1, so every touch reached Asgard Home twice; the phantom second press stole taps (Home power button did nothing). Recurs if ROCKNIX's `start_steam.sh`/Heroic launchers die before undoing `seat seat1 fallback true`; Home resets it after every game (`backend.cpp`). |
 | Display sleep hook | After resume the bottom panel lit up (black) even when it was off before sleep. |
 | Bottom screen rotation + window rules | The bottom panel was portrait; games opened on the wrong screen or half the screen. |
 | OLED idle blank | Burn-in protection: both screens off after 5 min without input. |
@@ -184,6 +202,15 @@ One merge request each; its description and commits say what was broken, why, an
 | ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service. |
 | Motion server (`asgard-motiond`, `0016`, `0023`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. Runs only while Azahar does (`0023`): streaming kept the ADSP waking ~185×/s. |
 | Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |
+| Kettle/Armada batch A (`9022`–`9031`) | Kettle `1060` `1110` `1200` `1210` `1220` `1250` `1270` `1280` `1383`, Armada `0048`: tsens wakes, haptics buzz after rumble, GPU queue priority, command-mode vblank timestamps, DSI clocks off the PLL when the screens are off, ICE/PCIe/ath12k fixes, GPU load in debugfs. Picked by dry-running every Kettle/Armada patch against our tree (2026-10-12). |
+| MCU rail off in sleep (`9032`–`9033` Kettle `1310` `1311`, `0024`) | `vdd_mcu_3v3` was always-on: the gamepad MCU and both stick-LED controllers stayed powered through sleep. |
+| Fan quiet in sleep (`9034`–`9035`, Kettle `1300` `1410`) | The 1 Hz RPM timer and tach IRQs kept waking s2idle (Kettle: blocks CPU cluster collapse). |
+| USB PHY pipe clock (`9036`) | One PHY init timeout (a USB-C cable wake) disabled `pipe_clk` twice; every later resume then failed (`-110`) and the controller held its 1 GB/s DDR vote through sleep until a reboot. |
+| Default output follows the jack (`0025`, WirePlumber rule) | ROCKNIX's `hdmi_sense` pinned the first sink at boot (our speaker EQ filter), so headphones never took over; and ALSA ranked the speaker above them. |
+| EQ filters at 100 % (`state.restore-props = false`) | While the speaker EQ was the pinned default, the volume keys moved it; a stale 45 % (−21 dB) stayed behind. |
+| Speaker/headphone EQ, AutoEQ, Joey (`asgard-eq.py`, `eq/`) | Selectable EQ. Joey's Retro Handhelds JamesDSP preset as a minimum-phase FIR (`gen-speaker-ir.py`) + width-2 widener + `asgard-limiter` (our LADSPA lookahead limiter: PipeWire has none, and the preset adds +15 dB). PipeWire 1.2.6's parametric-equalizer module ignores node names, so AutoEQ files become biquad filter-chains. |
+| Home sounds via `pw-play` | `QSoundEffect`'s audio thread once spun at 100 % holding a lock the UI waited on: Home froze. Qt Multimedia is gone. |
+| Battery report, charger chimes, scraper | Settings → Hardware → Battery; `charger-in`/`out` on the charger's online flag (the battery reads "Not charging" at the limit); Select → Scrape this game. |
 
 ## Projects to learn from
 

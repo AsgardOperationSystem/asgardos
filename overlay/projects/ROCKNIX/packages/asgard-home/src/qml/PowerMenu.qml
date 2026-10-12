@@ -1,19 +1,21 @@
 import QtQuick
 
-// Small power menu under the bottom screen's power button: sleep, restart, power off. Touch or d-pad + A, B closes.
+// Small menu card: the power button's (sleep, restart, power off) by default, or any items (the game menu on
+// Select). Touch or d-pad + A, B closes. An item with keep: true leaves the card open; status shows under the items.
 Item {
     id: menu
     property bool open: false
     property int sel: 0
     property real anchorRight: 0          // x of the button's right edge, so the card hangs under it
-    readonly property var items: [
+    property string status: ""
+    property var items: [
         { icon: "moon", title: "Sleep", run: () => backend.shell("systemctl suspend") },
         { icon: "refresh", title: "Restart", run: () => backend.shell("systemctl reboot") },
         { icon: "power", title: "Power off", run: () => backend.shell("systemctl poweroff") }
     ]
 
     function show() { sel = 0; open = true }
-    function pick(i) { open = false; items[i].run() }
+    function pick(i) { if (!items[i].keep) open = false; items[i].run() }
     function nav(b) {
         if (!open) return false
         if (b === "up") sel = (sel + items.length - 1) % items.length
@@ -55,6 +57,11 @@ Item {
                         onClicked: { backend.sound("select"); menu.sel = index; menu.pick(index) }
                     }
                 }
+            }
+            Text {
+                visible: menu.status !== ""; width: col.width; leftPadding: 30; rightPadding: 30; topPadding: 6; bottomPadding: 6
+                text: menu.status; wrapMode: Text.Wrap
+                font.family: Theme.font; font.pixelSize: 28; font.weight: Font.Bold; color: "#4a4b5d"
             }
         }
     }
