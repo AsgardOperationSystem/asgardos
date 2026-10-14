@@ -112,7 +112,8 @@ Item {
              toggle("trophy", "Hardcore mode", "No savestates, rewind or cheats; earns hardcore unlocks",
                     "global.retroachievements.hardcore", "0")],
             cheevoOpts.map(o => toggle("trophy", o[0], o[2], "global.retroachievements." + o[1], "0")),
-            [info("user", "Account", user || "Not signed in"),
+            [action("user", "Account", (user || "Not signed in") + "  ·  username and password, for unlocking in games",
+                    raSignIn),
              action("user", "Web API key", (get("global.retroachievements.webapikey") ? "Set" : "Missing") +
                     "  ·  retroachievements.org > Settings > Keys; for the trophy lists",
                     () => keyboard.ask("Web API key", "", true, v => { if (v) { set("global.retroachievements.webapikey", v.trim()); achievements.refresh() } }))]]
@@ -422,9 +423,21 @@ Item {
         })]
     }
 
+    // RetroAchievements sign-in: ROCKNIX's RetroArch launcher builds cheevos_username/password from these keys on
+    // every launch. An empty password keeps the saved one (changing only the username).
+    function raSignIn() {
+        keyboard.ask("RetroAchievements username", get("global.retroachievements.username"), false, u => {
+            if (!u) return
+            set("global.retroachievements.username", u.trim())
+            keyboard.ask("RetroAchievements password", "", true, p => {
+                if (p) set("global.retroachievements.password", p)
+                set("global.retroachievements", "1")
+            })
+        })
+    }
     function profilePage() {
         return [[info("user", "Name", backend.hostname + "  (system.hostname in asgard.yml)"),
-                 info("trophy", "RetroAchievements", get("global.retroachievements.username") || "Not signed in"),
+                 action("trophy", "RetroAchievements", get("global.retroachievements.username") || "Not signed in", raSignIn),
                  info("list", "ScreenScraper", !get("screenscraper.devid") ? "Off until a developer ID is set (screenscraper.devid in asgard.yml); scraping uses libretro"
                                               : get("screenscraper.username") || "Developer ID set, no account (asgard.yml)")]]
     }
