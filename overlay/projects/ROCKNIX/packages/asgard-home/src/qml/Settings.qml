@@ -231,7 +231,8 @@ Item {
                         "asgard.pad_fix_log", "1"),
                  choice("moon", "Sleep experiment", "Switched off during sleep, to find what drains the battery",
                         "asgard.sleep_experiment", "", [["None", ""], ["Wi-Fi off", "wifi"], ["Bluetooth off", "bt"],
-                                                        ["Wi-Fi and Bluetooth off", "wifi bt"]])]]
+                                                        ["Wi-Fi and Bluetooth off", "wifi bt"],
+                                                        ["Wi-Fi off every other sleep", "alt:wifi"]])]]
     }
     function wifiPage() {
         const on = get("wifi.enabled", "1") === "1"

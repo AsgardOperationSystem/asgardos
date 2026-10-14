@@ -12,7 +12,7 @@ NAMES = {"menu": "Home", "es": "Home", "es-de": "Home", "panel": "Thor Panel", "
          "ryujinx": "Ryujinx (Switch)", "ppsspp": "PPSSPP (PSP)", "PPSSPP": "PPSSPP (PSP)", "pcsx2": "PCSX2 (PS2)",
          "armsx2": "ARMSX2 (PS2)", "aethersx2": "AetherSX2 (PS2)", "duckstation": "DuckStation (PS1)",
          "flycast": "Flycast (Dreamcast)", "mupen64plus": "Mupen64Plus (N64)", "moonlight": "Moonlight",
-         "portmaster": "PortMaster"}
+         "portmaster": "PortMaster", "pc": "PC", "ports": "Ports"}
 
 
 def name(app):
@@ -20,6 +20,12 @@ def name(app):
         if app.startswith(k):
             return v
     return app or "Home"
+
+
+def label(r):
+    """'Game · Emulator core' for what Home launched (newer logs), else the emulator/UI alone."""
+    emu = " ".join(filter(None, [name(r["app"]), r["core"]]))
+    return f"{r['game']} · {emu}" if r["game"] else emu
 
 
 def load(paths):
@@ -31,6 +37,7 @@ def load(paths):
                     try:
                         rows.append({"ts": int(r["ts"]), "pct": int(r["capacity"]), "ua": int(r["current_ua"]),
                                      "uah": int(r["charge_uah"]), "app": r.get("app") or "",
+                                     "game": r.get("game") or "", "core": r.get("core") or "",
                                      # older logs have no bat_status: the current's sign says it
                                      "chg": r.get("bat_status") in ("Charging", "Full") if r.get("bat_status")
                                             else int(r["current_ua"]) > 0})
@@ -74,7 +81,7 @@ def report(rows):
     acts = {}
     for a, b in zip(seg, seg[1:]):
         dt = b["ts"] - a["ts"]
-        act = "Sleep" if dt > SLEEP_GAP else name(a["app"])
+        act = "Sleep" if dt > SLEEP_GAP else label(a)
         x = acts.setdefault(act, [0, 0])
         x[0] += dt
         x[1] += a["uah"] - b["uah"]

@@ -1,27 +1,45 @@
 #!/bin/sh
 # Thor: a USB-C attach/detach wakes the Thor (kernel patch 9005, so a charger plugged into a sleeping Thor
 # charges). Woken that way with the lid shut, it goes back to sleep after 15 s.
+# The running game (playlog.py's /run/thor-playing.txt: the launching shell's pid) is SIGSTOPped before every
+# sleep and only continued once the lid is open, so a cable wake with the lid shut doesn't play a second of the
+# game's audio. The kernel freezes it in suspend anyway; this just extends that over the 15 s cable wake.
 # Until 2026-10-11 this hook also rebound UCSI 75 s after every wake when it looked stuck (discharging, no
 # partner). Unplugged looks the same, so it fired on nearly every wake; the stuck state came from 0502 masking
 # the IPCC mailbox, which 9005 undoes on the Thor (Kettle Linux and Armada reached the same fix). Removed.
 # Installed as /usr/lib/systemd/system-sleep/asgard-charge-fix (log: /storage/charge-fix.log).
 S=${SYS:-/sys}
 LOG=${LOG:-/storage/charge-fix.log}
+RUN=${RUN:-/run}
+FROZEN=$RUN/.asgard-frozen
+KILL=${KILL:-kill}
 
 # wakeup_active_count, not wakeup_count: the latter only counts when userspace arms /sys/power/wakeup_count.
 WC=$S/bus/auxiliary/devices/pmic_glink.ucsi.0/power/wakeup_active_count
+LID='busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null | grep -q true'
 
 case "$1" in
   pre)
-    cat $WC > /run/.thor-ucsi-wakeups 2>/dev/null
+    cat $WC > $RUN/.thor-ucsi-wakeups 2>/dev/null
+    # Every descendant of the game's launching shell (runemu.sh, the emulator, its helpers).
+    root=$(cut -d'|' -f4 $RUN/thor-playing.txt 2>/dev/null)
+    if [ -n "$root" ]; then
+      ps -eo pid=,ppid= | awk -v r="$root" '{ p[$1] = $2 }
+        END { for (k in p) { x = k; while ((x in p) && x != r && x > 1) x = p[x]; if (x == r && k != r) print k } }' > $FROZEN
+      [ -s $FROZEN ] && $KILL -STOP $(cat $FROZEN) 2>/dev/null
+    fi
     ;;
   post)
     # Woken by the cable with the lid shut: let PD settle, then go back to sleep (charging continues asleep).
-    if [ -f $WC ] && [ "$(cat $WC)" != "$(cat /run/.thor-ucsi-wakeups 2>/dev/null)" ] && \
-       busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null | grep -q true; then
+    # The game stays stopped; the timer continues it instead if the lid was opened in those 15 s.
+    if [ -f $WC ] && [ "$(cat $WC)" != "$(cat $RUN/.thor-ucsi-wakeups 2>/dev/null)" ] && eval "$LID"; then
       echo "$(date '+%F %T') usb-c wake with lid closed, re-suspending" >> "$LOG"
       # systemd-suspend kills leftover children when it exits, so hand the delay to a transient timer.
-      systemd-run --no-block --on-active=15 --unit="thor-charge-resleep-$(date +%s)" systemctl suspend >/dev/null 2>&1
+      systemd-run --no-block --on-active=15 --unit="thor-charge-resleep-$(date +%s)" \
+        /bin/sh -c "if $LID; then systemctl suspend; else kill -CONT \$(cat $FROZEN 2>/dev/null) 2>/dev/null; rm -f $FROZEN; fi" >/dev/null 2>&1
+    elif [ -s $FROZEN ]; then
+      $KILL -CONT $(cat $FROZEN) 2>/dev/null
+      rm -f $FROZEN
     fi
     ;;
 esac

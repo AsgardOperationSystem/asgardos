@@ -41,6 +41,16 @@ with open(f.name, "a") as g:
             + line(t + 9030, 95, -400000, uah + 896000, "retroarch", "Discharging") + line(t + 9060, 95, -400000, uah + 892000, "retroarch", "Discharging"))
 r = br.report(br.load([f.name]))
 assert r["session"]["from_pct"] == 95 and {a["name"] for a in r["session"]["activities"]} == {"Home", "RetroArch"}, r["session"]
+# Newer logs: Home's launch record names the game (a PC app has no emulator process: app = its system).
+with open(f.name + "2", "w") as g:
+    g.write(H.rstrip() + ",game,core\n"
+            + line(0, 95, -400000, 900000, "pc", "Discharging").rstrip() + ',"Gen1 Recomp, Red",\n'
+            + line(30, 94, -400000, 896000, "retroarch", "Discharging").rstrip() + ',"Zelda ""LA""",gambatte\n'
+            + line(60, 94, -400000, 892000, "menu", "Discharging").rstrip() + ',"",\n'
+            + line(90, 94, -400000, 888000, "menu", "Discharging").rstrip() + ',"",\n')
+names = {a["name"] for a in br.report(br.load([f.name + "2"]))["session"]["activities"]}
+assert names == {"Gen1 Recomp, Red · PC", 'Zelda "LA" · RetroArch gambatte', "Home"}, names
+os.unlink(f.name + "2")
 assert br.report([]) == {"error": "no battery log yet"}
 assert br.name("dolphin-emu-nog") == "Dolphin (GC/Wii)" and br.name("") == "Home"
 os.unlink(f.name)

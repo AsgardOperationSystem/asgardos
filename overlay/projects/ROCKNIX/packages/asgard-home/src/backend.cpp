@@ -331,7 +331,7 @@ void Backend::launch(const QVariantMap &game)
         }
     }
     // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys).
-    run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; "
+    run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" \"$4\" \"$3\" 2>/dev/null; "
         "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
         "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
         {rom, sys, core, emulator}, m_gameEnv);

@@ -1,7 +1,7 @@
 """Playtime log. run-game.sh writes it around every game launch (both frontends launch through it);
 Thor Home reads totals, Thor Panel reads what's playing (screenshot names).
 
-Usage from run-game.sh: python3 playlog.py start <rom> <system>  /  python3 playlog.py stop
+Usage from run-game.sh: python3 playlog.py start <rom> <system> [emulator] [core]  /  python3 playlog.py stop
 """
 import json
 import os
@@ -10,15 +10,39 @@ import time
 
 LOG = "/storage/.config/thor/playtime.jsonl"  # one {"rom", "sys", "start", "secs"} per session
 PLAYING = "/run/thor-playing.json"
+# The same for shell readers (battery-log.sh, the sleep hooks), one line, '|'-separated (not tabs: read collapses
+# empty whitespace-separated fields), the game name last so a '|' in it is harmless:
+# sys, emulator, core, pid of the launching shell (the game is its descendant), game name.
+PLAYING_TXT = "/run/thor-playing.txt"
 
 
-def start(rom, system):
+def game_name(rom):
+    """A PC .desktop entry's Name=, else the ROM's file name without its extension."""
+    if rom.endswith(".desktop"):
+        try:
+            with open(rom) as f:
+                for ln in f:
+                    if ln.startswith("Name="):
+                        return ln[5:].strip()
+        except OSError:
+            pass
+    return os.path.splitext(os.path.basename(rom))[0]
+
+
+def start(rom, system, emu="", core=""):
     with open(PLAYING, "w") as f:
         json.dump({"rom": rom, "sys": system, "start": int(time.time()), "mono": time.monotonic()}, f)
+    clean = lambda v: " ".join(v.split())   # no newlines in a field
+    with open(PLAYING_TXT, "w") as f:
+        f.write("|".join([clean(system), clean(emu), clean(core), str(os.getppid()), clean(game_name(rom))]) + "\n")
 
 
 def stop():
     p = playing()
+    try:
+        os.remove(PLAYING_TXT)
+    except OSError:
+        pass
     if not p:
         return
     os.remove(PLAYING)
@@ -57,4 +81,4 @@ def totals(log=None):
 
 
 if __name__ == "__main__":
-    start(sys.argv[2], sys.argv[3]) if sys.argv[1] == "start" else stop()
+    start(*sys.argv[2:6]) if sys.argv[1] == "start" else stop()
