@@ -84,8 +84,8 @@ live from bind-mounted dev builds before they reach an image.
   itself; something had crashed, and nothing survived to say what. Log to `/storage` across boots: kernel
   oopses/WARNs/panics (pstore/ramoops too), rfkill/airplane and NetworkManager radio changes, USB/PHY resume
   failures (`dwc3_qcom_pm_resume returns -110`), sway seat changes, and suspend/resume. Then they can be monitored.
-- **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse; the smp2p sleepstate driver meant to
-  help is unmeasured.
+- **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse (see Deep sleep plan). Since `9039`
+  (2026-10-14) DDR sits at 200 MHz asleep instead of 1555; the ≥1 h drain with it is unmeasured.
 - Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
 - **Steam:** back in the image (Valve's native ARM64 client in gamescope, x86 games through FEX and Proton ARM64).
   First run installs it with ROCKNIX's Install Steam (`0015` fixes it on the image's grep); games still untested.
@@ -109,6 +109,37 @@ live from bind-mounted dev builds before they reach an image.
 - Occasional `fenced register write (0x8a1)` from the GPU; no hang seen.
 - SD SDR104: Thorch keeps UHS off as unstable; watch for mmc errors after sleep.
 - No locale generation for `system.language` (ROCKNIX ES did it).
+
+## Deep sleep plan (2026-10-14)
+
+Goal: full SoC sleep (`cxsd`/`ddr`, ideally `aosd`, counting in `/sys/kernel/debug/qcom_stats/`), as Android does
+on this Thor (750+ CX/DDR collapses in 10 min, each one resumed). Today the PCIe suspend OPP (`0220`/`0221`)
+keeps a small DDR vote in sleep; without it the first wake from DDR low power resets the SoC. Full notes:
+`~/system/devices/ayn_thor_pro.md`, sections from "CXSD-only sleep experiment" on.
+
+**Known (2026-10-14):**
+- The reset is the SoC dropping PS_HOLD: XBL log (`9043`, `/sys/kernel/debug/xbl_log`) shows `Reset by PSHOLD`,
+  `Hard Reset` and, only after the crash, `PON by RTC`. Not a TZ crash (`qcom_scm` download mode stays unused),
+  not a power fault (PMIC PON registers match a normal reboot). DDR is re-initialised, so pstore stays empty.
+- It hits the first wake event after DDR enters low power (alarm +60: kernel 117 s after suspend; +300: 163 s).
+- Android's apps_rsc sleep/wake sets (RPMh trace, cmd-db names) match Linux's with the floor dropped, except
+  LDO E1 and E3, which Android switches off in SLEEP and on in WAKE. Copying that alone (`0028`, disabled in
+  `patches-disabled/`) hung a normal sleep: their consumers (PCIe PHY, USB PHY, DSI/UFS PLL) aren't ready.
+- Ruled out: ADSP/CDSP (stopped), UFS (already `spm_lvl=5`), MC4/SH5 (`9042`), Wi-Fi PDC table (`9038`),
+  AOSD block (`9037`), GPU stale votes (fixed by `9039`), display RSC (empty TCSs, `9044` disabled).
+
+**Plan (port Android's suspend behaviour driver by driver, Qualcomm downstream source:
+[OnePlusOSS/android_kernel_oneplus_sm8550](https://github.com/OnePlusOSS/android_kernel_oneplus_sm8550)):**
+1. Measure the ≥1 h unplugged sleep drain on the current image (`9039`) against the 100–135 mA baseline.
+2. PCIe: read `msm_pcie`'s system-suspend path (PHY power-down, GDSC, rails, its RPMh votes) and make
+   `pcie-qcom` do the same. Both LDO E1 and E3 feed the PCIe PHY.
+3. USB: same for `dwc3-msm` and the QMP/HS PHYs (`usb3_phy_gdsc` stays on in sleep today).
+4. Retry `0028` (LDO E1/E3 off in sleep) once no consumer still needs them.
+5. Floor-dropped test: `DEBUG=1 ~/system/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
+6. If still resetting: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for
+   X1E/SC8280XP), and ask AYN for its kernel source under the GPL.
+7. Clean up whatever is no longer needed: test switches (`9037`/`9038`/`9042`), ftrace (`0027`), ramoops
+   (`0029`/`0030`).
 
 ## Building
 
@@ -207,10 +238,16 @@ One merge request each; its description and commits say what was broken, why, an
 | Fan quiet in sleep (`9034`–`9035`, Kettle `1300` `1410`) | The 1 Hz RPM timer and tach IRQs kept waking s2idle (Kettle: blocks CPU cluster collapse). |
 | USB PHY pipe clock (`9036`) | One PHY init timeout (a USB-C cable wake) disabled `pipe_clk` twice; every later resume then failed (`-110`) and the controller held its 1 GB/s DDR vote through sleep until a reboot. |
 | Default output follows the jack (`0025`, WirePlumber rule) | ROCKNIX's `hdmi_sense` pinned the first sink at boot (our speaker EQ filter), so headphones never took over; and ALSA ranked the speaker above them. |
+| Gunyah watchdog driver (`0026`, `CONFIG_GUNYAH_WATCHDOG=y`) | Probe: shows whether the hypervisor has a watchdog (a `watchdog` under `/sys/class/watchdog`), a suspect for the restart on wake from full SoC collapse. The driver stops it at probe and across suspend. |
+| Game-aware battery and sleep logs (`playlog.py`, `battery-log.sh`, `asgard-sleep-audit`, `asgard-charge-fix`) | Native ports and PC apps were logged as "menu". Home's launch record (`/run/thor-playing.txt`) now names the game, emulator and core; sleeps log DDR residency and save interconnect/regulator/genpd summaries; the game is SIGSTOPped through a lid-closed cable wake. |
 | EQ filters at 100 % (`state.restore-props = false`) | While the speaker EQ was the pinned default, the volume keys moved it; a stale 45 % (−21 dB) stayed behind. |
 | Speaker/headphone EQ, AutoEQ, Joey (`asgard-eq.py`, `eq/`) | Selectable EQ. Joey's Retro Handhelds JamesDSP preset as a minimum-phase FIR (`gen-speaker-ir.py`) + width-2 widener + `asgard-limiter` (our LADSPA lookahead limiter: PipeWire has none, and the preset adds +15 dB). PipeWire 1.2.6's parametric-equalizer module ignores node names, so AutoEQ files become biquad filter-chains. |
 | Home sounds via `pw-play` | `QSoundEffect`'s audio thread once spun at 100 % holding a lock the UI waited on: Home froze. Qt Multimedia is gone. |
 | Battery report, charger chimes, scraper | Settings → Hardware → Battery; `charger-in`/`out` on the charger's online flag (the battery reads "Not charging" at the limit); Select → Scrape this game. |
+| GPU stale RPMh votes (`9039`) | Upstream [d9108bfdb746](https://github.com/torvalds/linux/commit/d9108bfdb746edacdb05bd27959a4ae63c6c7f3f), not in 7.2: an inverted check left the GPU RSC awake after any GPU use, holding DDR at 1555 MHz (4224 after Eden) through sleep. Now 200 MHz. |
+| LPASS macro votes, syscon XO (`9040`, `9041`) | From x1e-sleep: tx/rx macros held `macro`/`dcodec` (ADSP audio core) forever (upstream 7.3); syscon kept TCSR's parent `bi_tcxo` prepared. |
+| Deep-sleep test switches (`9037`, `9038`, `9042`) | Runtime-only, off by default: `qcom_aoss.aosd` (AOP `aoss_slp`), `pcie_qcom.suspend_floor`, `qcom_aoss.send` (raw AOP message), `asgard_ddr_wake.enable` (Android `dcvs_fp` MC4/SH5 votes). Driven by `aosd-test.sh`. |
+| Reset forensics (`9043`, `0027`, `0029`, `0030`) | XBL log in debugfs (reset reason), ftrace for RPMh traces, pstore console + 4 MB ramoops. Debug only; see Deep sleep plan step 7. |
 
 ## Projects to learn from
 

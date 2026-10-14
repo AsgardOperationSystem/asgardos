@@ -1,0 +1,43 @@
+From: Asgard <asgard@localhost>
+Subject: [PATCH] soc: qcom: aoss: raw message switch for the wlan_pdc experiment
+
+/sys/module/qcom_aoss/parameters/send (root, write-only) sends one QMP message
+to AOP. Used to replay the {class: wlan_pdc, ...} table that Android's cnss2
+sends for the WCN7850 (qcom,pdc_init_table, chip_cfg@1 = 0x1107) before
+retrying s2idle without the PCIe DDR floor. Depends on 9037.
+---
+diff --color -ru a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
+--- a/drivers/soc/qcom/qcom_aoss.c	2026-10-14 19:47:14.648619389 +0300
++++ b/drivers/soc/qcom/qcom_aoss.c	2026-10-14 19:47:14.655235247 +0300
+@@ -592,6 +592,31 @@
+ module_param_cb(aosd, &qmp_aosd_ops, &qmp_aosd, 0644);
+ MODULE_PARM_DESC(aosd, "allow AOSD (XO shutdown) in system sleep; 0 = stop at CXSD");
+ 
++/*
++ * Asgard sleep experiment: write one raw QMP message to AOP, e.g. the
++ * {class: wlan_pdc, ...} table Android's cnss2 sends for the WCN7850.
++ * Root-only, write-only: /sys/module/qcom_aoss/parameters/send.
++ */
++static int qmp_raw_set(const char *val, const struct kernel_param *kp)
++{
++	char msg[QMP_MSG_LEN];
++	int ret;
++
++	if (!qmp_aosd_inst)
++		return -ENODEV;
++	strscpy(msg, val, sizeof(msg));
++	strim(msg);
++	ret = qmp_send(qmp_aosd_inst, "%s", msg);
++	pr_info("qcom_aoss: sent \"%s\" (%d)\n", msg, ret);
++	return ret;
++}
++
++static const struct kernel_param_ops qmp_raw_ops = {
++	.set = qmp_raw_set,
++};
++module_param_cb(send, &qmp_raw_ops, NULL, 0200);
++MODULE_PARM_DESC(send, "send one raw QMP message to AOP");
++
+ static void qmp_debugfs_create(struct qmp *qmp)
+ {
+ 	const struct qmp_debugfs_entry *entry;
