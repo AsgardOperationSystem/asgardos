@@ -130,7 +130,7 @@ keeps a small DDR vote in sleep; without it the first wake from DDR low power re
 
 **Plan (port Android's suspend behaviour driver by driver, Qualcomm downstream source:
 [OnePlusOSS/android_kernel_oneplus_sm8550](https://github.com/OnePlusOSS/android_kernel_oneplus_sm8550)):**
-1. Measure the ≥1 h unplugged sleep drain on the current image (`9039`) against the 100–135 mA baseline.
+1. ~~Measure the ≥1 h unplugged sleep drain with `9039`.~~ Done 2026-10-15: 6.6 h at 102 mA and 1.9 h at 99 mA, with DDR at 200 MHz for the whole night. That is no better than the 100–135 mA baseline, so DDR clock was not the drain.
 2. PCIe: read `msm_pcie`'s system-suspend path (PHY power-down, GDSC, rails, its RPMh votes) and make
    `pcie-qcom` do the same. Both LDO E1 and E3 feed the PCIe PHY.
 3. USB: same for `dwc3-msm` and the QMP/HS PHYs (`usb3_phy_gdsc` stays on in sleep today).
