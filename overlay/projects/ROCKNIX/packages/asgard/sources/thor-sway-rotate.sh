@@ -47,6 +47,15 @@ grep -q '^# thor-love2' "$C" || printf '%s\n' '# thor-love2' \
   'for_window [title="^gen1recomp Secondary Display$"] fullscreen enable, exec swaymsg '"'"'[class="^love\.aarch64$" title="^(?!.*Secondary)"] focus'"'"'' >> "$C"
 # Thor Panel opens over Asgard Home's fullscreen bottom window; tiled, it sat half-width behind it, unseen (2026-10-10).
 grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title="^Thor Panel"] fullscreen enable' >> "$C"
+# Lumi-Dex (Luminescent Platinum companion, Firefox kiosk, app_id lumidex) on the bottom screen while Brilliant Diamond
+# runs in Eden (2026-10-16). Its title is "Mozilla Firefox" (not matched by ROCKNIX's bottom rules), so assign it to
+# DSI-1 before thor-fullscreen grabs the top screen, and do what those rules do by app_id. Focus goes back to Eden.
+grep -q '^# thor-lumidex' "$C" || printf '%s\n' '# thor-lumidex' \
+  'assign [app_id="^lumidex$"] output DSI-1' \
+  'for_window [app_id="^lumidex$"] output DSI-1 power on, focus output DSI-2' \
+  'for_window [app_id="^lumidex$"] exec swaymsg input "0:0:bottom_touchscreen" events enabled' \
+  'for_window [app_id="^lumidex$"] exec /usr/share/asgard/thor-bottom-rotate.sh 1.5' \
+  'for_window [title="Brilliant Diamond"] exec /storage/.config/thor/lumi-dex.sh' >> "$C"
 # Top screen refresh rate (asgard.refresh, Settings > Display or the Thor Panel): 120 Hz unless set to 60.
 R=$(sed -n 's/^asgard\.refresh=//p' /storage/.config/system/configs/system.cfg | tail -1)
 sed -i '/^# asgard-refresh/,+1d' "$C"
