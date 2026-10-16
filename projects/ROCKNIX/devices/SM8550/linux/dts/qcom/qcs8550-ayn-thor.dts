@@ -553,3 +553,7 @@
 		regulator-off-in-suspend;
 	};
 };
+
+&ufs_mem_phy {
+	vdda-qref-supply = <&vreg_l1e_0p88>;
+};
