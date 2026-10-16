@@ -118,7 +118,7 @@ DRV holding CX through s2idle for LPASS macro/SoundWire/LPI votes and the board 
 (replaces `9040`). With it and the floor off, a 1 h lid-closed sleep spent 99.9% (3732 of 3736 s) in
 CXSD/AOSD/DDR LPM at **~23–24 mA** (vs ~46 mA with the floor, ~100 mA before `0031`/`9045`/`0032`), with ~20 brief
 wakes that went straight back down. Power button and RTC alarm both wake it from there; audio, UFS and Wi-Fi resume
-fine. `suspend_floor` now defaults to off (`9037`). Next, if wanted: the remaining ~23 mA is board-level (panels,
+fine. `suspend_floor` now defaults to off (`9037`; verified on a fresh boot 2026-10-16). Deferred for now: the remaining ~23 mA is board-level (panels,
 touch, gamepad MCU, LEDs, Wi-Fi chip, PMIC); Armada's Odin 2 rail fixes are the first place to look.
 Note: `clk_summary` in debugfs runtime-resumes every clock provider while it prints, so it shows the LPASS macros
 active with `LPASS_HW_MACRO`/`DCODEC` enabled; read `/sys/kernel/debug/clk/<name>/clk_enable_count` instead.
