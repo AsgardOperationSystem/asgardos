@@ -57,6 +57,10 @@ def hide(names):
     state = pick(json.loads(sway("-t", "get_tree")), family(names))
     json.dump(state, open(STATE, "w"))
     for w in state:
+        # Fullscreen out first, on its own: moved to the scratchpad straight from fullscreen, LEGO Racers' (UE) surface
+        # stayed drawn at 0,0 over Home, hidden container or not (sway 1.11, 2026-10-16).
+        if w["fullscreen"]:
+            sway(f"[con_id={w['id']}] fullscreen disable")
         sway(f"[con_id={w['id']}] move scratchpad")
     subprocess.run(["killall", "-STOP", *names], capture_output=True)
 

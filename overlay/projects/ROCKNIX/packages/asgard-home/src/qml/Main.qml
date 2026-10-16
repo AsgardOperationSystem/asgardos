@@ -183,7 +183,11 @@ QtObject {
             }
         } else if (b === "b" && stack.length) {
             const top = stack[stack.length - 1]
-            stack = stack.slice(0, -1); items = top.items; sel = top.sel; openSys = ""
+            stack = stack.slice(0, -1); openSys = ""
+            // Back at the top: rebuilt, not the saved list, which predates a "Back to Home" from inside a system
+            // (the Return tile was missing). The Return tile comes or goes at the front: sel follows its row.
+            items = stack.length ? top.items : tabItems(tab)
+            sel = Math.max(0, Math.min(items.length - 1, top.sel + items.length - top.items.length))
         }
     }
 
