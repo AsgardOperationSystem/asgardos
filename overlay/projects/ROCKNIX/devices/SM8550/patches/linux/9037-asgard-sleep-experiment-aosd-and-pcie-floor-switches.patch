@@ -5,7 +5,9 @@ qcom_aoss.aosd=0 sends "{class: aoss_slp, res: sleep, val: disable}" so AOP
 stops system sleep at CXSD instead of AOSD (XO shutdown); justririll/x1e-sleep
 uses the same message on X1E, whose resets happen only inside AOSD.
 pcie_qcom.suspend_floor=0 drops the 0220/0221 DDR/LLCC suspend vote.
-Both default to the current behaviour and are writable at runtime.
+Both are writable at runtime. suspend_floor defaults to off since 2026-10-16:
+with 9045 (link powered down) and 9047 (LPASS votes released) the SoC reaches
+CXSD/AOSD/DDR LPM in s2idle, 99.9% of a 1 h sleep at ~23 mA (46 mA with the floor).
 ---
 diff --color -ru a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
 --- a/drivers/pci/controller/dwc/pcie-qcom.c	2026-10-14 19:32:08.456088973 +0300
@@ -16,10 +18,10 @@ diff --color -ru a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controll
   */
 +/*
 + * Asgard sleep experiment: pcie_qcom.suspend_floor=0 drops the opp-suspend
-+ * DDR/LLCC floor (0220/0221) back to NULL at suspend. Alone that restarts the
-+ * SoC on wake; it's meant to be tried together with qcom_aoss.aosd=0.
++ * DDR/LLCC floor (0220/0221) back to NULL at suspend. Off by default since
++ * 2026-10-16 (9045 + 9047: CXSD/AOSD reached, wakes fine); =1 puts it back.
 + */
-+static bool suspend_floor = true;
++static bool suspend_floor;
 +module_param(suspend_floor, bool, 0644);
 +MODULE_PARM_DESC(suspend_floor, "keep the opp-suspend DDR/LLCC vote in s2idle");
 +

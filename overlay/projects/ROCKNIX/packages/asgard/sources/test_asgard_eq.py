@@ -39,4 +39,12 @@ assert 'asgard.eq.speaker = "joey"' in t and 'node.name = "thor_dsp_speaker"' in
 assert "asgard-limiter.so" in t and "joey-speaker.wav" in t and 'outputs = [ "lim:Out L" "lim:Out R" ]' in t, t
 assert t.count("{") == t.count("}") and t.count("[") == t.count("]")
 assert eq.main(["x", "set", "speaker", "autoeq"])["error"].startswith("usage") and eq.main(["x", "set", "headphones", "joey"])["error"].startswith("usage")
+
+# Saved profiles: an old state (one peq, no "profiles") keeps its profile; "use" needs a saved name.
+import tempfile
+d = tempfile.mkdtemp()
+eq.STATE = os.path.join(d, "eq.json")
+open(eq.STATE, "w").write('{"headphones": "off", "headphones_name": "HD 600", "peq": "x"}')
+assert eq.load_state()["profiles"] == {"HD 600": "x"} and eq.main(["x", "status"])["saved"] == ["HD 600"]
+assert eq.main(["x", "use", "HD 650"])["error"].startswith("No saved")
 print("ok")

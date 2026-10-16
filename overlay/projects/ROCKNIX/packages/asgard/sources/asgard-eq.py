@@ -4,6 +4,7 @@
 #   asgard-eq.py set speaker thor|joey|off, set headphones thor|off|autoeq
 #   asgard-eq.py search <text>           AutoEQ profiles whose name has every word (needs internet)
 #   asgard-eq.py autoeq <path> <name>    download that profile's ParametricEQ.txt and use it for the headphones
+#   asgard-eq.py use <name>              use a headphone profile downloaded before (eq.json "profiles", no internet)
 # The Thor's own curves are 50-thor-dsp.conf (system); each module there loads only while asgard.eq.<output> is unset.
 # We write 60-asgard-eq.conf: that property for every output not on "thor", plus the AutoEQ filter-chain, as the same
 # smart filter (thor_dsp_headphones) so PipeWire routing is unchanged. PipeWire 1.2.6's parametric-equalizer module
@@ -24,9 +25,13 @@ SOURCES = ["oratory1990", "crinacle", "Rtings", "Innerfidelity", "HypetheSonics"
 def load_state():
     try:
         with open(STATE) as f:
-            return json.load(f)
+            st = json.load(f)
     except (OSError, ValueError):
         return {}
+    # Every downloaded profile is kept ("profiles": name -> ParametricEQ.txt); a state from before that keeps its one.
+    if "profiles" not in st and st.get("peq"):
+        st["profiles"] = {st.get("headphones_name") or "AutoEQ": st["peq"]}
+    return st
 
 
 def parse_peq(text):
@@ -168,7 +173,7 @@ def main(argv):
     cmd = argv[1] if len(argv) > 1 else "status"
     if cmd == "status":
         return {"speaker": st.get("speaker", "thor"), "headphones": st.get("headphones", "thor"),
-                "headphones_name": st.get("headphones_name", "")}
+                "headphones_name": st.get("headphones_name", ""), "saved": sorted(st.get("profiles", {}), key=str.lower)}
     if cmd == "set" and len(argv) == 4 and (argv[2], argv[3]) in {(o, m) for o in ("speaker", "headphones") for m in ("thor", "off")} | {
             ("speaker", "joey"), ("headphones", "autoeq")}:
         if argv[3] == "autoeq" and not st.get("peq"):
@@ -190,9 +195,17 @@ def main(argv):
         if not parse_peq(peq)[1]:
             return {"error": "That profile has no parametric EQ"}
         st.update(headphones="autoeq", headphones_name=name, peq=peq)
+        st.setdefault("profiles", {})[name] = peq
         apply(st)
         return {"ok": True}
-    return {"error": "usage: status | set speaker|headphones thor|off|autoeq | search <text> | autoeq <path> <name>"}
+    if cmd == "use" and len(argv) == 3:
+        peq = st.get("profiles", {}).get(argv[2])
+        if not peq:
+            return {"error": "No saved profile named " + argv[2]}
+        st.update(headphones="autoeq", headphones_name=argv[2], peq=peq)
+        apply(st)
+        return {"ok": True}
+    return {"error": "usage: status | set speaker|headphones thor|off|autoeq | search <text> | autoeq <path> <name> | use <name>"}
 
 
 if __name__ == "__main__":

@@ -17,7 +17,9 @@
 #include <fcntl.h>
 #include <linux/input.h>
 #include <linux/uinput.h>
+#include <netinet/in.h>
 #include <sys/ioctl.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -299,6 +301,7 @@ void Backend::launch(const QVariantMap &game)
 {
     if (m_game)
         return;
+    m_launched = game;
     const QString rom = game["path"].toString(), sys = game["sys"].toString();
     // The emulator/core chosen for this game, else for its system, else ROCKNIX's default (what ROCKNIX ES did).
     const QString file = QFileInfo(rom).fileName();
@@ -358,6 +361,7 @@ void Backend::runTool(const QString &script, const QStringList &args)
 {
     if (m_game)
         return;
+    m_launched.clear();
     if (!QFile::exists(script)) {  // desktop
         qInfo("tool %s", qPrintable(script));
         return;
@@ -374,6 +378,8 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
     connect(m_game, &QProcess::finished, this, [this] {
         m_game->deleteLater();
         m_game = nullptr;
+        m_background = false;
+        QFile::remove("/run/asgard-bg.json");   // asgard-background.py's state: no game in the background now
         setGameMenu(false);
         // ROCKNIX's Steam/Heroic launchers set seat1 as a fallback seat and only undo it on a clean exit. Left on,
         // every touch reaches us on seat0 and seat1, and the phantom second press steals taps (the power button).
@@ -409,6 +415,8 @@ void Backend::command(const QString &cmd)
             setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
         if (runningGame().contains("azahar") || runningGame().contains("eden"))
             gameKeys("F4");      // pause / unpause (Azahar and Eden keep running when they lose focus)
+        if (runningGame().contains("retroarch"))
+            retroarch("PAUSE_TOGGLE");
         if (open)
             setGameMenu(true);
     }
@@ -453,6 +461,54 @@ void Backend::gameKeys(const QString &combo)
     for (auto it = keys.rbegin(); it != keys.rend(); ++it) emitKey(*it, 0);
 }
 
+// "Back to Home" from the in-game menu: the game's windows go to sway's scratchpad and its processes freeze
+// (asgard-background.py), and our windows come back (playing() is false) until resumeGame() or the game is quit.
+void Backend::toBackground()
+{
+    const QStringList names = runningGame();
+    if (!m_game || m_background || m_launched.isEmpty() || names.isEmpty())
+        return;
+    setGameMenu(false);
+    QProcess::execute("python3", QStringList{"/usr/share/asgard/asgard-background.py", "hide"} + names);
+    m_background = true;
+    topScreenOn();
+    emit playingChanged();
+}
+
+void Backend::resumeGame()
+{
+    if (!m_background)
+        return;
+    m_background = false;
+    emit playingChanged();   // our windows hide
+    QProcess::startDetached("python3", QStringList{"/usr/share/asgard/asgard-background.py", "show"} + runningGame());
+}
+
+// RetroArch's network command port (runemu.sh enables it on dual-screen devices). Fire and forget: PAUSE_TOGGLE,
+// MENU_TOGGLE, SAVE_STATE, LOAD_STATE, SCREENSHOT, RESET.
+void Backend::retroarch(const QString &cmd)
+{
+    const int s = ::socket(AF_INET, SOCK_DGRAM, 0);
+    if (s < 0)
+        return;
+    sockaddr_in a = {};
+    a.sin_family = AF_INET;
+    a.sin_port = htons(55355);
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    const QByteArray b = cmd.toUtf8();
+    ::sendto(s, b.constData(), b.size(), 0, reinterpret_cast<sockaddr *>(&a), sizeof a);
+    ::close(s);
+}
+
+// Press buttons on InputPlumber's virtual pad. SendButtonChord skips the profile, so Guide reaches Steam as Home even
+// while steam-pad-profile.py maps the physical Home to F20.
+void Backend::padChord(const QStringList &buttons)
+{
+    QProcess::startDetached("busctl", QStringList{"call", "org.shadowblip.InputPlumber",
+        "/org/shadowblip/InputPlumber/CompositeDevice0", "org.shadowblip.Input.CompositeDevice", "SendButtonChord",
+        "as", QString::number(buttons.size())} + buttons);
+}
+
 void Backend::quitGame()
 {
     const QStringList names = runningGame();
@@ -468,7 +524,8 @@ void Backend::quitGame()
             if (w.startsWith('-'))
                 sig = w;
     const QString n = names.join(' ');
-    shell("killall " + sig + " " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
+    // A game in the background is frozen (SIGSTOP): it would only act on the quit signal once continued.
+    shell((m_background ? "killall -CONT " + n + "; " : QString()) + "killall " + sig + " " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
           "killall -KILL " + n);
 }
 

@@ -17,7 +17,8 @@ class Backend : public QObject
     Q_PROPERTY(QVariantList recent READ recent NOTIFY libraryChanged)
     Q_PROPERTY(int battery READ battery NOTIFY statusChanged)       // -1 = no battery (desktop)
     Q_PROPERTY(bool charging READ charging NOTIFY statusChanged)
-    Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)
+    Q_PROPERTY(bool playing READ playing NOTIFY playingChanged)   // a game is running in front (not in the background)
+    Q_PROPERTY(QVariantMap background READ background NOTIFY playingChanged)  // the game "Back to Home" left, or {}
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
     Q_PROPERTY(bool screensOff READ screensOff WRITE setScreensOff NOTIFY screensOffChanged)  // OLED rest (X)
     Q_PROPERTY(bool gameMenu READ gameMenu WRITE setGameMenu NOTIFY gameMenuChanged)  // in-game menu (Home tap)
@@ -28,7 +29,8 @@ public:
     QVariantList recent() const { return m_recent; }
     int battery() const { return m_battery; }
     bool charging() const { return m_charging; }
-    bool playing() const { return m_game != nullptr; }
+    bool playing() const { return m_game != nullptr && !m_background; }
+    QVariantMap background() const { return m_background ? m_launched : QVariantMap(); }
     bool screensOff() const { return m_screensOff; }
     void setScreensOff(bool off);
     bool gameMenu() const { return m_gameMenu; }
@@ -51,6 +53,10 @@ public:
     Q_INVOKABLE QStringList runningGame() const;          // the running emulator's process names
     Q_INVOKABLE void gameKeys(const QString &combo);      // focus the game and press e.g. "F4", "Alt+S"
     Q_INVOKABLE void quitGame();
+    Q_INVOKABLE void toBackground();   // "Back to Home": the game freezes, its windows hide, we show
+    Q_INVOKABLE void resumeGame();     // "Return to <game>"
+    Q_INVOKABLE void retroarch(const QString &cmd);       // RetroArch network command, e.g. "PAUSE_TOGGLE"
+    Q_INVOKABLE void padChord(const QStringList &buttons); // InputPlumber, past its profile: "Gamepad:Button:Guide"
     Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
 
 signals:
@@ -83,6 +89,8 @@ private:
     bool m_charging = false;
     int m_plugged = -1;                   // charger online flag, -1 until first read
     QProcess *m_game = nullptr;
+    QVariantMap m_launched;           // the game m_game runs ({} for tools)
+    bool m_background = false;
     bool m_gameMenu = false;
     int m_keys = -1;   // uinput keyboard for emulator hotkeys
     int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu")

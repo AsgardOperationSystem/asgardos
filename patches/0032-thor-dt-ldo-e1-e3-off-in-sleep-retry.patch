@@ -1,0 +1,29 @@
+From: Chaos Ruler <zmelumian@gmail.com>
+Subject: [PATCH] Thor DT: LDO E1/E3 off in sleep, like Android (retry of 0028 with the PCIe link powered down)
+
+0028 hung even a floor-kept sleep (2026-10-14) while the Wi-Fi PCIe link stayed up
+with its PHY on these rails. 0031/9045 now power the link down in suspend.
+---
+--- a/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts	2026-10-15 23:34:13.514975309 +0300
++++ b/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts	2026-10-15 23:34:13.515730997 +0300
+@@ -536,3 +536,20 @@
+ 		};
+ 	};
+ };
++
++/*
++ * Asgard 0028: Android's apps_rsc sleep/wake sets (RPMh trace, 2026-10-14) switch
++ * LDO E1 (0x43900) and E3 (0x43a00) off in SLEEP and back on in WAKE, around every
++ * CX/DDR collapse. With 0218/0219 this makes Linux write the same pair.
++ */
++&vreg_l1e_0p88 {
++	regulator-state-mem {
++		regulator-off-in-suspend;
++	};
++};
++
++&vreg_l3e_1p2 {
++	regulator-state-mem {
++		regulator-off-in-suspend;
++	};
++};

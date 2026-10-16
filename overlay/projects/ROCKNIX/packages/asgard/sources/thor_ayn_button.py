@@ -6,8 +6,12 @@
 * Button 10 (BTN_MODE on InputPlumber's virtual pad) **tapped alone** (released within TAP_S, nothing else pressed
   meanwhile): open the running emulator's menu, or exit games whose emulator has none. Holding it with other buttons
   is left alone, so ROCKNIX's hotkey combos (it's their modifier) keep working.
-  - RetroArch: MENU_TOGGLE over its network command port (runemu.sh enables it on dual-screen devices).
+  - RetroArch: Asgard Home's in-game menu too (it has a "RetroArch menu" entry); RetroArch's own menu
+    (MENU_TOGGLE over its network command port, enabled by runemu.sh on dual-screen devices) without a frontend.
   - PPSSPP, ARMSX2, AetherSX2: Esc (their pause menus), from a small uinput keyboard.
+  - Steam: InputPlumber turns Home into F20 on its keyboard while Steam runs (steam-pad-profile.py), so Steam
+    never sees it; F20 opens Asgard Home's in-game menu (Steam overlay / Quick Access entries), or Steam's own
+    overlay without a frontend.
   - anything else (Azahar, melonDS, Dolphin, ...): Asgard Home's in-game menu (paused, save/load, quit...), through
     its command FIFO; exit (SIGTERM, then SIGKILL after EXIT_GRACE_S) if the frontend isn't there to show it.
 """
@@ -20,7 +24,7 @@ import struct
 import subprocess
 import time
 
-KEY_F24, BTN_MODE, KEY_ESC = 194, 316, 1
+KEY_F24, KEY_F20, BTN_MODE, KEY_ESC = 194, 190, 316, 1
 EV_SYN, EV_KEY, EV_ABS = 0, 1, 3
 ABS_HAT0X, ABS_HAT0Y = 16, 17
 TAP_S = 0.5
@@ -31,6 +35,7 @@ EVENT_FMT = "llHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FMT)
 ESC_EMULATORS = ("ppsspp", "armsx2-qt", "aethersx2")
 MENU_FIFO = "/run/asgard-home.cmd"
+BACKGROUND = "/run/asgard-bg.json"   # asgard-background.py: a game is frozen behind Asgard Home ("Back to Home")
 
 
 def find_device(want):
@@ -79,7 +84,7 @@ def freeze_game(stop):
     """SIGSTOP (stop) / SIGCONT the running game's processes; works for every emulator, unlike their own pause keys.
     Steam is left alone (it has its own overlay). Returns whether anything was frozen."""
     names = [n for n in running_game() if n != "steam"]
-    if not names or "steam" in running_game():
+    if not names or "steam" in running_game() or os.path.exists(BACKGROUND):  # a background game stays frozen
         return False
     subprocess.run(["killall", "-STOP" if stop else "-CONT", *names], capture_output=True)
     return True
@@ -107,10 +112,11 @@ def exit_game(names):
 
 def guide_tap(keyboard):
     names = running_game()
-    if not names or "steam" in names:   # Steam: Home is its Quick Access button (steam-pad-profile.py)
+    if not names or "steam" in names or os.path.exists(BACKGROUND):   # Home itself is in front: a plain tap   # Steam: Home is its Quick Access button (steam-pad-profile.py)
         return
     if "retroarch" in names:
-        socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"MENU_TOGGLE", ("127.0.0.1", 55355))
+        if not frontend_menu():
+            socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"MENU_TOGGLE", ("127.0.0.1", 55355))
     elif any(n in ESC_EMULATORS for n in names) and keyboard:
         env = frontend_env()   # focus it first, so the Esc reaches it (not the bottom screen)
         if env:
@@ -119,6 +125,14 @@ def guide_tap(keyboard):
         keyboard.tap(KEY_ESC)
     elif not frontend_menu():
         exit_game(names)
+
+
+def steam_home():
+    """Home while Steam runs (F20 from InputPlumber): our menu, else Steam's overlay (Guide, past the profile)."""
+    if "steam" in running_game() and not os.path.exists(BACKGROUND) and not frontend_menu():
+        subprocess.run(["busctl", "call", "org.shadowblip.InputPlumber", "/org/shadowblip/InputPlumber/CompositeDevice0",
+                        "org.shadowblip.Input.CompositeDevice", "SendButtonChord", "as", "1", "Gamepad:Button:Guide"],
+                       capture_output=True)
 
 
 def frontend_menu():
@@ -149,6 +163,10 @@ def main():
         path = find_device("Sony Interactive Entertainment DualSense Wireless Controller")
         if path:
             fds[os.open(path, os.O_RDONLY)] = "pad"
+        if "kbd" not in fds.values():   # InputPlumber's keyboard: F20 = Home while Steam runs
+            path = find_device("InputPlumber Keyboard")
+            if path:
+                fds[os.open(path, os.O_RDONLY)] = "kbd"
 
     try:
         keyboard = Keyboard()
@@ -183,6 +201,11 @@ def main():
                             panel = subprocess.Popen(["python3", PANEL], env=env, start_new_session=True,
                                                      stdout=subprocess.DEVNULL,
                                                      stderr=open("/tmp/thor-panel.log", "a"))
+                continue
+            if fds[fd] == "kbd":
+                if etype == EV_KEY and code == KEY_F20 and value == 1 and time.monotonic() - last_tap > DEBOUNCE_S:
+                    last_tap = time.monotonic()
+                    steam_home()
                 continue
             # virtual pad: detect a lone tap of button 10
             if etype == EV_KEY and code == BTN_MODE:

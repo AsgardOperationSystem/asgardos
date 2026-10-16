@@ -33,6 +33,9 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib/systemd/system/fancontrol.service.d
   cp ${PKG_DIR}/fancontrol.service.d/*.conf ${INSTALL}/usr/lib/systemd/system/fancontrol.service.d/
 
+  mkdir -p ${INSTALL}/usr/lib/systemd/system/systemd-logind.service.d
+  cp ${PKG_DIR}/systemd-logind.service.d/*.conf ${INSTALL}/usr/lib/systemd/system/systemd-logind.service.d/
+
   mkdir -p ${INSTALL}/usr/lib/systemd/logind.conf.d
   cp ${PKG_DIR}/logind.conf.d/*.conf ${INSTALL}/usr/lib/systemd/logind.conf.d/
 

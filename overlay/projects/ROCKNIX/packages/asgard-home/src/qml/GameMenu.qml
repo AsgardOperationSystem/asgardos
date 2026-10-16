@@ -1,7 +1,9 @@
 import QtQuick
 
 // In-game menu on the bottom screen (Home tapped while a game runs; backend.gameMenu). The game is paused while it
-// is open. Azahar and Eden get their hotkeys (quick save/load, screens, docked mode...); others get Resume and Quit.
+// is open. Azahar and Eden get their hotkeys (quick save/load, screens, docked mode...), RetroArch its network
+// commands and its own menu (on the top screen, in its window), Steam its overlay and Quick Access (not paused: Steam
+// has no pause); others get Resume and Quit.
 Item {
     id: menu
     property bool open: backend.gameMenu
@@ -9,6 +11,8 @@ Item {
     property var game: []                    // running emulator process names, read when the menu opens
     readonly property bool azahar: game.indexOf("azahar") >= 0
     readonly property bool eden: game.indexOf("eden") >= 0
+    readonly property bool retroarch: game.indexOf("retroarch") >= 0
+    readonly property bool steam: game.indexOf("steam") >= 0
 
     property real openedAt: 0
     onOpenChanged: if (open) { game = backend.runningGame(); sel = 0; openedAt = Date.now() }
@@ -17,8 +21,21 @@ Item {
         backend.gameMenu = false
         for (const k of keys || []) backend.gameKeys(k)
         if (azahar || eden) backend.gameKeys("F4")
+        if (retroarch) backend.retroarch("PAUSE_TOGGLE")
     }
-    readonly property var items: azahar ? [
+    function raResume(cmd) {                 // a RetroArch command (it runs while paused), then unpause
+        backend.retroarch(cmd)
+        resume()
+    }
+    // "Back to Home" after Resume in every menu: resume() first undoes the menu's own pause (RetroArch, Azahar, Eden),
+    // so the game isn't still paused when it comes back. Only games: tools have no kill data to freeze.
+    function withHome(list) {
+        if (!game.length) return list
+        const home = { icon: "home", title: "Back to Home", sub: "The game waits in the background",
+                       run: () => { resume(); backend.toBackground() } }
+        return [list[0], home].concat(list.slice(1))
+    }
+    readonly property var items: withHome(azahar ? [
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
         { icon: "save", title: "Quick save", sub: "Save state to the quick slot", run: () => resume(["Alt+S"]) },
         { icon: "load", title: "Quick load", sub: "Load the quick slot", run: () => resume(["Alt+L"]) },
@@ -28,6 +45,23 @@ Item {
         { icon: "sparkle", title: "Screenshot", sub: "Saved by Azahar", run: () => resume(["Ctrl+P"]) },
         { icon: "refresh", title: "Restart", sub: "Unsaved progress is lost",
           run: () => { backend.gameMenu = false; backend.gameKeys("F6") } },
+        { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }
+    ] : steam ? [
+        { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
+        { icon: "list", title: "Steam overlay", sub: "Opens on the top screen",
+          run: () => { backend.gameMenu = false; backend.padChord(["Gamepad:Button:Guide"]) } },
+        { icon: "gear", title: "Quick Access", sub: "Steam's side menu",
+          run: () => { backend.gameMenu = false; backend.padChord(["Gamepad:Button:QuickAccess"]) } },
+        { icon: "power", title: "Exit Steam", sub: "Closes Steam and its game", run: () => backend.quitGame() }
+    ] : retroarch ? [
+        { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
+        // Unpause first: RetroArch keeps a paused game paused after its menu closes.
+        { icon: "list", title: "RetroArch menu", sub: "Opens on the top screen",
+          run: () => { backend.gameMenu = false; backend.retroarch("PAUSE_TOGGLE"); backend.retroarch("MENU_TOGGLE") } },
+        { icon: "save", title: "Quick save", sub: "Save state to the current slot", run: () => raResume("SAVE_STATE") },
+        { icon: "load", title: "Quick load", sub: "Load the current slot", run: () => raResume("LOAD_STATE") },
+        { icon: "sparkle", title: "Screenshot", sub: "Saved by RetroArch", run: () => raResume("SCREENSHOT") },
+        { icon: "refresh", title: "Restart", sub: "Unsaved progress is lost", run: () => raResume("RESET") },
         { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }
     ] : eden ? [
         // No save states on Switch emulators: games save themselves.
@@ -42,7 +76,7 @@ Item {
     ] : [
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
         { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }
-    ]
+    ])
 
     function nav(b) {
         if (!open) return false

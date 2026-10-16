@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Effects
 
 // One cell of the bottom grid. kind: "game" (cover + system badge), "system" (pastel card), "jump" (2-wide
-// "Jump back in!" with the last game), "ra" (trophy game: cover + progress), "ach" (one achievement's badge).
+// "Return to game", the game in the background), "ra" (trophy game: cover + progress), "ach" (one achievement's badge).
 // The selected tile grows a little and gets the cyan-violet rim + glow; a mastered set has a gold rim.
 Item {
     id: tile
@@ -151,7 +151,7 @@ Item {
             color: tile.kind === "system" ? Theme.ink(tile.item.sys.name) : "transparent"
             text: tile.kind === "system" ? tile.item.sys.name.toUpperCase() : ""
         }
-        // jump: last game's screenshot, darkened, its cover on the left, "(A) Jump back in!" pill
+        // jump: the background game's screenshot, darkened, its cover on the left, "(A) Return to game" pill
         Image {
             visible: tile.kind === "jump"
             anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true
@@ -174,7 +174,7 @@ Item {
             visible: tile.kind === "jump"
             anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 18
             width: jumpHint.implicitWidth + 36; height: 62; border.width: 2
-            Hint { id: jumpHint; anchors.centerIn: parent; glyph: "A"; label: "Jump back in!"; size: 36 }
+            Hint { id: jumpHint; anchors.centerIn: parent; glyph: "A"; label: "Return to game"; size: 36 }
         }
     }
     // system badge on game tiles (top-left), like iiSU's console badge

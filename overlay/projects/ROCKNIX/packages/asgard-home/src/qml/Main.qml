@@ -27,9 +27,9 @@ QtObject {
 
     function homeItems() {
         const out = []
-        const recent = backend.recent
-        if (recent.length)
-            out.push({ kind: "jump", game: recent[0] })
+        const bg = backend.background        // a game left with "Back to Home": first, to return to it
+        if (bg.path)
+            out.push({ kind: "jump", game: bg })
         for (const s of ordered(backend.systems))
             out.push({ kind: "system", sys: s })
         return out
@@ -132,10 +132,11 @@ QtObject {
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
         backend.sound(b === "a" ? "select" : b === "b" || b === "x" ? "back" : b === "start" || b === "select"
                       ? (bottom.settingsPanel.open ? "back" : "open") : "move")
+        if (bottom.confirmPanel.nav(b)) return
         if (bottom.settingsPanel.nav(b)) return                            // Settings open: it takes the buttons
         if (bottom.powerMenuPanel.nav(b)) return
         if (b === "x") { backend.screensOff = true; return }              // X: both OLED panels off
-        // Start: the game's settings in a game list; Settings everywhere else, the "Recently played" tile included.
+        // Start: the game's settings in a game list; Settings everywhere else, the "Return to game" tile included.
         if (b === "start") { if (gameSettingsHere) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
         if (bottom.gameActionsPanel.nav(b)) return
         // Select: a game's menu (scrape, details); details anywhere else.
@@ -170,8 +171,15 @@ QtObject {
                 const picked = current               // items = [] below makes current null
                 pendingRa = picked; items = []; sel = 0
                 achievements.details(picked.ra.raId)
-            } else if (current.kind === "game" || current.kind === "jump") {
-                backend.launch(current.game)
+            } else if (current.kind === "jump") {
+                backend.resumeGame()
+            } else if (current.kind === "game") {
+                const bg = backend.background, g = current.game
+                if (!bg.path) backend.launch(g)
+                else if (bg.path === g.path) backend.resumeGame()
+                else bottom.confirmPanel.open("Close " + bg.name + "?", bg.name + " is in the background. Close it to start "
+                                              + g.name + "; unsaved progress is lost.", "Close it",
+                                              () => { pendingLaunch = g; backend.quitGame() })
             }
         } else if (b === "b" && stack.length) {
             const top = stack[stack.length - 1]
@@ -179,6 +187,16 @@ QtObject {
         }
     }
 
+    // The game picked after "Close it": started once the background game has exited.
+    property var pendingLaunch: null
+    property Connections bgGame: Connections { target: backend; function onPlayingChanged() { app.gameStateChanged() } }
+    function gameStateChanged() {
+        if (!stack.length && tab === 0) items = tabItems(0)   // the Return tile comes and goes
+        if (pendingLaunch && !backend.playing && !backend.background.path) {
+            const g = pendingLaunch; pendingLaunch = null
+            Qt.callLater(() => backend.launch(g))
+        }
+    }
     property Connections padInput: Connections { target: pad; function onPressed(button) { app.nav(button) } }
     property Connections library: Connections {
         target: backend
@@ -329,6 +347,7 @@ QtObject {
         width: app.swapped ? 1920 : 1240; height: 1080; color: "#0b0c14"
         visible: !shotMode && (!backend.playing || (backend.gameMenu && !app.swapped))  // the in-game menu shows below
         property alias settingsPanel: settingsPanel
+        property alias confirmPanel: confirmPanel
         property alias gameMenuPanel: gameMenuPanel
         property alias powerMenuPanel: powerMenuPanel
         property alias gameActionsPanel: gameActionsPanel
@@ -445,6 +464,7 @@ QtObject {
                 }
             }
             Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
+            Confirm { id: confirmPanel; anchors.fill: parent; z: 150 }
             GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200; visible: open && !app.swapped }
             PowerMenu { id: powerMenuPanel; anchors.fill: parent; z: 150 }
             PowerMenu {

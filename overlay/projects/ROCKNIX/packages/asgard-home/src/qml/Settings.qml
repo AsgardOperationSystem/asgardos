@@ -13,8 +13,6 @@ Item {
     property int row: 0
     property var stack: []                   // sub-pages: [{title, build}]
     property var live: ({})                  // command results (Wi-Fi, Bluetooth, USB...): key -> value
-    property var ask: null                   // confirm dialog: {title, text, yes, run}
-    property int askSel: 1                   // 0 = Cancel, 1 = the action
     signal closed()
 
     readonly property color ink: "#2a2b3d"
@@ -25,7 +23,7 @@ Item {
     // Y on a game: Settings opened straight on that game's page.
     function showGame(g) { show(); cat = 2; stack = [{ title: g.name, build: () => gamePage(g), closeOnBack: true }]; zone = "list" }
     function showPower() { show(); cat = categories.findIndex(c => c.title === "Power"); zone = "list" }
-    function show() { open = true; zone = "side"; row = 0; stack = []; ask = null; keyboard.open = false; refresh(); rev++ }
+    function show() { open = true; zone = "side"; row = 0; stack = []; dialog.ask = null; keyboard.open = false; refresh(); rev++ }
     function close() { open = false; closed() }
 
     // --- content ------------------------------------------------------------------------------------------------
@@ -71,7 +69,7 @@ Item {
         })
     }
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
-    function confirm(title, text, yes, run) { ask = { title: title, text: text, yes: yes, run: run }; askSel = 1 }
+    function confirm(title, text, yes, run) { dialog.open(title, text, yes, run) }
 
     readonly property var percents: [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(v => [v + "%", "" + v])
     readonly property var fanModes: [["Quiet", "quiet"], ["Smart", "moderate"], ["Sport", "aggressive"],
@@ -133,8 +131,9 @@ Item {
             [eqRow("speaker", "Speaker EQ", "Joey's: louder, fuller bass and wider (community JamesDSP tuning)"),
              eqRow("headphones", "Headphone EQ", live.eqMsg || (live.eq && live.eq.headphones_name ? "AutoEQ profile: " + live.eq.headphones_name
                                                                                                : "Follows the headphone jack")),
-             action("speaker", "Find your headphones", "AutoEQ corrects your model's sound; needs internet",
-                    () => keyboard.ask("Headphone model", "", false, v => { if (v && v.trim()) eqSearch(v.trim()) }))],
+             live.eq && live.eq.saved && live.eq.saved.length
+                 ? link("speaker", "Your headphones", "Saved AutoEQ profiles, or find another model", eqSavedPage)
+                 : action("speaker", "Find your headphones", "AutoEQ corrects your model's sound; needs internet", eqAsk)],
             [toggle("battery", "Charger sounds", "A chime when the charger is plugged in or out", "asgard.charger_sounds", "1")]]
         case "Display": return [
             [toggle("display", "Separate screen brightness", "Set the top and bottom screens on their own",
@@ -303,14 +302,26 @@ Item {
             if (then && !r.error) then()
         })
     }
+    // Headphones cycle through Thor tuning, Off and every saved AutoEQ profile (by name); each step applies at once.
     function eqRow(which, title, sub) {
-        const modes = which === "speaker" ? [["Thor tuning", "thor"], ["Joey (Retro Handhelds)", "joey"], ["Off", "off"]]
-                                          : [["Thor tuning", "thor"], ["Off", "off"]]
-        if (which === "headphones" && live.eq && live.eq.headphones_name) modes.push(["AutoEQ", "autoeq"])
-        const cur = live.eq ? live.eq[which] : "thor"
+        const modes = which === "speaker" ? [["Thor tuning", "set speaker thor"], ["Joey (Retro Handhelds)", "set speaker joey"], ["Off", "set speaker off"]]
+                                          : [["Thor tuning", "set headphones thor"], ["Off", "set headphones off"]]
+        if (which === "headphones" && live.eq)
+            for (const n of live.eq.saved || []) modes.push([n, "use " + q(n)])
+        const e = live.eq, cur = !e ? "" : which === "headphones" && e.headphones === "autoeq" ? "use " + q(e.headphones_name)
+                                                                                          : "set " + which + " " + e[which]
         const i = Math.max(0, modes.findIndex(m => m[1] === cur))
-        return { kind: "choice", icon: "speaker", title: title, sub: sub, value: live.eq ? modes[i][0] : "…",
-                 step: d => eqRun("set " + which + " " + modes[(i + d + modes.length) % modes.length][1]) }
+        return { kind: "choice", icon: "speaker", title: title, sub: sub, value: e ? modes[i][0] : "…",
+                 step: d => eqRun(modes[(i + d + modes.length) % modes.length][1]) }
+    }
+    function eqAsk() { keyboard.ask("Headphone model", "", false, v => { if (v && v.trim()) eqSearch(v.trim()) }) }
+    // Headphones found before (no internet needed), then a search for a new model.
+    function eqSavedPage() {
+        const e = live.eq || {}
+        return [(e.saved || []).map(n => action("speaker", n,
+                    e.headphones === "autoeq" && e.headphones_name === n ? "In use" : "Use this AutoEQ profile",
+                    () => eqRun("use " + q(n), () => { stack = stack.slice(0, -1); row = 0; rev++ }))),
+                [action("speaker", "Find another model", "Search AutoEQ; needs internet", eqAsk)]]
     }
     function eqSearch(text) {
         note("eqMsg", "Searching AutoEQ…")
@@ -487,12 +498,7 @@ Item {
     function nav(b) {
         if (!open) return false
         if (keyboard.nav(b)) return true
-        if (ask) {
-            if (b === "left" || b === "right") askSel = 1 - askSel
-            else if (b === "b") ask = null
-            else if (b === "a") { const a = ask; ask = null; if (askSel === 1) a.run() }
-            return true
-        }
+        if (dialog.nav(b)) return true
         if (b === "start" || (b === "b" && zone === "side" && !stack.length)) { close(); return true }
         if (zone === "side") {
             if (b === "up") cat = (cat + categories.length - 1) % categories.length
@@ -530,6 +536,8 @@ Item {
             Text {
                 x: 32; y: 26; text: settings.stack.length > 1 ? "‹  " + settings.stack[settings.stack.length - 2].title
                   : settings.stack.length ? "‹  " + settings.categories[settings.cat].title : "Settings"
+                // long back labels ("‹  Emulator options") ran into the page title: shrink, then elide, inside the panel
+                width: side.width - 2 * x; fontSizeMode: Text.HorizontalFit; minimumPixelSize: 28; elide: Text.ElideRight
                 font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: settings.ink
             }
             Column {
@@ -575,14 +583,20 @@ Item {
             id: list
             x: side.x + side.width + 26; y: 96; width: parent.width - x - 26; height: parent.height - y - 22
             clip: true; interactive: false
-            contentHeight: groupsCol.height
-            contentY: {
-                const r = rowItems[settings.row]
-                if (!r || settings.zone !== "list") return 0
-                return Math.max(0, Math.min(contentHeight - height, r.mapToItem(groupsCol, 0, 0).y - height / 2 + 60))
+            // Row positions from the page itself (rows 112 px, 22 px between groups): a change rebuilds every row
+            // item, and positions read from the new items (not laid out yet) scrolled the list back to the top.
+            readonly property real rowY: {
+                let y = 0, n = settings.row
+                for (const g of settings.page) {
+                    if (n < g.length) return y + n * 112
+                    y += g.length * 112 + 22; n -= g.length
+                }
+                return 0
             }
+            readonly property real pageHeight: settings.page.reduce((h, g) => h + g.length * 112 + 22, 0) - 22
+            contentHeight: pageHeight
+            contentY: settings.zone !== "list" ? 0 : Math.max(0, Math.min(pageHeight - height, rowY - height / 2 + 60))
             Behavior on contentY { NumberAnimation { duration: Theme.anim } }
-            property var rowItems: []
 
             Column {
                 id: groupsCol
@@ -601,7 +615,6 @@ Item {
                                 Item {
                                     readonly property int flatIndex: group.base + index
                                     readonly property bool sel: settings.zone === "list" && flatIndex === settings.row
-                                    Component.onCompleted: { const a = list.rowItems.slice(); a[flatIndex] = this; list.rowItems = a }
                                     width: rows.width; height: 112
                                     Rectangle {
                                         anchors.fill: parent; anchors.margins: 6; radius: 22
@@ -672,39 +685,6 @@ Item {
         }
     }
 
-    // confirm dialog
-    Item {
-        anchors.fill: parent; visible: !!settings.ask
-        Rectangle { anchors.fill: parent; color: "#99000000"; MouseArea { anchors.fill: parent; onClicked: settings.ask = null } }
-        Rectangle {
-            anchors.centerIn: parent; width: 760; height: 380; radius: 44; color: "#ebedf2"; border.color: "white"; border.width: 2
-            MouseArea { anchors.fill: parent }
-            Text {
-                x: 48; y: 44; text: settings.ask ? settings.ask.title : ""
-                font.family: Theme.font; font.pixelSize: 42; font.weight: Font.Black; color: settings.ink
-            }
-            Text {
-                x: 48; y: 116; width: parent.width - 96; wrapMode: Text.WordWrap; text: settings.ask ? settings.ask.text : ""
-                font.family: Theme.font; font.pixelSize: 30; font.weight: Font.Bold; color: settings.inkDim
-            }
-            Row {
-                anchors.right: parent.right; anchors.bottom: parent.bottom; anchors.margins: 40; spacing: 22
-                Repeater {
-                    model: ["Cancel", settings.ask ? settings.ask.yes : ""]
-                    Rectangle {
-                        readonly property bool sel: settings.askSel === index
-                        width: 250; height: 92; radius: 46
-                        color: sel ? Theme.selB : "#d6d8e0"; border.color: sel ? Theme.selA : "transparent"; border.width: 3
-                        Text { anchors.centerIn: parent; text: modelData; color: parent.sel ? "white" : settings.ink
-                               font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Black }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: { const a = settings.ask; settings.ask = null; if (index === 1) a.run() }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    Confirm { id: dialog; anchors.fill: parent }
     Keyboard { id: keyboard; anchors.fill: parent }
 }

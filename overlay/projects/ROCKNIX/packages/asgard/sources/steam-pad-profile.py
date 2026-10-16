@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""steam-pad-profile.py on|off: while Steam runs, Home (Guide) opens Steam's Quick Access menu, not the Steam menu.
+"""steam-pad-profile.py on|off: while Steam runs, Home (Guide) opens Asgard Home's in-game menu, not Steam's.
 
-InputPlumber's profile for the pad gets one more mapping (Guide -> QuickAccess) on "on"; the profile from before is
-kept in /run and loaded back on "off". start_steam.sh calls it around gamescope.
+InputPlumber's profile for the pad gets one more mapping (Guide -> F20 on its keyboard, which Steam ignores and
+thor_ayn_button.py turns into the menu) on "on"; the profile from before is kept in /run and loaded back on "off".
+start_steam.sh calls it around gamescope. The menu's Steam overlay / Quick Access entries inject Guide through
+InputPlumber's SendButtonChord, which skips the profile, so they reach Steam as a real Home press.
 """
 import json
 import os
@@ -12,14 +14,14 @@ import sys
 DEV = ["org.shadowblip.InputPlumber", "/org/shadowblip/InputPlumber/CompositeDevice0",
        "org.shadowblip.Input.CompositeDevice"]
 SAVED = "/run/asgard-ip-profile.yaml"
-MARK = "Home opens Quick Access"
+MARK = "Home opens the Asgard menu"
+OLD_MARKS = ("Home opens Quick Access",)   # a profile saved by an older version of this script
 HOME_TO_QAM = f"""- name: {MARK}
   source_event:
     gamepad:
       button: Guide
   target_events:
-  - gamepad:
-      button: QuickAccess
+  - keyboard: KeyF20
 """
 
 
@@ -39,7 +41,7 @@ def with_home_to_qam(yaml):
 def main(mode):
     if mode == "on":
         cur = json.loads(call("GetProfileYaml"))["data"][0]
-        if MARK not in cur:
+        if MARK not in cur and not any(m in cur for m in OLD_MARKS):
             open(SAVED, "w").write(cur)
         call("LoadProfileFromYaml", "s", with_home_to_qam(cur))
     elif mode == "off" and os.path.exists(SAVED):

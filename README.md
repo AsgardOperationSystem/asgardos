@@ -110,7 +110,18 @@ live from bind-mounted dev builds before they reach an image.
 - SD SDR104: Thorch keeps UHS off as unstable; watch for mmc errors after sleep.
 - No locale generation for `system.language` (ROCKNIX ES did it).
 
-## Deep sleep plan (2026-10-14)
+## Deep sleep plan (2026-10-14, updated 2026-10-15) — done 2026-10-16
+
+**Done 2026-10-16: `cxsd`, `aosd` and `ddr` all count.** The CX blocker was audio: Armada's
+[PR #723](https://github.com/armada-os/armada/pull/723) (Odin 3, SM8750, 7.8 mA asleep) found the ADSP's "AUDIO"
+DRV holding CX through s2idle for LPASS macro/SoundWire/LPI votes and the board I2S clock. Ported as `9047`
+(replaces `9040`). With it and the floor off, a 1 h lid-closed sleep spent 99.9% (3732 of 3736 s) in
+CXSD/AOSD/DDR LPM at **~23–24 mA** (vs ~46 mA with the floor, ~100 mA before `0031`/`9045`/`0032`), with ~20 brief
+wakes that went straight back down. Power button and RTC alarm both wake it from there; audio, UFS and Wi-Fi resume
+fine. `suspend_floor` now defaults to off (`9037`). Next, if wanted: the remaining ~23 mA is board-level (panels,
+touch, gamepad MCU, LEDs, Wi-Fi chip, PMIC); Armada's Odin 2 rail fixes are the first place to look.
+Note: `clk_summary` in debugfs runtime-resumes every clock provider while it prints, so it shows the LPASS macros
+active with `LPASS_HW_MACRO`/`DCODEC` enabled; read `/sys/kernel/debug/clk/<name>/clk_enable_count` instead.
 
 Goal: full SoC sleep (`cxsd`/`ddr`, ideally `aosd`, counting in `/sys/kernel/debug/qcom_stats/`), as Android does
 on this Thor (750+ CX/DDR collapses in 10 min, each one resumed). Today the PCIe suspend OPP (`0220`/`0221`)
@@ -128,17 +139,37 @@ keeps a small DDR vote in sleep; without it the first wake from DDR low power re
 - Ruled out: ADSP/CDSP (stopped), UFS (already `spm_lvl=5`), MC4/SH5 (`9042`), Wi-Fi PDC table (`9038`),
   AOSD block (`9037`), GPU stale votes (fixed by `9039`), display RSC (empty TCSs, `9044` disabled).
 
+**Found 2026-10-15: the floor only hid a live PCIe link.** The Wi-Fi link never powered down in sleep:
+`pcie_ports=compat` left the root port without a driver, and the root port advertises Hot-Plug Capable, which
+(without pciehp) keeps `pci_bridge_d3_possible()` false. So the port stayed in D0, D3cold was refused and
+`qcom_pcie_suspend_noirq()` kept the controller, PHY, clocks and rails on. Fixed by `0031` (no `pcie_ports=compat`)
+and `9045` (clear SltCap HPC/HPS). Now the root port goes to D3hot and the link retrains on every resume.
+With the floor dropped (`suspend_floor=0`), 8 RTC sleeps (45 s–3 min) all resumed and `ddr` counted DDR LPM
+for the first time (~55 of 60 s). Kettle has the same fix for SM8250 only (their `1140`); for Kettle's Thor:
+[gist](https://gist.github.com/zmelumian972/3dc7b5a002f0564eada3f27b6d0d8807).
+
+**Still 0 (2026-10-15): `cxsd`, `aosd`.** Ruled out as the CX blocker, each with a floor-off 60 s sleep:
+LDO E1/E3 (`0032` turns them off in sleep, like Android; it no longer hangs now the link is down), USB (controller
+and combo PHY unbound, `usb3_phy_gdsc` off), the apps RSC's own votes (RPMh trace: CX level 0, every BCM 0 in the
+sleep set). Left: requesters the apps trace can't see (ADSP/CDSP votes, display RSC) and AOP QMP messages Android
+sends that Linux doesn't. Stopping ADSP/CDSP isn't a valid test: DDR LPM stopped too, and the sound card was lost.
+
 **Plan (port Android's suspend behaviour driver by driver, Qualcomm downstream source:
 [OnePlusOSS/android_kernel_oneplus_sm8550](https://github.com/OnePlusOSS/android_kernel_oneplus_sm8550)):**
 1. ~~Measure the ≥1 h unplugged sleep drain with `9039`.~~ Done 2026-10-15: 6.6 h at 102 mA and 1.9 h at 99 mA, with DDR at 200 MHz for the whole night. That is no better than the 100–135 mA baseline, so DDR clock was not the drain.
-2. PCIe: read `msm_pcie`'s system-suspend path (PHY power-down, GDSC, rails, its RPMh votes) and make
-   `pcie-qcom` do the same. Both LDO E1 and E3 feed the PCIe PHY.
-3. USB: same for `dwc3-msm` and the QMP/HS PHYs (`usb3_phy_gdsc` stays on in sleep today).
-4. Retry `0028` (LDO E1/E3 off in sleep) once no consumer still needs them.
-5. Floor-dropped test: `DEBUG=1 ~/system/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
-6. If still resetting: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for
+2. ~~PCIe.~~ Done (`0031`, `9045`): no port of `msm_pcie` needed. Android keeps the link in L1ss and hands it to
+   the ADSP (`qcom,drv-name = "lpass"`, DRV over rpmsg); mainline now powers it fully down instead (D3cold).
+3. ~~USB.~~ Not the CX blocker (see above). "HS-PHY not in L2" is noise: device mode, no cable. The combo PHY
+   stays runtime-active (DP aux bridge), keeping `usb3_phy_gdsc` on while awake.
+4. ~~Retry `0028`.~~ Done as `0032`: works, but CX still doesn't collapse.
+5. Floor-dropped overnight sleep: `echo 0 > /sys/module/pcie_qcom/parameters/suspend_floor` (runtime, resets at
+   boot), lid closed, unplugged, then compare drain with the ~100 mA baseline. If it holds, make 0 the default.
+   Short tests: `~/system/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
+6. CX: list the AOP QMP messages the downstream drivers send (`qmp_send`/`aop_msg` in the OnePlus tree) and replay
+   them at runtime through `qcom_aoss.send` (`9038`). Then the display RSC.
+7. If still blocked: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for
    X1E/SC8280XP), and ask AYN for its kernel source under the GPL.
-7. Clean up whatever is no longer needed: test switches (`9037`/`9038`/`9042`), ftrace (`0027`), ramoops
+8. Clean up whatever is no longer needed: test switches (`9037`/`9038`/`9042`), ftrace (`0027`), ramoops
    (`0029`/`0030`).
 
 ## Building
@@ -245,9 +276,19 @@ One merge request each; its description and commits say what was broken, why, an
 | Home sounds via `pw-play` | `QSoundEffect`'s audio thread once spun at 100 % holding a lock the UI waited on: Home froze. Qt Multimedia is gone. |
 | Battery report, charger chimes, scraper | Settings → Hardware → Battery; `charger-in`/`out` on the charger's online flag (the battery reads "Not charging" at the limit); Select → Scrape this game. |
 | GPU stale RPMh votes (`9039`) | Upstream [d9108bfdb746](https://github.com/torvalds/linux/commit/d9108bfdb746edacdb05bd27959a4ae63c6c7f3f), not in 7.2: an inverted check left the GPU RSC awake after any GPU use, holding DDR at 1555 MHz (4224 after Eden) through sleep. Now 200 MHz. |
-| LPASS macro votes, syscon XO (`9040`, `9041`) | From x1e-sleep: tx/rx macros held `macro`/`dcodec` (ADSP audio core) forever (upstream 7.3); syscon kept TCSR's parent `bi_tcxo` prepared. |
-| Deep-sleep test switches (`9037`, `9038`, `9042`) | Runtime-only, off by default: `qcom_aoss.aosd` (AOP `aoss_slp`), `pcie_qcom.suspend_floor`, `qcom_aoss.send` (raw AOP message), `asgard_ddr_wake.enable` (Android `dcvs_fp` MC4/SH5 votes). Driven by `aosd-test.sh`. |
-| Reset forensics (`9043`, `0027`, `0029`, `0030`) | XBL log in debugfs (reset reason), ftrace for RPMh traces, pstore console + 4 MB ramoops. Debug only; see Deep sleep plan step 7. |
+| LPASS released in sleep (`9047`, replaces `9040`) | Armada PR #723: upstream 7.3 PM-clock conversion of the wsa/va/tx/rx macros, macros + SoundWire + LPI pinctrl force-suspended across system sleep, and the board I2S clock dropped at suspend (rewritten for our `sc8280xp.c`). Lets AOP collapse CX. |
+| Syscon XO (`9041`) | From x1e-sleep: syscon kept TCSR's parent `bi_tcxo` prepared. |
+| UFS PHY QREF supply (`9048`, `0033`) | Kettle 1402: the UFS PHY's reference-clock buffer on L1E gets a 30 mA load, so a wake doesn't fail PHY calibration ("Failed to calibrate PHY: -110", then all I/O fails). |
+| Bottom panel timings (`9046`) | CH13726A on Android's DT timings (60 Hz, 12/4/12 porches) plus a 120 ms wait after sleep-out. Didn't cure the bottom-screen flicker. |
+| logind watchdog off (`systemd-logind.service.d`) | After a long s2idle, systemd's 3 min watchdog killed logind on resume and NetworkManager left Wi-Fi unavailable. |
+| Saved headphone EQ profiles (`asgard-eq.py`) | Every headphone found keeps its profile; Settings > Audio cycles Thor tuning / Off / saved names, "Your headphones" lists them. |
+| Deep-sleep test switches (`9037`, `9038`, `9042`) | Runtime switches; `pcie_qcom.suspend_floor` is off by default since 2026-10-16 (=1 restores the floor), the rest off by default: `qcom_aoss.aosd` (AOP `aoss_slp`), `pcie_qcom.suspend_floor`, `qcom_aoss.send` (raw AOP message), `asgard_ddr_wake.enable` (Android `dcvs_fp` MC4/SH5 votes). Driven by `aosd-test.sh`. |
+| Reset forensics (`9043`, `0027`, `0029`, `0030`) | XBL log in debugfs (reset reason), ftrace for RPMh traces, pstore console + 4 MB ramoops. Debug only; see Deep sleep plan step 8. Since 2026-10-15 reading `xbl_log` faults (synchronous external abort, the reading `cat` is killed): don't read it unless debugging a reset. |
+| Wi-Fi PCIe link off in sleep (`0031`, `9045`) | The root port had no driver (`pcie_ports=compat`) and advertised hot-plug, so it never left D0 and the link, controller, PHY and rails stayed on through sleep. Now D3cold; see Deep sleep plan. |
+| LDO E1/E3 off in sleep (`0032`) | What Android's sleep set does (PCIe/USB/UFS/DSI PHY rails). Retry of `0028`, which hung while the PCIe link was still up. |
+| In-game menu for RetroArch and Steam | Home opened RetroArch's own menu and Steam's Quick Access directly. Now Home opens ours (bottom screen) everywhere except PPSSPP/ARMSX2/AetherSX2. RetroArch: paused over its network command port (`PAUSE_TOGGLE`), with RetroArch menu, quick save/load, screenshot, restart. Steam: `steam-pad-profile.py` maps Home to F20 (Steam never sees it, `thor_ayn_button.py` opens our menu); Steam overlay / Quick Access are injected with InputPlumber's `SendButtonChord`, which skips the profile. |
+| Back to Home (`asgard-background.py`) | Leave a game without quitting: its windows go to sway's scratchpad and its processes are SIGSTOPped; Home's first tile returns to it. Starting another game asks to close it first. The old "Jump back in" tile is gone. |
+| gen1recomp on the top screen (`thor-sway-rotate.sh`) | LÖVE re-creates its window at every launcher↔game switch; with focus on the bottom screen the launcher (and its quit X) opened there. |
 
 ## Projects to learn from
 

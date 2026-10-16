@@ -37,6 +37,14 @@ grep -q '^# asgard-bottom' "$C" || printf '%s\n' '# asgard-bottom' 'for_window [
 grep -q '^# asgard-assign' "$C" || printf '%s\n' '# asgard-assign' \
   'assign [title="^Asgard Home$"] output DSI-2' \
   'assign [title="^Asgard Home \(Bottom\)$"] output DSI-1' >> "$C"
+# gen1recomp (LÖVE under XWayland) re-creates its window at every launcher<->game switch; with focus on the bottom
+# screen (a tap there) the launcher, and its quit X, opened on DSI-1 (2026-10-15). Pin LÖVE windows to the top.
+# Its dual-screen companion (0.3.58+, e.g. the Kanto Gear mod) is a second LÖVE process titled "gen1recomp Secondary
+# Display": ROCKNIX's "Secondary" rules move it to DSI-1 and power that on; fill it and give focus back to the game.
+grep -q '^# thor-love2' "$C" || printf '%s\n' '# thor-love2' \
+  'assign [class="^love\.aarch64$" title="^(?!.*Secondary)"] output DSI-2' \
+  'for_window [class="^love\.aarch64$" title="^(?!.*Secondary)"] focus' \
+  'for_window [title="^gen1recomp Secondary Display$"] fullscreen enable, exec swaymsg '"'"'[class="^love\.aarch64$" title="^(?!.*Secondary)"] focus'"'"'' >> "$C"
 # Thor Panel opens over Asgard Home's fullscreen bottom window; tiled, it sat half-width behind it, unseen (2026-10-10).
 grep -q '^# thor-panel' "$C" || printf '%s\n' '# thor-panel' 'for_window [title="^Thor Panel"] fullscreen enable' >> "$C"
 # Top screen refresh rate (asgard.refresh, Settings > Display or the Thor Panel): 120 Hz unless set to 60.
