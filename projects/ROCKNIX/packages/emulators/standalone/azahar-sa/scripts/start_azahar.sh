@@ -285,5 +285,12 @@ else
   ${GPTOKEYB} azahar -c /tmp/azahar.gptk &
 fi
 
+# Force 60 Hz: the top screen at the bottom one's 60 Hz while the game runs. At 120 Hz Azahar's two vsynced windows
+# (separate-windows layout) present out of step and the bottom screen redraws unevenly. Restored to Asgard's
+# "Top screen refresh rate" afterwards.
+FORCE60=$(get_setting force_60_hz "${PLATFORM}" "${GAME}")
+[ "${FORCE60}" = "1" ] && swaymsg output DSI-2 mode 1080x1920@60Hz >/dev/null
+
 ${EMUPERF} /usr/bin/azahar "${1}"
+[ "${FORCE60}" = "1" ] && swaymsg output DSI-2 mode "1080x1920@$(get_setting asgard.refresh | grep . || echo 120)Hz" >/dev/null
 kill -9 $(pidof gptokeyb)
