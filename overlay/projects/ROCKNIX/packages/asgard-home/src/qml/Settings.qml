@@ -156,12 +156,25 @@ Item {
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.
-            [...[["little", "Efficiency cores", "3× Cortex-A510", "90"], ["mid", "Performance cores", "2× A715 + 2× A710", "75"],
-                ["prime", "Prime core", "1× Cortex-X3", "75"]].map(c =>
-                choice("chip", c[1] + " clock", c[2] + ", % of top clock", "asgard.cpu_cap." + c[0],
-                       get("asgard.cpu_cap") === "0" ? "100" : c[3],
-                       Array.from({ length: 16 }, (_, i) => 25 + 5 * i).map(v => [v + "%", "" + v]),
-                       () => backend.shell("/usr/share/asgard/asgard-cpu-cap.sh"))),
+            // Per core type: clock cap, % of the cluster's top clock, and whether its cores are on (asgard-cpu-cap.sh;
+            // games can override both in their emulator options). Lower = cooler, longer battery.
+            [...[["little", "Little core (A510)", "3× Cortex-A510", "90"], ["mid", "Big cores (A715/A710)", "2× A715 + 2× A710", "75"],
+                ["prime", "Prime core (X3)", "1× Cortex-X3", "75"]].map(c => {
+                const page = () => {
+                    const apply = () => backend.shell("/usr/share/asgard/asgard-cpu-cap.sh")
+                    const clock = choice("chip", "Clock", c[2] + ", % of top clock", "asgard.cpu_cap." + c[0],
+                                         get("asgard.cpu_cap") === "0" ? "100" : c[3],
+                                         Array.from({ length: 16 }, (_, i) => 25 + 5 * i).map(v => [v + "%", "" + v]), apply)
+                    const on = get("asgard.cpu_cores." + c[0]) !== "off"
+                    const enabled = { kind: "choice", icon: "chip", title: "Enabled",
+                                      sub: c[0] === "little" ? "CPU0 always stays on" : "", value: on ? "On" : "Off",
+                                      step: d => { if (on && allCoresOff("asgard", "", c[0], "off")) return   // the last type on
+                                                   set("asgard.cpu_cores." + c[0], on ? "off" : ""); apply() } }
+                    return [[clock, enabled]]
+                }
+                const p = page()[0]
+                return link("chip", c[1], p[0].value + " · " + (p[1].value === "On" ? "on" : "off"), page)
+            }),
              { kind: "choice", icon: "fan", title: "Fan", sub: "Curve, or a fixed speed",
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
                step: d => { const i = Math.max(0, fanModes.findIndex(m => m[1] === fanNow()));
@@ -422,19 +435,48 @@ Item {
         }
         return live[k]
     }
+    // Core types switched off, as a game would get them: its own value, else the system's, else the global one.
+    // At least one type stays on (asgard-cpu-lib.sh keeps the prime core otherwise; the menus don't offer it).
+    readonly property var coreTypes: ["little", "mid", "prime"]
+    function allCoresOff(prefix, inherit, type, value) {
+        return coreTypes.every(t => {
+            const own = t === type ? value : get(prefix + ".cpu_cores_" + t)
+            return (own || (inherit ? get(inherit + ".cpu_cores_" + t) : "") || get("asgard.cpu_cores." + t)) === "off"
+        })
+    }
     function optionsPage(prefix, emu, core, inherit) {
         const feats = features(emu, core)
         if (feats === null) return [[info("refresh", "Loading options…", emu + " / " + core)]]
         if (!feats.length) return [[info("info", "No extra options", emu + " / " + core + " has none in ROCKNIX")]]
-        return [feats.map(f => {
+        const row = f => {
             const key = prefix + "." + f.key
             const cur = get(key)
             const label = v => (f.choices.find(c => c[1] === v) || [v])[0]
             const parent = inherit ? get(inherit + "." + f.key) : ""
             const values = [""].concat(f.choices.map(c => c[1]))
+            const type = f.key.startsWith("cpu_cores_") ? f.key.slice(10) : ""
             return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? "Default (" + label(parent) + ")" : "Default",
-                     step: d => set(key, values[(Math.max(0, values.indexOf(cur)) + d + values.length) % values.length]) }
-        })]
+                     step: d => { let i = Math.max(0, values.indexOf(cur))
+                                  for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off
+                                      i = (i + d + values.length) % values.length
+                                      if (!type || !allCoresOff(prefix, inherit, type, values[i])) break
+                                  }
+                                  set(key, values[i]) } }
+        }
+        // Grouped features (thor_settings.py GROUPS: core types, Sleep) are submenus, in the order they first appear.
+        const out = [], groups = {}
+        for (const f of feats) {
+            if (!f.group) { out.push(row(f)); continue }
+            if (!groups[f.group]) {
+                groups[f.group] = []
+                const g = groups[f.group]
+                out.push(link(f.group === "Sleep" ? "moon" : "chip", f.group, "", () => [g.map(row)]))
+            }
+            groups[f.group].push(f)
+        }
+        for (const r of out)   // a group's link shows its rows' current values
+            if (r.kind === "link") r.sub = groups[r.title].map(f => row(f).value).join(" · ")
+        return [out]
     }
 
     // RetroAchievements sign-in: ROCKNIX's RetroArch launcher builds cheevos_username/password from these keys on

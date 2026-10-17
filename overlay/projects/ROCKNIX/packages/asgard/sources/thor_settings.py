@@ -112,14 +112,22 @@ def gpu_driver_choices():
     return [(n, n) for n in names]
 
 
-# Per-system / per-game performance profile (asgard-perf-profile.sh, run by runemu.sh around the emulator):
-# clock caps and cores per cluster, and the fan. Unset ("Default") = the global Settings > Performance values.
+# Per-system / per-game profile (asgard-perf-profile.sh, run by runemu.sh around the emulator): clock cap and cores
+# per core type, the fan, and what the lid / power key do. Unset ("Default") = the global Settings > Hardware values.
+# Grouped (GROUPS): Asgard Home shows each group as a submenu.
 PCT = [(f"{v}%", str(v)) for v in range(25, 101, 5)]
 ON_OFF = [("On", "on"), ("Off", "off")]
-PERF_FEATURES = [("cpu cap little", PCT), ("cpu cap mid", PCT), ("cpu cap prime", PCT),
-                 ("cpu cores little", ON_OFF), ("cpu cores mid", ON_OFF), ("cpu cores prime", ON_OFF),
+PERF_FEATURES = [("cpu cap little", PCT), ("cpu cores little", ON_OFF),
+                 ("cpu cap mid", PCT), ("cpu cores mid", ON_OFF),
+                 ("cpu cap prime", PCT), ("cpu cores prime", ON_OFF),
                  ("fan mode", [("Quiet", "quiet"), ("Smart", "moderate"), ("Sport", "aggressive"),
-                               ("30%", "77"), ("50%", "128"), ("75%", "191"), ("100%", "255")])]
+                               ("30%", "77"), ("50%", "128"), ("75%", "191"), ("100%", "255")]),
+                 ("sleep mode", [("Suspend", "suspend"), ("Screens off, keep running", "screen")]),
+                 ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF)]
+GROUPS = {"cpu cap little": "Little core (A510)", "cpu cores little": "Little core (A510)",
+          "cpu cap mid": "Big cores (A715/A710)", "cpu cores mid": "Big cores (A715/A710)",
+          "cpu cap prime": "Prime core (X3)", "cpu cores prime": "Prime core (X3)",
+          "sleep mode": "Sleep", "sleep wifi": "Sleep", "sleep bt": "Sleep"}
 
 
 def _standard(attr):
@@ -177,9 +185,10 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "gpu accuracy": "GPU accuracy", "astc decoding": "ASTC texture decoding",
           "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)",
           "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)",
-          "cpu cap little": "Efficiency cores clock (A510)", "cpu cap mid": "Performance cores clock (A715/A710)",
-          "cpu cap prime": "Prime core clock (X3)", "cpu cores little": "Efficiency cores (A510, CPU0 stays on)",
-          "cpu cores mid": "Performance cores (A715/A710)", "cpu cores prime": "Prime core (X3)", "fan mode": "Fan"}
+          "cpu cap little": "Clock", "cpu cap mid": "Clock", "cpu cap prime": "Clock",
+          "cpu cores little": "Enabled (CPU0 always stays on)", "cpu cores mid": "Enabled", "cpu cores prime": "Enabled",
+          "fan mode": "Fan", "sleep mode": "Lid / power button", "sleep wifi": "Wi-Fi while screens off",
+          "sleep bt": "Bluetooth while screens off"}
 
 
 def pretty(name):
@@ -613,9 +622,12 @@ BY_KEY = {"game": page_game, "system": page_system, "wifi": page_wifi, "bluetoot
 def dump_features(emulator, core):
     """--features EMULATOR CORE: the options as JSON, for Asgard Home's native Settings pages:
     [{"key", "label", "choices": [[label, value], ...]}]. Keys are system.cfg suffixes (<system>.<key>)."""
-    feats = load_features().get((emulator, core)) or load_features().get((emulator, None), [])
-    print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch]}
-                      for n, ch in feats]))
+    feats = load_features().get((emulator, core)) or load_features().get((emulator, None))
+    if feats is None:   # not in ROCKNIX's catalogue (e.g. gmu, the Music Player): the options every emulator gets
+        drivers = gpu_driver_choices()
+        feats = ([("gpu driver", drivers)] if drivers else []) + PERF_FEATURES
+    print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
+                       **({"group": GROUPS[n]} if n in GROUPS else {})} for n, ch in feats]))
 
 
 def main():

@@ -1,70 +1,73 @@
 #!/bin/bash
-# Per-system / per-game performance profile, from the emulator options (thor_settings.py adds them to every emulator):
-#   cpu_cap_little|mid|prime     clock cap, % of the cluster's top clock (25-100); unset = the global caps
-#   cpu_cores_little|mid|prime   "off" takes the cluster's cores offline (CPU0 stays: the kernel can't offline it)
-#   fan_mode                     as Settings > Performance > Fan: quiet|moderate|aggressive, or a fixed 0-255 speed
-# runemu.sh calls "apply <platform> <rom file>" before the emulator and "restore" after it. apply saves what it changes
-# in $SAVED; restore brings every core back online, re-runs asgard-cpu-cap.sh (the global caps) and puts the fan back.
+# Per-system / per-game profile, from the emulator options (thor_settings.py adds them to every emulator); unset ones
+# keep the global values (Settings > Hardware > Performance, asgard-cpu-cap.sh):
+#   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100)      type: little | mid | prime
+#   cpu_cores_<type>   "on" / "off": that cluster's cores (at least one type stays on; CPU0 always does)
+#   fan_mode           as Settings > Performance > Fan: quiet|moderate|aggressive, or a fixed 0-255 speed
+#   sleep_mode         "screen": the lid and the power key turn the screens off and keep the game running (music on
+#                      the headphone jack) instead of suspending: asgard-screens-off.sh, with a sleep inhibitor held
+#                      meanwhile; sleep_wifi / sleep_bt "off" also take those radios down while the screens are off
+# runemu.sh calls "apply <platform> <rom file>" before the emulator and "restore" after it; restore re-runs
+# asgard-cpu-cap.sh (all cores online, then the global settings) and puts the fan back.
 #   asgard-perf-profile.sh apply|restore [platform rom]
+#   asgard-perf-profile.sh cpu <platform> <rom>   only the caps and cores (asgard-screens-off.sh, screens back on)
 . /etc/profile.d/001-functions
-SAVED=/run/asgard-perf.saved
-CPU=/sys/devices/system/cpu
-CLUSTERS="little:0:1-2 mid:3:3-6 prime:7:7"   # name:cpufreq policy:CPUs that can go offline
+. /usr/share/asgard/asgard-cpu-lib.sh
+SAVED=/run/asgard-perf.saved    # present while a profile is applied; .fan holds the fan settings to restore
+KEEP=/run/asgard-keep-running   # "<platform>\t<rom>" while sleep_mode=screen; power-handler checks it
 
-cpus() { local a=${1%-*} b=${1#*-}; seq "$a" "$b"; }
 # system.cfg key=value; an empty value removes the key (set_setting "" leaves the old line, which still wins).
 setkey() { local cfg=/storage/.config/system/configs/system.cfg; sed -i "/^${1//./\\.}=/d" $cfg; [ -n "$2" ] && echo "$1=$2" >> $cfg; }
 
+# The game's caps and cores over the global ones; prints "set" if it changed anything.
+cpu() {
+  local platform=$1 game=$2 t pct cores off=""
+  for t in $TYPES; do
+    pct=$(get_setting "cpu_cap_$t" "$platform" "$game")
+    cores=$(get_setting "cpu_cores_$t" "$platform" "$game")
+    [ -n "$pct$cores" ] && echo set
+    [ "$cores" = on ] && online_type "$t" 1
+    [ -n "$pct" ] && set_cap "$t" "$pct"
+    { [ "$cores" = off ] || { [ -z "$cores" ] && [ "$(get_setting "asgard.cpu_cores.$t")" = off ]; }; } && off="$off $t"
+  done
+  offline_types "$off"
+  write_affinity
+}
+
 apply() {
-  local platform=$1 game=$2 changed=0
+  local platform=$1 game=$2 changed fan
   [ -f "$SAVED" ] && restore   # a profile left over from a game that didn't get to restore (crash, kill -9)
-  for c in $CLUSTERS; do
-    IFS=: read -r name policy offline <<< "$c"
-    pct=$(get_setting "cpu_cap_$name" "$platform" "$game")
-    P=$CPU/cpufreq/policy$policy
-    if [ -n "$pct" ] && [ -d "$P" ]; then
-      [ "$pct" -ge 25 ] 2>/dev/null || pct=25
-      [ "$pct" -le 100 ] || pct=100
-      want=$(( $(cat $P/cpuinfo_max_freq) * pct / 100 ))
-      khz=$(tr ' ' '\n' < $P/scaling_available_frequencies | awk -v w="$want" '$1 && $1 <= w && $1 > b {b = $1} END {print b}')
-      echo "${khz:-$(cat $P/cpuinfo_min_freq)}" > $P/scaling_max_freq
-      changed=1
-    fi
-  done
-  # Cores last: a cluster's policy directory goes away with its cores. Never mid and prime together, or the
-  # emulator would be left on the A510s alone (and big-core taskset masks with no online CPU): prime stays.
-  local mid_off prime_off
-  mid_off=$(get_setting cpu_cores_mid "$platform" "$game"); prime_off=$(get_setting cpu_cores_prime "$platform" "$game")
-  for c in $CLUSTERS; do
-    IFS=: read -r name policy offline <<< "$c"
-    [ "$(get_setting "cpu_cores_$name" "$platform" "$game")" = off ] || continue
-    [ "$name" = prime ] && [ "$mid_off" = off ] && continue
-    for n in $(cpus "$offline"); do echo 0 > $CPU/cpu$n/online; done
-    changed=1
-  done
+  changed=$(cpu "$platform" "$game")
+  if [ "$(get_setting sleep_mode "$platform" "$game")" = screen ]; then
+    printf '%s\t%s\n' "$platform" "$game" > $KEEP
+    setsid systemd-inhibit --what=sleep:handle-lid-switch --who=Asgard --why="screens off, keep running" \
+      --mode=block sleep infinity >/dev/null 2>&1 &
+    echo $! > $KEEP.pid
+    changed=set
+  fi
   fan=$(get_setting fan_mode "$platform" "$game")
   if [ -n "$fan" ]; then
-    printf 'fan_manual=%s\ncooling_profile=%s\n' "$(get_setting asgard.fan_manual)" "$(get_setting cooling.profile)" >> $SAVED.fan
+    printf 'fan_manual=%s\ncooling_profile=%s\n' "$(get_setting asgard.fan_manual)" "$(get_setting cooling.profile)" > $SAVED.fan
     if [[ "$fan" =~ ^[0-9]+$ ]]; then setkey asgard.fan_manual "$fan"
     else setkey asgard.fan_manual ""; setkey cooling.profile "$fan"; fi
     systemctl restart fancontrol
-    changed=1
+    changed=set
   fi
-  [ $changed = 1 ] && touch $SAVED
+  [ -n "$changed" ] && touch $SAVED
 }
 
 restore() {
   [ -f "$SAVED" ] || return 0
-  for c in $CLUSTERS; do
-    IFS=: read -r name policy offline <<< "$c"
-    for n in $(cpus "$offline"); do echo 1 > $CPU/cpu$n/online; done
-  done
+  if [ -f $KEEP ]; then
+    /usr/share/asgard/asgard-screens-off.sh lid open   # screens, radios and lights back first
+    kill "$(cat $KEEP.pid 2>/dev/null)" 2>/dev/null
+    rm -f $KEEP $KEEP.pid
+  fi
   /usr/share/asgard/asgard-cpu-cap.sh
   if [ -f $SAVED.fan ]; then
-    fan_manual=$(sed -n 's/^fan_manual=//p' $SAVED.fan | head -1)
-    cooling_profile=$(sed -n 's/^cooling_profile=//p' $SAVED.fan | head -1)
-    setkey asgard.fan_manual "$fan_manual"
-    [ -n "$cooling_profile" ] && setkey cooling.profile "$cooling_profile"
+    setkey asgard.fan_manual "$(sed -n 's/^fan_manual=//p' $SAVED.fan)"
+    local profile; profile=$(sed -n 's/^cooling_profile=//p' $SAVED.fan)
+    [ -n "$profile" ] && setkey cooling.profile "$profile"
     systemctl restart fancontrol
     rm -f $SAVED.fan
   fi
@@ -74,4 +77,5 @@ restore() {
 case "$1" in
   apply) apply "$2" "$3" ;;
   restore) restore ;;
+  cpu) cpu "$2" "$3" >/dev/null ;;
 esac
