@@ -168,6 +168,9 @@ Item {
                             setFan(fanModes[(i + d + fanModes.length) % fanModes.length][1]) } }],
             [choice("battery", "Charge limit", "Stop charging at 80%, resume at 75%", "asgard.charge_limit", "80",
                     [["80%", "80"], ["Off", "100"]]),  // asgard-charge-limit.sh reads the setting
+             // asgard-charge-limit.sh too: charge current 0 while on the cable, the charger runs the Thor
+             toggle("battery", "Bypass charging", "On the cable, run from it and leave the battery alone (charges below 20%)",
+                    "asgard.bypass_charging", "0"),
              choice("moon", "Sleep mode", "What the power button does", "system.suspendmode", "mem",
                     [["Sleep", "mem"], ["Light sleep", "freeze"], ["Screen off only", "off"]], v => backend.shell("suspendmode " + v))]]
         case "Network": return [

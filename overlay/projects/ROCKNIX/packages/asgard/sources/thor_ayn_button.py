@@ -8,7 +8,8 @@
   is left alone, so ROCKNIX's hotkey combos (it's their modifier) keep working.
   - RetroArch: Asgard Home's in-game menu too (it has a "RetroArch menu" entry); RetroArch's own menu
     (MENU_TOGGLE over its network command port, enabled by runemu.sh on dual-screen devices) without a frontend.
-  - PPSSPP, ARMSX2, AetherSX2: Esc (their pause menus), from a small uinput keyboard.
+  - PPSSPP, ARMSX2, AetherSX2: Esc (their pause menus); Flycast: F1 (its menu, bound by start_flycast.sh), from a
+    small uinput keyboard.
   - Steam: InputPlumber turns Home into F20 on its keyboard while Steam runs (steam-pad-profile.py), so Steam
     never sees it; F20 opens Asgard Home's in-game menu (Steam overlay / Quick Access entries), or Steam's own
     overlay without a frontend.
@@ -24,7 +25,7 @@ import struct
 import subprocess
 import time
 
-KEY_F24, KEY_F20, BTN_MODE, KEY_ESC = 194, 190, 316, 1
+KEY_F24, KEY_F20, BTN_MODE, KEY_ESC, KEY_F1 = 194, 190, 316, 1, 59
 EV_SYN, EV_KEY, EV_ABS = 0, 1, 3
 ABS_HAT0X, ABS_HAT0Y = 16, 17
 TAP_S = 0.5
@@ -33,7 +34,7 @@ EXIT_GRACE_S = 4
 PANEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thor_panel.py")
 EVENT_FMT = "llHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FMT)
-ESC_EMULATORS = ("ppsspp", "armsx2-qt", "aethersx2")
+MENU_KEYS = {"ppsspp": KEY_ESC, "armsx2-qt": KEY_ESC, "aethersx2": KEY_ESC, "flycast": KEY_F1}  # their menu keys
 MENU_FIFO = "/run/asgard-home.cmd"
 BACKGROUND = "/run/asgard-bg.json"   # asgard-background.py: a game is frozen behind Asgard Home ("Back to Home")
 
@@ -62,12 +63,13 @@ def frontend_env():
 
 
 class Keyboard:
-    """Minimal uinput keyboard that can press Esc."""
+    """Minimal uinput keyboard that can press the emulators' menu keys."""
 
     def __init__(self):
         self.fd = os.open("/dev/uinput", os.O_WRONLY | os.O_NONBLOCK)
         fcntl.ioctl(self.fd, 0x40045564, EV_KEY)   # UI_SET_EVBIT
-        fcntl.ioctl(self.fd, 0x40045565, KEY_ESC)  # UI_SET_KEYBIT
+        for key in set(MENU_KEYS.values()):
+            fcntl.ioctl(self.fd, 0x40045565, key)  # UI_SET_KEYBIT
         dev = struct.pack("80sHHHHi", b"Thor Buttons Keyboard", 0x06, 0x1234, 0x5678, 1, 0) + bytes(4 * 64 * 4)
         os.write(self.fd, dev)                     # legacy struct uinput_user_dev
         fcntl.ioctl(self.fd, 0x5501)               # UI_DEV_CREATE
@@ -117,12 +119,12 @@ def guide_tap(keyboard):
     if "retroarch" in names:
         if not frontend_menu():
             socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(b"MENU_TOGGLE", ("127.0.0.1", 55355))
-    elif any(n in ESC_EMULATORS for n in names) and keyboard:
-        env = frontend_env()   # focus it first, so the Esc reaches it (not the bottom screen)
+    elif any(n in MENU_KEYS for n in names) and keyboard:
+        name = next(n for n in names if n in MENU_KEYS)
+        env = frontend_env()   # focus it first, so the key reaches it (not the bottom screen)
         if env:
-            name = next(n for n in names if n in ESC_EMULATORS)
             subprocess.run(f'swaymsg "[pid=$(pidof -s {name})] focus"', shell=True, env=env, capture_output=True)
-        keyboard.tap(KEY_ESC)
+        keyboard.tap(MENU_KEYS[name])
     elif not frontend_menu():
         exit_game(names)
 

@@ -1,0 +1,18 @@
+--- a/projects/ROCKNIX/packages/rocknix/sources/scripts/runemu.sh
++++ b/projects/ROCKNIX/packages/rocknix/sources/scripts/runemu.sh
+@@ -423,6 +423,15 @@
+     export PAN_MESA_DEBUG=forcepack
+ fi
+ 
++### Vulkan driver (Asgard): an extra Turnip build in /storage/.config/gpu-drivers/<name>/ (the Asgard repo's turnip.sh)
++### instead of the image's Mesa, per system or game ("GPU driver" in the emulator options)
++GPUDRIVER=$(get_setting "gpu_driver" "${PLATFORM}" "${ROMNAME##*/}")
++if [ -n "${GPUDRIVER}" ] && [ -f "/storage/.config/gpu-drivers/${GPUDRIVER}/icd.json" ]
++then
++    ${VERBOSE} && log $0 "Vulkan driver ${GPUDRIVER}"
++    export VK_DRIVER_FILES="/storage/.config/gpu-drivers/${GPUDRIVER}/icd.json"
++fi
++
+ ### Offline all but the number of threads we need for this game if configured.
+ NUMTHREADS=$(get_setting "threads" "${PLATFORM}" "${ROMNAME##*/}")
+ if [ -n "${NUMTHREADS}" ] &&

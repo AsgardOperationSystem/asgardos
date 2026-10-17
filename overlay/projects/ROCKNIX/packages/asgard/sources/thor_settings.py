@@ -100,6 +100,18 @@ def shader_choices():
     return [("Auto", "auto"), ("None", "none")] + [(n, n) for n in names.split() if n]
 
 
+GPU_DRIVERS = "/storage/.config/gpu-drivers"   # extra Turnip builds (turnip.sh in the Asgard repo), one dir each
+
+
+def gpu_driver_choices():
+    """Installed Turnip builds; unset ("Default") is the image's own Mesa. runemu.sh exports VK_DRIVER_FILES."""
+    try:
+        names = sorted(d for d in os.listdir(GPU_DRIVERS) if os.path.isfile(f"{GPU_DRIVERS}/{d}/icd.json"))
+    except OSError:
+        return []
+    return [(n, n) for n in names]
+
+
 def _standard(attr):
     out = []
     for f in (x.strip() for x in (attr or "").split(",")):
@@ -114,8 +126,11 @@ def _standard(attr):
 def load_features():
     """(emulator, core) -> [(feature key, [(label, value)])]; core-level features extend the emulator's."""
     out = {}
+    drivers = gpu_driver_choices()
     for emu in ET.parse(FEATURES).getroot().findall("emulator"):
         base = _standard(emu.get("features")) + _feats(emu.find("features"))
+        if drivers:   # every emulator: only Vulkan ones load it, the rest ignore VK_DRIVER_FILES
+            base = [("gpu driver", drivers)] + base
         out[(emu.get("name"), None)] = base
         for core in emu.findall("cores/core"):
             extra = _standard(core.get("features")) + _feats(core.find("features"))
@@ -150,7 +165,7 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "autosave": "Auto save/load state", "shaderset": "Shader set",
           "gpu accuracy": "GPU accuracy", "astc decoding": "ASTC texture decoding",
           "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)",
-          "force 60 hz": "Force 60 Hz (top screen)"}
+          "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)"}
 
 
 def pretty(name):
