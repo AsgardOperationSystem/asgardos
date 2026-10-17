@@ -15,6 +15,11 @@ CFG="${CONF_DIR}/sdl2-config.ini"
 
 [ ! -d "${CONF_DIR}" ] && cp -r /usr/config/eden /storage/.config
 [ -f "${CFG}" ] || cp "${CONF_DIR}/qt-config.ini" "${CFG}"
+# The Thor's pad (InputPlumber's DualSense) has another GUID under SDL3 (Eden Duo) than under SDL2 (eden-sa, whose
+# config seeded this one), so no binding matched; and player 1 was marked disconnected. Both fixed on every start.
+sed -i -e "s/guid:030000004c050000e60c000011810000/guid:030000004c050000e60c000000006800/g" \
+       -e "s/^player_0_connected=false/player_0_connected=true/" \
+       -e "s/^player_0_connected\\\\default=true/player_0_connected\\\\default=false/" "${CFG}"
 mkdir -p "${DATA_DIR}/keys"
 
 # Keys and firmware: as start_eden.sh (a new dump only needs copying to the card).
