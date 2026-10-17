@@ -1,13 +1,12 @@
 #!/bin/bash
 # Asgard Home development loop. Screenshots are rendered offscreen (no window opens) at the Thor's panel sizes.
 #   ./dev.sh shot ["right a"]   desktop build on the fixture ($REPO/frontend-dev/root) -> /tmp/asgard-shot-*.png
-#   ./dev.sh thor ["right a"]   cross-build, copy to the Thor (/storage/asgard-dev), render there -> /tmp/asgard-thor-*.png
+#   THOR=user@host ./dev.sh thor ["right a"]   cross-build, copy to the Thor (/storage/asgard-dev), render there -> /tmp/asgard-thor-*.png
 # Keys are button names (up down left right a b x y lb rb select start) replayed before the shot.
 # THOR_BUILD: a ROCKNIX SM8550 build dir with a built toolchain + qt6 (cross-compiling only).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(git -C "$HERE" rev-parse --show-toplevel)
-THOR=${THOR:-root@192.168.50.30}
 THOR_BUILD=${THOR_BUILD:-$HOME/Projects/rocknix/pr3126/build.ROCKNIX-SM8550.aarch64}
 OUT=${TMPDIR:-/tmp}
 case "${1:-shot}" in
@@ -18,6 +17,7 @@ case "${1:-shot}" in
       ASGARD_KEYS="${2:-}" "$OUT/asgard-home-host/asgard-home"
     ls "$OUT"/asgard-shot-*.png ;;
   thor)
+    : "${THOR:?set THOR=user@host (the Thor)}"
     cmake -S "$HERE" -B "$OUT/asgard-home-thor" -DCMAKE_BUILD_TYPE=Release \
       -DCMAKE_TOOLCHAIN_FILE="$THOR_BUILD/toolchain/etc/cmake-aarch64-rocknix-linux-gnu.conf" >/dev/null
     cmake --build "$OUT/asgard-home-thor" -j"$(nproc)" | grep -E "error|warning" || true

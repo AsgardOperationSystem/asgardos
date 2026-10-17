@@ -4,14 +4,15 @@
 #   ./build.sh prepare    only prepare: reset rocknix/, apply patches, copy overlay
 #   ./build.sh upgrade    move the pin to ROCKNIX's latest next, then prepare. A failing patch means ROCKNIX
 #                         changed that file: fix it in rocknix/, regenerate the patch, commit patch + new pin.
-#   ./build.sh stage [user@host]   put the built .tar in the device's /storage/.update (installs on next boot)
+#   ./build.sh stage [user@host]   put the built .tar in the device's /storage/.update (installs on next boot);
+#                                  the host defaults to $THOR
 # rocknix/build.*, sources/ and target/ are git-ignored, so they survive the reset (incremental rebuilds).
 set -euo pipefail
 cd "$(dirname "$0")"
 STEP=${1:-build}
 
 if [ "$STEP" = stage ]; then
-  HOST=${2:-root@192.168.50.30}
+  HOST=${2:-${THOR:?pass user@host or set THOR=user@host}}
   TAR=$(ls -1 rocknix/target/*.tar | head -1)
   NAME=$(basename "$TAR")
   SUM=$(cut -d' ' -f1 "$TAR.sha256")
@@ -49,9 +50,12 @@ done
 [ -d overlay ] && cp -a overlay/. rocknix/
 echo "rocknix/ prepared: ${#PATCHES[@]} patches + overlay"
 
-# Never pass LOCAL_WIFI_SSID / LOCAL_WIFI_KEY / LOCAL_SSH_KEYS_FILE: ROCKNIX bakes them into the image.
-# Personal settings go in asgard.yml (see inject-config.sh).
+# ROCKNIX's docker build copies the caller's whole environment into the container (scripts/get_env -> .env), so
+# it starts from an empty one: no tokens or session vars go in, and none of LOCAL_WIFI_SSID / LOCAL_WIFI_KEY /
+# LOCAL_SSH_KEYS_FILE, which ROCKNIX would bake into the image. Personal settings go in asgard.yml (inject-config.sh).
+# The tree is mounted at /work with HOME=/tmp, so binaries carry /work/... paths, not this machine's home dir and
+# user name. Changing the work dir needs a clean build: rm -rf rocknix/build.ROCKNIX-SM8550.*
 if [ "$STEP" = build ]; then
-  env -u LOCAL_WIFI_SSID -u LOCAL_WIFI_KEY -u LOCAL_SSH_KEYS_FILE make -C rocknix docker-SM8550
+  env -i PATH="$PATH" TERM="${TERM:-dumb}" LANG=C.UTF-8 HOME=/tmp DOCKER_WORK_DIR=/work make -C rocknix docker-SM8550
   ls -1 rocknix/target/*.img.gz rocknix/target/*.tar 2>/dev/null
 fi
