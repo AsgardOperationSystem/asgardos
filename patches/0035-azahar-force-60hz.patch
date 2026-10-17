@@ -1,0 +1,29 @@
+--- a/projects/ROCKNIX/packages/ui/emulationstation/config/common/es_features.cfg
++++ b/projects/ROCKNIX/packages/ui/emulationstation/config/common/es_features.cfg
+@@ -1151,6 +1151,10 @@
+    <cores>
+     <core name="azahar-sa">
+      <features>
++      <feature name="force 60 hz">
++        <choice name="off" value="0"/>
++        <choice name="on" value="1"/>
++      </feature>
+       <feature name="cpu speed">
+         <choice name="100%" value="0"/>
+         <choice name="90%" value="1"/>
+--- a/projects/ROCKNIX/packages/emulators/standalone/azahar-sa/scripts/start_azahar.sh
++++ b/projects/ROCKNIX/packages/emulators/standalone/azahar-sa/scripts/start_azahar.sh
+@@ -287,6 +287,13 @@
+   ${GPTOKEYB} azahar -c /tmp/azahar.gptk &
+ fi
+ 
++# Force 60 Hz: the top screen at the bottom one's 60 Hz while the game runs. At 120 Hz Azahar's two vsynced windows
++# (separate-windows layout) present out of step and the bottom screen redraws unevenly. Restored to Asgard's
++# "Top screen refresh rate" afterwards.
++FORCE60=$(get_setting force_60_hz "${PLATFORM}" "${GAME}")
++[ "${FORCE60}" = "1" ] && swaymsg output DSI-2 mode 1080x1920@60Hz >/dev/null
++
+ ${EMUPERF} /usr/bin/azahar "${1}"
++[ "${FORCE60}" = "1" ] && swaymsg output DSI-2 mode "1080x1920@$(get_setting asgard.refresh | grep . || echo 120)Hz" >/dev/null
+ systemctl stop asgard-motiond
+ kill -9 $(pidof gptokeyb)

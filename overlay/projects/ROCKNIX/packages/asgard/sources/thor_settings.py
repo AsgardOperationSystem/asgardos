@@ -149,7 +149,8 @@ def has_games(sysinfo):
 LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "Rewind",
           "autosave": "Auto save/load state", "shaderset": "Shader set",
           "gpu accuracy": "GPU accuracy", "astc decoding": "ASTC texture decoding",
-          "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)"}
+          "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)",
+          "force 60 hz": "Force 60 Hz (top screen)"}
 
 
 def pretty(name):
