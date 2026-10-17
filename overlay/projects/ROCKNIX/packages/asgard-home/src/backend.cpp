@@ -39,7 +39,7 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
         if (m_keys >= 0) {
             ioctl(m_keys, UI_SET_EVBIT, EV_KEY);
             for (int k : {KEY_LEFTALT, KEY_LEFTCTRL, KEY_LEFTSHIFT, KEY_F4, KEY_F6, KEY_F7, KEY_F9, KEY_F10,
-                          KEY_S, KEY_L, KEY_P, KEY_M, KEY_ESC})
+                          KEY_F1, KEY_S, KEY_L, KEY_P, KEY_M, KEY_U, KEY_V, KEY_ESC})
                 ioctl(m_keys, UI_SET_KEYBIT, k);
             uinput_setup us{};
             us.id.bustype = BUS_VIRTUAL;
@@ -448,11 +448,11 @@ void Backend::gameKeys(const QString &combo)
     const QStringList names = runningGame();
     if (m_keys < 0 || names.isEmpty())
         return;
-    // Keys go to the focused window: hand focus back to the game first (any of its windows; Azahar's
-    // shortcuts are application-wide).
-    QProcess::execute("/bin/sh", {"-c", "swaymsg \"[pid=$(pidof -s " + names.first() + ")] focus\" >/dev/null 2>&1"});
+    // Keys go to the focused window: hand focus back to the game first (any of its windows but a GamePad one: Wind
+    // Waker HD's settings open in its TV window; Azahar's shortcuts are application-wide).
+    QProcess::execute("/bin/sh", {"-c", "swaymsg \"[pid=$(pidof -s " + names.first() + ") title=\\\"^(?!GamePad)\\\"] focus\" >/dev/null 2>&1"});
     static const QHash<QString, int> codes = {{"Alt", KEY_LEFTALT}, {"Ctrl", KEY_LEFTCTRL}, {"Shift", KEY_LEFTSHIFT},
-        {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L},
+        {"F1", KEY_F1}, {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L},
         {"P", KEY_P}, {"M", KEY_M}, {"U", KEY_U}, {"V", KEY_V}, {"Esc", KEY_ESC}};
     QList<int> keys;
     for (const QString &k : combo.split('+'))

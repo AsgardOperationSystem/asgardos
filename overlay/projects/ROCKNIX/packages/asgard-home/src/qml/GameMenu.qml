@@ -13,6 +13,7 @@ Item {
     readonly property bool eden: game.indexOf("eden") >= 0
     readonly property bool retroarch: game.indexOf("retroarch") >= 0
     readonly property bool steam: game.indexOf("steam") >= 0
+    readonly property bool wwhd: game.indexOf("wwhd") >= 0
 
     property real openedAt: 0
     onOpenChanged: if (open) { game = backend.runningGame(); sel = 0; openedAt = Date.now() }
@@ -72,6 +73,11 @@ Item {
         { icon: "sparkle", title: "Screenshot", sub: "Saved by Eden", run: () => resume(["Ctrl+P"]) },
         { icon: "refresh", title: "Restart", sub: "Unsaved progress is lost",
           run: () => { backend.gameMenu = false; backend.gameKeys("F6") } },
+        { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }
+    ] : wwhd ? [
+        // Wind Waker HD's settings overlay (F1 in its TV window: graphics, display, GamePad screen, save states).
+        { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
+        { icon: "gear", title: "Wind Waker HD settings", sub: "Opens on the top screen", run: () => resume(["F1"]) },
         { icon: "power", title: "Quit game", sub: "Back to Asgard Home", run: () => backend.quitGame() }
     ] : [
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
