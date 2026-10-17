@@ -18,6 +18,10 @@ fi
 
 FBHEIGHT="$(fbheight)"
 FBWIDTH="$(fbwidth)"
+# Asgard: on dual-screen devices fb0 can be the bottom panel (the Thor: 1240x1080) while sway shows gmu fullscreen on
+# the top one (DSI-2, 1920x1080), so the skin was laid out for the wrong size. Use the top output's size from sway.
+TOP=$(swaymsg -t get_outputs -r 2>/dev/null | jq -r '.[] | select(.name == "DSI-2") | "\(.rect.width) \(.rect.height)"')
+[ -n "${TOP}" ] && read -r FBWIDTH FBHEIGHT <<< "${TOP}"
 
 if [ ! -d "${GMUPATH}" ]
 then
@@ -39,9 +43,12 @@ else
   sed -i "s~SDL.Fullscreen=.*\$~SDL.Fullscreen=yes~g" ${GMUCONFIG}
 fi
 
+# Asgard: an array, not -l "\"<path>\"" expanded unquoted: that passed the quote characters (and split names with
+# spaces), so gmu never loaded the playlist.
+PLAYLIST=()
 if [ "${1}" ]
 then
-  PLAYLIST="-l \"${1}\""
+  PLAYLIST=(-l "${1}")
 fi
 
 ### Set up controls
@@ -56,4 +63,4 @@ do
 done
 
 cd /usr/local/share/gmu
-/usr/local/bin/gmu.bin -d /usr/local/etc/gmu -c /storage/.config/gmu/gmu.conf ${PLAYLIST}
+/usr/local/bin/gmu.bin -d /usr/local/etc/gmu -c /storage/.config/gmu/gmu.conf "${PLAYLIST[@]}"
