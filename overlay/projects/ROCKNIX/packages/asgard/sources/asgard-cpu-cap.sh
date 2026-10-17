@@ -1,6 +1,6 @@
 #!/bin/bash
-# Global CPU settings per core type (Settings > Hardware > Performance), run at boot (090-asgard-tuning), from Settings,
-# and by asgard-perf-profile.sh after a game:
+# The Asgard menu's CPU profile per core type (Settings > Hardware > Performance), while in Home only: run at boot
+# (090-asgard-tuning), from Settings, and by asgard-perf-profile.sh after a game (games start at stock instead):
 #   asgard.cpu_cap.<type>     clock cap, % of the cluster's top clock (25-100)
 #   asgard.cpu_cores.<type>   "off" takes the cluster's cores offline (CPU0 stays: the kernel can't offline it)
 #     little  3x Cortex-A510 (policy0, CPU0-2)      cap default 90

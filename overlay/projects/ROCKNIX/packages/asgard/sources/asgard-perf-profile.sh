@@ -1,6 +1,7 @@
 #!/bin/bash
-# Per-system / per-game profile, from the emulator options (thor_settings.py adds them to every emulator); unset ones
-# keep the global values (Settings > Hardware > Performance, asgard-cpu-cap.sh):
+# Per-system / per-game profile, from the emulator options (thor_settings.py adds them to every emulator). Games start
+# at stock (every core on, full clocks) whatever the Asgard menu's own profile is (Settings > Hardware > Performance,
+# asgard-cpu-cap.sh, only while in Home), then these override it:
 #   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100)      type: little | mid | prime
 #   cpu_cores_<type>   "on" / "off": that cluster's cores (at least one type stays on; CPU0 always does)
 #   fan_mode           as Settings > Performance > Fan: quiet|moderate|aggressive, or a fixed 0-255 speed
@@ -8,7 +9,7 @@
 #                      the headphone jack) instead of suspending: asgard-screens-off.sh, with a sleep inhibitor held
 #                      meanwhile; sleep_wifi / sleep_bt "off" also take those radios down while the screens are off
 # runemu.sh calls "apply <platform> <rom file>" before the emulator and "restore" after it; restore re-runs
-# asgard-cpu-cap.sh (all cores online, then the global settings) and puts the fan back.
+# asgard-cpu-cap.sh (the menu's profile again) and puts the fan back.
 #   asgard-perf-profile.sh apply|restore [platform rom]
 #   asgard-perf-profile.sh cpu <platform> <rom>   only the caps and cores (asgard-screens-off.sh, screens back on)
 . /etc/profile.d/001-functions
@@ -19,31 +20,29 @@ KEEP=/run/asgard-keep-running   # "<platform>\t<rom>" while sleep_mode=screen; p
 # system.cfg key=value; an empty value removes the key (set_setting "" leaves the old line, which still wins).
 setkey() { local cfg=/storage/.config/system/configs/system.cfg; sed -i "/^${1//./\\.}=/d" $cfg; [ -n "$2" ] && echo "$1=$2" >> $cfg; }
 
-# The game's caps and cores over the global ones; prints "set" if it changed anything.
+# Stock, then the game's caps and cores.
 cpu() {
-  local platform=$1 game=$2 t pct cores off=""
+  local platform=$1 game=$2 t pct off=""
+  for t in $TYPES; do online_type "$t" 1; done
   for t in $TYPES; do
     pct=$(get_setting "cpu_cap_$t" "$platform" "$game")
-    cores=$(get_setting "cpu_cores_$t" "$platform" "$game")
-    [ -n "$pct$cores" ] && echo set
-    [ "$cores" = on ] && online_type "$t" 1
-    [ -n "$pct" ] && set_cap "$t" "$pct"
-    { [ "$cores" = off ] || { [ -z "$cores" ] && [ "$(get_setting "asgard.cpu_cores.$t")" = off ]; }; } && off="$off $t"
+    set_cap "$t" "${pct:-100}"
+    [ "$(get_setting "cpu_cores_$t" "$platform" "$game")" = off ] && off="$off $t"
   done
   offline_types "$off"
   write_affinity
 }
 
 apply() {
-  local platform=$1 game=$2 changed fan
+  local platform=$1 game=$2 fan
   [ -f "$SAVED" ] && restore   # a profile left over from a game that didn't get to restore (crash, kill -9)
-  changed=$(cpu "$platform" "$game")
+  cpu "$platform" "$game"   # always: the menu's profile may have cores off or capped
+  touch $SAVED
   if [ "$(get_setting sleep_mode "$platform" "$game")" = screen ]; then
     printf '%s\t%s\n' "$platform" "$game" > $KEEP
     setsid systemd-inhibit --what=sleep:handle-lid-switch --who=Asgard --why="screens off, keep running" \
       --mode=block sleep infinity >/dev/null 2>&1 &
     echo $! > $KEEP.pid
-    changed=set
   fi
   fan=$(get_setting fan_mode "$platform" "$game")
   if [ -n "$fan" ]; then
@@ -51,9 +50,7 @@ apply() {
     if [[ "$fan" =~ ^[0-9]+$ ]]; then setkey asgard.fan_manual "$fan"
     else setkey asgard.fan_manual ""; setkey cooling.profile "$fan"; fi
     systemctl restart fancontrol
-    changed=set
   fi
-  [ -n "$changed" ] && touch $SAVED
 }
 
 restore() {
@@ -77,5 +74,5 @@ restore() {
 case "$1" in
   apply) apply "$2" "$3" ;;
   restore) restore ;;
-  cpu) cpu "$2" "$3" >/dev/null ;;
+  cpu) cpu "$2" "$3" ;;
 esac

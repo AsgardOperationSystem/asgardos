@@ -118,7 +118,7 @@ Item {
         case "Hardware": return [
             [link("speaker", "Audio", "Volume and menu sounds", () => section("Audio")),
              link("display", "Display", "Brightness, screens and stick lights", () => section("Display")),
-             link("gauge", "Performance", "CPU clocks, fan, charging and sleep", () => section("Performance")),
+             link("gauge", "Performance", "Menu CPU profile, fan, charging and sleep", () => section("Performance")),
              link("wifi", "Network", "Wi-Fi, Bluetooth, USB and services", () => section("Network")),
              link("battery", "Battery", "What used it since it was unplugged", batteryPage)],
             [link("gamepad", "Calibration", "Touch screens and sticks", calibrationPage)]]
@@ -156,8 +156,8 @@ Item {
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.
-            // Per core type: clock cap, % of the cluster's top clock, and whether its cores are on (asgard-cpu-cap.sh;
-            // games can override both in their emulator options). Lower = cooler, longer battery.
+            // The Asgard menu's own profile per core type (asgard-cpu-cap.sh, only while in Home): clock cap, % of the
+            // cluster's top clock, and whether its cores are on. Games start at stock; their emulator options override.
             [...[["little", "Little core (A510)", "3× Cortex-A510", "90"], ["mid", "Big cores (A715/A710)", "2× A715 + 2× A710", "75"],
                 ["prime", "Prime core (X3)", "1× Cortex-X3", "75"]].map(c => {
                 const page = () => {
@@ -173,7 +173,7 @@ Item {
                     return [[clock, enabled]]
                 }
                 const p = page()[0]
-                return link("chip", c[1], p[0].value + " · " + (p[1].value === "On" ? "on" : "off"), page)
+                return link("chip", c[1] + " · menu", p[0].value + " · " + (p[1].value === "On" ? "on" : "off") + " · only in Asgard Home", page)
             }),
              { kind: "choice", icon: "fan", title: "Fan", sub: "Curve, or a fixed speed",
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
@@ -435,13 +435,15 @@ Item {
         }
         return live[k]
     }
-    // Core types switched off, as a game would get them: its own value, else the system's, else the global one.
+    // Core types switched off, as a game would get them: its own value, else the system's, else stock (on): games
+    // never inherit the Asgard menu's profile. The menu's own (prefix "asgard", keys asgard.cpu_cores.<type>) the same.
     // At least one type stays on (asgard-cpu-lib.sh keeps the prime core otherwise; the menus don't offer it).
     readonly property var coreTypes: ["little", "mid", "prime"]
     function allCoresOff(prefix, inherit, type, value) {
+        const key = t => prefix === "asgard" ? "asgard.cpu_cores." + t : prefix + ".cpu_cores_" + t
         return coreTypes.every(t => {
-            const own = t === type ? value : get(prefix + ".cpu_cores_" + t)
-            return (own || (inherit ? get(inherit + ".cpu_cores_" + t) : "") || get("asgard.cpu_cores." + t)) === "off"
+            const own = t === type ? value : get(key(t))
+            return (own || (inherit ? get(inherit + ".cpu_cores_" + t) : "")) === "off"
         })
     }
     function optionsPage(prefix, emu, core, inherit) {
@@ -455,7 +457,8 @@ Item {
             const parent = inherit ? get(inherit + "." + f.key) : ""
             const values = [""].concat(f.choices.map(c => c[1]))
             const type = f.key.startsWith("cpu_cores_") ? f.key.slice(10) : ""
-            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? "Default (" + label(parent) + ")" : "Default",
+            const unset = f.key.startsWith("cpu_") ? "Stock" : "Default"   // games run cores at stock, not the menu's
+            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? unset + " (" + label(parent) + ")" : unset,
                      step: d => { let i = Math.max(0, values.indexOf(cur))
                                   for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off
                                       i = (i + d + values.length) % values.length
