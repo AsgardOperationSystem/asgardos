@@ -409,6 +409,9 @@ then
   fi
 fi
 
+### Asgard: per-system / per-game CPU caps, cores and fan (the emulator options); undone after the game below
+/usr/share/asgard/asgard-perf-profile.sh apply "${PLATFORM}" "${ROMNAME##*/}"
+
 ### Display mode for emulation
 DISPLAY_MODE=$(get_setting "display_mode" "${PLATFORM}" "${ROMNAME##*/}")
 if [ ! -z "${DISPLAY_MODE}" ] && [ "${DISPLAY_MODE}" != "default" ]
@@ -654,6 +657,9 @@ then
     set_refresh_rate "${DISPLAY_MODE}"
   fi
 fi
+
+### Asgard: back to the global CPU caps, all cores online, the fan as it was
+/usr/share/asgard/asgard-perf-profile.sh restore
 
 ### Restore cooling profile.
 if [ "${DEVICE_HAS_FAN}" = "true" ]
