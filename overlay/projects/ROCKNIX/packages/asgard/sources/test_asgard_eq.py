@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# python3 test_asgard_eq.py: ParametricEQ parsing, the generated filter-chain, the index search (offline).
+# python3 test_asgard_eq.py: ParametricEQ parsing, the generated filter-chain, the index search, game overrides (offline).
 import importlib.util, os
 
 spec = importlib.util.spec_from_file_location("eq", os.path.join(os.path.dirname(os.path.abspath(__file__)), "asgard-eq.py"))
@@ -47,4 +47,19 @@ eq.STATE = os.path.join(d, "eq.json")
 open(eq.STATE, "w").write('{"headphones": "off", "headphones_name": "HD 600", "peq": "x"}')
 assert eq.load_state()["profiles"] == {"HD 600": "x"} and eq.main(["x", "status"])["saved"] == ["HD 600"]
 assert eq.main(["x", "use", "HD 650"])["error"].startswith("No saved")
+
+# A game's override: on top of the saved state, which stays; "default" and autoeq without a profile keep the saved
+# value; PipeWire restarts only when the config changes.
+st = {"speaker": "joey", "headphones": "off"}
+assert eq.game(st, "off", "default") == {"speaker": "off", "headphones": "off"} and st["speaker"] == "joey"
+assert eq.game(st, "bogus", "autoeq") == st and eq.game(dict(st, peq=PEQ), "default", "autoeq")["headphones"] == "autoeq"
+restarts = []
+eq.subprocess.run = lambda *a, **k: restarts.append(a)
+eq.CONF = os.path.join(d, "60-asgard-eq.conf")
+open(eq.STATE, "w").write('{"speaker": "joey"}')
+assert eq.main(["x", "game", "default", "default"]) == {"ok": True} and len(restarts) == 1   # first write
+assert eq.main(["x", "game", "default", "default"]) == {"ok": True} and len(restarts) == 1   # unchanged: no restart
+eq.main(["x", "game", "thor", "default"]); assert len(restarts) == 2 and not os.path.exists(eq.CONF)   # all Thor: no file
+assert eq.load_state() == {"speaker": "joey"}                                                # saved state untouched
+eq.main(["x", "game", "default", "default"]); assert len(restarts) == 3 and "joey" in open(eq.CONF).read()
 print("ok")

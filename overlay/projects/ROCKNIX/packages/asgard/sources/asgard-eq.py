@@ -5,6 +5,9 @@
 #   asgard-eq.py search <text>           AutoEQ profiles whose name has every word (needs internet)
 #   asgard-eq.py autoeq <path> <name>    download that profile's ParametricEQ.txt and use it for the headphones
 #   asgard-eq.py use <name>              use a headphone profile downloaded before (eq.json "profiles", no internet)
+#   asgard-eq.py game <speaker> <headphones>   a game's override (each thor|joey|off|autoeq, or "default" = the saved
+#                                        setting) until the next call; eq.json stays. "game default default" = back to it.
+#                                        asgard-perf-profile.sh calls it around every game (Hardware overrides > Sound EQ)
 # The Thor's own curves are 50-thor-dsp.conf (system); each module there loads only while asgard.eq.<output> is unset.
 # We write 60-asgard-eq.conf: that property for every output not on "thor", plus the AutoEQ filter-chain, as the same
 # smart filter (thor_dsp_headphones) so PipeWire routing is unchanged. PipeWire 1.2.6's parametric-equalizer module
@@ -130,16 +133,23 @@ def conf_text(st):
     return out
 
 
-def apply(st):
-    os.makedirs(os.path.dirname(STATE), exist_ok=True)
-    tmp = STATE + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(st, f)
-    os.replace(tmp, STATE)
+def apply(st, save=True):
+    if save:
+        os.makedirs(os.path.dirname(STATE), exist_ok=True)
+        tmp = STATE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(st, f)
+        os.replace(tmp, STATE)
     text = conf_text(st)
+    try:
+        with open(CONF) as f:
+            old = f.read()
+    except OSError:
+        old = None
+    if text == old:
+        return   # same filters as running: no restart (a game without an EQ override costs nothing)
     if text is None:
-        if os.path.exists(CONF):
-            os.remove(CONF)
+        os.remove(CONF)
     else:
         os.makedirs(os.path.dirname(CONF), exist_ok=True)
         with open(CONF + ".tmp", "w") as f:
@@ -147,6 +157,16 @@ def apply(st):
         os.replace(CONF + ".tmp", CONF)
     # The filter-chains are read at PipeWire's start: a ~2 s gap in any playing audio.
     subprocess.run(["systemctl", "restart", "pipewire", "pipewire-pulse", "wireplumber"], check=False)
+
+
+def game(st, speaker, headphones):
+    """The saved state with a game's overrides on top; "default" (or anything unknown) keeps the saved value, and
+    autoeq without a downloaded profile does too."""
+    eff = dict(st)
+    for out, mode, ok in (("speaker", speaker, ("thor", "joey", "off")), ("headphones", headphones, ("thor", "off", "autoeq"))):
+        if mode in ok and (mode != "autoeq" or st.get("peq")):
+            eff[out] = mode
+    return eff
 
 
 def fetch(url):
@@ -181,6 +201,9 @@ def main(argv):
         st[argv[2]] = argv[3]
         apply(st)
         return {"ok": True}
+    if cmd == "game" and len(argv) == 4:
+        apply(game(st, argv[2], argv[3]), save=False)
+        return {"ok": True}
     if cmd == "search" and len(argv) >= 3:
         try:
             return {"results": search(" ".join(argv[2:]), fetch(RAW + "INDEX.md"))}
@@ -205,7 +228,7 @@ def main(argv):
         st.update(headphones="autoeq", headphones_name=argv[2], peq=peq)
         apply(st)
         return {"ok": True}
-    return {"error": "usage: status | set speaker|headphones thor|off|autoeq | search <text> | autoeq <path> <name> | use <name>"}
+    return {"error": "usage: status | set speaker|headphones thor|off|autoeq | search <text> | autoeq <path> <name> | use <name> | game <speaker> <headphones>"}
 
 
 if __name__ == "__main__":

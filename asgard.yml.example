@@ -32,5 +32,5 @@ ssh:
   - ssh-ed25519 AAAA... me@desktop
 
 asgard:
-  charge_limit: 80        # battery charge limit in %, 100 = off
+  charge_limit: 80        # battery charge limit in %, full = hold at 100 %, 100 = off
   cpu_cap: 1              # ~75 % CPU clock cap for battery/heat, 0 = off

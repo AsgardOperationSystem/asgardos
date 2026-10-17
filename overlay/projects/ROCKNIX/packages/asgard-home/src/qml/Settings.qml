@@ -118,7 +118,7 @@ Item {
         case "Hardware": return [
             [link("speaker", "Audio", "Volume and menu sounds", () => section("Audio")),
              link("display", "Display", "Brightness, screens and stick lights", () => section("Display")),
-             link("gauge", "Performance", "Menu CPU profile, fan, charging and sleep", () => section("Performance")),
+             link("gauge", "Performance", "Menu CPU profile, fan, gyro, charging and sleep", () => section("Performance")),
              link("wifi", "Network", "Wi-Fi, Bluetooth, USB and services", () => section("Network")),
              link("battery", "Battery", "What used it since it was unplugged", batteryPage)],
             [link("gamepad", "Calibration", "Touch screens and sticks", calibrationPage)]]
@@ -178,9 +178,13 @@ Item {
              { kind: "choice", icon: "fan", title: "Fan", sub: "Curve, or a fixed speed",
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
                step: d => { const i = Math.max(0, fanModes.findIndex(m => m[1] === fanNow()));
-                            setFan(fanModes[(i + d + fanModes.length) % fanModes.length][1]) } }],
-            [choice("battery", "Charge limit", "Stop charging at 80%, resume at 75%", "asgard.charge_limit", "80",
-                    [["80%", "80"], ["Off", "100"]]),  // asgard-charge-limit.sh reads the setting
+                            setFan(fanModes[(i + d + fanModes.length) % fanModes.length][1]) } },
+             // asgard-motiond while in Home; games use their own Gyro option (Hardware overrides, default off)
+             toggle("gamepad", "Gyro", "Motion sensors in the menu; games set their own. Uses more battery",
+                    "asgard.motion", "0", () => backend.shell("/usr/share/asgard/asgard-perf-profile.sh motion"))],
+            [choice("battery", "Charge limit", "At the limit the charger runs the Thor and the battery rests; charges again 5% below it",
+                    "asgard.charge_limit", "80",
+                    [["80%", "80"], ["100%", "full"], ["Off", "100"]]),  // asgard-charge-limit.sh reads the setting
              // asgard-charge-limit.sh too: charge current 0 while on the cable, the charger runs the Thor
              toggle("battery", "Bypass charging", "On the cable, run from it and leave the battery alone (charges below 20%)",
                     "asgard.bypass_charging", "0"),
@@ -458,7 +462,8 @@ Item {
             const values = [""].concat(f.choices.map(c => c[1]))
             const type = f.key.startsWith("cpu_cores_") ? f.key.slice(10) : ""
             const unset = f.key.startsWith("cpu_") ? "Stock" : "Default"   // games run cores at stock, not the menu's
-            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? unset + " (" + label(parent) + ")" : unset,
+            const dflt = f.key === "motion" ? unset + " (Off)" : unset      // asgard-perf-profile.sh: gyro off unless on
+            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? unset + " (" + label(parent) + ")" : dflt,
                      step: d => { let i = Math.max(0, values.indexOf(cur))
                                   for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off
                                       i = (i + d + values.length) % values.length
@@ -466,20 +471,26 @@ Item {
                                   }
                                   set(key, values[i]) } }
         }
-        // Grouped features (thor_settings.py GROUPS: core types, Sleep) are submenus, in the order they first appear.
-        const out = [], groups = {}
-        for (const f of feats) {
-            if (!f.group) { out.push(row(f)); continue }
-            if (!groups[f.group]) {
-                groups[f.group] = []
-                const g = groups[f.group]
-                out.push(link(f.group === "Sleep" ? "moon" : "chip", f.group, "", () => [g.map(row)]))
+        // Grouped features (thor_settings.py GROUPS: Hardware overrides, its core types and Sleep) are submenus, in
+        // the order they first appear; a group "A/B" is submenu B inside A.
+        const icons = { "Hardware overrides": "gauge", "Sleep": "moon", "Sound EQ": "speaker" }
+        const level = (fs, depth) => {
+            const out = [], groups = {}
+            for (const f of fs) {
+                const path = f.group ? f.group.split("/") : []
+                if (path.length <= depth) { out.push(row(f)); continue }
+                const name = path[depth]
+                if (!groups[name]) {
+                    const g = groups[name] = []
+                    out.push(link(icons[name] || "chip", name, "", () => level(g, depth + 1)))
+                }
+                groups[name].push(f)
             }
-            groups[f.group].push(f)
+            for (const r of out)   // a group's link shows its rows' current values
+                if (r.kind === "link") r.sub = r.page()[0].map(x => x.kind === "link" ? x.title : x.value).join(" · ")
+            return [out]
         }
-        for (const r of out)   // a group's link shows its rows' current values
-            if (r.kind === "link") r.sub = groups[r.title].map(f => row(f).value).join(" · ")
-        return [out]
+        return level(feats, 0)
     }
 
     // RetroAchievements sign-in: ROCKNIX's RetroArch launcher builds cheevos_username/password from these keys on

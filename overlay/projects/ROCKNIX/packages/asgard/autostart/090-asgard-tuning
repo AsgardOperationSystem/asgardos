@@ -23,3 +23,5 @@ fi
 
 # CPU clock cap per core type (Settings > Performance), percent of each cluster's top clock.
 /usr/share/asgard/asgard-cpu-cap.sh
+# Gyro in the menu (Settings > Performance > Gyro, asgard.motion); games set their own (asgard-perf-profile.sh).
+/usr/share/asgard/asgard-perf-profile.sh motion

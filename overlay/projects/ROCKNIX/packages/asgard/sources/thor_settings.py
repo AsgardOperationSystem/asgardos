@@ -113,8 +113,9 @@ def gpu_driver_choices():
 
 
 # Per-system / per-game profile (asgard-perf-profile.sh, run by runemu.sh around the emulator): clock cap and cores
-# per core type, the fan, and what the lid / power key do. Unset ("Default") = the global Settings > Hardware values.
-# Grouped (GROUPS): Asgard Home shows each group as a submenu.
+# per core type, the fan, the gyro (asgard-motiond; unset = off), the sound EQ and what the lid / power key do. Unset ("Default") =
+# the global Settings > Hardware values. Listed first, all under one "Hardware overrides" submenu.
+# Grouped (GROUPS): Asgard Home shows each group as a submenu; "A/B" is submenu B inside A.
 PCT = [(f"{v}%", str(v)) for v in range(25, 101, 5)]
 ON_OFF = [("On", "on"), ("Off", "off")]
 PERF_FEATURES = [("cpu cap little", PCT), ("cpu cores little", ON_OFF),
@@ -122,12 +123,17 @@ PERF_FEATURES = [("cpu cap little", PCT), ("cpu cores little", ON_OFF),
                  ("cpu cap prime", PCT), ("cpu cores prime", ON_OFF),
                  ("fan mode", [("Quiet", "quiet"), ("Smart", "moderate"), ("Sport", "aggressive"),
                                ("30%", "77"), ("50%", "128"), ("75%", "191"), ("100%", "255")]),
+                 ("motion", ON_OFF),
+                 ("eq speaker", [("Thor's own", "thor"), ("Joey's", "joey"), ("Off", "off")]),
+                 ("eq headphones", [("Thor's own", "thor"), ("AutoEQ profile", "autoeq"), ("Off", "off")]),
                  ("sleep mode", [("Suspend", "suspend"), ("Screens off, keep running", "screen")]),
                  ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF)]
-GROUPS = {"cpu cap little": "Little core (A510)", "cpu cores little": "Little core (A510)",
-          "cpu cap mid": "Big cores (A715/A710)", "cpu cores mid": "Big cores (A715/A710)",
-          "cpu cap prime": "Prime core (X3)", "cpu cores prime": "Prime core (X3)",
-          "sleep mode": "Sleep", "sleep wifi": "Sleep", "sleep bt": "Sleep"}
+HW = "Hardware overrides"
+GROUPS = {"cpu cap little": HW + "/Little core (A510)", "cpu cores little": HW + "/Little core (A510)",
+          "cpu cap mid": HW + "/Big cores (A715/A710)", "cpu cores mid": HW + "/Big cores (A715/A710)",
+          "cpu cap prime": HW + "/Prime core (X3)", "cpu cores prime": HW + "/Prime core (X3)",
+          "fan mode": HW, "motion": HW, "eq speaker": HW + "/Sound EQ", "eq headphones": HW + "/Sound EQ",
+          "sleep mode": HW + "/Sleep", "sleep wifi": HW + "/Sleep", "sleep bt": HW + "/Sleep"}
 
 
 def _standard(attr):
@@ -149,7 +155,7 @@ def load_features():
         base = _standard(emu.get("features")) + _feats(emu.find("features"))
         if drivers:   # every emulator: only Vulkan ones load it, the rest ignore VK_DRIVER_FILES
             base = [("gpu driver", drivers)] + base
-        base = base + PERF_FEATURES
+        base = PERF_FEATURES + base
         out[(emu.get("name"), None)] = base
         for core in emu.findall("cores/core"):
             extra = _standard(core.get("features")) + _feats(core.find("features"))
@@ -187,7 +193,7 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)",
           "cpu cap little": "Clock", "cpu cap mid": "Clock", "cpu cap prime": "Clock",
           "cpu cores little": "Enabled (CPU0 always stays on)", "cpu cores mid": "Enabled", "cpu cores prime": "Enabled",
-          "fan mode": "Fan", "sleep mode": "Lid / power button", "sleep wifi": "Wi-Fi while screens off",
+          "fan mode": "Fan", "motion": "Gyro (motion sensors)", "eq speaker": "Speaker EQ", "eq headphones": "Headphone EQ", "sleep mode": "Lid / power button", "sleep wifi": "Wi-Fi while screens off",
           "sleep bt": "Bluetooth while screens off"}
 
 
@@ -625,7 +631,7 @@ def dump_features(emulator, core):
     feats = load_features().get((emulator, core)) or load_features().get((emulator, None))
     if feats is None:   # not in ROCKNIX's catalogue (e.g. gmu, the Music Player): the options every emulator gets
         drivers = gpu_driver_choices()
-        feats = ([("gpu driver", drivers)] if drivers else []) + PERF_FEATURES
+        feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else [])
     print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
                        **({"group": GROUPS[n]} if n in GROUPS else {})} for n, ch in feats]))
 

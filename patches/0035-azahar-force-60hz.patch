@@ -13,7 +13,7 @@
          <choice name="90%" value="1"/>
 --- a/projects/ROCKNIX/packages/emulators/standalone/azahar-sa/scripts/start_azahar.sh
 +++ b/projects/ROCKNIX/packages/emulators/standalone/azahar-sa/scripts/start_azahar.sh
-@@ -287,6 +287,13 @@
+@@ -286,5 +286,12 @@
    ${GPTOKEYB} azahar -c /tmp/azahar.gptk &
  fi
  
@@ -25,5 +25,4 @@
 +
  ${EMUPERF} /usr/bin/azahar "${1}"
 +[ "${FORCE60}" = "1" ] && swaymsg output DSI-2 mode "1080x1920@$(get_setting asgard.refresh | grep . || echo 120)Hz" >/dev/null
- systemctl stop asgard-motiond
  kill -9 $(pidof gptokeyb)

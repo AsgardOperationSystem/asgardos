@@ -47,7 +47,12 @@ live from bind-mounted dev builds before they reach an image.
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 - ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
 - 🧪 **Gyro step 4:** `asgard-motiond` serves them as a DSU (cemuhook) motion source on 127.0.0.1:26760, and
-  Azahar uses it while it runs (`0016`). Axis directions still to be tuned in games (`asgard.motion_map`).
+  Azahar reads it (`0016`). On only when asked: each emulator / game's *Gyro* option (Emulator options > Hardware
+  overrides, default off) and the menu's Settings > Hardware > Performance > Gyro (`asgard-perf-profile.sh`).
+  Axis directions still to be tuned in games (`asgard.motion_map`).
+- 🧪 **Gyro step 5:** the same samples on InputPlumber's virtual DualSense (`CompositeDevice.SendEvent` over D-Bus,
+  in the units of InputPlumber's own IIO IMU source) for Steam Input and SDL games (Dusklight); zeroed when motiond
+  stops. Tested against a fake InputPlumber only; signs on the pad tunable with `asgard.motion_map_pad`.
 
 ### In progress / untested
 - **Switch: Eden v0.2.1** (`eden-sa`, built from source, NCE on; `0021` adds the `switch` system and Qt Charts
@@ -196,7 +201,8 @@ Nothing personal is built into the image. Wi-Fi, logins and SSH keys live in `as
 `/storage/.config/asgard/asgard.yml` after `installtointernal`). `./inject-config.sh <image> asgard.yml` puts it
 on a local copy of an image. At every boot each key is applied unless the setting was changed on the device:
 **image defaults < asgard.yml < the user's own changes**. Never build with ROCKNIX's `LOCAL_WIFI_SSID` /
-`LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` strips them).
+`LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` runs the build with an empty
+environment, so nothing from your shell reaches it).
 
 ## Asgard Home (frontend)
 
@@ -262,7 +268,7 @@ One merge request each; its description and commits say what was broken, why, an
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
 | ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
 | ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service. |
-| Motion server (`asgard-motiond`, `0016`, `0023`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. Runs only while Azahar does (`0023`): streaming kept the ADSP waking ~185×/s. |
+| Motion server (`asgard-motiond`, `0016`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. Runs only when a game's Gyro option (or the menu's) is on (`asgard-perf-profile.sh`): streaming keeps the ADSP waking ~185×/s. |
 | Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |
 | Kettle/Armada batch A (`9022`–`9031`) | Kettle `1060` `1110` `1200` `1210` `1220` `1250` `1270` `1280` `1383`, Armada `0048`: tsens wakes, haptics buzz after rumble, GPU queue priority, command-mode vblank timestamps, DSI clocks off the PLL when the screens are off, ICE/PCIe/ath12k fixes, GPU load in debugfs. Picked by dry-running every Kettle/Armada patch against our tree (2026-10-12). |
 | MCU rail off in sleep (`9032`–`9033` Kettle `1310` `1311`, `0024`) | `vdd_mcu_3v3` was always-on: the gamepad MCU and both stick-LED controllers stayed powered through sleep. |
