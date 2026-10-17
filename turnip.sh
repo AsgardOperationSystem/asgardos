@@ -6,6 +6,7 @@
 #   ./turnip.sh <mesa version|main> [user@host]
 #     -> turnip/<name>/{libvulkan_freedreno.so,icd.json}; with a host, copied to its /storage/.config/gpu-drivers/<name>/
 #   e.g. ./turnip.sh 25.3.6 root@192.168.50.30
+#   PATCH=turnip-patches/<name>.patch ./turnip.sh <version> ...   -> a variant, mesa-<version>-<name>, in its own source dir
 set -euo pipefail
 cd "$(dirname "$0")"
 V=$1; HOST=${2:-}
@@ -13,10 +14,13 @@ B="$PWD/rocknix/build.ROCKNIX-SM8550.aarch64"
 CROSS=$(ls -d "$B"/build/mesa-*/.aarch64-rocknix-linux-gnu | head -1)   # the image's Mesa build: its cross files
 [ -f "$CROSS/meson.conf" ] || { echo "no Mesa build in $B: run ./build.sh first"; exit 1; }
 NAME="mesa-$V"; [ "$V" = main ] && NAME="mesa-main-$(date +%Y%m%d)"
-SRC="$PWD/turnip/src/$V"; OUT="$PWD/turnip/$NAME"; DEV="/storage/.config/gpu-drivers/$NAME"
+SUFFIX=${PATCH:+-$(basename "$PATCH" .patch)}
+NAME="$NAME$SUFFIX"
+SRC="$PWD/turnip/src/$V$SUFFIX"; OUT="$PWD/turnip/$NAME"; DEV="/storage/.config/gpu-drivers/$NAME"
 
 if [ ! -d "$SRC" ]; then
   git clone --depth 1 -b "$([ "$V" = main ] && echo main || echo "mesa-$V")" https://gitlab.freedesktop.org/mesa/mesa.git "$SRC"
+  [ -z "${PATCH:-}" ] || git -C "$SRC" apply "$(realpath "$PATCH")"
 elif [ "$V" = main ]; then
   git -C "$SRC" pull --depth 1 --ff-only
 fi
