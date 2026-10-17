@@ -16,6 +16,7 @@
 
 #include "achievements.h"
 #include "backend.h"
+#include "music.h"
 
 // Images from the web (RA badges and icons) are cached on disk and served from there first: they never change,
 // and the Trophies tab then opens without downloading them again (or offline).
@@ -68,6 +69,36 @@ int main(int argc, char *argv[])
     InputLog inputLog;
     if (qEnvironmentVariableIsSet("ASGARD_DEBUG_INPUT"))
         app.installEventFilter(&inputLog);
+    // Asgard Music (asgard-home --music [playlist.m3u], as the Music Player system's emulator): its own QML, a player
+    // and the pad. No Backend: it owns Home's command FIFO and uinput keyboard, which the running Home already has.
+    const int musicArg = app.arguments().indexOf("--music");
+    if (musicArg >= 0) {
+        Music music;
+        Gamepad pad(!shot.isEmpty());
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("music", &music);
+        engine.rootContext()->setContextProperty("pad", &pad);
+        engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
+        if (musicArg + 1 < app.arguments().size())
+            music.load(app.arguments().at(musicArg + 1));
+        engine.load(QDir(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml")).filePath("Music.qml"));
+        if (engine.rootObjects().isEmpty())
+            return 1;
+        if (!shot.isEmpty()) {   // as Home's screenshot mode below: replay ASGARD_KEYS, then save each window
+            const QStringList keys = qEnvironmentVariable("ASGARD_KEYS").split(' ', Qt::SkipEmptyParts);
+            for (int i = 0; i < keys.size(); i++)
+                QTimer::singleShot(200 + 60 * i, &pad, [&pad, k = keys[i]] { emit pad.pressed(k); });
+            QTimer::singleShot(200 + 60 * keys.size() + (qEnvironmentVariableIntValue("ASGARD_SHOT_MS") ?: 1500), [&] {
+                for (QWindow *win : QGuiApplication::topLevelWindows())
+                    if (auto *w = qobject_cast<QQuickWindow *>(win)) {
+                        w->contentItem()->setSize(w->size());
+                        w->grabWindow().save(shot + w->title() + ".png");
+                    }
+                QGuiApplication::quit();
+            });
+        }
+        return app.exec();
+    }
     Backend backend(gameEnv);
     Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)
     Achievements achievements(&backend);
