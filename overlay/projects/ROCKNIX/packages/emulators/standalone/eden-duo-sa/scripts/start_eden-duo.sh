@@ -20,6 +20,16 @@ CFG="${CONF_DIR}/sdl2-config.ini"
 sed -i -e "s/guid:030000004c050000e60c000011810000/guid:030000004c050000e60c000000006800/g" \
        -e "s/^player_0_connected=false/player_0_connected=true/" \
        -e "s/^player_0_connected\\\\default=true/player_0_connected\\\\default=false/" "${CFG}"
+# And SDL3 numbers that pad in its own order (HIDAPI: south east west north back guide start lstick rstick l r; axes
+# lx ly rx ry l2 r2), not evdev's (SDL2: south east north west l r l2 r2 select start mode lstick rstick; lx ly l2
+# rx ry r2): X/Y, L/R, -/+, the stick clicks, ZL and the right stick pointed at other inputs. Player 1, set every start.
+PAD="engine:sdl,port:0,guid:030000004c050000e60c000000006800"
+for b in a:button:1 b:button:0 x:button:3 y:button:2 l:button:9 r:button:10 minus:button:4 plus:button:6 \
+         lstick:button:7 rstick:button:8 zl:axis:4,threshold:0.5,invert:+ zr:axis:5,threshold:0.5,invert:+; do
+  sed -i -e "s|^player_0_button_${b%%:*}=.*|player_0_button_${b%%:*}=\"${PAD},${b#*:}\"|" \
+         -e "s|^player_0_button_${b%%:*}\\\\default=.*|player_0_button_${b%%:*}\\\\default=false|" "${CFG}"
+done
+sed -i -e "s|^player_0_rstick=.*|player_0_rstick=\"${PAD},axis_x:2,axis_y:3,offset_x:0,offset_y:0,invert_x:+,invert_y:+,deadzone:0.1,range:1\"|" "${CFG}"
 mkdir -p "${DATA_DIR}/keys"
 
 # Keys and firmware: as start_eden.sh (a new dump only needs copying to the card).
