@@ -177,6 +177,10 @@ void Backend::scan()
                 if (name == "3ds" && fi.suffix().compare("cia", Qt::CaseInsensitive) == 0 &&
                     ctrExtra.match(fi.fileName()).hasMatch())
                     continue;
+                // The music system is one entry, Asgard Music Player (ROCKNIX's "Start Music Player.sh"): its
+                // playlists are picked inside Asgard Music, which reads them from this same folder.
+                if (name == "music" && fi.suffix().compare("m3u", Qt::CaseInsensitive) == 0)
+                    continue;
                 const QString rel = QDir(dir).relativeFilePath(file);
                 const QString stem = rel.left(rel.size() - fi.suffix().size() - 1);
                 const QVariantMap meta = gl.value(QDir::cleanPath("./" + rel));
