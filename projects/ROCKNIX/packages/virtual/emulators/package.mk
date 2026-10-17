@@ -1692,7 +1692,8 @@ makeinstall_target() {
   add_es_system mplayer
 
   ### Music Player
-  add_emu_core music gmu gmu true
+  add_emu_core music asgard-music asgard-music-sa true
+  add_emu_core music gmu gmu false
   add_es_system music
 
   ### Moonlight
