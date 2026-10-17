@@ -50,6 +50,15 @@ if [ ! -f "${CONF_DIR}/mappings/SDL_Keyboard.cfg" ]; then
   cp -r "/usr/config/flycast/mappings/SDL_Keyboard.cfg" "${CONF_DIR}/mappings/SDL_Keyboard.cfg"
 fi
 
+# Asgard: copies of the shipped mapping start with "digital]" (its "[" was missing), so Flycast skipped the section.
+sed -i '1s/^digital\]$/[digital]/' "${CONF_DIR}/mappings/SDL_Keyboard.cfg"
+# F1 opens Flycast's menu (as in ROCKNIX's InputPlumber mapping); the Home button sends it (thor_ayn_button.py).
+# Flycast reads bind0, bind1... in order, so it gets the next free number.
+if ! grep -q ":btn_menu" "${CONF_DIR}/mappings/SDL_Keyboard.cfg"; then
+  N=$(grep -c "^bind" "${CONF_DIR}/mappings/SDL_Keyboard.cfg")
+  sed -i "/^\[digital\]/a bind${N} = 58:btn_menu" "${CONF_DIR}/mappings/SDL_Keyboard.cfg"
+fi
+
 #Emulation Station Features
 GAME=$(echo "${1}"| sed "s#^/.*/##")
 PLATFORM=$(echo "${2}"| sed "s#^/.*/##")
