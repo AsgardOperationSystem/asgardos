@@ -112,6 +112,16 @@ def gpu_driver_choices():
     return [(n, n) for n in names]
 
 
+# Per-system / per-game performance profile (asgard-perf-profile.sh, run by runemu.sh around the emulator):
+# clock caps and cores per cluster, and the fan. Unset ("Default") = the global Settings > Performance values.
+PCT = [(f"{v}%", str(v)) for v in range(25, 101, 5)]
+ON_OFF = [("On", "on"), ("Off", "off")]
+PERF_FEATURES = [("cpu cap little", PCT), ("cpu cap mid", PCT), ("cpu cap prime", PCT),
+                 ("cpu cores little", ON_OFF), ("cpu cores mid", ON_OFF), ("cpu cores prime", ON_OFF),
+                 ("fan mode", [("Quiet", "quiet"), ("Smart", "moderate"), ("Sport", "aggressive"),
+                               ("30%", "77"), ("50%", "128"), ("75%", "191"), ("100%", "255")])]
+
+
 def _standard(attr):
     out = []
     for f in (x.strip() for x in (attr or "").split(",")):
@@ -131,6 +141,7 @@ def load_features():
         base = _standard(emu.get("features")) + _feats(emu.find("features"))
         if drivers:   # every emulator: only Vulkan ones load it, the rest ignore VK_DRIVER_FILES
             base = [("gpu driver", drivers)] + base
+        base = base + PERF_FEATURES
         out[(emu.get("name"), None)] = base
         for core in emu.findall("cores/core"):
             extra = _standard(core.get("features")) + _feats(core.find("features"))
@@ -165,7 +176,10 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "autosave": "Auto save/load state", "shaderset": "Shader set",
           "gpu accuracy": "GPU accuracy", "astc decoding": "ASTC texture decoding",
           "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)",
-          "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)"}
+          "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)",
+          "cpu cap little": "Efficiency cores clock (A510)", "cpu cap mid": "Performance cores clock (A715/A710)",
+          "cpu cap prime": "Prime core clock (X3)", "cpu cores little": "Efficiency cores (A510, CPU0 stays on)",
+          "cpu cores mid": "Performance cores (A715/A710)", "cpu cores prime": "Prime core (X3)", "fan mode": "Fan"}
 
 
 def pretty(name):

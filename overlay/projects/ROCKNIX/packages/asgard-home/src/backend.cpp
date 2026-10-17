@@ -172,6 +172,11 @@ void Backend::scan()
                                                             QRegularExpression::CaseInsensitiveOption);
                 if (name == "switch" && switchExtra.match(fi.fileName()).hasMatch())
                     continue;
+                // 3DS DLC and update installers (.cia) get installed into Azahar's NAND/SD: not games themselves.
+                static const QRegularExpression ctrExtra("\\b(DLC|Update)\\b", QRegularExpression::CaseInsensitiveOption);
+                if (name == "3ds" && fi.suffix().compare("cia", Qt::CaseInsensitive) == 0 &&
+                    ctrExtra.match(fi.fileName()).hasMatch())
+                    continue;
                 const QString rel = QDir(dir).relativeFilePath(file);
                 const QString stem = rel.left(rel.size() - fi.suffix().size() - 1);
                 const QVariantMap meta = gl.value(QDir::cleanPath("./" + rel));

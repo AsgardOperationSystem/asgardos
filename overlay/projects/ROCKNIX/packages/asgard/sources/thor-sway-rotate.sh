@@ -56,6 +56,25 @@ grep -q '^# thor-lumidex' "$C" || printf '%s\n' '# thor-lumidex' \
   'for_window [app_id="^lumidex$"] exec swaymsg input "0:0:bottom_touchscreen" events enabled' \
   'for_window [app_id="^lumidex$"] exec /usr/share/asgard/thor-bottom-rotate.sh 1.5' \
   'for_window [title="Brilliant Diamond"] exec /storage/.config/thor/lumi-dex.sh' >> "$C"
+# Azahar with homebrew (.3dsx, e.g. Emerald 3DS): no game title, so its bottom window is titled just "Azahar" (no
+# "Secondary" for ROCKNIX's rules) and both windows stayed tiled on the top screen (2026-10-17). Do the Secondary
+# rules' work for it, and fullscreen the top window ("Azahar <version>").
+grep -q '^# thor-azahar-homebrew' "$C" || printf '%s\n' '# thor-azahar-homebrew' \
+  'for_window [class="^Azahar$" title="^Azahar$"] move window to output DSI-1, fullscreen enable, output DSI-1 power on, focus output DSI-2' \
+  'for_window [class="^Azahar$" title="^Azahar$"] exec swaymsg input "0:0:bottom_touchscreen" events enabled' \
+  'for_window [class="^Azahar$" title="^Azahar$"] exec /usr/share/asgard/thor-bottom-rotate.sh' \
+  'for_window [class="^Azahar$" title="^Azahar [0-9a-f]+$"] fullscreen enable' >> "$C"
+# Eden Duo's companion window ("Eden - Screen 2 (DSMod aux)"): ROCKNIX's "Screen 2" rules put it on the bottom screen,
+# power it on and enable touch; fill it and give focus back to the game (2026-10-17).
+grep -q '^# thor-eden-duo' "$C" || printf '%s\n' '# thor-eden-duo' \
+  'for_window [title="^Eden - Screen 2"] fullscreen enable, focus output DSI-2' >> "$C"
+# Dusklight (Twilight Princess port, igawa6's dual-screen fork) puts its companion (map, HUD) in a second window,
+# "Dusklight — Second Screen": on the bottom screen like Lumi-Dex, focus back to the game (2026-10-17).
+grep -q '^# thor-dusklight' "$C" || printf '%s\n' '# thor-dusklight' \
+  'assign [title="^Dusklight — Second Screen$"] output DSI-1' \
+  'for_window [title="^Dusklight — Second Screen$"] fullscreen enable, output DSI-1 power on, focus output DSI-2' \
+  'for_window [title="^Dusklight — Second Screen$"] exec swaymsg input "0:0:bottom_touchscreen" events enabled' \
+  'for_window [title="^Dusklight — Second Screen$"] exec /usr/share/asgard/thor-bottom-rotate.sh 1.5' >> "$C"
 # Top screen refresh rate (asgard.refresh, Settings > Display or the Thor Panel): 120 Hz unless set to 60.
 R=$(sed -n 's/^asgard\.refresh=//p' /storage/.config/system/configs/system.cfg | tail -1)
 sed -i '/^# asgard-refresh/,+1d' "$C"

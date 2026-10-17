@@ -1,0 +1,11 @@
+--- a/src/video_core/renderer_vulkan/renderer_vulkan.cpp
++++ b/src/video_core/renderer_vulkan/renderer_vulkan.cpp
+@@ -517,7 +517,7 @@
+             .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+             .pNext = nullptr,
+             .srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+-                             (preserve ? VK_ACCESS_TRANSFER_WRITE_BIT : VkAccessFlags{0}),
++                             (preserve ? VkAccessFlags{VK_ACCESS_TRANSFER_WRITE_BIT} : VkAccessFlags{0}),
+             .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+             .oldLayout = preserve ? VK_IMAGE_LAYOUT_GENERAL : VK_IMAGE_LAYOUT_UNDEFINED,
+             .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
