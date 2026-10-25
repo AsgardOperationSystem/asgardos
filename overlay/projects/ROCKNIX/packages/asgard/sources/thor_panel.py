@@ -405,7 +405,7 @@ def slider_value(key):
     if key == "vol":
         return int(conf.get("audio.volume", "50") or 50)
     if locked():
-        return int(conf.get("system.brightness", "50") or 50)
+        return int(conf.get("display.brightness2", "50") or 50)  # `brightness set` saves display.*, never system.brightness
     return int(conf.get("display.brightness2" if key == "top" else "display.brightness", "50") or 50)
 
 

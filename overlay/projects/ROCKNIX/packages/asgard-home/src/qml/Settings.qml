@@ -95,7 +95,8 @@ Item {
         case "General": return [
             [link("user", "Profile", backend.hostname + "  ·  RetroAchievements: " + (user || "not signed in"), profilePage)],
             [action("user", "Device name", backend.hostname + "  ·  applies after a restart",
-                    () => keyboard.ask("Device name", get("system.hostname", backend.hostname), false, v => { if (v) set("system.hostname", v) }))],
+                    () => keyboard.ask("Device name", get("system.hostname", backend.hostname), false, v => { if (v) set("system.hostname", v) })),
+             link("clock", "Date & time", Qt.formatDateTime(new Date(), "ddd d MMM, hh:mm") + "  ·  " + get("system.timezone", "UTC"), dateTimePage)],
             [link("gamepad", "Emulator options", "Shaders, aspect ratio and more, per console", consolesPage)]]
         case "Appearance": return [
             [choice("palette", "Accent colour", "Selection glow and highlights", "asgard.accent", "aurora",
@@ -138,12 +139,12 @@ Item {
         case "Display": return [
             [toggle("display", "Separate screen brightness", "Set the top and bottom screens on their own",
                     "asgard.brightness_split", "0",
-                    () => { if (get("asgard.brightness_split") !== "1") backend.shell("brightness set " + get("system.brightness", "50")) }),
+                    () => { if (get("asgard.brightness_split") !== "1") backend.shell("brightness set " + get("display.brightness2", "50")) }),
              ...(get("asgard.brightness_split") === "1"
                  // ROCKNIX's brightness script: screen 1 = DSI-1 (bottom), 2 = DSI-2 (top); restored per screen at boot
                  ? [choice("display", "Top screen brightness", "", "display.brightness2", "50", percents, v => backend.shell("brightness set 2 " + v)),
                     choice("display", "Bottom screen brightness", "", "display.brightness", "50", percents, v => backend.shell("brightness set 1 " + v))]
-                 : [choice("display", "Brightness", "Both screens", "system.brightness", "50", percents, v => backend.shell("brightness set " + v))]),
+                 : [choice("display", "Brightness", "Both screens", "display.brightness2", "50", percents, v => backend.shell("brightness set " + v))]),
              choice("moon", "Screens off after", "Without input (OLED care)", "asgard.idle_blank", "300",
                     [["2 min", "120"], ["5 min", "300"], ["10 min", "600"], ["Never", "0"]],
                     () => backend.shell("systemctl restart thor-idle-blank"))],
@@ -231,6 +232,43 @@ Item {
                                        ["Challenge indicators", "challenge_indicators", "Icon while a challenge is active"],
                                        ["Screenshot on unlock", "screenshot", "Save a screenshot with each unlock"],
                                        ["Unofficial achievements", "unofficial", "Include sets still in testing"]]
+
+    // Date & time: timesyncd on/off (asgard.ntp, start_frontend.sh stops it at boot when 0), system.timezone
+    // (tz-data.service links /var/run/localtime from the cache file) and, without NTP, the clock set by hand.
+    function dateTimePage() {
+        const auto = get("asgard.ntp", "1") === "1"
+        const now = new Date()
+        const shift = (secs, title, fmt) => ({ kind: "choice", icon: "clock", title: title, sub: "", value: Qt.formatDateTime(now, fmt),
+            // the Thor's RTC can be set; rtc-offset save covers one that can't
+            step: d => backend.exec("date -s @" + (Math.floor(Date.now() / 1000) + d * secs) + " >/dev/null; hwclock -w; rtc-offset save",
+                                    () => rev++) })
+        const rows = [toggle("clock", "Automatic date & time", auto ? "From the internet (NTP)" : "Set by hand below", "asgard.ntp", "1",
+                             () => backend.exec("systemctl " + (get("asgard.ntp", "1") === "1" ? "start" : "stop") + " systemd-timesyncd",
+                                                () => rev++)),
+                      link("clock", "Time zone", get("system.timezone", "UTC"), zoneRegionsPage)]
+        if (!auto) rows.push(shift(86400, "Date", "ddd d MMM yyyy"), shift(3600, "Hour", "hh"), shift(60, "Minute", "mm"))
+        return [rows]
+    }
+    readonly property var zoneRegions: ["Africa", "America", "Antarctica", "Asia", "Atlantic", "Australia", "Europe", "Indian", "Pacific"]
+    function zoneRegionsPage() {
+        return [[action("clock", "UTC", "", () => setZone("UTC"))],
+                zoneRegions.map(r => action("clock", r, "", () => {
+                    note("zones", null)
+                    sh("zones", "cd /usr/share/zoneinfo/" + r + " && find . -type f | sed 's|^\\./||' | sort", o => o.split("\n").filter(x => x))
+                    stack = stack.concat([{ title: r, build: () => zoneCitiesPage(r) }]); row = 0; rev++ }))]
+    }
+    function zoneCitiesPage(r) {
+        if (!live.zones) return [[info("refresh", "Loading…", r)]]
+        return [live.zones.map(c => action("clock", c.replace(/_/g, " "), r + "/" + c === get("system.timezone") ? "Current" : "",
+                                             () => setZone(r + "/" + c)))]
+    }
+    function setZone(tz) {
+        set("system.timezone", tz)
+        backend.exec("echo -n TIMEZONE=" + q(tz) + " > /storage/.cache/timezone; echo -n " + q(tz) +
+                     " > /storage/.cache/system_timezone; systemctl restart tz-data", () => {
+            Date.timeZoneUpdated()   // the QML engine caches the zone
+            stack = stack.filter(p => p.build !== zoneRegionsPage && p.title !== tz.split("/")[0]); row = 0; rev++ })
+    }
 
     function calibrationPage() {
         const touch = s => () => { close(); backend.runTool("/usr/share/asgard/thor_touchcal.py", [s]) }

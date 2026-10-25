@@ -8,6 +8,8 @@ TZ=$(get_setting system.timezone)
 echo -n "TIMEZONE=${TZ}" > /storage/.cache/timezone
 echo -n "${TZ}" > /storage/.cache/system_timezone
 systemctl restart tz-data.service
+# Settings > General > Date & time: "Automatic date & time" off. timesyncd is enabled in the read-only image.
+[ "$(get_setting asgard.ntp)" = "0" ] && systemctl stop systemd-timesyncd
 for VARIABLE in $(grep _ /etc/profile.d/999-export | sed 's/export//g; s/^\W//g; s/\\//g'); do
   systemctl import-environment "${VARIABLE}"
 done
