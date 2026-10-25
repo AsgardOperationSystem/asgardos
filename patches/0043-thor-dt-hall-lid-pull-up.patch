@@ -1,0 +1,29 @@
+--- a/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
++++ b/projects/ROCKNIX/devices/SM8550/linux/dts/qcom/qcs8550-ayn-thor.dts
+@@ -31,6 +31,9 @@
+ 
+ 	gpio-keys-lid {
+ 		compatible = "gpio-keys";
++		/* Asgard 0043: the Hall output is open-drain, see hall_lid_n */
++		pinctrl-0 = <&hall_lid_n>;
++		pinctrl-names = "default";
+ 
+ 		hall-lid-sensor {
+ 			label = "Hall Lid Sensor";
+@@ -455,6 +458,16 @@
+ 		function = "gpio";
+ 		bias-pull-up;
+ 		output-disable;
++	};
++
++	/* Open-drain Hall output: with no pull-up the released (lid open)
++	 * level is undefined, so opening the lid only sometimes woke s2idle.
++	 * From Armada packages/kernel/dts/qcs8550-ayn-thor.dts.patch. */
++	hall_lid_n: hall-lid-n-state {
++		pins = "gpio17";
++		function = "gpio";
++		bias-pull-up;
++		output-disable;
+ 	};
+ };
+ 
