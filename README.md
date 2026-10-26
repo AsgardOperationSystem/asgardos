@@ -20,23 +20,35 @@ live from bind-mounted dev builds before they reach an image.
 
 ### Working
 - ✅ **Boot without ROCKNIX ES:** `essway.service` starts Asgard Home; sound, services and the pad come up. Boot-time
-  suspend is gone (logind holdoff 10 s; with 0 the lid's boot state suspended the Thor and broke ADSP audio).
+  suspend is gone (logind holdoff 10 s; with 0 the lid's boot state suspended the Thor and broke ADSP audio). Quiet
+  boot: no console text, no cursor (`0013`).
+- ✅ **Steam:** Valve's native ARM64 client in gamescope (Big Picture), x86 games through FEX + Proton ARM64. First
+  start needs ROCKNIX's Install Steam (FEX rootfs, runtime, client, Proton-CachyOS and GE), which failed on the
+  image's grep (no PCRE) until `0015`. Installed games show up in the Steam system.
 - ✅ **Sleep/resume (s2idle):** lid close in the menu and 10+ min asleep mid-game both resume cleanly; the gamepad
   re-handshakes on the first try. CPU cluster reaches `cluster_sleep_1`. (PR #3126, `0001`, CPU0 idle quirk,
   regulator mem states, PCIe suspend OPP, USB autosuspend, rsinput `1023`)
 - ✅ **Storage:** SD at UHS-I SDR104 (76.8 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
-- ✅ **OLED Ultra Black** on the top panel.
+- ✅ **OLED Ultra Black** on the top panel; OLED idle blank (timeout in Settings); X turns both panels off.
 - ✅ **Bottom screen:** landscape rotation, dual-screen window rules, display sleep hook.
-- ✅ **Asgard Home:** library with system artwork, launching (emulator/core per system and per game), play time,
-  Trophies tab (RetroAchievements: 249 of 362 hashed ROMs matched; needs `global.retroachievements.webapikey`),
-  X turns both OLEDs off, touch on the bottom screen, menu sounds.
-- ✅ **Settings (Start), iiSU layout:** Wi-Fi (scan/join with an on-screen keyboard), Bluetooth, USB mode, SSH/Samba/
-  Syncthing, stick lights, RA options, fan, CPU cap, charge limit, sleep mode, Power (sleep/restart/off), updates
-  from `/storage/.update`. Y on a game: its own emulator/core.
-- ✅ **Volume/brightness keys** show a slider.
+- ✅ **Touch on both screens:** sway rotated touch with the 90°-turned panels; a `calibration_matrix` undoes it
+  (measured raw vs delivered taps). Taps land under the finger, swipes scroll the grid.
+- ✅ **Asgard Home (iiSU-style frontend):** library with system artwork and backdrops, launching with emulator/core per
+  system and per game, play time, Trophies tab (RetroAchievements: 249 of 362 hashed ROMs matched; needs
+  `global.retroachievements.webapikey`), touch on the bottom screen, menu sounds, cached art.
+- ✅ **Settings, native (Start / power button):** Wi-Fi (scan, join, on-screen keyboard), Bluetooth, USB mode,
+  SSH/Samba/Syncthing, stick lights, RetroAchievements, fan, CPU cap, charge limit, sleep mode, updates, power;
+  per console and per game: emulator, core and ROCKNIX's emulator options (aspect ratio, shaders, Azahar's
+  resolution and layouts...) as iiSU rows. No classic SDL screens left.
+- ✅ **Volume/brightness slider:** drawn by Asgard Home as a layer-shell overlay in its own style (icon bubble,
+  gradient bar), above games on the top panel; mako's pill is the fallback when the frontend isn't running.
 - ✅ **AYN button → Thor Panel** (status tiles, fan modes; touch or d-pad + A, L1/R1 page, only AYN closes); the running
-  game is frozen (SIGSTOP) while it's open. Page 2: volume and per-screen brightness sliders in the OSD's style, with a link lock.
-- ✅ **OLED idle blank** (timeout in Settings), **battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
+  game is frozen (SIGSTOP) while it's open. Page 2: volume and per-screen brightness sliders in the OSD's style, with a
+  link lock. A fixed fan speed survives game launches.
+- ✅ **Home in a game:** Azahar pauses and an in-game menu (quick save/load, screens, layout, textures, restart,
+  quit) opens on the bottom screen; other emulators get Resume / Quit.
+- ✅ **Azahar:** HD texture packs on by default (`0012`).
+- ✅ **Battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
 - ✅ **melonDS** two-window layout without the Qt menu bar.
 - ✅ **Settings → Hardware → Battery** (2026-10-12): since the last unplug, what used it (Sleep, Home, each emulator) with
   time, % and mA, time left at that rate, and the charge in progress (`battery-report.py` over the battery log).
@@ -47,15 +59,41 @@ live from bind-mounted dev builds before they reach an image.
   media (`asgard-scrape.py`); ScreenScraper is wired in but off until a developer ID is set (`asgard.yml`).
 - ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
 - ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
-- 🧪 **Gyro step 4:** `asgard-motiond` serves them as a DSU (cemuhook) motion source on 127.0.0.1:26760, and
-  Azahar reads it (`0016`). On only when asked: each emulator / game's *Gyro* option (Emulator options > Hardware
+- ✅ **Gyro step 4:** `asgard-motiond` serves accel/gyro as a DSU (cemuhook) motion source on 127.0.0.1:26760;
+  Azahar reads it (`0016`). Axis order measured on the device (`-y,z,-x`, `asgard.motion_map`), confirmed aiming in
+  Ocarina of Time 3D. On only when asked: each emulator / game's *Gyro* option (Emulator options > Hardware
   overrides, default off) and the menu's Settings > Hardware > Performance > Gyro (`asgard-perf-profile.sh`).
-  Axis directions still to be tuned in games (`asgard.motion_map`).
 - 🧪 **Gyro step 5:** the same samples on InputPlumber's virtual DualSense (`CompositeDevice.SendEvent` over D-Bus,
   in the units of InputPlumber's own IIO IMU source) for Steam Input and SDL games (Dusklight); zeroed when motiond
   stops. Tested against a fake InputPlumber only; signs on the pad tunable with `asgard.motion_map_pad`.
+- ✅ **Grid on the top screen by default**, detail card below; L+R swaps; layouts fit each screen's shape.
+- ✅ **Tile reordering:** Y or a long press lifts a tile, d-pad or drag moves it, for consoles and for the games inside
+  each console (saved per console).
+- ✅ **Steam pad settings across boots:** InputPlumber's virtual DualSense gets a new serial every boot and Steam
+  keys controller settings by serial; the newest are copied to the new serial before Steam starts (`0017`).
+- ✅ **Steam art:** covers, logos, screenshots and store details for the installed games (`steam-art.py`, Steam CDN
+  + appdetails), refreshed on every Steam start.
+- ✅ **60 Hz top panel:** frame-rate register before sleep out, as Android does (`9004`); the panel logs each init.
+- ✅ **Boot splash "ASGARD OS" on the top panel only:** the animation through KMS (retried for 5 s while the panels
+  probe); the static logo and the update progress bar (`0014`) on fbdev, drawn over the whole buffer (it is the top
+  panel's 1080x1920 but reports the shared 1080x1240) and turned 90° like sway, bottom backlight off meanwhile.
+- ✅ **Steam inside sway** (`0018`, `asgard.steam_nested=0` for ROCKNIX's way): gamescope as a window on the top
+  panel, so the AYN button opens the Thor Panel on the bottom screen; Home opens Steam's Quick Access
+  (`steam-pad-profile.py`). Baba Is You, Hollow Knight and Undertale run well so far.
+- ✅ **hexagonrpc package:** built as a ROCKNIX package and serving the sensors PD (the gyro runs through it). The
+  sensors root (Android's DSP files) can't ship in the image: copy it to the device once (see below).
 
 ### In progress / untested
+- 🧪 **Home in Azahar opens the in-game menu at once:** the hidden windows keep their graphics (the menu took ~1.2 s,
+  and a second press closed it as it appeared), and input in its first 400 ms is ignored.
+- 🧪 **PC system:** ROCKNIX's Steam system shown as PC; Steam is an entry inside, and other `.desktop` apps launch
+  directly (`X-Asgard-Kill` for Home's Quit). First one: Gen1 Recomp (LÖVE port of Pokémon Red/Blue/Yellow, from
+  your own ROMs).
+- 🧪 **Start on the Recently played tile** opens Settings, like the console tiles.
+- 🧪 **RetroArch bottom screen** can be switched off (Settings → Display), ROCKNIX's `rocknix.bottomscreen.type`.
+- 🧪 **Fewer modesets at game launch** (bottom panel rotated only when needed, powered off only if unused): lowers the
+  odds of the top-panel hang below; the hang is intermittent, so not proven gone (none seen since, with the rotator
+  also off via `rotator.disabled`).
 - **Switch: Eden v0.2.1** (`eden-sa`, built from source, NCE on; `0021` adds the `switch` system and Qt Charts
   for Eden's performance overlay; `eden-sa/patches/0001` fixes the build on GCC 16/fmt 12). Keys and firmware come
   from the card's `bios/NSO/` (`prod.keys`, `title.keys`, `Firmware.<ver>.zip`, installed on the first start).
@@ -78,13 +116,9 @@ live from bind-mounted dev builds before they reach an image.
   in the port's own launcher (`/storage/apps/gen1recomp/gen1recomp-sbc.sh`). Root cause in SDL3's Wayland path not found.
 - **D-pad slow to work after boot** (reported 2026-10-10): for a while after the Thor boots the d-pad doesn't respond
   well. Not investigated yet (suspects: rsinput's boot handshake / RX stream, InputPlumber or the frontend's pad open retry).
-- **In-game menu (Home tap):** plumbing verified (command FIFO, virtual keyboard); not yet tried inside a game.
 - **lowerdeck touch fix** (GB/GBA bottom-screen companion): tested in code, waiting for a try on the device.
-- **Boot splash** ("ASGARD"): compiles; shows from the next image.
 - **Thor Panel** labels don't scale well; a rebuild in Asgard Home's style is planned.
-- Shaders, ratios and other per-game overrides still open the classic (SDL) screen.
 - **asgard.yml:** self-test passes; not yet applied on a real boot.
-- **hexagonrpc package:** not yet built through ROCKNIX's cargo flow (the Thor runs a separate cross-build).
 - **Persistent event log (wanted):** the journal is RAM-only, so a crash or reboot loses the previous boot. On
   2026-10-12 (~20:40) the Thor came up after a reboot, had Wi-Fi for a minute, then went into airplane mode by
   itself; something had crashed, and nothing survived to say what. Log to `/storage` across boots: kernel
@@ -93,8 +127,6 @@ live from bind-mounted dev builds before they reach an image.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse (see Deep sleep plan). Since `9039`
   (2026-10-14) DDR sits at 200 MHz asleep instead of 1555; the ≥1 h drain with it is unmeasured.
 - Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
-- **Steam:** back in the image (Valve's native ARM64 client in gamescope, x86 games through FEX and Proton ARM64).
-  First run installs it with ROCKNIX's Install Steam (`0015` fixes it on the image's grep); games still untested.
 
 ### Known broken / limitations
 - 🧪 **Charge limit** (2026-10-11 build): `9003` replaced by Kettle's charge-current control (`9020`) and
@@ -102,7 +134,6 @@ live from bind-mounted dev builds before they reach an image.
 - **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan (`dpu_encoder_frame_done_timeout`):
   a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
   kept but does **not** fix it (correction to !13).
-- **Steam** isn't in the image (FEX thunks don't build).
 - **thor-sensorspd** stops for sleep and is restarted 3 s after resume (fixed 2026-10-11: the resume hook's direct
   start was rejected while suspend.target's job was queued, so gyro was gone after any sleep). Restart verified
   over a 30 s RTC sleep.
