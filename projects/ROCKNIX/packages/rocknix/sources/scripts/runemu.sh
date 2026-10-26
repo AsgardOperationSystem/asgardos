@@ -713,6 +713,7 @@ ${VERBOSE} && log $0 "Checking errors: ${ret_error} "
 if [ "${GAME_OOM}" = "1" ]; then
         log $0 "emulator was killed because the device ran out of memory"
         echo "The game was closed because the device ran out of memory." >/tmp/launch_error.log
+        /usr/share/asgard/asgard-crashlog.sh "${ROMNAME}" "${PLATFORM}" "${ret_error}"
         quit 250
 fi
 ### Report how the launch ended. EmulationStation records play count, play time
@@ -728,10 +729,14 @@ case "${ret_error}" in
   ;;
   137|143)
         log $0 "emulator ended by signal (${ret_error}, the exit hotkey); a clean exit"
+        # Asgard: unless it was Home's "Quit and save log" (a hung game), which keeps its log like a crash.
+        [ -e /tmp/asgard-save-log ] && /usr/share/asgard/asgard-crashlog.sh "${ROMNAME}" "${PLATFORM}" "${ret_error}"
         quit 0
   ;;
   *)
         log $0 "exiting with ${ret_error}"
+        # Asgard: keep this launch's log (the next launch overwrites exec.log) in /storage/.config/thor/crashes.
+        /usr/share/asgard/asgard-crashlog.sh "${ROMNAME}" "${PLATFORM}" "${ret_error}"
         quit 1
   ;;
 esac
