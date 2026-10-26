@@ -10,6 +10,7 @@ overlay/      new files copied over the tree (kernel patches, quirks, packages)
 build.sh      prepare rocknix/ and build the image (./build.sh [prepare|upgrade])
 inject-config.sh  put your asgard.yml on an image's boot partition
 frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgard-home/src)
+thor/         git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace (vendor dumps, ABL backup, ports)
 ```
 
 ## Status (2026-10-10)
@@ -131,7 +132,7 @@ active with `LPASS_HW_MACRO`/`DCODEC` enabled; read `/sys/kernel/debug/clk/<name
 Goal: full SoC sleep (`cxsd`/`ddr`, ideally `aosd`, counting in `/sys/kernel/debug/qcom_stats/`), as Android does
 on this Thor (750+ CX/DDR collapses in 10 min, each one resumed). Today the PCIe suspend OPP (`0220`/`0221`)
 keeps a small DDR vote in sleep; without it the first wake from DDR low power resets the SoC. Full notes:
-`~/system/devices/ayn_thor_pro.md`, sections from "CXSD-only sleep experiment" on.
+`~/Projects/asgard/thor/ayn_thor_pro.md`, sections from "CXSD-only sleep experiment" on.
 
 **Known (2026-10-14):**
 - The reset is the SoC dropping PS_HOLD: XBL log (`9043`, `/sys/kernel/debug/xbl_log`) shows `Reset by PSHOLD`,
@@ -169,7 +170,7 @@ sends that Linux doesn't. Stopping ADSP/CDSP isn't a valid test: DDR LPM stopped
 4. ~~Retry `0028`.~~ Done as `0032`: works, but CX still doesn't collapse.
 5. Floor-dropped overnight sleep: `echo 0 > /sys/module/pcie_qcom/parameters/suspend_floor` (runtime, resets at
    boot), lid closed, unplugged, then compare drain with the ~100 mA baseline. If it holds, make 0 the default.
-   Short tests: `~/system/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
+   Short tests: `~/Projects/asgard/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
 6. CX: list the AOP QMP messages the downstream drivers send (`qmp_send`/`aop_msg` in the OnePlus tree) and replay
    them at runtime through `qcom_aoss.send` (`9038`). Then the display RSC.
 7. If still blocked: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for

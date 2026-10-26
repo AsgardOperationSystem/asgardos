@@ -2,7 +2,7 @@
 # Copyright (C) 2026-present Asgard OS
 
 PKG_NAME="eden-duo-sa"
-PKG_VERSION="fcd65a0100a30067b3dc3a95619f655e518d1715" # Eden Duo 1.2.1
+PKG_VERSION="5fa93ed4de1a3f0838f01ef999eaa4a6582055ef" # Eden Duo 1.3.2.2
 PKG_LICENSE="GPL-3.0-or-later"
 PKG_SITE="https://github.com/igawa6/eden-duo"
 PKG_URL="${PKG_SITE}.git"

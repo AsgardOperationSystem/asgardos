@@ -1,6 +1,6 @@
---- a/src/video_core/renderer_vulkan/renderer_vulkan.cpp
-+++ b/src/video_core/renderer_vulkan/renderer_vulkan.cpp
-@@ -517,7 +517,7 @@
+--- a/src/video_core/renderer_vulkan/vk_dsmod_aux.cpp
++++ b/src/video_core/renderer_vulkan/vk_dsmod_aux.cpp
+@@ -132,7 +132,7 @@
              .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
              .pNext = nullptr,
              .srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT |

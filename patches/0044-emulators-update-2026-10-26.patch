@@ -1,0 +1,574 @@
+diff --git a/projects/ROCKNIX/packages/emulators/libretro/gambatte-lr/package.mk b/projects/ROCKNIX/packages/emulators/libretro/gambatte-lr/package.mk
+index f1840b108..487021b99 100644
+--- a/projects/ROCKNIX/packages/emulators/libretro/gambatte-lr/package.mk
++++ b/projects/ROCKNIX/packages/emulators/libretro/gambatte-lr/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="gambatte-lr"
+-PKG_VERSION="d9d6cd06382d1ced30de34d56d3609452323dab1"
+-PKG_SHA256="bd39cd38662135d17e221a7fd34baf2908a40065ade16edf2e8d1168b21b921e"
++PKG_VERSION="7809bb68ee96c3e6c74e9d9c4c8bb09aa7c6801d"
++PKG_SHA256="874744cd0e5fc965fcd1b49e14d1b792505c8bb18937bf4611950c435b4420fb"
+ PKG_LICENSE="GPL-2.0-or-later"
+ PKG_SITE="https://github.com/libretro/gambatte-libretro"
+ PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
+diff --git a/projects/ROCKNIX/packages/emulators/libretro/mgba-lr/package.mk b/projects/ROCKNIX/packages/emulators/libretro/mgba-lr/package.mk
+index d906c8505..9024d4075 100644
+--- a/projects/ROCKNIX/packages/emulators/libretro/mgba-lr/package.mk
++++ b/projects/ROCKNIX/packages/emulators/libretro/mgba-lr/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="mgba-lr"
+-PKG_VERSION="e31759b24e7a4e3899285ff720d7b573ac328ae7"
+-PKG_SHA256="396d749cce8fe3358b29cbb1db479b1816a151bd688ee45b1d241503cbc40243"
++PKG_VERSION="7a12d6d4b9acb14c0ae62c9166b6a2f3d08007f6"
++PKG_SHA256="5cbf639e527fb586bf33e14d59037eab35f78f45154e0b79c784fff474c3bc37"
+ PKG_LICENSE="MPL-2.0"
+ PKG_SITE="https://github.com/libretro/mgba"
+ PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
+diff --git a/projects/ROCKNIX/packages/emulators/libretro/mupen64plus-nx-lr/package.mk b/projects/ROCKNIX/packages/emulators/libretro/mupen64plus-nx-lr/package.mk
+index e4c5e1c0c..fa43bb110 100644
+--- a/projects/ROCKNIX/packages/emulators/libretro/mupen64plus-nx-lr/package.mk
++++ b/projects/ROCKNIX/packages/emulators/libretro/mupen64plus-nx-lr/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="mupen64plus-nx-lr"
+-PKG_VERSION="f275caf4b2bfa1e6d1c51636746ea793f3d80320"
+-PKG_SHA256="1810b7bbdc4abfdeee8a9f7f99c4a91dab601a228935802317c25a43d7cf9dbb"
++PKG_VERSION="15bada85906593376e8fd697f1b0b3af3a20f512"
++PKG_SHA256="0b739581f2610fa6967891a657c749557fa4f7555d6a7e2e3475c9b397302b13"
+ PKG_LICENSE="GPL-2.0-or-later"
+ PKG_SITE="https://github.com/libretro/mupen64plus-libretro-nx"
+ PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
+diff --git a/projects/ROCKNIX/packages/emulators/libretro/nestopia-lr/package.mk b/projects/ROCKNIX/packages/emulators/libretro/nestopia-lr/package.mk
+index 33f714135..11f1266de 100644
+--- a/projects/ROCKNIX/packages/emulators/libretro/nestopia-lr/package.mk
++++ b/projects/ROCKNIX/packages/emulators/libretro/nestopia-lr/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="nestopia-lr"
+-PKG_VERSION="b08b473f961e057216bc9e8c9d61054b1ab116cf"
+-PKG_SHA256="b7cad4c35ea0ba7b27990107e738e96a2f1a248321929561258717b5f53e06e4"
++PKG_VERSION="2110d21b7174455ec98948bb474147dea0e3cad0"
++PKG_SHA256="ed83409b97a547bd3619f830d3033222169c970669cc97353dd6ede30025b160"
+ PKG_LICENSE="GPL-2.0-or-later"
+ PKG_SITE="https://github.com/libretro/nestopia"
+ PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
+diff --git a/projects/ROCKNIX/packages/emulators/libretro/snes9x-lr/package.mk b/projects/ROCKNIX/packages/emulators/libretro/snes9x-lr/package.mk
+index b3ca91c9d..54b3d7f2c 100644
+--- a/projects/ROCKNIX/packages/emulators/libretro/snes9x-lr/package.mk
++++ b/projects/ROCKNIX/packages/emulators/libretro/snes9x-lr/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="snes9x-lr"
+-PKG_VERSION="890b5d445538fe790aa3add3d5702c80f551e0ae"
+-PKG_SHA256="fcc32b536d3e7b1def0d15489917dd043d5e1d9636de8af7851c48e771276613"
++PKG_VERSION="fae2fea08f74180759ef540ee94259213f503480"
++PKG_SHA256="0d4b0c4181d66668ec0040eb17f90a559f7b7fa6cbd9198593c3bdbe79acd029"
+ PKG_LICENSE="Non-commercial"
+ PKG_SITE="https://github.com/libretro/snes9x"
+ PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/armsx2-sa/package.mk b/projects/ROCKNIX/packages/emulators/standalone/armsx2-sa/package.mk
+index 85d62de09..bf2d556e0 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/armsx2-sa/package.mk
++++ b/projects/ROCKNIX/packages/emulators/standalone/armsx2-sa/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="armsx2-sa"
+-PKG_VERSION="19c83bf065ed21a19d8c46a1f578e37d2dab8efd"
+-PKG_SHA256="361b98beb943976f6c0ec5494eba26ded04abcd41683149c74317e089b3ff860"
++PKG_VERSION="25e7084fdefcf1e9069481a583c38c103b03e8f1" # 2.8.4
++PKG_SHA256="56f2424b7d532265fb40e7cccb7db2d049db419d58ddac6d07a196945aa345b1"
+ PKG_LICENSE="GPL-3.0-or-later"
+ PKG_SITE="https://github.com/ARMSX2/ARMSX2"
+ PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini b/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini
+deleted file mode 100644
+index 3284805f7..000000000
+--- a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini
++++ /dev/null
+@@ -1,61 +0,0 @@
+-[user]
+-nickname = ROCKNIX              # up to 10 characters
+-message =                       # up to 26 characters
+-birthday_month = 1
+-birthday_day = 1
+-colour = 2                      # 0 grey, 1 brown, 2 red, 3 pink, 4 orange, 5 yellow, 6 lime,
+-                                # 7 green, 8 dark green, 9 turquoise, 10 blue, 11 dark blue,
+-                                # 12 purple, 13 violet, 14 magenta, 15 dark pink
+-
+-[paths]
+-bios9 = /storage/roms/bios/bios9.bin
+-bios7 = /storage/roms/bios/bios7.bin
+-firmware = /storage/roms/bios/firmware.bin
+-bios9i = /storage/roms/bios/dsi_bios9.bin
+-bios7i = /storage/roms/bios/dsi_bios7.bin
+-dsi_firmware = /storage/roms/bios/dsi_firmware.bin
+-dsi_nand = /storage/roms/bios/dsi_nand.bin
+-games = /storage/roms/nds
+-dsi_shortcuts = /storage/roms/ndsiware
+-saves = /storage/roms/nds
+-screenshots = /storage/roms/screenshots
+-states = /storage/roms/savestates/nds
+-cache = /storage/.cache/dsperate
+-
+-[loader]
+-
+-[video]
+-fullscreen = true
+-layout = horizontal
+-vsync = true
+-
+-[audio]
+-
+-[cart]
+-
+-[emu]
+-
+-[keys]
+-
+-[pad]
+-
+-[hotkeys]
+-
+-[padhotkeys]
+-modifier = guide
+-quit = mod+start
+-pause = mod+x
+-fast_forward = mod+b
+-fast_forward_toggle = mod++righttrigger
+-save_state = mod+rightshoulder
+-load_state = mod+leftshoulder
+-slot_next = mod+dpright
+-slot_prev = mod+dpleft
+-layout_next = +righttrigger
+-layout_prev = +lefttrigger
+-screen_swap = mod++lefttrigger
+-mic = leftstick
+-fps = mod+y
+-
+-[cheevos]
+-enabled = false
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini.arc b/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini.arc
+deleted file mode 100644
+index 62a9b5f43..000000000
+--- a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini.arc
++++ /dev/null
+@@ -1,67 +0,0 @@
+-# Anbernic RG ARC-D / ARC-S: no sticks. Hold C to move the pen with the d-pad, R2 touches.
+-
+-[user]
+-nickname = ROCKNIX              # up to 10 characters
+-message =                       # up to 26 characters
+-birthday_month = 1
+-birthday_day = 1
+-colour = 2                      # 0 grey, 1 brown, 2 red, 3 pink, 4 orange, 5 yellow, 6 lime,
+-                                # 7 green, 8 dark green, 9 turquoise, 10 blue, 11 dark blue,
+-                                # 12 purple, 13 violet, 14 magenta, 15 dark pink
+-
+-[paths]
+-bios9 = /storage/roms/bios/bios9.bin
+-bios7 = /storage/roms/bios/bios7.bin
+-firmware = /storage/roms/bios/firmware.bin
+-bios9i = /storage/roms/bios/dsi_bios9.bin
+-bios7i = /storage/roms/bios/dsi_bios7.bin
+-dsi_firmware = /storage/roms/bios/dsi_firmware.bin
+-dsi_nand = /storage/roms/bios/dsi_nand.bin
+-games = /storage/roms/nds
+-dsi_shortcuts = /storage/roms/ndsiware
+-saves = /storage/roms/nds
+-screenshots = /storage/roms/screenshots
+-states = /storage/roms/savestates/nds
+-cache = /storage/.cache/dsperate
+-
+-[loader]
+-
+-[video]
+-fullscreen = true
+-layout = horizontal
+-vsync = true
+-
+-[audio]
+-
+-[cart]
+-
+-[emu]
+-
+-[keys]
+-
+-[pad]
+-stick_dpad = none
+-stylus_axis = none
+-stylus_dpad = rightstick
+-stylus_button = +righttrigger
+-
+-[hotkeys]
+-
+-[padhotkeys]
+-modifier = back
+-quit = mod+start
+-pause = mod+x
+-fast_forward = mod+b
+-fast_forward_toggle = mod++righttrigger
+-save_state = mod+rightshoulder
+-load_state = mod+leftshoulder
+-slot_next = mod+dpright
+-slot_prev = mod+dpleft
+-layout_next = mod+dpup
+-layout_prev = mod+dpdown
+-screen_swap = mod++lefttrigger
+-mic = leftstick
+-fps = mod+y
+-
+-[cheevos]
+-enabled = false
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini.rgds b/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini.rgds
+deleted file mode 100644
+index 52e604c07..000000000
+--- a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/config/RK3566/dsperate.ini.rgds
++++ /dev/null
+@@ -1,65 +0,0 @@
+-# Anbernic RG DS / RG DS Plus: the touch panel is the pen.
+-
+-[user]
+-nickname = ROCKNIX              # up to 10 characters
+-message =                       # up to 26 characters
+-birthday_month = 1
+-birthday_day = 1
+-colour = 2                      # 0 grey, 1 brown, 2 red, 3 pink, 4 orange, 5 yellow, 6 lime,
+-                                # 7 green, 8 dark green, 9 turquoise, 10 blue, 11 dark blue,
+-                                # 12 purple, 13 violet, 14 magenta, 15 dark pink
+-
+-[paths]
+-bios9 = /storage/roms/bios/bios9.bin
+-bios7 = /storage/roms/bios/bios7.bin
+-firmware = /storage/roms/bios/firmware.bin
+-bios9i = /storage/roms/bios/dsi_bios9.bin
+-bios7i = /storage/roms/bios/dsi_bios7.bin
+-dsi_firmware = /storage/roms/bios/dsi_firmware.bin
+-dsi_nand = /storage/roms/bios/dsi_nand.bin
+-games = /storage/roms/nds
+-dsi_shortcuts = /storage/roms/ndsiware
+-saves = /storage/roms/nds
+-screenshots = /storage/roms/screenshots
+-states = /storage/roms/savestates/nds
+-cache = /storage/.cache/dsperate
+-
+-[loader]
+-
+-[video]
+-fullscreen = true
+-layout = horizontal
+-vsync = true
+-
+-[audio]
+-
+-[cart]
+-
+-[emu]
+-
+-[keys]
+-
+-[pad]
+-stylus_axis = none
+-stylus_button = none
+-
+-[hotkeys]
+-
+-[padhotkeys]
+-modifier = guide
+-quit = mod+start
+-pause = mod+x
+-fast_forward = mod+b
+-fast_forward_toggle = mod++righttrigger
+-save_state = mod+rightshoulder
+-load_state = mod+leftshoulder
+-slot_next = mod+dpright
+-slot_prev = mod+dpleft
+-layout_next = +righttrigger
+-layout_prev = +lefttrigger
+-screen_swap = mod++lefttrigger
+-mic = leftstick
+-fps = mod+y
+-
+-[cheevos]
+-enabled = false
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/package.mk b/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/package.mk
+index b51812171..f229f34d3 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/package.mk
++++ b/projects/ROCKNIX/packages/emulators/standalone/dsperate-sa/package.mk
+@@ -2,8 +2,8 @@
+ # Copyright (C) 2026-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="dsperate-sa"
+-PKG_VERSION="3.0.2"
+-PKG_SHA256="6792d96b303f48d99bea925544f550bd9a217f06b2249a605e3c90c9aaa559a6"
++PKG_VERSION="3.0.5"
++PKG_SHA256="038cbf123b868a969ebc42574272c70313f6a2336ba0325ba3ac360608b6545b"
+ PKG_LICENSE="GPL-3.0-or-later"
+ PKG_SITE="https://github.com/beebono/DSperate"
+ PKG_URL="${PKG_SITE}/releases/download/v${PKG_VERSION}/dsperate-v${PKG_VERSION}-linux-${TARGET_ARCH}.tar.gz"
+@@ -18,7 +18,7 @@ makeinstall_target() {
+     cp -a ${PKG_DIR}/scripts/* ${INSTALL}/usr/bin
+ 
+   case ${DEVICE} in
+-    RK3576|SM4450|SM6115|SM8250|SM8550|SM8650|SM8750) CONFIG="InputPlumber" ;;
++    RK3566|RK3576|SM4450|SM6115|SM8250|SM8550|SM8650|SM8750) CONFIG="InputPlumber" ;;
+     *) CONFIG="${DEVICE}" ;;
+   esac
+ 
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/package.mk b/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/package.mk
+index 971518c0d..54d1e108a 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/package.mk
++++ b/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/package.mk
+@@ -2,15 +2,15 @@
+ # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+ 
+ PKG_NAME="dolphin-sa"
+-PKG_VERSION="6094cfcf7b8fba733b3116fdf3414d51c1c0e4a4" #2606
++PKG_VERSION="f84df02055ab9610feec48e65648cac5a3c098fa" #2609
+ PKG_LICENSE="GPL-2.0-or-later"
+ PKG_SITE="https://github.com/dolphin-emu/dolphin"
+ PKG_URL="${PKG_SITE}.git"
+ PKG_DEPENDS_TARGET="toolchain libevdev libdrm ffmpeg zlib libpng lzo libusb zstd ecm openal-soft pulseaudio alsa-lib libfmt hidapi curl SDL3 qt6"
+ PKG_LONGDESC="Dolphin is a GameCube / Wii / Triforce emulator, allowing you to play games for these two platforms on PC with improvements. "
+ 
+-PKG_DOLPHIN_VERSION_MAJOR="2606"
+-PKG_DOLPHIN_VERSION_MINOR="1"
++PKG_DOLPHIN_VERSION_MAJOR="2609"
++PKG_DOLPHIN_VERSION_MINOR="0"
+ 
+ if [ "${OPENGL_SUPPORT}" = "yes" ]; then
+   PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/002-savestate-names.patch b/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/002-savestate-names.patch
+index e87521b4e..e1c11f8bc 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/002-savestate-names.patch
++++ b/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/002-savestate-names.patch
+@@ -1,8 +1,8 @@
+ diff --git a/Source/Core/Core/BootManager.cpp b/Source/Core/Core/BootManager.cpp
+-index fc93d01a1e..915e77da77 100644
++index 85444ef..cb7b6a3 100644
+ --- a/Source/Core/Core/BootManager.cpp
+ +++ b/Source/Core/Core/BootManager.cpp
+-@@ -66,6 +66,11 @@ bool BootCore(Core::System& system, std::unique_ptr<BootParameters> boot,
++@@ -56,6 +56,11 @@ bool BootCore(Core::System& system, std::unique_ptr<BootParameters> boot,
+    if (!StartUp.SetPathsAndGameMetadata(system, *boot))
+      return false;
+  
+@@ -15,25 +15,25 @@ index fc93d01a1e..915e77da77 100644
+    auto& movie = system.GetMovie();
+    if (movie.IsPlayingInput() && movie.IsConfigSaved())
+ diff --git a/Source/Core/Core/ConfigManager.cpp b/Source/Core/Core/ConfigManager.cpp
+-index 5a123c87cd..06890be2dd 100644
++index 32f74a0..9b9ea28 100644
+ --- a/Source/Core/Core/ConfigManager.cpp
+ +++ b/Source/Core/Core/ConfigManager.cpp
+-@@ -183,6 +183,10 @@ void SConfig::SetRunningGameMetadata(const std::string& game_id)
+-   SetRunningGameMetadata(game_id, "", 0, 0, DiscIO::Region::Unknown);
++@@ -225,6 +225,10 @@ void SConfig::SetRunningGameMetadata(const IOS::ES::TMDReader& tmd, DiscIO::Plat
++   }
+  }
+  
+ +void SConfig::SetBaseSaveState(const std::string& base_save_state) {
+ +  m_base_save_state = base_save_state;
+ +}
+ +
+- void SConfig::SetRunningGameMetadata(const std::string& game_id, const std::string& gametdb_id,
+-                                      u64 title_id, u16 revision, DiscIO::Region region)
++ void SConfig::SetRunningGameMetadata(const std::string& game_id)
+  {
++   std::lock_guard<std::recursive_mutex> lock(m_metadata_lock);
+ diff --git a/Source/Core/Core/ConfigManager.h b/Source/Core/Core/ConfigManager.h
+-index d21b087a51..f0ce0b7e71 100644
++index 039dcff..ae51e3d 100644
+ --- a/Source/Core/Core/ConfigManager.h
+ +++ b/Source/Core/Core/ConfigManager.h
+-@@ -63,6 +63,8 @@ struct SConfig
++@@ -60,6 +60,8 @@ struct SConfig
+    // TODO: remove this as soon as the ticket view hack in IOS/ES/Views is dropped.
+    bool m_disc_booted_from_game_list = false;
+  
+@@ -41,45 +41,45 @@ index d21b087a51..f0ce0b7e71 100644
+ +  void SetBaseSaveState(const std::string& base_save_state);
+    const std::string GetGameID() const;
+    const std::string GetGameTDBID() const;
+-   const std::string GetTitleName() const;
+-@@ -118,6 +120,7 @@ private:
++   const std::string GetGameIDElfDol() const;
++@@ -139,6 +141,7 @@ private:
+    static SConfig* m_Instance;
+    mutable std::recursive_mutex m_metadata_lock;
+  
+ +  std::string m_base_save_state;
+    std::string m_game_id;
++   std::string m_game_id_elf_dol;
+    std::string m_gametdb_id;
+-   std::string m_title_name;
+ diff --git a/Source/Core/Core/State.cpp b/Source/Core/Core/State.cpp
+-index a244fda1b6..13d5baa453 100644
++index 2dcd2ca..8bea825 100644
+ --- a/Source/Core/Core/State.cpp
+ +++ b/Source/Core/Core/State.cpp
+-@@ -248,11 +248,10 @@ static std::string SystemTimeAsDoubleToString(double time)
++@@ -303,11 +303,10 @@ static std::string SystemTimeAsDoubleToString(double time)
+    return fmt::format(std::locale{""}, "{:%x %X}", *local_time);
+  }
+  
+--static std::string MakeStateFilename(int number)
++-static std::string MakeStateFilename(u32 number)
+ -{
+ -  return fmt::format("{}{}.s{:02d}", File::GetUserPath(D_STATESAVES_IDX),
+ -                     SConfig::GetInstance().GetGameID(), number);
+ -}
+-+static std::string MakeStateFilename(bool useId, int number);
+-+static std::string MakeStateFilename_partdirectory(int number);
+-+static std::string MakeStateFilename_partfileName(int number);
+-+static std::string MakeStateFilename_partfileID(int number);
+++static std::string MakeStateFilename(bool useId, u32 number);
+++static std::string MakeStateFilename_partdirectory(u32 number);
+++static std::string MakeStateFilename_partfileName(u32 number);
+++static std::string MakeStateFilename_partfileID(u32 number);
+  
+  static std::vector<SlotWithTimestamp> GetUsedSlotsWithTimestamp()
+  {
+-@@ -256,7 +259,7 @@ static std::vector<SlotWithTimestamp> GetUsedSlotsWithTimestamp()
++@@ -315,7 +314,7 @@ static std::vector<SlotWithTimestamp> GetUsedSlotsWithTimestamp()
+    StateHeader header;
+-   for (int i = 1; i <= int(NUM_STATES); ++i)
++   for (u32 i = 1; i <= NUM_STATES; ++i)
+    {
+ -    std::string filename = MakeStateFilename(i);
+ +    std::string filename = MakeStateFilename(true, i);
+      if (!File::Exists(filename) || !ReadHeader(filename, header))
+        continue;
+  
+-@@ -525,7 +528,7 @@ std::string GetInfoStringOfSlot(int slot, bool translate)
++@@ -612,7 +611,7 @@ std::string GetInfoStringOfSlot(u32 slot, bool translate)
+  {
+    std::lock_guard lk{s_state_saves_in_progress};
+  
+@@ -88,7 +88,8 @@ index a244fda1b6..13d5baa453 100644
+    if (!File::Exists(filename))
+      return translate ? Common::GetStringT("Empty") : "Empty";
+  
+-@@ -538,6 +541,6 @@ u64 GetUnixTimeOfSlot(int slot)
++@@ -628,7 +627,7 @@ u64 GetUnixTimeOfSlot(u32 slot)
++   std::lock_guard lk{s_state_saves_in_progress};
+  
+    State::StateHeader header;
+ -  if (!ReadHeader(MakeStateFilename(slot), header))
+@@ -96,11 +97,11 @@ index a244fda1b6..13d5baa453 100644
+      return 0;
+  
+    constexpr u64 MS_PER_SEC = 1000;
+-@@ -703,52 +706,88 @@ void Shutdown()
++@@ -902,14 +901,50 @@ void Shutdown()
+    s_flush_unsaved_data_hook.reset();
+  }
+  
+-+static std::string MakeStateFilename(bool useId, int number)
+++static std::string MakeStateFilename(bool useId, u32 number)
+ +{
+ +  // Priority: file named by disc filename over file named by game ID.
+ +  // If the game was not loaded from a disc image, fall back to game ID.
+@@ -118,17 +119,17 @@ index a244fda1b6..13d5baa453 100644
+ +  return fileWithName;
+ +}
+ +
+-+static std::string MakeStateFilename_partdirectory(int number)
+++static std::string MakeStateFilename_partdirectory(u32 number)
+ +{
+ +  return File::GetUserPath(D_STATESAVES_IDX);
+ +}
+ +
+-+static std::string MakeStateFilename_partfileID(int number)
+++static std::string MakeStateFilename_partfileID(u32 number)
+ +{
+ +  return fmt::format("{}.s{:02d}", SConfig::GetInstance().GetGameID(), number);
+ +}
+ +
+-+static std::string MakeStateFilename_partfileName(int number)
+++static std::string MakeStateFilename_partfileName(u32 number)
+ +{
+ +  std::string basesavestate = SConfig::GetInstance().GetBaseSaveState();
+ +  if (basesavestate == "")
+@@ -136,32 +137,20 @@ index a244fda1b6..13d5baa453 100644
+ +  return fmt::format("{}.s{:02d}", basesavestate, number);
+ +}
+ +
+- void Save(Core::System& system, int slot)
++ void Save(Core::System& system, u32 slot)
+  {
+ -  SaveAs(system, MakeStateFilename(slot));
+ +  SaveAs(system, MakeStateFilename(false, slot));
+  }
+  
+- void Load(Core::System& system, int slot)
++ void Load(Core::System& system, u32 slot)
+  {
+ -  LoadAs(system, MakeStateFilename(slot));
+ +  LoadAs(system, MakeStateFilename(true, slot));
+  }
+  
+  void LoadLastSaved(Core::System& system, int i)
+- {
+-   if (!CheckIfStateLoadIsAllowed(system))
+-     return;
+- 
+-   Core::RunOnCPUThread(system, [&system, i] {
+-     // Data must reach the filesystem for up to date "UsedSlots".
+-     s_compress_and_dump_thread.WaitForCompletion();
+- 
+-     std::vector<SlotWithTimestamp> used_slots = GetUsedSlotsWithTimestamp();
+-     if (std::size_t(i) > used_slots.size())
+-     {
+-       Core::DisplayMessage("State doesn't exist", 2000);
+-       return;
++@@ -929,7 +964,7 @@ void LoadLastSaved(Core::System& system, int i)
+      }
+  
+      std::ranges::stable_sort(used_slots, std::ranges::greater{}, &SlotWithTimestamp::timestamp);
+@@ -170,18 +159,7 @@ index a244fda1b6..13d5baa453 100644
+    });
+  }
+  
+- void SaveFirstSaved(Core::System& system)
+- {
+-   Core::RunOnCPUThread(system, [&system, lock = GetStateSaveTaskLock()] {
+-     // Data must reach the filesystem for up to date "UsedSlots".
+-     s_compress_and_dump_thread.WaitForCompletion();
+- 
+-     std::vector<SlotWithTimestamp> used_slots = GetUsedSlotsWithTimestamp();
+-     auto slot = GetEmptySlot(used_slots);
+-     if (!slot.has_value())
+-     {
+-       // overwrite the oldest state
+-       std::ranges::stable_sort(used_slots, {}, &SlotWithTimestamp::timestamp);
++@@ -948,7 +983,7 @@ void SaveFirstSaved(Core::System& system)
+        slot = used_slots.front().slot;
+      }
+  
+@@ -189,3 +167,4 @@ index a244fda1b6..13d5baa453 100644
+ +    SaveAsFromCore(system, MakeStateFilename(false, *slot));
+    });
+  }
++ 
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/006-dolphin-version.patch b/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/006-dolphin-version.patch
+index 4a4a3fab6..4028b5b54 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/006-dolphin-version.patch
++++ b/projects/ROCKNIX/packages/emulators/standalone/dolphin-sa/patches/006-dolphin-version.patch
+@@ -6,7 +6,7 @@ index 93956b2eed..0bd2833b62 100644
+  string(TIMESTAMP DOLPHIN_WC_BUILD_DATE "%Y-%m-%d" UTC)
+  
+  # version number
+--set(DOLPHIN_VERSION_MAJOR "2606")
++-set(DOLPHIN_VERSION_MAJOR "2609")
+ -set(DOLPHIN_VERSION_MINOR "0")
+ +set(DOLPHIN_VERSION_MAJOR "@PKG_DOLPHIN_VERSION_MAJOR@")
+ +set(DOLPHIN_VERSION_MINOR "@PKG_DOLPHIN_VERSION_MINOR@")

@@ -28,7 +28,7 @@ fi
 
 if [ "$STEP" = upgrade ]; then
   git -C rocknix fetch -q --depth 1 origin next
-  git -C rocknix checkout -q --detach FETCH_HEAD
+  git -C rocknix checkout -q -f --detach FETCH_HEAD  # -f: a prepared tree has patches applied
   echo "rocknix -> $(git -C rocknix log -1 --format='%h %ci %s')"
 else
   git submodule update -q --init --depth 1 rocknix
