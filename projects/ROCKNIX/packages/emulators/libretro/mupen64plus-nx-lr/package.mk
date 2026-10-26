@@ -2,8 +2,8 @@
 # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
 
 PKG_NAME="mupen64plus-nx-lr"
-PKG_VERSION="f275caf4b2bfa1e6d1c51636746ea793f3d80320"
-PKG_SHA256="1810b7bbdc4abfdeee8a9f7f99c4a91dab601a228935802317c25a43d7cf9dbb"
+PKG_VERSION="15bada85906593376e8fd697f1b0b3af3a20f512"
+PKG_SHA256="0b739581f2610fa6967891a657c749557fa4f7555d6a7e2e3475c9b397302b13"
 PKG_LICENSE="GPL-2.0-or-later"
 PKG_SITE="https://github.com/libretro/mupen64plus-libretro-nx"
 PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"

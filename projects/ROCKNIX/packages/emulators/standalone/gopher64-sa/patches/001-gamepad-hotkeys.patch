@@ -1,10 +1,10 @@
 diff --git a/parallel-rdp/interface.cpp b/parallel-rdp/interface.cpp
-index c94550f..83023eb 100644
+index 7395fcc..3be35c0 100644
 --- a/parallel-rdp/interface.cpp
 +++ b/parallel-rdp/interface.cpp
-@@ -100,6 +100,10 @@ static size_t fragment_size;
- std::vector<bool> rdram_dirty;
- uint64_t sync_signal;
+@@ -119,11 +119,15 @@ static size_t fragment_size;
+ static std::vector<bool> rdram_dirty;
+ static uint64_t sync_signal;
  
 +static bool guide_held = false;
 +static bool r2_held = false;
@@ -12,10 +12,17 @@ index c94550f..83023eb 100644
 +
  static TTF_Font *message_font;
  static std::queue<Message> messages;
- static uint64_t message_timer;
-@@ -212,7 +216,117 @@ bool sdl_event_filter(void *userdata, SDL_Event *event) {
-       break;
-     }
+ 
+-static float message_font_size = 25.0;
+-static float achievement_challenge_indicator_font_size = 12.0;
++static float message_font_size = 30.0;
++static float achievement_challenge_indicator_font_size = 30.0;
+ 
+ static TTF_Font *achievement_challenge_indicator_font;
+ static std::vector<const char *> achievement_challenge_indicators;
+@@ -318,7 +322,117 @@ bool sdl_event_filter(void *userdata, SDL_Event *event) {
+   } else if (event->type == SDL_EVENT_RENDER_DEVICE_RESET) {
+     wsi->init_surface_swapchain();
    }
 +else if (event->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
 +{
@@ -47,7 +54,7 @@ index c94550f..83023eb 100644
 +            display_fps = !display_fps;
 +            rdp_onscreen_message(
 +                display_fps ? "FPS display ON" : "FPS display OFF",
-+                false
++                MESSAGE_SHORT
 +            );
 +            return 1;
 +        }
@@ -57,7 +64,7 @@ index c94550f..83023eb 100644
 +        if (guide_held)
 +        {
 +            callback.reset_game = true;
-+            rdp_onscreen_message("Reset game", false);
++            rdp_onscreen_message("Reset game", MESSAGE_SHORT);
 +            return 1;
 +        }
 +        break;
@@ -100,7 +107,7 @@ index c94550f..83023eb 100644
 +            rdp_onscreen_message(
 +                fast_forward_toggled ? "Fast forward on"
 +                                     : "Fast forward off",
-+                false
++                MESSAGE_SHORT
 +            );
 +
 +            r2_held = true;
@@ -131,51 +138,24 @@ index c94550f..83023eb 100644
    return 0;
  }
  
-@@ -317,9 +431,9 @@ void rdp_init(void *_window, GFX_INFO _gfx_info, const void *font,
-   }
- 
-   message_font =
--      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 25.0);
-+      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 30.0);
-   achievement_challenge_indicator_font =
--      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 12.0);
-+      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 30.0);
-   if (!message_font || !achievement_challenge_indicator_font) {
-     rdp_close();
-     return;
 diff --git a/src/ui/input.rs b/src/ui/input.rs
-index af59d65..6b7798e 100644
+index ee7d689..7e50cb7 100644
 --- a/src/ui/input.rs
 +++ b/src/ui/input.rs
-@@ -418,6 +418,13 @@ pub fn get(ui: &ui::Ui, channel: usize) -> InputData {
-                 .offset(i32::from(sdl3_sys::scancode::SDL_SCANCODE_RALT) as isize)
-     };
+@@ -418,6 +418,16 @@ pub fn get(ui: &mut ui::Ui, channel: usize) -> InputData {
  
-+    let guide_pressed = !controller.is_null() && unsafe {
-+        sdl3_sys::gamepad::SDL_GetGamepadButton(
-+            controller,
-+            sdl3_sys::gamepad::SDL_GamepadButton::GUIDE,
-+        )
-+    };
+     let (mut x, mut y) = set_axis(profile, joystick, controller, ui.input.keyboard_state);
+ 
++    // Guide is the hotkey modifier (parallel-rdp's event filter): no game input while it's held.
++    if !controller.is_null()
++        && unsafe {
++            sdl3_sys::gamepad::SDL_GetGamepadButton(controller, sdl3_sys::gamepad::SDL_GamepadButton::GUIDE)
++        }
++    {
++        keys = 0;
++        (x, y) = (0.0, 0.0);
++    }
 +
-     for i in 0..14 {
-         if profile_name != "default" || channel == 0 {
-             let profile_key = profile.keys[i];
-@@ -428,7 +435,7 @@ pub fn get(ui: &ui::Ui, channel: usize) -> InputData {
-             }
-         }
- 
--        if !controller.is_null() {
-+        if !controller.is_null() && !guide_pressed {
-             set_buttons_from_controller(profile, i, controller, &mut keys);
-         } else if !joystick.is_null() {
-             set_buttons_from_joystick(profile, i, joystick, &mut keys);
-@@ -442,7 +449,7 @@ pub fn get(ui: &ui::Ui, channel: usize) -> InputData {
-         (x, y) = set_axis_from_keys(profile, ui.input.keyboard_state);
-     }
- 
--    if !controller.is_null() {
-+    if !controller.is_null() && !guide_pressed {
-         (x, y) = set_axis_from_controller(profile, controller);
-         apply_deadzone(&mut x, &mut y, profile.deadzone);
-     } else if !joystick.is_null() {
+     #[cfg(target_os = "android")]
+     {
+         if channel == 0

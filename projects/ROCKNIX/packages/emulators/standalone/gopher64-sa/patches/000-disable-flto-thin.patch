@@ -10,10 +10,10 @@ index 2cbcdf5..17844e0 100644
 -    rdp_build.flag("-flto=thin");
 -    simd_build.flag("-flto=thin");
 -    retroachievements_build.flag("-flto=thin");
-+    volk_build.flag("-flto");
-+    rdp_build.flag("-flto");
-+    simd_build.flag("-flto");
-+    retroachievements_build.flag("-flto");
++    volk_build.flag("-flto").flag("-ffat-lto-objects");
++    rdp_build.flag("-flto").flag("-ffat-lto-objects");
++    simd_build.flag("-flto").flag("-ffat-lto-objects");
++    retroachievements_build.flag("-flto").flag("-ffat-lto-objects");
  
      volk_build.compile("volk");
      rdp_build.compile("parallel-rdp");
