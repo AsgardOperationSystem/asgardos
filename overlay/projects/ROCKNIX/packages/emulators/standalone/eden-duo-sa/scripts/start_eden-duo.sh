@@ -6,7 +6,9 @@
 # .dsmod package in load/<title id>/. Shares Eden's data (keys, firmware, saves, mods) with eden-sa; its own config
 # is sdl2-config.ini, seeded once from Eden's qt-config.ini (same frontend_common format: controls, paths, renderer).
 . /etc/profile
-set_kill set "eden-duo-cli"
+# Quit with -9, as Azahar/Dolphin/melonDS: on SIGTERM eden-cli shuts down for longer than Home's 4 s grace (it
+# rewrites the Vulkan pipeline cache, which it also flushes during play), so every quit waited 4 s and got -KILL anyway.
+set_kill set "-9 eden-duo-cli"
 
 CONF_DIR="/storage/.config/eden"
 DATA_DIR="/storage/.local/share/eden"
