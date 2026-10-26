@@ -1,0 +1,12 @@
+[Unit]
+Description=Freeze reports: files the last boot's journal if it never shut down
+RequiresMountsFor=/storage
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/share/asgard/asgard-lastboot.sh start
+ExecStop=/usr/share/asgard/asgard-lastboot.sh stop
+
+[Install]
+WantedBy=multi-user.target

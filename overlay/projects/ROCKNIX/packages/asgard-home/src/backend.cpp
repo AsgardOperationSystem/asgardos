@@ -306,11 +306,16 @@ void Backend::setScreensOff(bool off)
     emit screensOffChanged();
 }
 
+// A journal snapshot at each game's launch and exit (in the background: it never delays the game), so a freeze
+// leaves the boot's log up to then (asgard-journal-snap.sh, filed by asgard-lastboot.sh).
+#define SNAP_JOURNAL "(/usr/share/asgard/asgard-journal-snap.sh >/dev/null 2>&1 &); "
+
 void Backend::launch(const QVariantMap &game)
 {
     if (m_game)
         return;
     m_launched = game;
+    QFile::remove("/tmp/asgard-save-log");   // Quit and save log's marker, for this launch only
     const QString rom = game["path"].toString(), sys = game["sys"].toString();
     // The emulator/core chosen for this game, else for its system, else ROCKNIX's default (what ROCKNIX ES did).
     const QString file = QFileInfo(rom).fileName();
@@ -335,17 +340,21 @@ void Backend::launch(const QVariantMap &game)
             if (kill.isEmpty())
                 kill = QFileInfo(exec.section(' ', 0, 0)).fileName();
             // ROCKNIX's kill-hotkey target (runemu.sh writes it for emulators): Home's in-game menu reads it.
-            run(". /etc/profile; set_kill set \"$3\"; python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; " +
-                exec + "; rc=$?; set_kill stop; python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
+            // Its output goes to exec.log, as runemu.sh's launches do, and a failed run (or Quit and save log) keeps
+            // it in /storage like theirs: 137/143 are Home's quit.
+            run(". /etc/profile; set_kill set \"$3\"; python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; " SNAP_JOURNAL
+                "echo \"Run log - $(date): $1\" >/var/log/exec.log; { " + exec + "; } >>/var/log/exec.log 2>&1; rc=$?; "
+                "set_kill stop; python3 /usr/share/asgard/playlog.py stop 2>/dev/null; " SNAP_JOURNAL "case $rc in 0|137|143) [ -e /tmp/asgard-save-log ] || exit $rc ;; esac; "
+                "/usr/share/asgard/asgard-crashlog.sh \"$1\" \"$2\" $rc; exit $rc",
                 {rom, sys, kill},
                 m_gameEnv);
             return;
         }
     }
     // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys).
-    run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" \"$4\" \"$3\" 2>/dev/null; "
+    run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" \"$4\" \"$3\" 2>/dev/null; " SNAP_JOURNAL
         "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
-        "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; exit $rc",
+        "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; " SNAP_JOURNAL "exit $rc",
         {rom, sys, core, emulator}, m_gameEnv);
 }
 
@@ -518,7 +527,7 @@ void Backend::padChord(const QStringList &buttons)
         "as", QString::number(buttons.size())} + buttons);
 }
 
-void Backend::quitGame()
+void Backend::quitGame(bool saveLog)
 {
     const QStringList names = runningGame();
     setGameMenu(false);
@@ -533,9 +542,20 @@ void Backend::quitGame()
             if (w.startsWith('-'))
                 sig = w;
     const QString n = names.join(' ');
+    QString log;
+    if (saveLog) {
+        // Quit and save log (a hung game): what each thread waits on (a GPU hang sits in a driver call) and the
+        // kernel's last messages go into exec.log, and the marker has the launcher keep this launch's log
+        // (asgard-crashlog.sh) however it ends. SIGABRT leaves a core dump, whose backtrace shows where it hung;
+        // writing it takes a while, and a -KILL would cut it short, so wait up to 30 s for that.
+        sig = "-ABRT";
+        log = "touch /tmp/asgard-save-log; { echo; echo \"=== Quit and save log: $(date) ===\"; for p in $(pidof " + n + "); do "
+              "for t in /proc/$p/task/*; do echo \"$t $(cat $t/comm) wchan=$(cat $t/wchan)\"; cat $t/stack; done; done; "
+              "echo '=== dmesg ==='; dmesg | tail -60; } >>/var/log/exec.log 2>&1; ";
+    }
     // A game in the background is frozen (SIGSTOP): it would only act on the quit signal once continued.
-    shell((m_background ? "killall -CONT " + n + "; " : QString()) + "killall " + sig + " " + n + "; for i in $(seq 20); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; "
-          "killall -KILL " + n);
+    shell(log + (m_background ? "killall -CONT " + n + "; " : QString()) + "killall " + sig + " " + n + "; for i in $(seq "
+          + (saveLog ? "150" : "20") + "); do pidof " + n + " >/dev/null || exit 0; sleep .2; done; killall -KILL " + n);
 }
 
 // --- settings (system.cfg, ROCKNIX's semantics: one key=value per line, the last one wins) -----------------------

@@ -52,7 +52,7 @@ public:
     Q_INVOKABLE void rescan();
     Q_INVOKABLE QStringList runningGame() const;          // the running emulator's process names
     Q_INVOKABLE void gameKeys(const QString &combo);      // focus the game and press e.g. "F4", "Alt+S"
-    Q_INVOKABLE void quitGame();
+    Q_INVOKABLE void quitGame(bool saveLog = false);   // saveLog: a hang, kept for debugging
     Q_INVOKABLE void toBackground();   // "Back to Home": the game freezes, its windows hide, we show
     Q_INVOKABLE void resumeGame();     // "Return to <game>"
     Q_INVOKABLE void retroarch(const QString &cmd);       // RetroArch network command, e.g. "PAUSE_TOGGLE"

@@ -30,11 +30,14 @@ Item {
     }
     // "Back to Home" after Resume in every menu: resume() first undoes the menu's own pause (RetroArch, Azahar, Eden),
     // so the game isn't still paused when it comes back. Only games: tools have no kill data to freeze.
+    // ...and "Quit and save log" before Quit: for a hung game, keeps its log and a core dump (/storage).
     function withHome(list) {
         if (!game.length) return list
         const home = { icon: "home", title: "Back to Home", sub: "The game waits in the background",
                        run: () => { resume(); backend.toBackground() } }
-        return [list[0], home].concat(list.slice(1))
+        const save = { icon: "save", title: "Quit and save log", sub: "For a hang: keeps its log and a core dump",
+                       run: () => backend.quitGame(true) }
+        return [list[0], home].concat(list.slice(1, -1), [save, list[list.length - 1]])
     }
     readonly property var items: withHome(azahar ? [
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
