@@ -46,27 +46,46 @@ The Thor sleeps with the game running. On wake, the emulator must carry on from 
 the time asleep. An emulator that tries to "catch up" runs every missed frame as fast as it can, and the game looks
 frozen for minutes. Eden did this after a 53-minute sleep: 2,100 frame ticks a second for about 2 minutes (2026-10-26).
 
-Two ways to meet this. The first is enough. Have the second as well where you can:
+An emulator is fine if **any** of these holds. Check its source: find the frame limiter / scheduler and the clock it
+reads.
 
-1. **Pause hook (Asgard):** before every sleep the sleep hook (`sleep.d/asgard-game-pause`) tells Home `sleep`, and Home
-   pauses the running game with the emulator's own pause. On wake it sends `wake`, and Home unpauses it. Emulators reset
-   their timing when unpaused. To support this, add the emulator to `Backend::togglePause()` in
-   `asgard-home/src/backend.cpp`: a hotkey sent through Home's virtual keyboard (`gameKeys("F4")`) or a command
+1. **(emulator) Its pacing clock stops during sleep:** `CLOCK_MONOTONIC` / `CLOCK_MONOTONIC_RAW`,
+   `std::chrono::steady_clock`, Rust's `Instant`, SDL's `SDL_GetTicks` / `SDL_GetPerformanceCounter`, Qt's
+   `QElapsedTimer`. Clocks that **keep running** through sleep: the raw ARM counter (`mrs cntvct_el0`, read directly by
+   Eden and ARMSX2), `CLOCK_BOOTTIME`, and the wall clock (`CLOCK_REALTIME`, `gettimeofday`, `system_clock`, and
+   libstdc++'s `high_resolution_clock`, which is the same as `system_clock`).
+2. **(emulator) Its limiter drops missed time instead of replaying it:** when it is more than a frame or so behind it
+   moves its reference to "now" (ARMSX2 skips whole frames, Dolphin's 100 ms "max fallback", Azahar's ±25 ms and
+   melonDS's ±1 frame error clamps, RetroArch and gopher64 re-anchoring). Pacing by blocking on audio or on vsync has
+   nothing to catch up either. What fails is a scheduler that re-runs every missed period of a repeating event: Eden's
+   CoreTiming. Patch that kind so an event more than a second late continues from now (as Eden already does after its
+   own pause): `eden-sa/patches/0002-coretiming-no-catch-up-after-sleep.patch`.
+3. **Pause hook (Asgard):** before every sleep the sleep hook (`sleep.d/asgard-game-pause`) tells Home `sleep`, and
+   Home pauses the running game with the emulator's own pause. On wake it sends `wake`, and Home unpauses it.
+   Emulators reset their timing when unpaused. To add one, extend `Backend::togglePause()` in
+   `asgard-home/src/backend.cpp` with a hotkey sent through Home's virtual keyboard (`gameKeys("F4")`) or a command
    (RetroArch's `PAUSE_TOGGLE`). It has to be a **toggle**: Home only unpauses what it paused itself. The match is on the
-   exact process name from the kill data: `eden` doesn't match `eden-duo-cli`.
-2. **(emulator) Clock:** time the emulation with a clock that stops during sleep: `CLOCK_MONOTONIC` /
-   `std::chrono::steady_clock`. Clocks that keep running are the raw ARM counter (`cntvct_el0`, which Eden reads
-   directly), `CLOCK_BOOTTIME`, and the wall clock (`CLOCK_REALTIME`, `system_clock`, and libstdc++'s
-   `high_resolution_clock`). If an emulator uses one of those and has no pause key, patch it so a repeating event more
-   than a second late continues from now instead of catching up. Example:
-   `eden-sa/patches/0002-coretiming-no-catch-up-after-sleep.patch`.
+   exact process name from the kill data: `eden` doesn't match `eden-duo-cli`. This is also what pauses the game while
+   the in-game menu is open (5), so add it whenever the emulator has a pause key.
 
 **Test:** play for a minute, sleep for 2+ minutes, wake. The game must answer within a couple of seconds. Check
 `top` right after waking: the emulator shouldn't sit at 100%+ of a core per thread while showing nothing new. If it
 writes FPS to its log, the FPS should be normal straight away.
 
-Status: paused by Home: Eden (Qt), Azahar, RetroArch. Patched: Eden, Eden Duo (Eden Duo has no pause key).
-Not yet checked: Dolphin, melonDS, ARMSX2, mednafen, NanoBoyAdvance, gopher64, Steam games.
+Status (2026-10-26, from each emulator's source; the sleep test on the device is still to do for each):
+
+| Emulator | Pacing clock | After a sleep | Pause hook |
+|---|---|---|---|
+| Eden, Eden Duo | ARM counter (keeps running) | **replayed every missed frame**: fixed by patch 0002 | Eden F4; Eden Duo has none |
+| ARMSX2 | ARM counter (keeps running) | skips whole missed frames: OK | none bound (TogglePause unset) |
+| Azahar | emulated cycles + wall clock | limiter error clamped to ±25 ms: OK | F4 |
+| Dolphin (NoGUI, Wayland) | steady_clock | stops in sleep; 100 ms max fallback: OK | none (NoGUI Wayland has no pause) |
+| melonDS | SDL performance counter | stops in sleep; ±1 frame clamp: OK | unbound (`HKKey_Pause=-1`) |
+| RetroArch | CLOCK_MONOTONIC, audio, vsync | OK | `PAUSE_TOGGLE` command |
+| gopher64 | Rust `Instant` | stops in sleep; skips missed deadlines: OK | Alt+P |
+| mednafen | blocking audio, CLOCK_MONOTONIC | OK; 75 ms catch-up clamp | Pause key |
+| NanoBoyAdvance (SDL) | vsync | OK (no clock limiter) | none |
+| Steam / PC games | each game its own | unknown: Home can't pause them | none |
 
 ## 5. In-game menu (Home button)
 
