@@ -1,0 +1,21 @@
+diff --git a/projects/ROCKNIX/packages/rocknix/sources/scripts/volume b/projects/ROCKNIX/packages/rocknix/sources/scripts/volume
+index 1939f4cb2..6056954e5 100755
+--- a/projects/ROCKNIX/packages/rocknix/sources/scripts/volume
++++ b/projects/ROCKNIX/packages/rocknix/sources/scripts/volume
+@@ -39,5 +39,14 @@ then
+   VOLUME=50
+ fi
+ 
+-pactl -- set-sink-volume @DEFAULT_SINK@ ${VOLUME}%
++### Asgard: the EQ filters (thor_dsp_speaker/_headphones) pass through at 100 %; set the device they play to.
++### At boot hdmi_sense has just cleared the default, so @DEFAULT_SINK@ is the first sink listed: the filter.
++SINK=$(pactl get-default-sink 2>/dev/null)
++case "${SINK}" in
++  thor_dsp_*)
++    SINK=$(pactl list short sinks | awk -v d="__${SINK#thor_dsp_}__sink" 'tolower($2) ~ d {print $2; exit}')
++  ;;
++esac
++
++pactl -- set-sink-volume "${SINK:-@DEFAULT_SINK@}" ${VOLUME}%
+ set_setting "audio.volume" ${VOLUME}
+\ No newline at end of file
