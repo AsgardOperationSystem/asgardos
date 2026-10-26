@@ -1,0 +1,14 @@
+--- a/projects/ROCKNIX/packages/rocknix/sources/scripts/runemu.sh
++++ b/projects/ROCKNIX/packages/rocknix/sources/scripts/runemu.sh
+@@ -611,8 +611,9 @@
+   prerotate_env
+ fi
+ 
+-# If the rom is a shell script just execute it, useful for DOSBOX and ScummVM scan scripts
+-if [[ "${ROMNAME}" == *".sh" ]] && [ ! "${PLATFORM}" = "ports" ] && [ ! "${PLATFORM}" = "windows" ]; then
++# If the rom is a shell script just execute it, useful for DOSBOX and ScummVM scan scripts. Not the music system:
++# its "Start Music Player.sh" (a start_gmu.sh symlink) goes to the chosen player, Asgard Music by default.
++if [[ "${ROMNAME}" == *".sh" ]] && [ ! "${PLATFORM}" = "ports" ] && [ ! "${PLATFORM}" = "windows" ] && [ ! "${PLATFORM}" = "music" ]; then
+         ${VERBOSE} && log $0 "Executing shell script ${ROMNAME}"
+         ${GAMESCOPE_CMD} "${ROMNAME}" &>>${OUTPUT_LOG}
+         ret_error=$?
