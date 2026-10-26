@@ -1,0 +1,19 @@
+--- a/projects/ROCKNIX/packages/rocknix/sources/scripts/runemu.sh
++++ b/projects/ROCKNIX/packages/rocknix/sources/scripts/runemu.sh
+@@ -712,6 +712,7 @@
+ if [ "${GAME_OOM}" = "1" ]; then
+         log $0 "emulator was killed because the device ran out of memory"
+         echo "The game was closed because the device ran out of memory." >/tmp/launch_error.log
++        /usr/share/asgard/asgard-crashlog.sh "${ROMNAME}" "${PLATFORM}" "${ret_error}"
+         quit 250
+ fi
+ ### Report how the launch ended. EmulationStation records play count, play time
+@@ -731,6 +732,8 @@
+   ;;
+   *)
+         log $0 "exiting with ${ret_error}"
++        # Asgard: keep this launch's log (the next launch overwrites exec.log) in /storage/.config/thor/crashes.
++        /usr/share/asgard/asgard-crashlog.sh "${ROMNAME}" "${PLATFORM}" "${ret_error}"
+         quit 1
+   ;;
+ esac
