@@ -572,3 +572,257 @@ index 4a4a3fab6..4028b5b54 100644
  -set(DOLPHIN_VERSION_MINOR "0")
  +set(DOLPHIN_VERSION_MAJOR "@PKG_DOLPHIN_VERSION_MAJOR@")
  +set(DOLPHIN_VERSION_MINOR "@PKG_DOLPHIN_VERSION_MINOR@")
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/package.mk b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/package.mk
+index 3ba389170..6a01d6f75 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/package.mk
++++ b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/package.mk
+@@ -3,7 +3,7 @@
+ 
+ PKG_NAME="gopher64-sa"
+ PKG_LICENSE="GPL-3.0-or-later"
+-PKG_VERSION="ca4a20f52403bb14f819db53f1cb161d41894666"
++PKG_VERSION="f05daaf9a8009399b0b5fd891e017db18539d0f4" # v1.1.42
+ PKG_SITE="https://github.com/gopher64/gopher64"
+ PKG_URL="${PKG_SITE}.git"
+ PKG_DEPENDS_TARGET="toolchain SDL3 SDL3_ttf cargo:host cargo rust mesa libxss ${VULKAN}"
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/002-use-rust-1.94.1.patch b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/002-use-rust-1.94.1.patch
+deleted file mode 100644
+index aa2943d9a..000000000
+--- a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/002-use-rust-1.94.1.patch
++++ /dev/null
+@@ -1,27 +0,0 @@
+-diff --git a/Cargo.toml b/Cargo.toml
+-index b55e329..9aa3723 100644
+---- a/Cargo.toml
+-+++ b/Cargo.toml
+-@@ -2,7 +2,7 @@
+- name = "gopher64"
+- version = "1.1.17"
+- edition = "2024"
+--rust-version = "1.95.0"
+-+rust-version = "1.94.1"
+- 
+- [features]
+- default = ["gui"]
+-@@ -60,4 +60,4 @@ identifier = "io.github.gopher64.gopher64"
+- category = "public.app-category.games"
+- icon = ["data/icon/gopher64_128x128.png","data/icon/gopher64_256x256.png","data/icon/gopher64_512x512.png"]
+- osx_frameworks = ["/opt/homebrew/opt/molten-vk/lib/libMoltenVK.dylib","/opt/homebrew/opt/freetype/lib/libfreetype.6.dylib","/opt/homebrew/opt/libpng/lib/libpng16.16.dylib"]
+--osx_minimum_system_version = "15.7"
+-+osx_minimum_system_version = "15.0"
+-diff --git a/rust-toolchain.toml b/rust-toolchain.toml
+-index f25b5b1..9cf4a67 100644
+---- a/rust-toolchain.toml
+-+++ b/rust-toolchain.toml
+-@@ -1,2 +1,2 @@
+- [toolchain]
+--channel = "1.95.0"
+-+channel = "1.94.1"
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/003-fix-crash-on-null-load-state.patch b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/003-fix-crash-on-null-load-state.patch
+deleted file mode 100644
+index 02476c95e..000000000
+--- a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/003-fix-crash-on-null-load-state.patch
++++ /dev/null
+@@ -1,20 +0,0 @@
+-diff --git a/src/ui/storage.rs b/src/ui/storage.rs
+-index 470b077..5810ee7 100644
+---- a/src/ui/storage.rs
+-+++ b/src/ui/storage.rs
+-@@ -325,9 +325,12 @@ pub fn load_saves(ui: &mut ui::Ui, netplay: &mut Option<netplay::Netplay>) {
+- pub fn decompress_file(input: &[u8], name: &str) -> Vec<u8> {
+-     let mut decompressed_file = Vec::new();
+-     {
+--        let mut reader = zip::ZipArchive::new(std::io::Cursor::new(input)).unwrap();
+--        let mut file = reader.by_name(name).unwrap();
+--        file.read_to_end(&mut decompressed_file).unwrap();
+-+        let reader = zip::ZipArchive::new(std::io::Cursor::new(input));
+-+        if let Ok(mut reader) = reader {
+-+            if let Ok(mut file) = reader.by_name(name) {
+-+                file.read_to_end(&mut decompressed_file).unwrap();
+-+            }
+-+        }
+-     }
+-     decompressed_file
+- }
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/002-use-rust-1.97.1.patch b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/002-use-rust-1.97.1.patch
+new file mode 100644
+index 000000000..789c3b8c3
+--- /dev/null
++++ b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/002-use-rust-1.97.1.patch
+@@ -0,0 +1,21 @@
++diff --git a/Cargo.toml b/Cargo.toml
++index 55cac11..051f020 100644
++--- a/Cargo.toml
+++++ b/Cargo.toml
++@@ -2,7 +2,7 @@
++ name = "gopher64"
++ version = "1.1.42"
++ edition = "2024"
++-rust-version = "1.99.0"
+++rust-version = "1.97.1"
++ 
++ [features]
++ default = ["gui"]
++diff --git a/rust-toolchain.toml b/rust-toolchain.toml
++index b6cff89..7243604 100644
++--- a/rust-toolchain.toml
+++++ b/rust-toolchain.toml
++@@ -1,2 +1,2 @@
++ [toolchain]
++-channel = "1.99.0"
+++channel = "1.97.1"
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/001-gamepad-hotkeys.patch b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/001-gamepad-hotkeys.patch
+index f7dd28a62..c8cba3825 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/001-gamepad-hotkeys.patch
++++ b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/001-gamepad-hotkeys.patch
+@@ -1,10 +1,10 @@
+ diff --git a/parallel-rdp/interface.cpp b/parallel-rdp/interface.cpp
+-index c94550f..83023eb 100644
++index 7395fcc..3be35c0 100644
+ --- a/parallel-rdp/interface.cpp
+ +++ b/parallel-rdp/interface.cpp
+-@@ -100,6 +100,10 @@ static size_t fragment_size;
+- std::vector<bool> rdram_dirty;
+- uint64_t sync_signal;
++@@ -119,11 +119,15 @@ static size_t fragment_size;
++ static std::vector<bool> rdram_dirty;
++ static uint64_t sync_signal;
+  
+ +static bool guide_held = false;
+ +static bool r2_held = false;
+@@ -12,10 +12,17 @@ index c94550f..83023eb 100644
+ +
+  static TTF_Font *message_font;
+  static std::queue<Message> messages;
+- static uint64_t message_timer;
+-@@ -212,7 +216,117 @@ bool sdl_event_filter(void *userdata, SDL_Event *event) {
+-       break;
+-     }
++ 
++-static float message_font_size = 25.0;
++-static float achievement_challenge_indicator_font_size = 12.0;
+++static float message_font_size = 30.0;
+++static float achievement_challenge_indicator_font_size = 30.0;
++ 
++ static TTF_Font *achievement_challenge_indicator_font;
++ static std::vector<const char *> achievement_challenge_indicators;
++@@ -318,7 +322,117 @@ bool sdl_event_filter(void *userdata, SDL_Event *event) {
++   } else if (event->type == SDL_EVENT_RENDER_DEVICE_RESET) {
++     wsi->init_surface_swapchain();
+    }
+ +else if (event->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
+ +{
+@@ -47,7 +54,7 @@ index c94550f..83023eb 100644
+ +            display_fps = !display_fps;
+ +            rdp_onscreen_message(
+ +                display_fps ? "FPS display ON" : "FPS display OFF",
+-+                false
+++                MESSAGE_SHORT
+ +            );
+ +            return 1;
+ +        }
+@@ -57,7 +64,7 @@ index c94550f..83023eb 100644
+ +        if (guide_held)
+ +        {
+ +            callback.reset_game = true;
+-+            rdp_onscreen_message("Reset game", false);
+++            rdp_onscreen_message("Reset game", MESSAGE_SHORT);
+ +            return 1;
+ +        }
+ +        break;
+@@ -100,7 +107,7 @@ index c94550f..83023eb 100644
+ +            rdp_onscreen_message(
+ +                fast_forward_toggled ? "Fast forward on"
+ +                                     : "Fast forward off",
+-+                false
+++                MESSAGE_SHORT
+ +            );
+ +
+ +            r2_held = true;
+@@ -131,51 +138,24 @@ index c94550f..83023eb 100644
+    return 0;
+  }
+  
+-@@ -317,9 +431,9 @@ void rdp_init(void *_window, GFX_INFO _gfx_info, const void *font,
+-   }
+- 
+-   message_font =
+--      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 25.0);
+-+      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 30.0);
+-   achievement_challenge_indicator_font =
+--      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 12.0);
+-+      TTF_OpenFontIO(SDL_IOFromConstMem(font, font_size), true, 30.0);
+-   if (!message_font || !achievement_challenge_indicator_font) {
+-     rdp_close();
+-     return;
+ diff --git a/src/ui/input.rs b/src/ui/input.rs
+-index af59d65..6b7798e 100644
++index ee7d689..7e50cb7 100644
+ --- a/src/ui/input.rs
+ +++ b/src/ui/input.rs
+-@@ -418,6 +418,13 @@ pub fn get(ui: &ui::Ui, channel: usize) -> InputData {
+-                 .offset(i32::from(sdl3_sys::scancode::SDL_SCANCODE_RALT) as isize)
+-     };
+- 
+-+    let guide_pressed = !controller.is_null() && unsafe {
+-+        sdl3_sys::gamepad::SDL_GetGamepadButton(
+-+            controller,
+-+            sdl3_sys::gamepad::SDL_GamepadButton::GUIDE,
+-+        )
+-+    };
+-+
+-     for i in 0..14 {
+-         if profile_name != "default" || channel == 0 {
+-             let profile_key = profile.keys[i];
+-@@ -428,7 +435,7 @@ pub fn get(ui: &ui::Ui, channel: usize) -> InputData {
+-             }
+-         }
++@@ -418,6 +418,16 @@ pub fn get(ui: &mut ui::Ui, channel: usize) -> InputData {
+  
+--        if !controller.is_null() {
+-+        if !controller.is_null() && !guide_pressed {
+-             set_buttons_from_controller(profile, i, controller, &mut keys);
+-         } else if !joystick.is_null() {
+-             set_buttons_from_joystick(profile, i, joystick, &mut keys);
+-@@ -442,7 +449,7 @@ pub fn get(ui: &ui::Ui, channel: usize) -> InputData {
+-         (x, y) = set_axis_from_keys(profile, ui.input.keyboard_state);
+-     }
++     let (mut x, mut y) = set_axis(profile, joystick, controller, ui.input.keyboard_state);
+  
+--    if !controller.is_null() {
+-+    if !controller.is_null() && !guide_pressed {
+-         (x, y) = set_axis_from_controller(profile, controller);
+-         apply_deadzone(&mut x, &mut y, profile.deadzone);
+-     } else if !joystick.is_null() {
+++    // Guide is the hotkey modifier (parallel-rdp's event filter): no game input while it's held.
+++    if !controller.is_null()
+++        && unsafe {
+++            sdl3_sys::gamepad::SDL_GetGamepadButton(controller, sdl3_sys::gamepad::SDL_GamepadButton::GUIDE)
+++        }
+++    {
+++        keys = 0;
+++        (x, y) = (0.0, 0.0);
+++    }
+++
++     #[cfg(target_os = "android")]
++     {
++         if channel == 0
+diff --git a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/000-disable-flto-thin.patch b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/000-disable-flto-thin.patch
+index 7bd434868..ca675942c 100644
+--- a/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/000-disable-flto-thin.patch
++++ b/projects/ROCKNIX/packages/emulators/standalone/gopher64-sa/patches/000-disable-flto-thin.patch
+@@ -10,10 +10,10 @@ index 2cbcdf5..17844e0 100644
+ -    rdp_build.flag("-flto=thin");
+ -    simd_build.flag("-flto=thin");
+ -    retroachievements_build.flag("-flto=thin");
+-+    volk_build.flag("-flto");
+-+    rdp_build.flag("-flto");
+-+    simd_build.flag("-flto");
+-+    retroachievements_build.flag("-flto");
+++    volk_build.flag("-flto").flag("-ffat-lto-objects");
+++    rdp_build.flag("-flto").flag("-ffat-lto-objects");
+++    simd_build.flag("-flto").flag("-ffat-lto-objects");
+++    retroachievements_build.flag("-flto").flag("-ffat-lto-objects");
+  
+      volk_build.compile("volk");
+      rdp_build.compile("parallel-rdp");
