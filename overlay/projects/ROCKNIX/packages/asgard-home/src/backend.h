@@ -75,6 +75,7 @@ private:
     void play(const QString &name);     // a sound, without the menu-sounds setting
     void topScreenOn();
     void command(const QString &cmd);
+    bool togglePause();                 // the running game's own pause, if we know it; false otherwise
     void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
     QString setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const;
     QString path(const QString &p) const { return m_root + p; }
@@ -92,8 +93,9 @@ private:
     QVariantMap m_launched;           // the game m_game runs ({} for tools)
     bool m_background = false;
     bool m_gameMenu = false;
+    bool m_sleepPaused = false;   // we paused the game for a sleep ("sleep"), to unpause on "wake"
     int m_keys = -1;   // uinput keyboard for emulator hotkeys
-    int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu")
+    int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu"), the sleep hook ("sleep", "wake")
 };
 
 // InputPlumber's virtual DualSense read straight from evdev (Qt 6 has no gamepad module).

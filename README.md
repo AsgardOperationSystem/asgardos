@@ -248,6 +248,12 @@ iiSU's dual-screen home with our own code and artwork (Nunito, OFL).
 - `dev.sh shot ["keys"]` renders both screens offscreen on the desktop from `frontend-dev/root` (a git-ignored
   copy of the Thor's library); `dev.sh thor ["keys"]` cross-builds, copies to the Thor and renders there.
 
+## Adding an emulator
+
+[`docs/adding-an-emulator.md`](docs/adding-an-emulator.md): what every new emulator has to support (launch through
+runemu.sh, kill target, exit codes and crash logs, **no catch-up after sleep**, in-game menu pause, background, screens,
+controller), with a test for each.
+
 ## Gyro: ADSP sensors root
 
 The Thor's gyro/accel (SH5001) live in the ADSP's sensor core. `thor-sensorspd.service` (hexagonrpcd) serves the

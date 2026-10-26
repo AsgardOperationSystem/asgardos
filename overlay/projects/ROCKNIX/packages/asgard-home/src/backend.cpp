@@ -431,13 +431,35 @@ void Backend::command(const QString &cmd)
         const bool open = !m_gameMenu;
         if (!open)
             setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
-        if (runningGame().contains("azahar") || runningGame().contains("eden"))
-            gameKeys("F4");      // pause / unpause (Azahar and Eden keep running when they lose focus)
-        if (runningGame().contains("retroarch"))
-            retroarch("PAUSE_TOGGLE");
+        togglePause();
         if (open)
             setGameMenu(true);
     }
+    // Around a sleep (sleep.d/asgard-game-pause): the game paused with its own pause, so on wake it carries on
+    // from there instead of replaying the whole sleep (emulators reset their timing on unpause; a clock that kept
+    // counting through the sleep otherwise has them race through every missed frame, frozen for minutes). Not a
+    // game already paused (the in-game menu) or frozen in the background, and only ours to unpause.
+    if (cmd == "sleep" && playing() && !m_gameMenu && !m_sleepPaused)
+        m_sleepPaused = togglePause();
+    if (cmd == "wake" && m_sleepPaused) {
+        m_sleepPaused = false;
+        if (playing())
+            togglePause();
+    }
+}
+
+bool Backend::togglePause()
+{
+    const QStringList names = runningGame();
+    if (names.contains("azahar") || names.contains("eden")) {
+        gameKeys("F4");      // pause / unpause (Azahar and Eden keep running when they lose focus)
+        return true;
+    }
+    if (names.contains("retroarch")) {
+        retroarch("PAUSE_TOGGLE");
+        return true;
+    }
+    return false;
 }
 
 QStringList Backend::runningGame() const
