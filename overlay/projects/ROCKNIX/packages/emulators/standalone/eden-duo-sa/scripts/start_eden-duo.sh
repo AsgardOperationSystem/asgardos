@@ -19,9 +19,12 @@ CFG="${CONF_DIR}/sdl2-config.ini"
 [ -f "${CFG}" ] || cp "${CONF_DIR}/qt-config.ini" "${CFG}"
 # The Thor's pad (InputPlumber's DualSense) has another GUID under SDL3 (Eden Duo) than under SDL2 (eden-sa, whose
 # config seeded this one), so no binding matched; and player 1 was marked disconnected. Both fixed on every start.
+# The handheld slot (player 8, eden-sa's only pad) stays disconnected: it's the same pad again, still in SDL2's
+# button order, and Brilliant Diamond reads every connected pad (each d-pad press came with a phantom up/down).
 sed -i -e "s/guid:030000004c050000e60c000011810000/guid:030000004c050000e60c000000006800/g" \
        -e "s/^player_0_connected=false/player_0_connected=true/" \
-       -e "s/^player_0_connected\\\\default=true/player_0_connected\\\\default=false/" "${CFG}"
+       -e "s/^player_0_connected\\\\default=true/player_0_connected\\\\default=false/" \
+       -e "s/^player_8_connected=true/player_8_connected=false/" "${CFG}"
 # And SDL3 numbers that pad in its own order (HIDAPI: south east west north back guide start lstick rstick l r; axes
 # lx ly rx ry l2 r2), not evdev's (SDL2: south east north west l r l2 r2 select start mode lstick rstick; lx ly l2
 # rx ry r2): X/Y, L/R, -/+, the stick clicks, ZL and the right stick pointed at other inputs. Player 1, set every start.
