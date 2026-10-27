@@ -3,7 +3,7 @@
 *.img.gz
 __pycache__/
 asgard.yml
-frontend-dev/
+frontend-dev
 turnip/
 thor/
 CLAUDE.local.md
