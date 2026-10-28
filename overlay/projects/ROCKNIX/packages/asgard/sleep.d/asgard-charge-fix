@@ -34,9 +34,10 @@ case "$1" in
     # The game stays stopped; the timer continues it instead if the lid was opened in those 15 s.
     if [ -f $WC ] && [ "$(cat $WC)" != "$(cat $RUN/.thor-ucsi-wakeups 2>/dev/null)" ] && eval "$LID"; then
       echo "$(date '+%F %T') usb-c wake with lid closed, re-suspending" >> "$LOG"
-      # systemd-suspend kills leftover children when it exits, so hand the delay to a transient timer.
+      # systemd-suspend kills leftover children when it exits, so hand the delay to a transient timer. logind often
+      # re-suspends on the shut lid first ("suspend already in progress"): not a failure.
       systemd-run --no-block --on-active=15 --unit="thor-charge-resleep-$(date +%s)" \
-        /bin/sh -c "if $LID; then systemctl suspend; else kill -CONT \$(cat $FROZEN 2>/dev/null) 2>/dev/null; rm -f $FROZEN; fi" >/dev/null 2>&1
+        /bin/sh -c "if $LID; then systemctl suspend 2>/dev/null || true; else kill -CONT \$(cat $FROZEN 2>/dev/null) 2>/dev/null; rm -f $FROZEN; fi" >/dev/null 2>&1
     elif [ -s $FROZEN ]; then
       $KILL -CONT $(cat $FROZEN) 2>/dev/null
       rm -f $FROZEN

@@ -13,7 +13,7 @@ frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgar
 thor/         git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace (vendor dumps, ABL backup, ports)
 ```
 
-## Status (2026-10-10)
+## Status (2026-10-28)
 
 Asgard runs on the Thor (installed 2026-10-10 as a `.tar` update over ROCKNIX). Newer frontend changes are tested
 live from bind-mounted dev builds before they reach an image.
@@ -120,7 +120,7 @@ live from bind-mounted dev builds before they reach an image.
   resume) cured it. Suspect Eden's `InputInterpreter` press-state latch; dig in if it recurs.
 - **Batch B sleep drain** (2026-10-12): MCU rail and stick-LED controllers off in sleep, fan tach/timer quiesced
   (`9032`–`9035`, `0024`). Pad resumes first try over 3 RTC sleeps; CX/AOSS still never collapse and DDR stays at
-  1555 MHz asleep. ≥1 h unplugged sleep not measured yet.
+  1555 MHz asleep. ≥1 h unplugged sleep measured from 2026-10-16 on (battery log): 20–30 mA, ~0.3 %/h (31.7 h cost 9 %).
 - **gen1recomp touch:** its on-screen controls need `POKEPORT_TOUCH=1`, and under native Wayland (SDL3 via sdl2-compat)
   its window got no input at all, not even a keymap; under XWayland (`SDL_VIDEODRIVER=x11`) touch works. Both are set
   in the port's own launcher (`/storage/apps/gen1recomp/gen1recomp-sbc.sh`). Root cause in SDL3's Wayland path not found.
@@ -129,25 +129,33 @@ live from bind-mounted dev builds before they reach an image.
 - **lowerdeck touch fix** (GB/GBA bottom-screen companion): tested in code, waiting for a try on the device.
 - **Thor Panel** labels don't scale well; a rebuild in Asgard Home's style is planned.
 - **asgard.yml:** self-test passes; not yet applied on a real boot.
-- **Persistent event log (wanted):** the journal is RAM-only, so a crash or reboot loses the previous boot. On
-  2026-10-12 (~20:40) the Thor came up after a reboot, had Wi-Fi for a minute, then went into airplane mode by
-  itself; something had crashed, and nothing survived to say what. Log to `/storage` across boots: kernel
-  oopses/WARNs/panics (pstore/ramoops too), rfkill/airplane and NetworkManager radio changes, USB/PHY resume
-  failures (`dwc3_qcom_pm_resume returns -110`), sway seat changes, and suspend/resume. Then they can be monitored.
+- **Persistent event log:** the journal is RAM-only (8 MB), so a crash used to lose the boot (2026-10-12 ~20:40:
+  airplane mode by itself a minute after a reboot, nothing left to say why). Now on `/storage`:
+  `logs/events.log` (`asgard-events`: every warning and error as it's logged, kernel oopses/WARNs and USB/PHY resume
+  failures included, plus the info-level rfkill/airplane, NetworkManager Wi-Fi and connection states, and
+  `PM: suspend entry/exit`) and `freezes/<time>.log` for a boot that never shut down (`asgard-lastboot`), both in
+  `/storage/.config/thor/`; full journal snapshots before sleep, around each game and at shutdown in
+  `/storage/.cache/asgard-journal` (the previous boot's: `.prev`, `journalctl -D`).
+  Panics: the debug pstore/ramoops (`0029`/`0030`). Not logged: sway seat changes.
 - **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse (see Deep sleep plan). Since `9039`
-  (2026-10-14) DDR sits at 200 MHz asleep instead of 1555; the ≥1 h drain with it is unmeasured.
+  (2026-10-14) DDR sits at 200 MHz asleep instead of 1555. Drain: 100–135 mA until 2026-10-15, 20–30 mA (~0.3 %/h)
+  from 2026-10-16 (battery log, every ≥1 h sleep through 2026-10-28), so collapse isn't needed for a good standby.
 - Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
 
 ### Known broken / limitations
 - 🧪 **Charge limit** (2026-10-11 build): `9003` replaced by Kettle's charge-current control (`9020`) and
-  `asgard-charge-limit.service` (0 A at the limit, back at limit − 5 %). Untested on the device yet.
+  `asgard-charge-limit.service` (0 A at the limit, back at limit − 5 %). **Works** (2026-10-28): on the charger at
+  87 % with the limit at 80 it holds 0 A. The battery log's awake charging past 80 % (2026-10-17…25) was with
+  `asgard.charge_limit=100` (off) at the time. Asleep the loop is frozen, so a Thor that sleeps on the charger
+  below the limit charges to 100 % (as on Kettle).
 - **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan (`dpu_encoder_frame_done_timeout`):
   a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
   kept but does **not** fix it (correction to !13).
 - **thor-sensorspd** stops for sleep and is restarted 3 s after resume (fixed 2026-10-11: the resume hook's direct
   start was rejected while suspend.target's job was queued, so gyro was gone after any sleep). Restart verified
   over a 30 s RTC sleep.
-- **Charger plugged in while asleep isn't seen** (2026-10-10): the Thor stays on the cable discharging, reporting no
+- **Charger plugged in while asleep: fixed** (`9005`). Battery log 2026-10-13…28: all 17 plug-ins while asleep
+  were seen and charged, none stuck. History: (2026-10-10) the Thor stayed on the cable discharging, reporting no
   charger (`qcom-battmgr-usb/online=0`, no typec partner), sometimes until reboot. Likely `0502` masking the IPCC
   mailbox in suspend, so the UCSI attach is never delivered or acked. Fix in the next image (untested): `9005` keeps
   IPCC live in s2idle on `ayn,thor` and wakes on a USB-C connector change; `/storage/.config/sleep.d/95-thor-charge-fix.sh`

@@ -40,7 +40,22 @@ def test_chunks():
     assert first + rest == "kernel: é\n", (first, rest)
 
 
+def test_two_streams_whole_lines():
+    a_r, a_w = os.pipe()
+    b_r, b_w = os.pipe()
+    os.write(a_w, b"warn: one\nwarn: tw")   # stream a stops mid-line
+    os.write(b_w, b"info: radio\n")
+    gen = events.journal_chunks(a_r, b_r, sync_secs=0.05)
+    got = [next(gen), next(gen)]
+    os.write(a_w, b"o\n")
+    os.close(a_w)
+    os.close(b_w)
+    got += list(gen)
+    lines = "".join(got).splitlines()
+    assert sorted(lines) == ["info: radio", "warn: one", "warn: two"], got   # no line cut by the other stream
+
+
 if __name__ == "__main__":
-    for t in (test_burst_then_quiet, test_rotation, test_chunks):
+    for t in (test_burst_then_quiet, test_rotation, test_chunks, test_two_streams_whole_lines):
         t()
     print("ok")
