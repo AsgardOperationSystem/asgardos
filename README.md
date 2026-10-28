@@ -159,6 +159,24 @@ Qt Quick on the image's Qt 6, two windows: top 1920×1080 (grid, dock) and botto
   cross-builds, copies to the Thor and renders there. The screenshots above come from running the installed
   `asgard-home` with `ASGARD_SHOT`/`ASGARD_KEYS` on the Thor.
 
+## Credits and projects to learn from
+
+Asgard stands on other people's work. Check these projects before solving a Thor or SM8550 problem from scratch.
+
+- **[ROCKNIX](https://github.com/ROCKNIX/distribution)**: the base of Asgard. Its kernel, device support, build
+  system, emulator packages and per-emulator options are what the image is made of, and the Thor's working sleep
+  came from its PR #3126.
+- **[Kettle Linux](https://github.com/kettlelinux/kettlelinux)** (SteamOS userspace on mainline, targets the Thor
+  and Odin 2 Portal): its well-documented SM8550 kernel patch stack gave us most of our sleep and GPU fixes (GPU
+  boot DDR vote, open UARTs and UFS clocks in s2idle, AudioReach suspend, GMU HFI), the MCU rail and fan quieting
+  in sleep, the UFS PHY reference-clock fix, and the charge-current control behind our charge limit.
+- **[Armada](https://github.com/armada-os/armada)** (Fedora bootc with ROCKNIX-derived device support): its
+  PR #723 found the audio block holding the SoC awake, the last step to full SoC sleep (`9047`), and its sleep and
+  charger work confirmed how we handle IPCC and the USB-C unplug during sleep.
+
+Which patch came from where, and why: [docs/changes.md](docs/changes.md). What we compared and found:
+[docs/sleep.md](docs/sleep.md).
+
 ## More docs
 
 - [Changes on top of ROCKNIX](docs/changes.md): every patch, what was broken and why.
