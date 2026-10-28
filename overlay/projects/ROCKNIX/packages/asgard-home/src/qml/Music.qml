@@ -105,7 +105,7 @@ QtObject {
                        font.family: Theme.font; font.pixelSize: 92; font.weight: Font.Black; lineHeight: 0.95
                        text: app.picking ? (app.pickedList ? app.pickedList.name : "No playlists") : (app.cur ? app.cur.title : "") }
                 Text { width: parent.width; elide: Text.ElideRight; color: Theme.textDim; font.family: Theme.font; font.pixelSize: 52; font.weight: Font.Bold
-                       text: app.picking ? (app.pickedList ? app.pickedList.songs + " songs" : "Add .m3u playlists to the Music Player")
+                       text: app.picking ? (app.pickedList ? app.pickedList.songs + " songs" : "Add .m3u playlists to Tools")
                                          : (app.cur && app.cur.artist ? app.cur.artist : "") }
                 Item { width: 1; height: 40 }
                 ProgressBar { width: parent.width; visible: !app.picking }

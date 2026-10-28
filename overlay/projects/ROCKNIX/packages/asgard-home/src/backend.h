@@ -34,7 +34,7 @@ public:
     bool screensOff() const { return m_screensOff; }
     void setScreensOff(bool off);
     bool gameMenu() const { return m_gameMenu; }
-    void setGameMenu(bool on) { if (on != m_gameMenu) { m_gameMenu = on; emit gameMenuChanged(); } }
+    void setGameMenu(bool on);
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }

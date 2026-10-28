@@ -147,11 +147,26 @@ void Backend::scan()
             sys["emulators"] = emus;
         } else if (x.isEndElement() && x.name() == u"system" && sys.contains("emulator")) {
             const QString name = sys["name"].toString(), dir = path(sys["path"].toString());
+            // ROCKNIX's Music Player system holds Asgard Music and other apps (Firefox): shown as Tools, with the
+            // theme's Tools art (its music logo reads "Music Player").
+            if (name == "music") {
+                sys["fullname"] = "Tools";
+                sys["theme"] = "tools";
+            }
             QSet<QString> exts;
             for (const QString &e : sys["extension"].toString().split(' ', Qt::SkipEmptyParts))
                 exts << e.toLower();
-            const auto gl = readGamelist(path("/storage/ES-DE/gamelists/" + name + "/gamelist.xml"));
+            auto gl = readGamelist(path("/storage/ES-DE/gamelists/" + name + "/gamelist.xml"));
             const QString mediaDir = path("/storage/ES-DE/downloaded_media/" + name);
+            // Entries Asgard ships (Tools > Firefox) bring their own art and metadata; the user's ES-DE files win.
+            const QString builtin = path("/usr/share/asgard-home/media/" + name);
+            for (const auto &[p, meta] : readGamelist(builtin + "/gamelist.xml").asKeyValueRange())
+                if (!gl.contains(p))
+                    gl[p] = meta;
+            const auto mediaOf = [&](const QString &kind, const QString &stem) {
+                const QString m = media(mediaDir + "/" + kind, stem);
+                return m.isEmpty() ? media(builtin + "/" + kind, stem) : m;
+            };
             QVariantList games;
             // ROMs in the system dir and one level of subfolders (multi-disc / per-game folders).
             QStringList files;
@@ -194,9 +209,9 @@ void Backend::scan()
                 g["developer"] = meta.value("developer");
                 g["year"] = meta.value("releasedate").toString().left(4);
                 g["genre"] = meta.value("genre");
-                g["cover"] = media(mediaDir + "/covers", stem);
-                g["shot"] = media(mediaDir + "/screenshots", stem);
-                g["marquee"] = media(mediaDir + "/marquees", stem);
+                g["cover"] = mediaOf("covers", stem);
+                g["shot"] = mediaOf("screenshots", stem);
+                g["marquee"] = mediaOf("marquees", stem);
                 g["core"] = sys["core"];
                 g["emulator"] = sys["emulator"];
                 games << g;
@@ -341,9 +356,12 @@ void Backend::launch(const QVariantMap &game)
                 kill = QFileInfo(exec.section(' ', 0, 0)).fileName();
             // ROCKNIX's kill-hotkey target (runemu.sh writes it for emulators): Home's in-game menu reads it.
             // Its output goes to exec.log, as runemu.sh's launches do, and a failed run (or Quit and save log) keeps
-            // it in /storage like theirs: 137/143 are Home's quit.
+            // it in /storage like theirs: 137/143 are Home's quit. The game's per-game/per-system profile (cores, caps,
+            // fan, EQ, sleep mode) around it, as runemu.sh does for emulators: else the menu's profile stays on.
             run(". /etc/profile; set_kill set \"$3\"; python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; " SNAP_JOURNAL
+                "/usr/share/asgard/asgard-perf-profile.sh apply \"$2\" \"${1##*/}\" >/dev/null 2>&1; "
                 "echo \"Run log - $(date): $1\" >/var/log/exec.log; { " + exec + "; } >>/var/log/exec.log 2>&1; rc=$?; "
+                "/usr/share/asgard/asgard-perf-profile.sh restore >/dev/null 2>&1; "
                 "set_kill stop; python3 /usr/share/asgard/playlog.py stop 2>/dev/null; " SNAP_JOURNAL "case $rc in 0|137|143) [ -e /tmp/asgard-save-log ] || exit $rc ;; esac; "
                 "/usr/share/asgard/asgard-crashlog.sh \"$1\" \"$2\" $rc; exit $rc",
                 {rom, sys, kill},
@@ -418,6 +436,17 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
 
 // --- in-game menu ----------------------------------------------------------------------------------------------------
 
+void Backend::setGameMenu(bool on)
+{
+    if (on == m_gameMenu)
+        return;
+    m_gameMenu = on;
+    // A tool's touch keyboard on the bottom screen (Firefox, start_firefox.sh) is a layer above the menu: hide it
+    // while the menu is open (wvkbd: SIGUSR1 hides, SIGUSR2 shows).
+    QProcess::startDetached("sh", {"-c", QString("kill -%1 $(cat /run/asgard-osk.pid) 2>/dev/null").arg(on ? "USR1" : "USR2")});
+    emit gameMenuChanged();
+}
+
 void Backend::command(const QString &cmd)
 {
     if (cmd.startsWith("osd ")) {          // "osd Volume 60" from asgard-osd (input_sense)
@@ -427,6 +456,10 @@ void Backend::command(const QString &cmd)
         return;
     }
     qInfo("command: %s", qPrintable(cmd));
+    if (cmd == "rescan") {   // 090-asgard-tuning, after it adds Tools entries: Home may have scanned before them
+        rescan();
+        return;
+    }
     if (cmd == "menu" && playing()) {
         const bool open = !m_gameMenu;
         if (!open)

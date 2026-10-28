@@ -89,6 +89,16 @@ live from bind-mounted dev builds before they reach an image.
 - 🧪 **PC system:** ROCKNIX's Steam system shown as PC; Steam is an entry inside, and other `.desktop` apps launch
   directly (`X-Asgard-Kill` for Home's Quit). First one: Gen1 Recomp (LÖVE port of Pokémon Red/Blue/Yellow, from
   your own ROMs).
+- 🧪 **Tools system:** ROCKNIX's Music Player system shown as Tools: Asgard Music, Firefox, Terminal, Moonlight,
+  Files. Firefox ESR (Mozilla's aarch64 build, `apps/firefox`) and Terminal (QTerminal) fill the top screen, with
+  Asgard Keyboard (`asgard-home --osk`: Ctrl, Alt, arrows, symbols) filling the bottom one; wvkbd's layer surface
+  never got a touch on the Thor. Firefox restores its tabs after Quit. Moonlight is moonlight-qt
+  (`apps/moonlight-qt`, all cores at full clocks like Firefox); Files is Asgard Files (internal storage, ROMs, SD
+  card: copy, move, rename, delete).
+  `0046` runs the system's other `.sh` entries.
+- 🧪 **VPNs** (Settings → Hardware → Network): Tailscale (sign-in link shown on screen), ZeroTier (join by
+  network ID; ROCKNIX re-joins them at boot), WireGuard (NetworkManager tunnels imported from `.conf` files in
+  `/storage/.config/wireguard`, the Samba "config" share).
 - 🧪 **Start on the Recently played tile** opens Settings, like the console tiles.
 - 🧪 **RetroArch bottom screen** can be switched off (Settings → Display), ROCKNIX's `rocknix.bottomscreen.type`.
 - 🧪 **Fewer modesets at game launch** (bottom panel rotated only when needed, powered off only if unused): lowers the

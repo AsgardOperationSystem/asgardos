@@ -44,7 +44,8 @@ Item {
         return { kind: "choice", icon: icon, title: title, sub: sub, value: choices[i][0],
                  step: d => { const v = choices[(i + d + choices.length) % choices.length][1]; set(key, v); if (after) after(v) } }
     }
-    function link(icon, title, sub, page) { return { kind: "link", icon: icon, title: title, sub: sub, page: page } }
+    // poll: run on opening the sub-page, then every 3 s while it's on top (live status: VPNs)
+    function link(icon, title, sub, page, poll) { return { kind: "link", icon: icon, title: title, sub: sub, page: page, poll: poll } }
     function action(icon, title, sub, run) { return { kind: "action", icon: icon, title: title, sub: sub, run: run } }
     function info(icon, title, sub) { return { kind: "info", icon: icon, title: title, sub: sub } }
 
@@ -201,7 +202,10 @@ Item {
                             note("usb", v); sh("usb", "usbgadget " + v + " >/dev/null 2>&1; usbgadget") } },
              info("info", "IP address", [live.ip, live.usb === "network" ? "USB 169.254.170.2" : ""].filter(x => x).join("  ·  ") || "—")],
             services.map(sv => toggle("terminal", sv[0], sv[3], sv[1], "0",
-                    () => backend.shell("systemctl " + (get(sv[1]) === "1" ? "start " : "stop ") + sv[2])))]
+                    () => backend.shell("systemctl " + (get(sv[1]) === "1" ? "start " : "stop ") + sv[2]))),
+            [link("shield", "Tailscale", get("tailscale.up") !== "1" ? "Off" : "On", tailscalePage, tsRefresh),
+             link("shield", "ZeroTier", get("zerotier.up") !== "1" ? "Off" : "On", zerotierPage, ztRefresh),
+             link("shield", "WireGuard", "Tunnels from .conf files", wireguardPage, wgRefresh)]]
         case "About": {
             const os = backend.osInfo()
             return [[info("info", "Asgard OS", "ROCKNIX " + (os.VERSION || "") + "  ·  built " + (os.BUILD_DATE || "")),
@@ -292,6 +296,111 @@ Item {
                                                         ["Wi-Fi and Bluetooth off", "wifi bt"],
                                                         ["Wi-Fi off every other sleep", "alt:wifi"]])]]
     }
+    // --- VPNs (Hardware > Network) -----------------------------------------------------------------------------
+    function json(o, dflt) { try { return JSON.parse(o) } catch (e) { return dflt } }
+
+    // Tailscale: tailscale.up (ROCKNIX's 099-networkservices starts tailscaled at boot) and tailscaled now. Sign in
+    // runs `tailscale up` in the background; tailscaled then puts the login link (AuthURL) in its status.
+    readonly property string ts: "/usr/sbin/tailscale"
+    function tsRefresh() { sh("ts", ts + " status --json 2>/dev/null", o => json(o, {})) }
+    function tailscalePage() {
+        const on = get("tailscale.up") === "1"
+        const s = live.ts || {}, st = s.BackendState || ""
+        const state = ({ Running: "Connected", NeedsLogin: "Signed out", NoState: "Signed out", Starting: "Connecting…",
+                         Stopped: "Disconnected" })[st] || "Starting…"
+        const rows = [[toggle("shield", "Tailscale", on ? state : "Off", "tailscale.up", "0",
+                              () => backend.exec("systemctl " + (get("tailscale.up") === "1" ? "start" : "stop") + " tailscaled", tsRefresh))]]
+        if (!on || !st) return rows
+        if (st === "NeedsLogin" || st === "NoState") {
+            const signIn = action("user", "Sign in", s.AuthURL ? "Open the link below on your phone or PC" : "Gets a sign-in link",
+                () => backend.exec("(setsid " + ts + " up --hostname=" + q(backend.hostname) + " >/tmp/tailscale-up.log 2>&1 &)", tsRefresh))
+            rows.push(s.AuthURL ? [signIn, info("wifi", s.AuthURL.replace("https://", ""), "Waiting for you to sign in…")] : [signIn])
+            return rows
+        }
+        const self = s.Self || {}
+        const peers = Object.values(s.Peer || {})
+        rows.push([info("wifi", "Address", (s.TailscaleIPs || [])[0] || "—"),
+                   info("user", "Tailnet", ((s.CurrentTailnet || {}).Name || "—") + "  ·  this Thor is " + (self.HostName || backend.hostname)),
+                   info("list", "Devices", peers.filter(p => p.Online).length + " online of " + peers.length)])
+        rows.push([action("power", "Sign out", "Remove this Thor from the tailnet",
+                          () => confirm("Sign out of Tailscale", "This Thor leaves the tailnet until you sign in again.", "Sign out",
+                                        () => backend.exec(ts + " logout", tsRefresh)))])
+        return rows
+    }
+
+    // ZeroTier: zerotier.up and zerotier-one, like Tailscale. Joined networks are kept in ROCKNIX's
+    // /storage/.config/zerotier-networks, which zerotier-join.sh re-joins on every start (and leaves the rest).
+    readonly property string zt: "/usr/sbin/zerotier-cli -D/storage/.config/zerotier/"
+    readonly property string ztList: "/storage/.config/zerotier-networks"
+    function ztRefresh() {
+        sh("ztInfo", zt + " -j info 2>/dev/null", o => json(o, {}))
+        sh("ztNets", zt + " -j listnetworks 2>/dev/null", o => json(o, []))
+    }
+    function zerotierPage() {
+        const on = get("zerotier.up") === "1"
+        const node = live.ztInfo || {}
+        const rows = [[toggle("shield", "ZeroTier", !on ? "Off" : node.online ? "Online" : "Starting…", "zerotier.up", "0",
+                              () => backend.exec("systemctl " + (get("zerotier.up") === "1" ? "start" : "stop") + " zerotier-one", ztRefresh))]]
+        if (!on) return rows
+        rows[0].push(info("user", "Node ID", (node.address || "—") + "  ·  authorize it in ZeroTier Central"))
+        const status = n => ({ OK: "Connected  ·  " + ((n.assignedAddresses || [])[0] || "no address yet").split("/")[0],
+                               ACCESS_DENIED: "Waiting for approval in ZeroTier Central", REQUESTING_CONFIGURATION: "Connecting…",
+                               NOT_FOUND: "No such network" })[n.status] || n.status
+        const nets = (live.ztNets || []).map(n => action("wifi", n.name || n.id || n.nwid, status(n), () => {
+            const id = n.id || n.nwid
+            confirm("Leave " + (n.name || id), "The Thor leaves this network and stops re-joining it.", "Leave",
+                    () => backend.exec("sed -i '/^" + id + "$/d' " + ztList + "; " + zt + " leave " + id, ztRefresh))
+        }))
+        rows.push(nets.concat([action("refresh", "Join a network", live.ztMsg || "Its 16-character network ID",
+            () => keyboard.ask("ZeroTier network ID", "", false, v => {
+                const id = (v || "").trim().toLowerCase()
+                if (!/^[0-9a-f]{16}$/.test(id)) { note("ztMsg", id ? "Not a network ID: 16 characters, 0-9 and a-f" : ""); return }
+                note("ztMsg", "")
+                backend.exec("grep -qx " + id + " " + ztList + " 2>/dev/null || echo " + id + " >> " + ztList + "; " + zt + " join " + id, ztRefresh)
+            }))]))
+        return rows
+    }
+
+    // WireGuard: NetworkManager's own tunnels, imported from .conf files in /storage/.config/wireguard (the Samba
+    // "config" share). The connection is named after the file (an interface name: 15 characters at most); it
+    // persists in NetworkManager's keyfiles, and a tunnel left on comes back at boot (autoconnect).
+    readonly property string wgDir: "/storage/.config/wireguard"
+    function wgRefresh() {
+        sh("wg", "mkdir -p " + wgDir + "; for f in " + wgDir + "/*.conf; do [ -e \"$f\" ] && echo \"F:$(basename \"$f\" .conf)\"; done; " +
+                 "nmcli -t -f NAME,TYPE,STATE connection show 2>/dev/null | grep ':wireguard:' | sed 's/^/C:/'; " +
+                 "ip -4 -o addr 2>/dev/null | awk '{print \"I:\" $2 \":\" $4}'", o => {
+            const r = { files: [], conns: {}, ips: {} }
+            for (const l of o.split("\n")) {
+                const p = l.split(":")
+                if (p[0] === "F") r.files.push(p.slice(1).join(":"))
+                else if (p[0] === "C") r.conns[p[1]] = p[3] || ""
+                else if (p[0] === "I") r.ips[p[1]] = (p[2] || "").split("/")[0]
+            }
+            return r
+        })
+    }
+    function wireguardPage() {
+        const w = live.wg
+        if (!w) return [[info("refresh", "Loading…", "")]]
+        const names = w.files.concat(Object.keys(w.conns).filter(n => !w.files.includes(n)))
+        const run = cmd => backend.exec("(" + cmd + ") 2>&1", o => { const err = o.split("\n").find(l => /error/i.test(l)); note("wgMsg", err || ""); wgRefresh() })
+        const tunnels = names.map(n => {
+            const up = w.conns[n] === "activated"
+            return { kind: "toggle", icon: "shield", title: n, on: up,
+                     sub: up ? "Connected" + (w.ips[n] ? "  ·  " + w.ips[n] : "") : n in w.conns ? "Off" : "Off  ·  not imported yet",
+                     activate: () => run(up ? "nmcli connection modify " + q(n) + " connection.autoconnect no; nmcli connection down " + q(n)
+                                            : (n in w.conns ? "" : "nmcli connection import type wireguard file " + q(wgDir + "/" + n + ".conf") + " && ") +
+                                              "nmcli connection modify " + q(n) + " connection.autoconnect yes && nmcli connection up " + q(n)) }
+        })
+        const rows = [tunnels.length ? tunnels : [info("info", "No tunnels yet", "Add a WireGuard .conf file first (below)")]]
+        if (live.wgMsg) rows[0].push(info("info", "Could not connect", live.wgMsg))
+        rows.push([info("list", "Adding a tunnel", "Put its .conf in " + wgDir + "  ·  Samba share \"config\", folder wireguard, or Files"),
+                   ...Object.keys(w.conns).map(n => action("refresh", "Forget " + n, "Remove it from the Thor (the .conf stays)",
+                       () => confirm("Forget " + n, "The tunnel is removed; its .conf file stays, to import it again.", "Forget",
+                                     () => run("nmcli connection delete " + q(n)))))])
+        return rows
+    }
+
     function wifiPage() {
         const on = get("wifi.enabled", "1") === "1"
         const rows = [[{ kind: "toggle", icon: "wifi", title: "Wi-Fi", sub: live.wifiMsg || (live.ssid ? "Connected to " + live.ssid : "Not connected"),
@@ -580,7 +689,8 @@ Item {
         if (r.kind === "link") {
             const build = typeof r.page === "function" && r.page.length === 0 ? r.page : null
             if (build) {
-                stack = stack.concat([{ title: r.title, build: build }]); row = 0
+                stack = stack.concat([{ title: r.title, build: build, poll: r.poll }]); row = 0
+                if (r.poll) r.poll()
                 if (build === wifiPage) scan()
                 if (build === batteryPage) { note("battery", null); sh("battery", "python3 /usr/share/asgard/battery-report.py", JSON.parse) }
             }
@@ -782,6 +892,11 @@ Item {
         }
     }
 
+    Timer {
+        interval: 3000; repeat: true
+        running: settings.open && settings.stack.length > 0 && !!settings.stack[settings.stack.length - 1].poll
+        onTriggered: settings.stack[settings.stack.length - 1].poll()
+    }
     Confirm { id: dialog; anchors.fill: parent }
     Keyboard { id: keyboard; anchors.fill: parent }
 }

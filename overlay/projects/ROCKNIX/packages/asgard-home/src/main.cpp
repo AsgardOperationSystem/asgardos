@@ -9,6 +9,7 @@
 #include <QQuickWindow>
 #include <QPointerEvent>
 #include <QTimer>
+#include <memory>
 
 #ifdef HAVE_LAYERSHELL
 #include <LayerShellQt/window.h>
@@ -16,6 +17,8 @@
 
 #include "achievements.h"
 #include "backend.h"
+#include "files.h"
+#include "osk.h"
 #include "music.h"
 
 // Images from the web (RA badges and icons) are cached on disk and served from there first: they never change,
@@ -71,17 +74,43 @@ int main(int argc, char *argv[])
         app.installEventFilter(&inputLog);
     // Asgard Music (asgard-home --music [playlist.m3u], as the Music Player system's emulator): its own QML, a player
     // and the pad. No Backend: it owns Home's command FIFO and uinput keyboard, which the running Home already has.
+    // Asgard Keyboard (asgard-home --osk <app_id>, Tools' touch keyboard): one window, no pad (the keys are the app's).
+    const int oskArg = app.arguments().indexOf("--osk");
+    if (oskArg >= 0) {
+        Osk osk(oskArg + 1 < app.arguments().size() ? app.arguments().at(oskArg + 1) : QString());
+        QQmlApplicationEngine engine;
+        engine.rootContext()->setContextProperty("osk", &osk);
+        engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
+        engine.load(QDir(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml")).filePath("Osk.qml"));
+        if (engine.rootObjects().isEmpty())
+            return 1;
+        if (!shot.isEmpty())
+            QTimer::singleShot(qEnvironmentVariableIntValue("ASGARD_SHOT_MS") ?: 1500, [&] {
+                for (QWindow *win : QGuiApplication::topLevelWindows())
+                    if (auto *w = qobject_cast<QQuickWindow *>(win)) {
+                        w->contentItem()->setSize(w->size());
+                        w->grabWindow().save(shot + w->title() + ".png");
+                    }
+                QGuiApplication::quit();
+            });
+        return app.exec();
+    }
+    // Asgard Files (asgard-home --files, Tools > Files) the same way: its own QML, a Files backend and the pad.
     const int musicArg = app.arguments().indexOf("--music");
-    if (musicArg >= 0) {
-        Music music;
+    const bool filesMode = app.arguments().contains("--files");
+    if (musicArg >= 0 || filesMode) {
+        std::unique_ptr<Music> music(filesMode ? nullptr : new Music);   // Music starts mpv: only for Asgard Music
+        std::unique_ptr<Files> files(filesMode ? new Files : nullptr);
         Gamepad pad(!shot.isEmpty());
         QQmlApplicationEngine engine;
-        engine.rootContext()->setContextProperty("music", &music);
+        engine.rootContext()->setContextProperty("music", music.get());
+        engine.rootContext()->setContextProperty("files", files.get());
         engine.rootContext()->setContextProperty("pad", &pad);
         engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
-        if (musicArg + 1 < app.arguments().size())
-            music.load(app.arguments().at(musicArg + 1));
-        engine.load(QDir(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml")).filePath("Music.qml"));
+        if (music && musicArg + 1 < app.arguments().size())
+            music->load(app.arguments().at(musicArg + 1));
+        engine.load(QDir(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml"))
+                        .filePath(filesMode ? "Files.qml" : "Music.qml"));
         if (engine.rootObjects().isEmpty())
             return 1;
         if (!shot.isEmpty()) {   // as Home's screenshot mode below: replay ASGARD_KEYS, then save each window

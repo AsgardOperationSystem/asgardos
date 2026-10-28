@@ -36,6 +36,7 @@ EVENT_FMT = "llHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FMT)
 MENU_KEYS = {"ppsspp": KEY_ESC, "armsx2-qt": KEY_ESC, "aethersx2": KEY_ESC, "flycast": KEY_F1}  # their menu keys
 MENU_FIFO = "/run/asgard-home.cmd"
+OSK_PID = "/run/asgard-osk.pid"     # start_firefox.sh: its touch keyboard (wvkbd) on the bottom screen
 BACKGROUND = "/run/asgard-bg.json"   # asgard-background.py: a game is frozen behind Asgard Home ("Back to Home")
 
 
@@ -137,6 +138,14 @@ def steam_home():
                        capture_output=True)
 
 
+def osk(show):
+    """A tool's touch keyboard covers the bottom screen (a layer above windows): hidden while the panel is open."""
+    try:
+        os.kill(int(open(OSK_PID).read()), signal.SIGUSR2 if show else signal.SIGUSR1)
+    except (OSError, ValueError):
+        pass
+
+
 def frontend_menu():
     try:
         fd = os.open(MENU_FIFO, os.O_WRONLY | os.O_NONBLOCK)  # fails without a reader
@@ -180,10 +189,13 @@ def main():
     while True:
         if pad_fd() is None:
             open_pad()
-        if paused and panel and panel.poll() is not None:  # panel closed (AYN again, B, or a tile): resume
-            paused = False
-            freeze_game(False)
-        waiting = pad_fd() is None or paused  # poll for the pad to appear / the panel to close
+        if panel and panel.poll() is not None:  # panel closed (AYN again, B, or a tile): resume
+            panel = None
+            osk(True)
+            if paused:
+                paused = False
+                freeze_game(False)
+        waiting = pad_fd() is None or panel is not None  # poll for the pad to appear / the panel to close
         for fd in select.select(list(fds), [], [], 0.5 if waiting else None)[0]:
             try:
                 data = os.read(fd, EVENT_SIZE)
@@ -200,6 +212,7 @@ def main():
                         env = frontend_env()
                         if env:
                             paused = freeze_game(True)  # the game waits while the panel is open
+                            osk(False)
                             panel = subprocess.Popen(["python3", PANEL], env=env, start_new_session=True,
                                                      stdout=subprocess.DEVNULL,
                                                      stderr=open("/tmp/thor-panel.log", "a"))
