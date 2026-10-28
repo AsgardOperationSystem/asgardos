@@ -318,8 +318,11 @@ QtObject {
             }
 
             Pill {
-                x: parent.width - width + 60; y: 984; width: hints.implicitWidth + 130; height: 92
-                transformOrigin: Item.Right; scale: Math.min(1, (parent.width + 40) / width)   // narrow (bottom) screen
+                // Runs off the right edge on the wide screen; on the narrow (bottom) one, shrunk to fit and centred.
+                readonly property bool fits: hints.implicitWidth + 130 <= parent.width + 40
+                x: fits ? parent.width - width + 60 : (parent.width - width) / 2; y: 984
+                width: hints.implicitWidth + (fits ? 130 : 80); height: 92
+                transformOrigin: fits ? Item.Right : Item.Center; scale: fits ? 1 : (parent.width - 40) / width
                 Row {
                     id: hints
                     x: 40; anchors.verticalCenter: parent.verticalCenter; spacing: 30
