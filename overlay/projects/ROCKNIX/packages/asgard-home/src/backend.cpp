@@ -742,7 +742,7 @@ QVariantMap Backend::playStats(const QString &path) const
 
 static const char *PAD_NAME = "Sony Interactive Entertainment DualSense Wireless Controller";
 
-Gamepad::Gamepad(bool disabled, QObject *parent) : QObject(parent)
+Gamepad::Gamepad(bool disabled, bool grab, QObject *parent) : QObject(parent), m_grab(grab)
 {
     if (disabled)
         return;
@@ -777,6 +777,8 @@ void Gamepad::open()
         return;
     }
     m_retry.stop();
+    if (m_grab)
+        ioctl(m_fd, EVIOCGRAB, 1);   // released when the fd closes (exit, or the pad going away)
     qInfo("gamepad: opened %s", qPrintable(QFileInfo(QString("/proc/self/fd/%1").arg(m_fd)).symLinkTarget()));
     m_notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
     connect(m_notifier, &QSocketNotifier::activated, this, &Gamepad::read);

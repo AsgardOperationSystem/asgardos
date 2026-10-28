@@ -24,7 +24,7 @@ img = C.CDLL("libSDL2_image-2.0.so.0")
 INIT_VIDEO, INIT_GAMECONTROLLER, INIT_EVENTS = 0x20, 0x2000, 0x4000
 WINDOW_FULLSCREEN_DESKTOP = 0x1001
 RENDERER_SOFTWARE = 0x1
-QUIT, KEYDOWN, FINGERDOWN, FINGERUP, FINGERMOTION = 0x100, 0x300, 0x700, 0x701, 0x702
+QUIT, KEYDOWN, FINGERDOWN = 0x100, 0x300, 0x700
 CONTROLLERAXISMOTION, CONTROLLERBUTTONDOWN, CONTROLLERBUTTONUP, CONTROLLERDEVICEADDED = 0x650, 0x651, 0x652, 0x653
 BTN = {0: "south", 1: "east", 2: "west", 3: "north", 4: "select", 6: "start", 9: "l1", 10: "r1",
        11: "up", 12: "down", 13: "left", 14: "right"}
@@ -86,15 +86,14 @@ img.IMG_LoadSizedSVG_RW.restype, img.IMG_LoadSizedSVG_RW.argtypes = C.c_void_p, 
 REPEAT_DELAY, REPEAT_RATE = 0.5, 0.12
 DEBUG = (open("/tmp/thor-settings-events.log", "a")
          if os.environ.get("THOR_SETTINGS_DEBUG") or os.path.exists("/tmp/thor-settings-debug") else None)
-FONT = "/usr/share/fonts/liberation/LiberationSans-Regular.ttf"  # Thor Panel's font
+FONT = "/usr/share/fonts/liberation/LiberationSans-Regular.ttf"  # the "title" / "item" / "small" fonts
 ESDE_RES = "/usr/share/asgard/res"  # ES-DE 3.5.0 fonts + SVGs (MIT / OFL), vendored: the image has no ES-DE
 MENU_FONT = f"{ESDE_RES}/fonts/Akrobat-Regular.ttf" if os.path.exists(f"{ESDE_RES}/fonts/Akrobat-Regular.ttf") else FONT
 GFX = f"{ESDE_RES}/graphics"
 
 # ES-DE dark menu scheme (measured): panel, selection, title, rows, separators, help text
 M_PANEL, M_SEL, M_TITLE, M_TEXT, M_SEP, M_HELP = (25, 25, 25), (0, 0, 0), (144, 144, 144), (128, 128, 128), (48, 48, 48), (224, 224, 224)
-# legacy names (Thor Panel)
-BG, PANEL, SEL, TEXT, DIM, ACCENT = (18, 20, 26), (32, 36, 46), (52, 92, 160), (235, 238, 245), (150, 156, 170), (120, 180, 255)
+TEXT = (235, 238, 245)
 GLYPH = {"a": "help/button_a_switch.svg", "b": "help/button_b_switch.svg", "x": "help/button_x_switch.svg",
          "y": "help/button_y_switch.svg", "start": "help/button_start_switch.svg", "lr": "help/dpad_leftright.svg",
          "updown": "help/dpad_updown.svg"}
@@ -147,7 +146,6 @@ class UI:
         self.held = None  # (action, next_repeat_time)
         self.last_action = None
         self.touch = None  # (x, y) in window pixels of the last tap, when poll() returns "touch"
-        self.drags = False  # also return "drag" / "release" (finger moved / lifted; self.touch updated), for sliders
         self.ev = C.create_string_buffer(64)
         # grab_pad: take the pad for ourselves (EVIOCGRAB) so the frontend and the running game don't also act on
         # the presses meant for this window; we then read it from evdev, as SDL no longer sees it. Released on exit.
@@ -278,7 +276,6 @@ class UI:
         if act:
             return act
         ev = self.ev
-        moved = False  # finger motion is merged: only the latest position counts (a slider can't keep up with each)
         while sdl.SDL_PollEvent(ev):
             t = C.cast(ev, C.POINTER(C.c_uint32))[0]
             if DEBUG:
@@ -308,18 +305,10 @@ class UI:
                 fx, fy = C.cast(C.addressof(ev) + 24, C.POINTER(C.c_float))[0:2]
                 self.touch = (int(fx * self.w), int(fy * self.h))
                 return "touch"
-            elif t in (FINGERMOTION, FINGERUP) and self.drags:
-                fx, fy = C.cast(C.addressof(ev) + 24, C.POINTER(C.c_float))[0:2]
-                self.touch = (int(fx * self.w), int(fy * self.h))
-                if t == FINGERUP:
-                    return "release"
-                moved = True
             elif t == KEYDOWN:
                 act = KEYS.get(C.cast(C.addressof(ev) + 20, C.POINTER(C.c_int32))[0])
                 if act:
                     return act
-        if moved:
-            return "drag"
         if self.held and time.monotonic() >= self.held[1]:
             self.held = (self.held[0], time.monotonic() + REPEAT_RATE)
             return self.held[0]

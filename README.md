@@ -39,7 +39,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Back to Home | ✅ | Leave a game without quitting it (frozen, hidden); the first tile returns to it. |
 | In-game menu (Home) | ✅ | On the bottom screen: quick save/load, screenshot, restart, quit, plus each emulator's own items (see the emulator table). |
 | Start on Recently played → Settings | 🧪 | |
-| Language | ❌ | No locale generation for `system.language` (ROCKNIX's EmulationStation did it). |
+| Language | ❌ | English only: Asgard Home has no translations. Since 2026-10-28 Home and everything it starts run in a UTF-8 locale (C.UTF-8). |
 | **Settings** | | |
 | Wi-Fi | ✅ | Scan, join, on-screen keyboard. |
 | Bluetooth | ✅ | |
@@ -52,7 +52,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Calibration | ✅ | Touch and sticks. |
 | `asgard.yml` | ✅ | Personal config outside the image (see below). Applied on a real boot 2026-10-28. |
 | **Thor Panel and overlays** | | |
-| Thor Panel (AYN button) | ⚠️ | Status tiles, fan modes, volume and per-screen brightness; the game is frozen while it's open. Labels don't scale well; a rebuild in Asgard Home's style is planned. |
+| Thor Panel (AYN button) | 🧪 | Status tiles, quick toggles, fan modes, gauges; volume and per-screen brightness with a link lock. The game is frozen while it's open. Rebuilt in Asgard Home's style (`asgard-panel`, 2026-10-28); touch and live toggles not yet checked on the device. |
 | Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
 | **Screens and input** | | |
 | Dual screens | ✅ | Landscape bottom screen, games placed on the right screen, quiet boot, "ASGARD OS" splash on the top screen. |

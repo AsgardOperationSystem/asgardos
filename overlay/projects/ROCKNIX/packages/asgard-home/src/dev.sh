@@ -3,6 +3,7 @@
 #   ./dev.sh shot ["right a"]   desktop build on the fixture ($REPO/frontend-dev/root) -> /tmp/asgard-shot-*.png
 #   THOR=user@host ./dev.sh thor ["right a"]   cross-build, copy to the Thor (/storage/asgard-dev), render there -> /tmp/asgard-thor-*.png
 # Keys are button names (up down left right a b x y lb rb select start) replayed before the shot.
+# ASGARD_ARGS: the mode to render (--files, --panel ...); the panel's thor_panel.py is the source tree's.
 # THOR_BUILD: a ROCKNIX SM8550 build dir with a built toolchain + qt6 (cross-compiling only).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -14,7 +15,8 @@ case "${1:-shot}" in
     cmake -S "$HERE" -B "$OUT/asgard-home-host" -DCMAKE_BUILD_TYPE=Debug >/dev/null
     cmake --build "$OUT/asgard-home-host" -j"$(nproc)" | grep -E "error|warning" || true
     QT_FORCE_STDERR_LOGGING=1 ASGARD_ROOT="$REPO/frontend-dev/root" ASGARD_HOME_QML="$HERE/qml" ASGARD_SHOT="$OUT/asgard-shot-" \
-      ASGARD_KEYS="${2:-}" "$OUT/asgard-home-host/asgard-home"
+      ASGARD_KEYS="${2:-}" \
+      ASGARD_PANEL="$HERE/../../asgard/sources/thor_panel.py" "$OUT/asgard-home-host/asgard-home" ${ASGARD_ARGS:-}
     ls "$OUT"/asgard-shot-*.png ;;
   thor)
     : "${THOR:?set THOR=user@host (the Thor)}"
@@ -26,9 +28,11 @@ case "${1:-shot}" in
     scp -q "$OUT/asgard-home-thor/asgard-home" "$THOR:/storage/asgard-dev/asgard-home.new"
     ssh "$THOR" 'mv /storage/asgard-dev/asgard-home.new /storage/asgard-dev/asgard-home'
     rsync -a --delete "$HERE/qml/" "$THOR:/storage/asgard-dev/qml/"
+    scp -q "$HERE/../../asgard/sources/thor_panel.py" "$THOR:/storage/asgard-dev/"   # its imports: the installed ones
     # Run inside the live sway session (its env comes from the running frontend), windows stay hidden.
     ssh "$THOR" "eval \"\$(tr '\\0' '\\n' < /proc/\$(systemctl show -P MainPID essway)/environ | grep -E '^(WAYLAND_DISPLAY|XDG_RUNTIME_DIR)=' | sed 's/^/export /')\"
-      cd /storage/asgard-dev && ASGARD_HOME_QML=qml ASGARD_SHOT=/tmp/asgard-thor- ASGARD_KEYS='${2:-}' ./asgard-home 2>&1 | grep -v -E 'locale|UTF-8|iCCP|reconfigure' || true"
+      cd /storage/asgard-dev && ASGARD_HOME_QML=qml ASGARD_SHOT=/tmp/asgard-thor- ASGARD_KEYS='${2:-}' \
+        ASGARD_PANEL=/storage/asgard-dev/thor_panel.py PYTHONPATH=/usr/share/asgard ./asgard-home ${ASGARD_ARGS:-} 2>&1 | grep -v -E 'locale|UTF-8|iCCP|reconfigure' || true"
     scp -q "$THOR:/tmp/asgard-thor-*.png" "$OUT/"
     ls "$OUT"/asgard-thor-*.png ;;
   *) sed -n '2,8p' "$0"; exit 1 ;;

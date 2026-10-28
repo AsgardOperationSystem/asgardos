@@ -20,6 +20,7 @@
 #include "files.h"
 #include "osk.h"
 #include "music.h"
+#include "panel.h"
 
 // Images from the web (RA badges and icons) are cached on disk and served from there first: they never change,
 // and the Trophies tab then opens without downloading them again (or offline).
@@ -96,21 +97,26 @@ int main(int argc, char *argv[])
         return app.exec();
     }
     // Asgard Files (asgard-home --files, Tools > Files) the same way: its own QML, a Files backend and the pad.
+    // Thor Panel (asgard-home --panel, the AYN button) too, with the pad grabbed: the game paused under it never sees it.
     const int musicArg = app.arguments().indexOf("--music");
     const bool filesMode = app.arguments().contains("--files");
-    if (musicArg >= 0 || filesMode) {
-        std::unique_ptr<Music> music(filesMode ? nullptr : new Music);   // Music starts mpv: only for Asgard Music
+    const bool panelMode = app.arguments().contains("--panel");
+    if (musicArg >= 0 || filesMode || panelMode) {
+        const bool musicMode = musicArg >= 0;
+        std::unique_ptr<Music> music(musicMode ? new Music : nullptr);   // Music starts mpv: only for Asgard Music
         std::unique_ptr<Files> files(filesMode ? new Files : nullptr);
-        Gamepad pad(!shot.isEmpty());
+        std::unique_ptr<Panel> panel(panelMode ? new Panel : nullptr);
+        Gamepad pad(!shot.isEmpty(), panelMode);
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("music", music.get());
         engine.rootContext()->setContextProperty("files", files.get());
+        engine.rootContext()->setContextProperty("panel", panel.get());
         engine.rootContext()->setContextProperty("pad", &pad);
         engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
         if (music && musicArg + 1 < app.arguments().size())
             music->load(app.arguments().at(musicArg + 1));
         engine.load(QDir(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml"))
-                        .filePath(filesMode ? "Files.qml" : "Music.qml"));
+                        .filePath(musicMode ? "Music.qml" : filesMode ? "Files.qml" : "Panel.qml"));
         if (engine.rootObjects().isEmpty())
             return 1;
         if (!shot.isEmpty()) {   // as Home's screenshot mode below: replay ASGARD_KEYS, then save each window

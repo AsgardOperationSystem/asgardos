@@ -104,7 +104,8 @@ class Gamepad : public QObject
 {
     Q_OBJECT
 public:
-    explicit Gamepad(bool disabled = false, QObject *parent = nullptr);
+    // grab: the pad is ours alone (EVIOCGRAB): Home and a paused game don't see the presses (Thor Panel)
+    explicit Gamepad(bool disabled = false, bool grab = false, QObject *parent = nullptr);
 signals:
     void pressed(const QString &button);   // up down left right a b x y lb rb lt rt select start guide
 private:
@@ -118,4 +119,5 @@ private:
     QTimer m_repeat;     // held d-pad direction repeats, like a keyboard
     QString m_held;
     bool m_lb = false, m_rb = false, m_combo = false;   // shoulder state for the LB+RB combo
+    bool m_grab = false;
 };

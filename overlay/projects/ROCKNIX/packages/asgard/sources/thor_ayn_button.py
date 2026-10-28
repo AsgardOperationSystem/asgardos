@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Thor buttons daemon (blocking reads, no polling).
 
-* AYN button (KEY_F24 on gpio-keys-ayn): toggle Thor Panel on the bottom screen. The running game is frozen
-  (SIGSTOP) while it's open and continues (SIGCONT) when it closes: AYN again, or a tile that closes it.
+* AYN button (KEY_F24 on gpio-keys-ayn): toggle Thor Panel (asgard-panel --panel, Asgard Home's qml/Panel.qml with
+  thor_panel.py behind it) on the bottom screen. The running game is frozen (SIGSTOP) while it's open and continues
+  (SIGCONT) when it closes: AYN again, or a tile that closes it. Asgard Home's bottom window steps aside meanwhile.
 * Button 10 (BTN_MODE on InputPlumber's virtual pad) **tapped alone** (released within TAP_S, nothing else pressed
   meanwhile): open the running emulator's menu, or exit games whose emulator has none. Holding it with other buttons
   is left alone, so ROCKNIX's hotkey combos (it's their modifier) keep working.
@@ -17,6 +18,7 @@
     its command FIFO; exit (SIGTERM, then SIGKILL after EXIT_GRACE_S) if the frontend isn't there to show it.
 """
 import fcntl
+import json
 import os
 import select
 import signal
@@ -31,7 +33,8 @@ ABS_HAT0X, ABS_HAT0Y = 16, 17
 TAP_S = 0.5
 DEBOUNCE_S = 0.6
 EXIT_GRACE_S = 4
-PANEL = os.path.join(os.path.dirname(os.path.abspath(__file__)), "thor_panel.py")
+PANEL = ["asgard-panel", "--panel"]
+HOME_BOTTOM_Q = '[title="^Asgard Home .Bottom.$"]'
 EVENT_FMT = "llHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FMT)
 MENU_KEYS = {"ppsspp": KEY_ESC, "armsx2-qt": KEY_ESC, "aethersx2": KEY_ESC, "flycast": KEY_F1}  # their menu keys
@@ -138,6 +141,34 @@ def steam_home():
                        capture_output=True)
 
 
+def park(env):
+    subprocess.run(["swaymsg", f"{HOME_BOTTOM_Q} move container to workspace thor-park"], env=env, capture_output=True)
+
+
+def unpark(env):
+    """After the panel: Asgard Home's bottom window back on DSI-1, or the panel off if nothing is to show there."""
+    subprocess.run(["swaymsg", "focus output DSI-2"], env=env, capture_output=True)
+    p = subprocess.run(["swaymsg", "-t", "get_tree", "-r"], env=env, capture_output=True, text=True)
+    if p.returncode:
+        return
+
+    def busy(n, o=None):
+        if n.get("type") == "output":
+            o = n.get("name")
+        if o == "DSI-1" and n.get("pid") and n.get("name") not in ("Thor Panel (Bottom)", "Asgard Home (Bottom)"):
+            return True
+        return any(busy(c, o) for c in n.get("nodes", []) + n.get("floating_nodes", []))
+    if busy(json.loads(p.stdout)):
+        return  # a game owns the bottom screen; Asgard Home stays parked meanwhile
+    if '"Asgard Home (Bottom)"' in p.stdout:
+        subprocess.run(["swaymsg", f"{HOME_BOTTOM_Q} move container to output DSI-1"], env=env, capture_output=True)
+        if not running_game():
+            return
+        # In a game Home's bottom window is hidden: the panel would stay lit (and touchable, which pauses
+        # RetroArch) until Home came back. Off, like thor-bottom-idle-off.sh does at game start.
+    subprocess.run(["swaymsg", "output DSI-1 power off"], env=env, capture_output=True)
+
+
 def osk(show):
     """A tool's touch keyboard covers the bottom screen (a layer above windows): hidden while the panel is open."""
     try:
@@ -184,13 +215,14 @@ def main():
     except OSError:
         keyboard = None
     freeze_game(False)  # a game frozen by a previous run of this daemon (crash/restart) would stay stopped
-    panel, paused = None, False
+    panel, paused, panel_env = None, False, None
     guide_down, other_pressed, last_tap = None, False, 0.0
     while True:
         if pad_fd() is None:
             open_pad()
         if panel and panel.poll() is not None:  # panel closed (AYN again, B, or a tile): resume
             panel = None
+            unpark(panel_env)
             osk(True)
             if paused:
                 paused = False
@@ -209,11 +241,12 @@ def main():
                     if panel and panel.poll() is None:
                         panel.send_signal(signal.SIGTERM)  # the loop below resumes a paused game
                     else:
-                        env = frontend_env()
+                        env = panel_env = frontend_env()
                         if env:
                             paused = freeze_game(True)  # the game waits while the panel is open
                             osk(False)
-                            panel = subprocess.Popen(["python3", PANEL], env=env, start_new_session=True,
+                            park(env)
+                            panel = subprocess.Popen(PANEL, env=env, start_new_session=True,
                                                      stdout=subprocess.DEVNULL,
                                                      stderr=open("/tmp/thor-panel.log", "a"))
                 continue

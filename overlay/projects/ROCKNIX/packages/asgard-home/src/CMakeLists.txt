@@ -9,7 +9,7 @@ file(GLOB RHASH 3rdparty/rcheevos/src/rhash/*.c)
 add_library(rhash STATIC ${RHASH} 3rdparty/rcheevos/src/rc_compat.c)
 target_include_directories(rhash PUBLIC 3rdparty/rcheevos/include PRIVATE 3rdparty/rcheevos/src)
 
-add_executable(asgard-home main.cpp backend.cpp achievements.cpp music.cpp files.cpp osk.cpp)
+add_executable(asgard-home main.cpp backend.cpp achievements.cpp music.cpp files.cpp osk.cpp panel.cpp)
 target_link_libraries(asgard-home PRIVATE Qt6::Gui Qt6::Network Qt6::Qml Qt6::Quick rhash)
 find_package(LayerShellQt QUIET)   # the OSD overlay; without it (desktop dev builds) a plain window
 if(LayerShellQt_FOUND)
@@ -25,6 +25,8 @@ install(CODE "file(CREATE_LINK asgard-home \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX
 install(PROGRAMS start_asgard-files.sh DESTINATION bin)
 # Asgard Keyboard (Tools' touch keyboard): asgard-home --osk <app_id>, under its own name (Home's Quit kills by name).
 install(CODE "file(CREATE_LINK asgard-home \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/asgard-osk SYMBOLIC)")
+# Thor Panel (the AYN button, thor_ayn_button.py): asgard-home --panel, under its own name too.
+install(CODE "file(CREATE_LINK asgard-home \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/asgard-panel SYMBOLIC)")
 install(DIRECTORY qml/ DESTINATION share/asgard-home/qml)
 # Built-in art and gamelist entries (media/<system>/, ES-DE layout) for entries Asgard ships, like Tools > Firefox.
 install(DIRECTORY media/ DESTINATION share/asgard-home/media PATTERN "*.py" EXCLUDE)   # not make_tools_art.py
