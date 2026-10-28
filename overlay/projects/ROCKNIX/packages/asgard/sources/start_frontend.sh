@@ -15,7 +15,10 @@ for VARIABLE in $(grep _ /etc/profile.d/999-export | sed 's/export//g; s/^\W//g;
 done
 # ponytail: no system.language locale generation (ES did it for its translations); add with the frontend's i18n.
 export SDL_AUDIODRIVER=pulseaudio
-# Qt needs a UTF-8 locale; ROCKNIX ES's es_settings set LANG, nothing does now. C.UTF-8 is built into glibc.
-export LANG=${LANG:-C.UTF-8}
+# A UTF-8 locale for Home and every game/app it starts (non-ASCII names in Terminal, Files...). glibc has no
+# built-in C.UTF-8 and the image ships no compiled locales (ROCKNIX's SM8550 busybox drops locale.service), so
+# compile it once into /storage (~1 s, 76 KB). localedef exits 1 on harmless warnings.
+export LOCPATH=/storage/.cache/locpath LANG=C.UTF-8
+[ -d "$LOCPATH/C.UTF-8" ] || { mkdir -p "$LOCPATH"; I18NPATH=/usr/share/i18n localedef --quiet -i POSIX -f UTF-8 "$LOCPATH/C.UTF-8"; }
 
 exec /usr/bin/asgard-home >> /var/log/asgard-frontend.log 2>&1

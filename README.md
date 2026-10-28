@@ -43,14 +43,14 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | **Settings** | | |
 | Wi-Fi | ✅ | Scan, join, on-screen keyboard. |
 | Bluetooth | ✅ | |
-| VPN | 🧪 | Tailscale (sign-in link on screen), ZeroTier (join by network ID), WireGuard (`.conf` files from the Samba "config" share). |
+| VPN | 🧪 | Tailscale (sign-in link on screen), ZeroTier (join by network ID), WireGuard (`.conf` files from the Samba "config" share). Back ends checked 2026-10-28 (tailscaled up and asking for a login, ZeroTier online, a `.conf` imported); the sign-in and join flows from Settings are untested. |
 | USB mode, SSH, Samba, Syncthing | ✅ | |
 | Date and time, device name | ✅ | |
 | Per-emulator settings | ✅ | Default emulator and core per console, ROCKNIX's emulator options (shaders, aspect ratio, Azahar's resolution and layouts...) as settings rows. |
 | Per-game settings | ✅ | Emulator, core, the same options, CPU/fan profile and gyro, per game. |
 | GPU driver | ✅ | Turnip version selector. |
 | Calibration | ✅ | Touch and sticks. |
-| `asgard.yml` | 🧪 | Personal config outside the image (see below). Self-test passes; not yet applied on a real boot. |
+| `asgard.yml` | ✅ | Personal config outside the image (see below). Applied on a real boot 2026-10-28. |
 | **Thor Panel and overlays** | | |
 | Thor Panel (AYN button) | ⚠️ | Status tiles, fan modes, volume and per-screen brightness; the game is frozen while it's open. Labels don't scale well; a rebuild in Asgard Home's style is planned. |
 | Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
@@ -107,10 +107,10 @@ in a game.
 | Dusklight | Twilight Princess port (dual-screen fork) | | ✅ | Resume / Quit | Companion on the bottom screen. |
 | Lumi-Dex | | | 🧪 | | Pokédex companion on the bottom screen while Brilliant Diamond runs in Eden. |
 | **Tools:** Asgard Music | | gmu | ✅ | | Playlists, screens-off playback. |
-| **Tools:** Firefox | Firefox ESR (Mozilla's aarch64 build) | | 🧪 | Resume / Quit | Restores its tabs after Quit. Asgard Keyboard on the bottom screen. |
-| **Tools:** Terminal | QTerminal | | 🧪 | Resume / Quit | Asgard Keyboard (Ctrl, Alt, arrows, symbols) on the bottom screen. |
-| **Tools:** Moonlight | moonlight-qt | | 🧪 | Resume / Quit | Game streaming from a PC. |
-| **Tools:** Files | Asgard Files | | 🧪 | | Internal storage, ROMs, SD card: copy, move, rename, delete. |
+| **Tools:** Firefox | Firefox ESR (Mozilla's aarch64 build) | | 🧪 | Resume / Quit | Restores its tabs after Quit. Asgard Keyboard on the bottom screen. Launches full screen on the right screens (checked 2026-10-28). |
+| **Tools:** Terminal | QTerminal | | 🧪 | Resume / Quit | Asgard Keyboard (Ctrl, Alt, arrows, symbols) on the bottom screen. Launches full screen on the right screens (checked 2026-10-28). |
+| **Tools:** Moonlight | moonlight-qt | | 🧪 | Resume / Quit | Game streaming from a PC. Launches full screen on the right screens (checked 2026-10-28). |
+| **Tools:** Files | Asgard Files | | 🧪 | | Internal storage, ROMs, SD card: copy, move, rename, delete. Launches full screen on the right screens (checked 2026-10-28). |
 
 ## Layout
 
