@@ -1,231 +1,119 @@
 # Asgard OS
 
-An OS for the AYN Thor built on ROCKNIX. ROCKNIX is a pinned submodule and Asgard is a stack of patches and new
-files on top of it, so following ROCKNIX is a pin bump plus fixing whichever patch stops applying.
+A Linux gaming OS for the **AYN Thor**, a dual-screen SM8550 handheld. It's built on
+[ROCKNIX](https://rocknix.org) and adds three things:
+
+- **Asgard Home**, its own dual-screen frontend in place of EmulationStation.
+- **Thor support** that ROCKNIX lacks: working sleep, both screens, touch, gyro, charge limit and audio tuning.
+- **Native settings, an in-game menu and tools**, so the Thor can be used without a keyboard or SSH.
+
+ROCKNIX is a pinned submodule. Asgard is a stack of patches and new files on top of it, so following ROCKNIX is
+a pin bump plus fixing whichever patch stops applying.
+
+## Screenshots
+
+Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
+
+| Top screen | Bottom screen |
+|---|---|
+| ![Consoles](docs/screenshots/home-top.jpg) | ![Console card](docs/screenshots/home-bottom.jpg) |
+| ![Games in a console](docs/screenshots/games-top.jpg) | ![Game card](docs/screenshots/game-bottom.jpg) |
+
+| Trophies (RetroAchievements) | Settings | Files (Tools) |
+|---|---|---|
+| ![Trophies](docs/screenshots/trophies.jpg) | ![Settings](docs/screenshots/settings.jpg) | ![Files](docs/screenshots/files.jpg) |
+
+## Features
+
+### Asgard Home
+- A dual-screen frontend styled after iiSU. The grid is on the top screen and the detail card on the bottom one;
+  L+R swaps them.
+- Library from ROCKNIX's systems, with system art, backdrops, covers and screenshots, play time, and a Recently
+  played tile.
+- Emulator and core per console and per game, plus ROCKNIX's emulator options (shaders, aspect ratio, Azahar's
+  resolution and layouts...) as settings rows.
+- **Trophies** tab: RetroAchievements progress per game (ROMs hashed like RA does).
+- Touch on the bottom screen, tile reordering (Y or a long press), menu sounds.
+- **Back to Home:** leave a game without quitting it (frozen and hidden); the first tile returns to it.
+- **Scrape this game** (Select): cover and screenshot from libretro thumbnails.
+- **In-game menu** on Home, on the bottom screen: quick save/load, screenshot, restart, quit, plus per-emulator
+  items (Azahar screens/layout/textures, Eden docked mode and speed, RetroArch menu, Steam overlay).
+
+### Systems
+- **Emulators** from ROCKNIX (RetroArch, Azahar, melonDS, Dolphin, PPSSPP, ARMSX2...), with dual-screen layouts for
+  DS and 3DS.
+- **Switch:** Eden v0.2.1 built from source, handheld mode. Keys and firmware come from the card's `bios/NSO/`.
+- **Steam:** Valve's ARM64 client, with x86 games through FEX and Proton. It runs in a window on the top screen, so
+  the Thor's buttons keep working. Covers and store details are fetched for installed games, and Steam's pad
+  settings survive reboots.
+- **PC:** Steam plus native ports as `.desktop` apps (Gen1 Recomp, the LÖVE Pokémon Red/Blue/Yellow port).
+- **Tools:** Asgard Music, Firefox, Terminal, Moonlight and Asgard Files, with an on-screen keyboard on the bottom
+  screen.
+
+### Settings and the Thor Panel
+- **Settings** (Start): Wi-Fi, Bluetooth, VPNs (Tailscale, ZeroTier, WireGuard), USB mode, SSH/Samba/Syncthing,
+  stick lights, fan, CPU cap, charge limit, sleep mode, audio EQ, battery report, updates, date and time.
+- **Thor Panel** (AYN button): status tiles, fan modes, and volume and brightness per screen. The game is frozen
+  while it's open.
+- A volume/brightness overlay drawn in Asgard Home's style above games.
+
+### Thor hardware
+- **Sleep that works** (s2idle). The whole SoC powers down (CX, AOSS and DDR), and the drain is about 20–30 mA
+  (~0.3 %/h). The pad, Wi-Fi, audio and storage all resume.
+- **Both screens:** landscape bottom screen, games on the right screen, 60 Hz top panel, OLED Ultra Black, idle
+  blank (burn-in protection), and X turns both screens off.
+- **Touch on both screens**, calibrated for the rotated panels.
+- **Gyro:** the accelerometer and gyro are read from the ADSP sensor core and served as a DSU (cemuhook) motion
+  source. Azahar uses it (aiming in Ocarina of Time 3D works). It's on per game, since it keeps the DSP awake.
+- **Charge limit:** charging stops at the limit and starts again 5 % below it.
+- **Fast storage:** SD card at UHS-I SDR104 (76 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
+- **Audio:** the output follows the headphone jack. The speaker EQ is tuned from Android's preset, or Joey's. For
+  headphones, an AutoEQ profile can be picked by model and is saved per headphone. Charger in/out chimes.
+- **Battery report:** what used the battery since the last unplug (sleep, Home, each emulator), and the time left.
+- **Boot splash** "ASGARD OS" on the top screen, and a quiet boot.
+
+### System
+- **Personal config in `asgard.yml`**, not in the image (see below).
+- **Persistent event log** in `/storage/.config/thor/`: warnings, errors, kernel oopses, Wi-Fi and sleep events,
+  and a log for any boot that never shut down cleanly.
+
+## Missing or partial
+
+| Feature | State | Notes |
+|---|---|---|
+| Tools system (Firefox, Terminal, Moonlight, Files) | 🧪 Untested | Built and installed, not yet checked on the device. |
+| PC system (`.desktop` apps) | 🧪 Untested | Steam inside works; other apps launch directly. |
+| VPNs (Tailscale, ZeroTier, WireGuard) | 🧪 Untested | In Settings → Hardware → Network. |
+| Home in Azahar opens the menu at once | 🧪 Untested | It used to take ~1.2 s; a second press closed it. |
+| Start on the Recently played tile → Settings | 🧪 Untested | |
+| RetroArch bottom screen off | 🧪 Untested | Settings → Display. |
+| lowerdeck touch (GB/GBA bottom-screen companion) | 🧪 Untested | Tested in code only. |
+| `asgard.yml` | 🧪 Untested | Self-test passes; not yet applied on a real boot. |
+| Gyro for Steam and SDL games | 🧪 Partial | Sent to InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
+| Top screen hang at game launch | ⚠️ Partial | Intermittent. Fewer modesets at launch make it rarer, but it isn't proven gone. |
+| Bottom screen flicker | ⚠️ Partial | Android's panel timings (`9046`) didn't cure it. |
+| Pokémon Alpha Sapphire at auto 3DS resolution | ❌ Broken | Freezes the Thor (a GPU/display hang). Workaround: that game at 2×. |
+| gen1recomp on native Wayland | ⚠️ Workaround | No input under SDL3's Wayland backend; runs under XWayland. |
+| Thor Panel | ⚠️ Partial | Labels don't scale well; a rebuild in Asgard Home's style is planned. |
+| ScreenScraper | ⚠️ Partial | Wired in but off until a developer ID is set; our own scraper is planned. |
+| Language (`system.language`) | ❌ Missing | No locale generation; ROCKNIX's EmulationStation did it. |
+| Sleep drain below ~23 mA | ⏸️ Deferred | The rest is board-level (panels, touch, pad MCU, LEDs, Wi-Fi chip, PMIC). |
+| Event log: sway seat changes | ❌ Missing | Not logged. |
+| GPU `fenced register write` | 👀 Watching | Occasional; no hang seen. |
+| SD card at SDR104 | 👀 Watching | Android keeps UHS off as unstable; watch for mmc errors after sleep. |
+
+## Layout
 
 ```
-rocknix/      ROCKNIX distribution (submodule: branch next, shallow)
-patches/      changes to existing ROCKNIX files, applied in order with git apply
-overlay/      new files copied over the tree (kernel patches, quirks, packages)
-build.sh      prepare rocknix/ and build the image (./build.sh [prepare|upgrade])
+rocknix/          ROCKNIX (submodule, branch next, pinned)
+patches/          changes to ROCKNIX files, applied in order
+overlay/          new files copied over the tree (kernel patches, packages, Asgard Home)
+build.sh          prepare rocknix/ and build the image (./build.sh [prepare|upgrade|stage])
 inject-config.sh  put your asgard.yml on an image's boot partition
-frontend/     -> the Asgard Home source (overlay/projects/ROCKNIX/packages/asgard-home/src)
-thor/         git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace (vendor dumps, ABL backup, ports)
+frontend/         -> Asgard Home's source (overlay/projects/ROCKNIX/packages/asgard-home/src)
+docs/             changes, sleep work, adding an emulator, screenshots
+thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace
 ```
-
-## Status (2026-10-28)
-
-Asgard runs on the Thor (installed 2026-10-10 as a `.tar` update over ROCKNIX). Newer frontend changes are tested
-live from bind-mounted dev builds before they reach an image.
-
-### Working
-- ✅ **Boot without ROCKNIX ES:** `essway.service` starts Asgard Home; sound, services and the pad come up. Boot-time
-  suspend is gone (logind holdoff 10 s; with 0 the lid's boot state suspended the Thor and broke ADSP audio). Quiet
-  boot: no console text, no cursor (`0013`).
-- ✅ **Steam:** Valve's native ARM64 client in gamescope (Big Picture), x86 games through FEX + Proton ARM64. First
-  start needs ROCKNIX's Install Steam (FEX rootfs, runtime, client, Proton-CachyOS and GE), which failed on the
-  image's grep (no PCRE) until `0015`. Installed games show up in the Steam system.
-- ✅ **Sleep/resume (s2idle):** lid close in the menu and 10+ min asleep mid-game both resume cleanly; the gamepad
-  re-handshakes on the first try. CPU cluster reaches `cluster_sleep_1`. (PR #3126, `0001`, CPU0 idle quirk,
-  regulator mem states, PCIe suspend OPP, USB autosuspend, rsinput `1023`)
-- ✅ **Storage:** SD at UHS-I SDR104 (76.8 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
-- ✅ **OLED Ultra Black** on the top panel; OLED idle blank (timeout in Settings); X turns both panels off.
-- ✅ **Bottom screen:** landscape rotation, dual-screen window rules, display sleep hook.
-- ✅ **Touch on both screens:** sway rotated touch with the 90°-turned panels; a `calibration_matrix` undoes it
-  (measured raw vs delivered taps). Taps land under the finger, swipes scroll the grid.
-- ✅ **Asgard Home (iiSU-style frontend):** library with system artwork and backdrops, launching with emulator/core per
-  system and per game, play time, Trophies tab (RetroAchievements: 249 of 362 hashed ROMs matched; needs
-  `global.retroachievements.webapikey`), touch on the bottom screen, menu sounds, cached art.
-- ✅ **Settings, native (Start / power button):** Wi-Fi (scan, join, on-screen keyboard), Bluetooth, USB mode,
-  SSH/Samba/Syncthing, stick lights, RetroAchievements, fan, CPU cap, charge limit, sleep mode, updates, power;
-  per console and per game: emulator, core and ROCKNIX's emulator options (aspect ratio, shaders, Azahar's
-  resolution and layouts...) as iiSU rows. No classic SDL screens left.
-- ✅ **Volume/brightness slider:** drawn by Asgard Home as a layer-shell overlay in its own style (icon bubble,
-  gradient bar), above games on the top panel; mako's pill is the fallback when the frontend isn't running.
-- ✅ **AYN button → Thor Panel** (status tiles, fan modes; touch or d-pad + A, L1/R1 page, only AYN closes); the running
-  game is frozen (SIGSTOP) while it's open. Page 2: volume and per-screen brightness sliders in the OSD's style, with a
-  link lock. A fixed fan speed survives game launches.
-- ✅ **Home in a game:** Azahar pauses and an in-game menu (quick save/load, screens, layout, textures, restart,
-  quit) opens on the bottom screen; other emulators get Resume / Quit.
-- ✅ **Azahar:** HD texture packs on by default (`0012`).
-- ✅ **Battery logger**, **speaker DSP**, **CPU clock cap**, **hostname**.
-- ✅ **melonDS** two-window layout without the Qt menu bar.
-- ✅ **Settings → Hardware → Battery** (2026-10-12): since the last unplug, what used it (Sleep, Home, each emulator) with
-  time, % and mA, time left at that rate, and the charge in progress (`battery-report.py` over the battery log).
-- ✅ **Audio** (2026-10-12): the default output follows the headphone jack (`0025` + WirePlumber priority);
-  Settings → Hardware → Audio: speaker EQ Thor / Joey / off, headphone EQ Thor / off / **AutoEQ** (type a model,
-  pick from AutoEQ's ~8,850 profiles, needs internet; `asgard-eq.py`); charger in/out chimes.
-- ✅ **Select on a game → Scrape this game** (2026-10-12): cover + screenshot from libretro thumbnails into ES-DE's
-  media (`asgard-scrape.py`); ScreenScraper is wired in but off until a developer ID is set (`asgard.yml`).
-- ✅ **Gyro step 2:** the ADSP sensor core's QMI service (svc 400) comes up (FastRPC heap + hexagonrpcd).
-- ✅ **Gyro step 3:** accel and gyro stream from the sensor core over QMI/QRTR (`ssc.py`, ~110 Hz each).
-- ✅ **Gyro step 4:** `asgard-motiond` serves accel/gyro as a DSU (cemuhook) motion source on 127.0.0.1:26760;
-  Azahar reads it (`0016`). Axis order measured on the device (`-y,z,-x`, `asgard.motion_map`), confirmed aiming in
-  Ocarina of Time 3D. On only when asked: each emulator / game's *Gyro* option (Emulator options > Hardware
-  overrides, default off) and the menu's Settings > Hardware > Performance > Gyro (`asgard-perf-profile.sh`).
-- 🧪 **Gyro step 5:** the same samples on InputPlumber's virtual DualSense (`CompositeDevice.SendEvent` over D-Bus,
-  in the units of InputPlumber's own IIO IMU source) for Steam Input and SDL games (Dusklight); zeroed when motiond
-  stops. Tested against a fake InputPlumber only; signs on the pad tunable with `asgard.motion_map_pad`.
-- ✅ **Grid on the top screen by default**, detail card below; L+R swaps; layouts fit each screen's shape.
-- ✅ **Tile reordering:** Y or a long press lifts a tile, d-pad or drag moves it, for consoles and for the games inside
-  each console (saved per console).
-- ✅ **Steam pad settings across boots:** InputPlumber's virtual DualSense gets a new serial every boot and Steam
-  keys controller settings by serial; the newest are copied to the new serial before Steam starts (`0017`).
-- ✅ **Steam art:** covers, logos, screenshots and store details for the installed games (`steam-art.py`, Steam CDN
-  + appdetails), refreshed on every Steam start.
-- ✅ **60 Hz top panel:** frame-rate register before sleep out, as Android does (`9004`); the panel logs each init.
-- ✅ **Boot splash "ASGARD OS" on the top panel only:** the animation through KMS (retried for 5 s while the panels
-  probe); the static logo and the update progress bar (`0014`) on fbdev, drawn over the whole buffer (it is the top
-  panel's 1080x1920 but reports the shared 1080x1240) and turned 90° like sway, bottom backlight off meanwhile.
-- ✅ **Steam inside sway** (`0018`, `asgard.steam_nested=0` for ROCKNIX's way): gamescope as a window on the top
-  panel, so the AYN button opens the Thor Panel on the bottom screen; Home opens Steam's Quick Access
-  (`steam-pad-profile.py`). Baba Is You, Hollow Knight and Undertale run well so far.
-- ✅ **hexagonrpc package:** built as a ROCKNIX package and serving the sensors PD (the gyro runs through it). The
-  sensors root (Android's DSP files) can't ship in the image: copy it to the device once (see below).
-
-### In progress / untested
-- 🧪 **Home in Azahar opens the in-game menu at once:** the hidden windows keep their graphics (the menu took ~1.2 s,
-  and a second press closed it as it appeared), and input in its first 400 ms is ignored.
-- 🧪 **PC system:** ROCKNIX's Steam system shown as PC; Steam is an entry inside, and other `.desktop` apps launch
-  directly (`X-Asgard-Kill` for Home's Quit). First one: Gen1 Recomp (LÖVE port of Pokémon Red/Blue/Yellow, from
-  your own ROMs).
-- 🧪 **Tools system:** ROCKNIX's Music Player system shown as Tools: Asgard Music, Firefox, Terminal, Moonlight,
-  Files. Firefox ESR (Mozilla's aarch64 build, `apps/firefox`) and Terminal (QTerminal) fill the top screen, with
-  Asgard Keyboard (`asgard-home --osk`: Ctrl, Alt, arrows, symbols) filling the bottom one; wvkbd's layer surface
-  never got a touch on the Thor. Firefox restores its tabs after Quit. Moonlight is moonlight-qt
-  (`apps/moonlight-qt`, all cores at full clocks like Firefox); Files is Asgard Files (internal storage, ROMs, SD
-  card: copy, move, rename, delete).
-  `0046` runs the system's other `.sh` entries.
-- 🧪 **VPNs** (Settings → Hardware → Network): Tailscale (sign-in link shown on screen), ZeroTier (join by
-  network ID; ROCKNIX re-joins them at boot), WireGuard (NetworkManager tunnels imported from `.conf` files in
-  `/storage/.config/wireguard`, the Samba "config" share).
-- 🧪 **Start on the Recently played tile** opens Settings, like the console tiles.
-- 🧪 **RetroArch bottom screen** can be switched off (Settings → Display), ROCKNIX's `rocknix.bottomscreen.type`.
-- 🧪 **Fewer modesets at game launch** (bottom panel rotated only when needed, powered off only if unused): lowers the
-  odds of the top-panel hang below; the hang is intermittent, so not proven gone (none seen since, with the rotator
-  also off via `rotator.disabled`).
-- **Switch: Eden v0.2.1** (`eden-sa`, built from source, NCE on; `0021` adds the `switch` system and Qt Charts
-  for Eden's performance overlay; `eden-sa/patches/0001` fixes the build on GCC 16/fmt 12). Keys and firmware come
-  from the card's `bios/NSO/` (`prod.keys`, `title.keys`, `Firmware.<ver>.zip`, installed on the first start).
-  Handheld mode, pinned to cores 3–7, updates/DLC loaded from the ROM folders (Asgard Home hides them from the
-  library). Home menu: docked toggle, speed limit, overlay, screenshot, restart. `.nsz` isn't supported: convert
-  to `.nsp`. **Tested 2026-10-11:** TWEWY Final Remix, Legends Arceus, Legends Z-A and Violet boot; controls work
-  as Player 1 = Handheld in handheld mode, which in Eden's ini is two slots: `player_0` typed Handheld but
-  disconnected, `player_8` connected with the bindings (Pro Controller is rejected by TWEWY; a Handheld pad on a
-  docked console is rejected by every game). TWEWY is touch-only in handheld, as on hardware.
-  Open: Eden's docked toggle (F10) pops a modal dialog and leaves player 1 on Pro after returning to handheld;
-  Z-A's software keyboard asserts (`SwkbdConfig revision=1048590`; harmless, the 0x4C8 config parses as the newest
-  known layout); Eden reports firmware 22.0.0 with 23.0.1 installed (games boot regardless). Violet's name-entry
-  keyboard once flipped case constantly (pad verified idle over SDL); opening and closing the Home menu (pause/
-  resume) cured it. Suspect Eden's `InputInterpreter` press-state latch; dig in if it recurs.
-- **Batch B sleep drain** (2026-10-12): MCU rail and stick-LED controllers off in sleep, fan tach/timer quiesced
-  (`9032`–`9035`, `0024`). Pad resumes first try over 3 RTC sleeps; CX/AOSS still never collapse and DDR stays at
-  1555 MHz asleep. ≥1 h unplugged sleep measured from 2026-10-16 on (battery log): 20–30 mA, ~0.3 %/h (31.7 h cost 9 %).
-- **gen1recomp touch:** its on-screen controls need `POKEPORT_TOUCH=1`, and under native Wayland (SDL3 via sdl2-compat)
-  its window got no input at all, not even a keymap; under XWayland (`SDL_VIDEODRIVER=x11`) touch works. Both are set
-  in the port's own launcher (`/storage/apps/gen1recomp/gen1recomp-sbc.sh`). Root cause in SDL3's Wayland path not found.
-- **D-pad slow to work after boot** (reported 2026-10-10): for a while after the Thor boots the d-pad doesn't respond
-  well. Not investigated yet (suspects: rsinput's boot handshake / RX stream, InputPlumber or the frontend's pad open retry).
-- **lowerdeck touch fix** (GB/GBA bottom-screen companion): tested in code, waiting for a try on the device.
-- **Thor Panel** labels don't scale well; a rebuild in Asgard Home's style is planned.
-- **asgard.yml:** self-test passes; not yet applied on a real boot.
-- **Persistent event log:** the journal is RAM-only (8 MB), so a crash used to lose the boot (2026-10-12 ~20:40:
-  airplane mode by itself a minute after a reboot, nothing left to say why). Now on `/storage`:
-  `logs/events.log` (`asgard-events`: every warning and error as it's logged, kernel oopses/WARNs and USB/PHY resume
-  failures included, plus the info-level rfkill/airplane, NetworkManager Wi-Fi and connection states, and
-  `PM: suspend entry/exit`) and `freezes/<time>.log` for a boot that never shut down (`asgard-lastboot`), both in
-  `/storage/.config/thor/`; full journal snapshots before sleep, around each game and at shutdown in
-  `/storage/.cache/asgard-journal` (the previous boot's: `.prev`, `journalctl -D`).
-  Panics: the debug pstore/ramoops (`0029`/`0030`). Not logged: sway seat changes.
-- **Sleep drain:** the SoC rails (`aosd`/`cxsd`/`ddr`) still never collapse (see Deep sleep plan). Since `9039`
-  (2026-10-14) DDR sits at 200 MHz asleep instead of 1555. Drain: 100–135 mA until 2026-10-15, 20–30 mA (~0.3 %/h)
-  from 2026-10-16 (battery log, every ≥1 h sleep through 2026-10-28), so collapse isn't needed for a good standby.
-- Our own scraper (ScreenScraper, with an Asgard developer ID kept out of the repo).
-
-### Known broken / limitations
-- 🧪 **Charge limit** (2026-10-11 build): `9003` replaced by Kettle's charge-current control (`9020`) and
-  `asgard-charge-limit.service` (0 A at the limit, back at limit − 5 %). **Works** (2026-10-28): on the charger at
-  87 % with the limit at 80 it holds 0 A. The battery log's awake charging past 80 % (2026-10-17…25) was with
-  `asgard.charge_limit=100` (off) at the time. Asleep the loop is frozen, so a Thor that sleeps on the charger
-  below the limit charges to 100 % (as on Kettle).
-- **Pokémon Alpha Sapphire at auto 3DS resolution freezes the Thor** on Vulkan (`dpu_encoder_frame_done_timeout`):
-  a GPU/display hang below Azahar. Workaround: that game at 2× (per-game `resolution_scale`). Azahar 2126.2 is
-  kept but does **not** fix it (correction to !13).
-- **thor-sensorspd** stops for sleep and is restarted 3 s after resume (fixed 2026-10-11: the resume hook's direct
-  start was rejected while suspend.target's job was queued, so gyro was gone after any sleep). Restart verified
-  over a 30 s RTC sleep.
-- **Charger plugged in while asleep: fixed** (`9005`). Battery log 2026-10-13…28: all 17 plug-ins while asleep
-  were seen and charged, none stuck. History: (2026-10-10) the Thor stayed on the cable discharging, reporting no
-  charger (`qcom-battmgr-usb/online=0`, no typec partner), sometimes until reboot. Likely `0502` masking the IPCC
-  mailbox in suspend, so the UCSI attach is never delivered or acked. Fix in the next image (untested): `9005` keeps
-  IPCC live in s2idle on `ayn,thor` and wakes on a USB-C connector change; `/storage/.config/sleep.d/95-thor-charge-fix.sh`
-  re-suspends a lid-closed cable wake and rebinds `ucsi_glink` if still stuck 75 s after a wake (log
-  `/storage/charge-fix.log`). Watch sleep drain: battmgr messages are now handled during sleep. First `9005` image (15:59) **reset the Thor on an unplug while asleep**: the ucsi/altmode workers programmed dwc3 and the QMP PHY with devices suspended; they now run on `system_freezable_wq` (after resume). Plug-in while asleep produced no UCSI notification at all on that image (ADSP probably holds it while `0003` sleepstate says the AP is asleep). **16:13 image (2026-10-10):** unplug while asleep wakes and re-sleeps without a reset (2/2); plug-in while asleep woke and charged on the 2nd try (1/2, `0003` kept). Still to do: more plug-in repeats, and a ≥1 h unplugged sleep to compare drain with the ~4–5 %/h baseline.
-- Occasional `fenced register write (0x8a1)` from the GPU; no hang seen.
-- SD SDR104: Thorch keeps UHS off as unstable; watch for mmc errors after sleep.
-- No locale generation for `system.language` (ROCKNIX ES did it).
-
-## Deep sleep plan (2026-10-14, updated 2026-10-15) — done 2026-10-16
-
-**Done 2026-10-16: `cxsd`, `aosd` and `ddr` all count.** The CX blocker was audio: Armada's
-[PR #723](https://github.com/armada-os/armada/pull/723) (Odin 3, SM8750, 7.8 mA asleep) found the ADSP's "AUDIO"
-DRV holding CX through s2idle for LPASS macro/SoundWire/LPI votes and the board I2S clock. Ported as `9047`
-(replaces `9040`). With it and the floor off, a 1 h lid-closed sleep spent 99.9% (3732 of 3736 s) in
-CXSD/AOSD/DDR LPM at **~23–24 mA** (vs ~46 mA with the floor, ~100 mA before `0031`/`9045`/`0032`), with ~20 brief
-wakes that went straight back down. Power button and RTC alarm both wake it from there; audio, UFS and Wi-Fi resume
-fine. `suspend_floor` now defaults to off (`9037`; verified on a fresh boot 2026-10-16). Deferred for now: the remaining ~23 mA is board-level (panels,
-touch, gamepad MCU, LEDs, Wi-Fi chip, PMIC); Armada's Odin 2 rail fixes are the first place to look.
-Note: `clk_summary` in debugfs runtime-resumes every clock provider while it prints, so it shows the LPASS macros
-active with `LPASS_HW_MACRO`/`DCODEC` enabled; read `/sys/kernel/debug/clk/<name>/clk_enable_count` instead.
-
-Goal: full SoC sleep (`cxsd`/`ddr`, ideally `aosd`, counting in `/sys/kernel/debug/qcom_stats/`), as Android does
-on this Thor (750+ CX/DDR collapses in 10 min, each one resumed). Today the PCIe suspend OPP (`0220`/`0221`)
-keeps a small DDR vote in sleep; without it the first wake from DDR low power resets the SoC. Full notes:
-`~/Projects/asgard/thor/ayn_thor_pro.md`, sections from "CXSD-only sleep experiment" on.
-
-**Known (2026-10-14):**
-- The reset is the SoC dropping PS_HOLD: XBL log (`9043`, `/sys/kernel/debug/xbl_log`) shows `Reset by PSHOLD`,
-  `Hard Reset` and, only after the crash, `PON by RTC`. Not a TZ crash (`qcom_scm` download mode stays unused),
-  not a power fault (PMIC PON registers match a normal reboot). DDR is re-initialised, so pstore stays empty.
-- It hits the first wake event after DDR enters low power (alarm +60: kernel 117 s after suspend; +300: 163 s).
-- Android's apps_rsc sleep/wake sets (RPMh trace, cmd-db names) match Linux's with the floor dropped, except
-  LDO E1 and E3, which Android switches off in SLEEP and on in WAKE. Copying that alone (`0028`, disabled in
-  `patches-disabled/`) hung a normal sleep: their consumers (PCIe PHY, USB PHY, DSI/UFS PLL) aren't ready.
-- Ruled out: ADSP/CDSP (stopped), UFS (already `spm_lvl=5`), MC4/SH5 (`9042`), Wi-Fi PDC table (`9038`),
-  AOSD block (`9037`), GPU stale votes (fixed by `9039`), display RSC (empty TCSs, `9044` disabled).
-
-**Found 2026-10-15: the floor only hid a live PCIe link.** The Wi-Fi link never powered down in sleep:
-`pcie_ports=compat` left the root port without a driver, and the root port advertises Hot-Plug Capable, which
-(without pciehp) keeps `pci_bridge_d3_possible()` false. So the port stayed in D0, D3cold was refused and
-`qcom_pcie_suspend_noirq()` kept the controller, PHY, clocks and rails on. Fixed by `0031` (no `pcie_ports=compat`)
-and `9045` (clear SltCap HPC/HPS). Now the root port goes to D3hot and the link retrains on every resume.
-With the floor dropped (`suspend_floor=0`), 8 RTC sleeps (45 s–3 min) all resumed and `ddr` counted DDR LPM
-for the first time (~55 of 60 s). Kettle has the same fix for SM8250 only (their `1140`); for Kettle's Thor:
-[gist](https://gist.github.com/zmelumian972/3dc7b5a002f0564eada3f27b6d0d8807).
-
-**Still 0 (2026-10-15): `cxsd`, `aosd`.** Ruled out as the CX blocker, each with a floor-off 60 s sleep:
-LDO E1/E3 (`0032` turns them off in sleep, like Android; it no longer hangs now the link is down), USB (controller
-and combo PHY unbound, `usb3_phy_gdsc` off), the apps RSC's own votes (RPMh trace: CX level 0, every BCM 0 in the
-sleep set). Left: requesters the apps trace can't see (ADSP/CDSP votes, display RSC) and AOP QMP messages Android
-sends that Linux doesn't. Stopping ADSP/CDSP isn't a valid test: DDR LPM stopped too, and the sound card was lost.
-
-**Plan (port Android's suspend behaviour driver by driver, Qualcomm downstream source:
-[OnePlusOSS/android_kernel_oneplus_sm8550](https://github.com/OnePlusOSS/android_kernel_oneplus_sm8550)):**
-1. ~~Measure the ≥1 h unplugged sleep drain with `9039`.~~ Done 2026-10-15: 6.6 h at 102 mA and 1.9 h at 99 mA, with DDR at 200 MHz for the whole night. That is no better than the 100–135 mA baseline, so DDR clock was not the drain.
-2. ~~PCIe.~~ Done (`0031`, `9045`): no port of `msm_pcie` needed. Android keeps the link in L1ss and hands it to
-   the ADSP (`qcom,drv-name = "lpass"`, DRV over rpmsg); mainline now powers it fully down instead (D3cold).
-3. ~~USB.~~ Not the CX blocker (see above). "HS-PHY not in L2" is noise: device mode, no cable. The combo PHY
-   stays runtime-active (DP aux bridge), keeping `usb3_phy_gdsc` on while awake.
-4. ~~Retry `0028`.~~ Done as `0032`: works, but CX still doesn't collapse.
-5. Floor-dropped overnight sleep: `echo 0 > /sys/module/pcie_qcom/parameters/suspend_floor` (runtime, resets at
-   boot), lid closed, unplugged, then compare drain with the ~100 mA baseline. If it holds, make 0 the default.
-   Short tests: `~/Projects/asgard/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
-6. CX: list the AOP QMP messages the downstream drivers send (`qmp_send`/`aop_msg` in the OnePlus tree) and replay
-   them at runtime through `qcom_aoss.send` (`9038`). Then the display RSC.
-7. If still blocked: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for
-   X1E/SC8280XP), and ask AYN for its kernel source under the GPL.
-8. Clean up whatever is no longer needed: test switches (`9037`/`9038`/`9042`), ftrace (`0027`), ramoops
-   (`0029`/`0030`).
 
 ## Building
 
@@ -234,14 +122,13 @@ git clone --recurse-submodules https://github.com/AsgardOperationSystem/asgardos
 cd asgardos && ./build.sh      # ROCKNIX's docker build of the SM8550 image -> rocknix/target/
 ```
 `./build.sh prepare` only resets `rocknix/`, applies `patches/` and copies `overlay/`.
+`./build.sh stage root@<thor>` copies the update to a running Thor; it's applied on the next reboot.
 
-## Upgrading ROCKNIX
-
+To upgrade ROCKNIX:
 ```
 ./build.sh upgrade          # pin -> latest next, then apply patches
 # a failing patch: fix the file in rocknix/, regenerate that patch with git -C rocknix diff, rerun
 git add rocknix patches && git commit -m "ROCKNIX <date>"
-./build.sh
 ```
 
 ## Personal config: asgard.yml
@@ -254,140 +141,26 @@ on a local copy of an image. At every boot each key is applied unless the settin
 `LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` runs the build with an empty
 environment, so nothing from your shell reaches it).
 
-## Asgard Home (frontend)
-
-`frontend/` → `overlay/projects/ROCKNIX/packages/asgard-home/src`: the only frontend. Qt Quick on the image's Qt 6,
-two windows: top 1920x1080 (hero card, status, hints) and bottom 1240x1080 (dock + tile grid), styled after
-iiSU's dual-screen home with our own code and artwork (Nunito, OFL).
-- `backend.cpp`: library from ROCKNIX's `es_systems.cfg` + ROM dirs + ES-DE-format scraped media
-  (`/storage/ES-DE/{gamelists,downloaded_media}`), playtime (`playtime.jsonl`), battery, launching through
-  `runemu.sh`; InputPlumber's pad read from evdev (positional = the Thor's Nintendo layout: A east, B south).
-- `qml/`: `Main.qml` (state + navigation), `HeroCard`, `Tile`, `Dock`, `Backdrop`, small parts.
-- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop from `frontend-dev/root` (a git-ignored
-  copy of the Thor's library); `dev.sh thor ["keys"]` cross-builds, copies to the Thor and renders there.
-
-## Adding an emulator
-
-[`docs/adding-an-emulator.md`](docs/adding-an-emulator.md): what every new emulator has to support (launch through
-runemu.sh, kill target, exit codes and crash logs, **no catch-up after sleep**, in-game menu pause, background, screens,
-controller), with a test for each.
-
 ## Gyro: ADSP sensors root
 
-The Thor's gyro/accel (SH5001) live in the ADSP's sensor core. `thor-sensorspd.service` (hexagonrpcd) serves the
-sensors PD a HexagonFS root that isn't in the image (Android blobs + this unit's calibration): copy it to
-`/storage/.config/asgard/sensors-root/` (`hexagonrpc.json`, `dsp/` from the Thor's `dsp_a`, `vendor/etc/sensors`,
-`vendor/lib/rfsa/adsp`, `odm/etc`, a writable copy of `persist/sensors`, `socinfo/`). The service starts only when
-it's there. Streaming the readings to games (steps 3–4) isn't done yet.
+The gyro and accelerometer (SH5001) live in the ADSP's sensor core. `thor-sensorspd.service` (hexagonrpcd) serves
+it a HexagonFS root that can't ship in the image (Android blobs plus this unit's calibration). Copy it to
+`/storage/.config/asgard/sensors-root/` once: `hexagonrpc.json`, `dsp/` from the Thor's `dsp_a`,
+`vendor/etc/sensors`, `vendor/lib/rfsa/adsp`, `odm/etc`, a writable copy of `persist/sensors`, and `socinfo/`.
+The service starts only when it's there.
 
-**Moving from the current ROCKNIX install (one time, first Asgard boot):** the Thor already has a working root at
-`/storage/.config/thor/sensors/root2`. Copy it over, then start the service:
-```
-cp -a /storage/.config/thor/sensors/root2 /storage/.config/asgard/sensors-root
-systemctl start thor-sensorspd
-```
+## Developing Asgard Home
 
-## Changes on top of ROCKNIX
+Qt Quick on the image's Qt 6, two windows: top 1920×1080 (grid, dock) and bottom 1240×1080 (detail card, hints).
+- `backend.cpp`: library from ROCKNIX's `es_systems.cfg`, ROM dirs and ES-DE-format scraped media; play time;
+  launching through `runemu.sh`; the pad from evdev (the Thor's Nintendo layout: A east, B south).
+- `qml/`: `Main.qml` (state and navigation), `HeroCard`, `Tile`, `Dock`, `Settings`, `GameMenu`, small parts.
+- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop; `THOR=root@<thor> dev.sh thor ["keys"]`
+  cross-builds, copies to the Thor and renders there. The screenshots above come from running the installed
+  `asgard-home` with `ASGARD_SHOT`/`ASGARD_KEYS` on the Thor.
 
-One merge request each; its description and commits say what was broken, why, and what changed.
+## More docs
 
-| Change | Why |
-|---|---|
-| ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. Delete `0000` once it merges. |
-| s2idle + `fw_devlink` cmdline (`0001`) | CPUs never reached cluster sleep; GPU power domains stayed on because `sync_state()` waited forever. |
-| CPU0 idle quirk (`097-cpu0-idle`) | ROCKNIX disables CPU0's deep idle, so the CPU cluster could never power down. |
-| Regulator suspend states in s2idle (`0219`, `0002`) | DT `regulator-state-mem` only applied to s2ram; the Thor sleeps with s2idle. |
-| PCIe suspend OPP (`0220`, `0221`) | Without a small DDR vote in sleep, AOP firmware never returns to Linux (hang on wake). |
-| USB autosuspend udev rule | The idle USB controller held a 1 GB/s USB→DDR bandwidth vote. |
-| smp2p sleepstate (`9000`, `0003`) | Experimental: Android tells the ADSP when the CPUs sleep; mainline doesn't. |
-| rsinput oversized RX (`1023`) | Gamepad dead after resume: handshake replies arrived in big chunks and were dropped. |
-| SD UHS-I SDR104 (`0004`) | A caps mask kept the SD card at 3.3 V high-speed: 16.6 MB/s. |
-| UFS HS-G5 (`1024`) | Internal storage ran at HS-G4: 1.5 GB/s instead of 2.6–2.8. |
-| OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
-| Charge limit (Kettle `1121` `1170` `1190` `1388` = `9018`–`9021`, `asgard-charge-limit`) | The firmware ignores the end threshold (our old `9003`); it takes a charge current. `1170`: charger updates no longer wake s2idle. |
-| Azahar 2126.2 (`0005`) | Newer Azahar, kept by choice; it does **not** fix the Alpha Sapphire freeze (see Status). |
-| No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
-| melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
-| asgard package + boot tuning (`0008`) | Hostname, USB autosuspend, charge limit, CPU clock cap at every boot. |
-| asgard.yml | ROCKNIX preconfigures Wi-Fi and keys by baking them into the image; Asgard keeps them in a file next to it. |
-| Kettle sleep/GPU fixes (`9007`–`9017`) | Kettle `1150` `1160` `1180` `1291`–`1293` `1350`–`1352` `1384` `1385` (see Projects to learn from). Flashed 2026-10-11 20:02: GPU boot DDR vote gone, 60 s RTC sleep resumes clean (pad handshake first try, Wi-Fi, audio). Sleep drain over ≥1 h not measured yet. |
-| Bottom touch follows the panel (`thor-bottom-touch`) | Single-screen games run with DSI-1 off but its touchscreen on: a touch moved sway focus to the empty bottom workspace and RetroArch paused (`pause_nonactive`). The watcher enables/disables the touchscreen with every DSI-1 power change. Also: the AYN panel now powers DSI-1 off when it closes during a game. |
-| No seat1 touch (`0022`) | ROCKNIX attached both touchscreens to seat0 and seat1, so every touch reached Asgard Home twice; the phantom second press stole taps (Home power button did nothing). Recurs if ROCKNIX's `start_steam.sh`/Heroic launchers die before undoing `seat seat1 fallback true`; Home resets it after every game (`backend.cpp`). |
-| Display sleep hook | After resume the bottom panel lit up (black) even when it was off before sleep. |
-| Bottom screen rotation + window rules | The bottom panel was portrait; games opened on the wrong screen or half the screen. |
-| OLED idle blank | Burn-in protection: both screens off after 5 min without input. |
-| Battery logger | Measures sleep drain and records charging state (a not-charging-after-sleep case had no data). |
-| Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
-| Thor Settings | All system settings lived in ROCKNIX ES; Asgard needs them without it. |
-| AYN button → Thor Panel | The AYN key did nothing on Linux; Home was only a hotkey modifier. |
-| Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
-| Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
-| ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
-| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service. |
-| Motion server (`asgard-motiond`, `0016`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. Runs only when a game's Gyro option (or the menu's) is on (`asgard-perf-profile.sh`): streaming keeps the ADSP waking ~185×/s. |
-| Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |
-| Kettle/Armada batch A (`9022`–`9031`) | Kettle `1060` `1110` `1200` `1210` `1220` `1250` `1270` `1280` `1383`, Armada `0048`: tsens wakes, haptics buzz after rumble, GPU queue priority, command-mode vblank timestamps, DSI clocks off the PLL when the screens are off, ICE/PCIe/ath12k fixes, GPU load in debugfs. Picked by dry-running every Kettle/Armada patch against our tree (2026-10-12). |
-| MCU rail off in sleep (`9032`–`9033` Kettle `1310` `1311`, `0024`) | `vdd_mcu_3v3` was always-on: the gamepad MCU and both stick-LED controllers stayed powered through sleep. |
-| Fan quiet in sleep (`9034`–`9035`, Kettle `1300` `1410`) | The 1 Hz RPM timer and tach IRQs kept waking s2idle (Kettle: blocks CPU cluster collapse). |
-| USB PHY pipe clock (`9036`) | One PHY init timeout (a USB-C cable wake) disabled `pipe_clk` twice; every later resume then failed (`-110`) and the controller held its 1 GB/s DDR vote through sleep until a reboot. |
-| Default output follows the jack (`0025`, WirePlumber rule) | ROCKNIX's `hdmi_sense` pinned the first sink at boot (our speaker EQ filter), so headphones never took over; and ALSA ranked the speaker above them. |
-| Boot volume skips the EQ filter (`0045`) | The boot `volume` call ran right after `0025` cleared the default, so `@DEFAULT_SINK@` was the speaker EQ filter: it stayed at 65 % under the real sink's 65 % (quiet until an EQ change restarted PipeWire). Now the filter's device gets the volume; the script waits for it (~5 s: at boot it can register after the filter, which had put the filter back at 55 % under the speaker's 55 %) and resets both filters to 100 % on every call. |
-| Gunyah watchdog driver (`0026`, `CONFIG_GUNYAH_WATCHDOG=y`) | Probe: shows whether the hypervisor has a watchdog (a `watchdog` under `/sys/class/watchdog`), a suspect for the restart on wake from full SoC collapse. The driver stops it at probe and across suspend. |
-| Game-aware battery and sleep logs (`playlog.py`, `battery-log.sh`, `asgard-sleep-audit`, `asgard-charge-fix`) | Native ports and PC apps were logged as "menu". Home's launch record (`/run/thor-playing.txt`) now names the game, emulator and core; sleeps log DDR residency and save interconnect/regulator/genpd summaries; the game is SIGSTOPped through a lid-closed cable wake. |
-| EQ filters at 100 % (`state.restore-props = false`) | While the speaker EQ was the pinned default, the volume keys moved it; a stale 45 % (−21 dB) stayed behind. |
-| Speaker/headphone EQ, AutoEQ, Joey (`asgard-eq.py`, `eq/`) | Selectable EQ. Joey's Retro Handhelds JamesDSP preset as a minimum-phase FIR (`gen-speaker-ir.py`) + width-2 widener + `asgard-limiter` (our LADSPA lookahead limiter: PipeWire has none, and the preset adds +15 dB). PipeWire 1.2.6's parametric-equalizer module ignores node names, so AutoEQ files become biquad filter-chains. |
-| Home sounds via `pw-play` | `QSoundEffect`'s audio thread once spun at 100 % holding a lock the UI waited on: Home froze. Qt Multimedia is gone. |
-| Battery report, charger chimes, scraper | Settings → Hardware → Battery; `charger-in`/`out` on the charger's online flag (the battery reads "Not charging" at the limit); Select → Scrape this game. |
-| GPU stale RPMh votes (`9039`) | Upstream [d9108bfdb746](https://github.com/torvalds/linux/commit/d9108bfdb746edacdb05bd27959a4ae63c6c7f3f), not in 7.2: an inverted check left the GPU RSC awake after any GPU use, holding DDR at 1555 MHz (4224 after Eden) through sleep. Now 200 MHz. |
-| Mesa 26.2.6 (`0048`) | ROCKNIX's 26.2.4 → 26.2.6 (bugfix releases: Turnip cache-invalidate fixes, Zink/kopper swapchain fixes). Brilliant Diamond's red/green triangles are gone without `TU_DEBUG=flushall` (Flush GPU caches off). |
-| LPASS released in sleep (`9047`, replaces `9040`) | Armada PR #723: upstream 7.3 PM-clock conversion of the wsa/va/tx/rx macros, macros + SoundWire + LPI pinctrl force-suspended across system sleep, and the board I2S clock dropped at suspend (rewritten for our `sc8280xp.c`). Lets AOP collapse CX. |
-| Syscon XO (`9041`) | From x1e-sleep: syscon kept TCSR's parent `bi_tcxo` prepared. |
-| UFS PHY QREF supply (`9048`, `0033`) | Kettle 1402: the UFS PHY's reference-clock buffer on L1E gets a 30 mA load, so a wake doesn't fail PHY calibration ("Failed to calibrate PHY: -110", then all I/O fails). |
-| Bottom panel timings (`9046`) | CH13726A on Android's DT timings (60 Hz, 12/4/12 porches) plus a 120 ms wait after sleep-out. Didn't cure the bottom-screen flicker. |
-| logind watchdog off (`systemd-logind.service.d`) | After a long s2idle, systemd's 3 min watchdog killed logind on resume and NetworkManager left Wi-Fi unavailable. |
-| Saved headphone EQ profiles (`asgard-eq.py`) | Every headphone found keeps its profile; Settings > Audio cycles Thor tuning / Off / saved names, "Your headphones" lists them. |
-| Deep-sleep test switches (`9037`, `9038`, `9042`) | Runtime switches; `pcie_qcom.suspend_floor` is off by default since 2026-10-16 (=1 restores the floor), the rest off by default: `qcom_aoss.aosd` (AOP `aoss_slp`), `pcie_qcom.suspend_floor`, `qcom_aoss.send` (raw AOP message), `asgard_ddr_wake.enable` (Android `dcvs_fp` MC4/SH5 votes). Driven by `aosd-test.sh`. |
-| Reset forensics (`9043`, `0027`, `0029`, `0030`) | XBL log in debugfs (reset reason), ftrace for RPMh traces, pstore console + 4 MB ramoops. Debug only; see Deep sleep plan step 8. Since 2026-10-15 reading `xbl_log` faults (synchronous external abort, the reading `cat` is killed): don't read it unless debugging a reset. |
-| Wi-Fi PCIe link off in sleep (`0031`, `9045`) | The root port had no driver (`pcie_ports=compat`) and advertised hot-plug, so it never left D0 and the link, controller, PHY and rails stayed on through sleep. Now D3cold; see Deep sleep plan. |
-| LDO E1/E3 off in sleep (`0032`) | What Android's sleep set does (PCIe/USB/UFS/DSI PHY rails). Retry of `0028`, which hung while the PCIe link was still up. |
-| In-game menu for RetroArch and Steam | Home opened RetroArch's own menu and Steam's Quick Access directly. Now Home opens ours (bottom screen) everywhere except PPSSPP/ARMSX2/AetherSX2. RetroArch: paused over its network command port (`PAUSE_TOGGLE`), with RetroArch menu, quick save/load, screenshot, restart. Steam: `steam-pad-profile.py` maps Home to F20 (Steam never sees it, `thor_ayn_button.py` opens our menu); Steam overlay / Quick Access are injected with InputPlumber's `SendButtonChord`, which skips the profile. |
-| Back to Home (`asgard-background.py`) | Leave a game without quitting: its windows go to sway's scratchpad and its processes are SIGSTOPped; Home's first tile returns to it. Starting another game asks to close it first. The old "Jump back in" tile is gone. |
-| gen1recomp on the top screen (`thor-sway-rotate.sh`) | LÖVE re-creates its window at every launcher↔game switch; with focus on the bottom screen the launcher (and its quit X) opened there. |
-
-## Projects to learn from
-
-Other ARM64 handheld distros that cover the Thor or SM8550. Check them before solving a Thor problem from scratch.
-
-- **[Kettle Linux](https://github.com/kettlelinux/kettlelinux)** (BSD-3-Clause, early, single developer). SteamOS "deckard" aarch64 userspace + mainline **7.2** with a pinned patch stack. **Targets the AYN Thor and Odin 2 Portal** (SM8550) and the RP5. Worth reading:
-  - kernel patches for panels, gamepad, LEDs, haptics, microSD, Wi-Fi and **s2idle suspend**. Compare with ours for sleep drain (DDR stuck at 1555 MHz asleep) and the rsinput resume stall.
-  - Thor bottom screen: a Performance app (stats, trackpad, keyboard) plus a Plasma Mobile touch shell in Game Mode.
-  - power controls: TDP, per-game fan curves, Auto TDP, **charge limit** (our `9003` doesn't work yet), refresh rate.
-  - InputPlumber presents the pad as a Steam Deck controller; A/B atomic updates (RAUC).
-- **[Armada](https://github.com/armada-os/armada)** (GPL-2.0+, ~1.9k stars, very active). Fedora bootc + device support derived from ROCKNIX; Steam Gaming Mode + KDE, FEX + Proton, OTA updates, Armada Control (power, fan, controller, calibration). Its SM8550 sleep work is [armada-packages #1](https://github.com/gh123man/armada-packages/pull/1) (RP6: #2954 ported to 7.0.11, UFS gate-race fix, charger-wake classifier, PCIe D3cold). Worth checking:
-  - its sleep patches against ours.
-  - how it sets up Steam + FEX + Proton and per-game compatibility settings (our Steam installs, but no game has been tested yet).
-
-### Findings from Kettle/Armada (2026-10-11)
-
-Kettle's `kernel/patches/README.md` is a dense, per-patch log of SM8550 sleep/GPU fixes, many by gennro and
-shared with Armada. These apply cleanly to our 7.2 tree (dry run) and aren't in it:
-
-| Kettle | What it fixes | Relevance here |
-|---|---|---|
-| `1180` a6xx drop boot bus vote | GPU driver's boot DDR vote (680 MHz OPP, 16.5 GB/s) is never removed while the GPU is powered | **DDR at 4224 MHz with the screens on** (measured) |
-| `1150` geni power down open ports | open UARTs (rsinput pad, BT) keep SE clocks, CX and QUP/NoC votes through s2idle | blocks CX collapse |
-| `1160` ufs lane clocks once | leaked clock refs keep UFS clocks and XO on in s2idle (upstream bug) | blocks XO shutdown |
-| `1291`–`1293` AudioReach suspend | an open PCM keeps the ADSP out of power collapse all night | sleep drain with a game's stream open |
-| `1350`–`1352` a6xx GMU HFI fixes | HFI IRQ ate GMU replies: `GX_BW_PERF_VOTE timed out`, GPU freeze | our `fenced register write` / GMU errors |
-| `1384`, `1385` | review fixes on top of our `1006` (geni) and `1010` (UFS) | correctness |
-
-- `1170` (battmgr without a wakeup source) doesn't apply: it conflicts with our `9003`/`9005`.
-- Kettle **dropped `0502`** (IPCC masked in suspend). With the mailbox masked, the charger stops drawing power about 5 min into s2idle. That's our "not charging after sleep" bug; `9005` already keeps IPCC live on the Thor.
-- Kettle gamescope `0021`: a 120 Hz UI holds a 7.8 GB/s display vote, so DDR sits at 1555 MHz while idle. Asgard Home's top screen runs at 120 Hz.
-- Still unexplained: the 1555 MHz DDR floor with both screens off and asleep (no Linux vote above 547 MHz).
-- **Charger, compared (2026-10-11):**
-  - **IPCC in sleep:** our `9005` (live on the Thor), Kettle (dropped `0502`) and Armada `0504` (live in s2idle, masked only for s2ram) agree.
-  - **Charge limit:** our `9003` (AYN vendor property 16) is ignored by the firmware. Kettle `1190` / Armada `0903` set the fast-charge current (`BATT_CHG_CTRL_LIM`) instead, as `constant_charge_current`, and a daemon writes 0 at the limit. Read on the Thor too (4.68 A max). **Port this to replace `9003`.**
-  - **battmgr wakeups:** Kettle `1170` drops battmgr's wakeup source; while charging, its notifications otherwise end s2idle within minutes. Unplugged sleeps here last hours, but sleep *while charging* is unmeasured. Needs a hand port (conflicts with `9003`).
-  - **Unplug while asleep:** Armada `0519` clears the USB role for charger-only partners (otherwise a hang on unplug while asleep). Our `9005` fixed our reset differently (freezable wq).
-  - **`95-thor-charge-fix`** logs "stuck" and rebinds UCSI after *every* unplugged wake (no partner looks the same as unplugged). With `9005` it may be obsolete.
+- [Changes on top of ROCKNIX](docs/changes.md): every patch, what was broken and why.
+- [Sleep](docs/sleep.md): the deep sleep work, and what we took from Kettle Linux and Armada.
+- [Adding an emulator](docs/adding-an-emulator.md): what every new emulator has to support, with a test for each.

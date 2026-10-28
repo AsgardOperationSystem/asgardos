@@ -1,0 +1,69 @@
+# Changes on top of ROCKNIX
+
+"Deep sleep plan" and "Projects to learn from" are in [sleep.md](sleep.md).
+
+One merge request each; its description and commits say what was broken, why, and what changed.
+
+| Change | Why |
+|---|---|
+| ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. Delete `0000` once it merges. |
+| s2idle + `fw_devlink` cmdline (`0001`) | CPUs never reached cluster sleep; GPU power domains stayed on because `sync_state()` waited forever. |
+| CPU0 idle quirk (`097-cpu0-idle`) | ROCKNIX disables CPU0's deep idle, so the CPU cluster could never power down. |
+| Regulator suspend states in s2idle (`0219`, `0002`) | DT `regulator-state-mem` only applied to s2ram; the Thor sleeps with s2idle. |
+| PCIe suspend OPP (`0220`, `0221`) | Without a small DDR vote in sleep, AOP firmware never returns to Linux (hang on wake). |
+| USB autosuspend udev rule | The idle USB controller held a 1 GB/s USB→DDR bandwidth vote. |
+| smp2p sleepstate (`9000`, `0003`) | Experimental: Android tells the ADSP when the CPUs sleep; mainline doesn't. |
+| rsinput oversized RX (`1023`) | Gamepad dead after resume: handshake replies arrived in big chunks and were dropped. |
+| SD UHS-I SDR104 (`0004`) | A caps mask kept the SD card at 3.3 V high-speed: 16.6 MB/s. |
+| UFS HS-G5 (`1024`) | Internal storage ran at HS-G4: 1.5 GB/s instead of 2.6–2.8. |
+| OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
+| Charge limit (Kettle `1121` `1170` `1190` `1388` = `9018`–`9021`, `asgard-charge-limit`) | The firmware ignores the end threshold (our old `9003`); it takes a charge current. `1170`: charger updates no longer wake s2idle. |
+| Azahar 2126.2 (`0005`) | Newer Azahar, kept by choice; it does **not** fix the Alpha Sapphire freeze (see Status). |
+| No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
+| melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
+| asgard package + boot tuning (`0008`) | Hostname, USB autosuspend, charge limit, CPU clock cap at every boot. |
+| asgard.yml | ROCKNIX preconfigures Wi-Fi and keys by baking them into the image; Asgard keeps them in a file next to it. |
+| Kettle sleep/GPU fixes (`9007`–`9017`) | Kettle `1150` `1160` `1180` `1291`–`1293` `1350`–`1352` `1384` `1385` (see Projects to learn from). Flashed 2026-10-11 20:02: GPU boot DDR vote gone, 60 s RTC sleep resumes clean (pad handshake first try, Wi-Fi, audio). Sleep drain over ≥1 h not measured yet. |
+| Bottom touch follows the panel (`thor-bottom-touch`) | Single-screen games run with DSI-1 off but its touchscreen on: a touch moved sway focus to the empty bottom workspace and RetroArch paused (`pause_nonactive`). The watcher enables/disables the touchscreen with every DSI-1 power change. Also: the AYN panel now powers DSI-1 off when it closes during a game. |
+| No seat1 touch (`0022`) | ROCKNIX attached both touchscreens to seat0 and seat1, so every touch reached Asgard Home twice; the phantom second press stole taps (Home power button did nothing). Recurs if ROCKNIX's `start_steam.sh`/Heroic launchers die before undoing `seat seat1 fallback true`; Home resets it after every game (`backend.cpp`). |
+| Display sleep hook | After resume the bottom panel lit up (black) even when it was off before sleep. |
+| Bottom screen rotation + window rules | The bottom panel was portrait; games opened on the wrong screen or half the screen. |
+| OLED idle blank | Burn-in protection: both screens off after 5 min without input. |
+| Battery logger | Measures sleep drain and records charging state (a not-charging-after-sleep case had no data). |
+| Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
+| Thor Settings | All system settings lived in ROCKNIX ES; Asgard needs them without it. |
+| AYN button → Thor Panel | The AYN key did nothing on Linux; Home was only a hotkey modifier. |
+| Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
+| Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
+| ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |
+| ADSP sensors PD server (`hexagonrpc`) | Gyro step 2: starts the sensor core's QMI service. |
+| Motion server (`asgard-motiond`, `0016`) | Gyro steps 3–4: accel/gyro as a DSU motion source; Azahar's 3DS motion input. Runs only when a game's Gyro option (or the menu's) is on (`asgard-perf-profile.sh`): streaming keeps the ADSP waking ~185×/s. |
+| Trophies tab | RetroAchievements progress per game: ROMs hashed like RA does (rcheevos), matched through RA's Web API. |
+| Kettle/Armada batch A (`9022`–`9031`) | Kettle `1060` `1110` `1200` `1210` `1220` `1250` `1270` `1280` `1383`, Armada `0048`: tsens wakes, haptics buzz after rumble, GPU queue priority, command-mode vblank timestamps, DSI clocks off the PLL when the screens are off, ICE/PCIe/ath12k fixes, GPU load in debugfs. Picked by dry-running every Kettle/Armada patch against our tree (2026-10-12). |
+| MCU rail off in sleep (`9032`–`9033` Kettle `1310` `1311`, `0024`) | `vdd_mcu_3v3` was always-on: the gamepad MCU and both stick-LED controllers stayed powered through sleep. |
+| Fan quiet in sleep (`9034`–`9035`, Kettle `1300` `1410`) | The 1 Hz RPM timer and tach IRQs kept waking s2idle (Kettle: blocks CPU cluster collapse). |
+| USB PHY pipe clock (`9036`) | One PHY init timeout (a USB-C cable wake) disabled `pipe_clk` twice; every later resume then failed (`-110`) and the controller held its 1 GB/s DDR vote through sleep until a reboot. |
+| Default output follows the jack (`0025`, WirePlumber rule) | ROCKNIX's `hdmi_sense` pinned the first sink at boot (our speaker EQ filter), so headphones never took over; and ALSA ranked the speaker above them. |
+| Boot volume skips the EQ filter (`0045`) | The boot `volume` call ran right after `0025` cleared the default, so `@DEFAULT_SINK@` was the speaker EQ filter: it stayed at 65 % under the real sink's 65 % (quiet until an EQ change restarted PipeWire). Now the filter's device gets the volume; the script waits for it (~5 s: at boot it can register after the filter, which had put the filter back at 55 % under the speaker's 55 %) and resets both filters to 100 % on every call. |
+| Gunyah watchdog driver (`0026`, `CONFIG_GUNYAH_WATCHDOG=y`) | Probe: shows whether the hypervisor has a watchdog (a `watchdog` under `/sys/class/watchdog`), a suspect for the restart on wake from full SoC collapse. The driver stops it at probe and across suspend. |
+| Game-aware battery and sleep logs (`playlog.py`, `battery-log.sh`, `asgard-sleep-audit`, `asgard-charge-fix`) | Native ports and PC apps were logged as "menu". Home's launch record (`/run/thor-playing.txt`) now names the game, emulator and core; sleeps log DDR residency and save interconnect/regulator/genpd summaries; the game is SIGSTOPped through a lid-closed cable wake. |
+| EQ filters at 100 % (`state.restore-props = false`) | While the speaker EQ was the pinned default, the volume keys moved it; a stale 45 % (−21 dB) stayed behind. |
+| Speaker/headphone EQ, AutoEQ, Joey (`asgard-eq.py`, `eq/`) | Selectable EQ. Joey's Retro Handhelds JamesDSP preset as a minimum-phase FIR (`gen-speaker-ir.py`) + width-2 widener + `asgard-limiter` (our LADSPA lookahead limiter: PipeWire has none, and the preset adds +15 dB). PipeWire 1.2.6's parametric-equalizer module ignores node names, so AutoEQ files become biquad filter-chains. |
+| Home sounds via `pw-play` | `QSoundEffect`'s audio thread once spun at 100 % holding a lock the UI waited on: Home froze. Qt Multimedia is gone. |
+| Battery report, charger chimes, scraper | Settings → Hardware → Battery; `charger-in`/`out` on the charger's online flag (the battery reads "Not charging" at the limit); Select → Scrape this game. |
+| GPU stale RPMh votes (`9039`) | Upstream [d9108bfdb746](https://github.com/torvalds/linux/commit/d9108bfdb746edacdb05bd27959a4ae63c6c7f3f), not in 7.2: an inverted check left the GPU RSC awake after any GPU use, holding DDR at 1555 MHz (4224 after Eden) through sleep. Now 200 MHz. |
+| Mesa 26.2.6 (`0048`) | ROCKNIX's 26.2.4 → 26.2.6 (bugfix releases: Turnip cache-invalidate fixes, Zink/kopper swapchain fixes). Brilliant Diamond's red/green triangles are gone without `TU_DEBUG=flushall` (Flush GPU caches off). |
+| LPASS released in sleep (`9047`, replaces `9040`) | Armada PR #723: upstream 7.3 PM-clock conversion of the wsa/va/tx/rx macros, macros + SoundWire + LPI pinctrl force-suspended across system sleep, and the board I2S clock dropped at suspend (rewritten for our `sc8280xp.c`). Lets AOP collapse CX. |
+| Syscon XO (`9041`) | From x1e-sleep: syscon kept TCSR's parent `bi_tcxo` prepared. |
+| UFS PHY QREF supply (`9048`, `0033`) | Kettle 1402: the UFS PHY's reference-clock buffer on L1E gets a 30 mA load, so a wake doesn't fail PHY calibration ("Failed to calibrate PHY: -110", then all I/O fails). |
+| Bottom panel timings (`9046`) | CH13726A on Android's DT timings (60 Hz, 12/4/12 porches) plus a 120 ms wait after sleep-out. Didn't cure the bottom-screen flicker. |
+| logind watchdog off (`systemd-logind.service.d`) | After a long s2idle, systemd's 3 min watchdog killed logind on resume and NetworkManager left Wi-Fi unavailable. |
+| Saved headphone EQ profiles (`asgard-eq.py`) | Every headphone found keeps its profile; Settings > Audio cycles Thor tuning / Off / saved names, "Your headphones" lists them. |
+| Deep-sleep test switches (`9037`, `9038`, `9042`) | Runtime switches; `pcie_qcom.suspend_floor` is off by default since 2026-10-16 (=1 restores the floor), the rest off by default: `qcom_aoss.aosd` (AOP `aoss_slp`), `pcie_qcom.suspend_floor`, `qcom_aoss.send` (raw AOP message), `asgard_ddr_wake.enable` (Android `dcvs_fp` MC4/SH5 votes). Driven by `aosd-test.sh`. |
+| Reset forensics (`9043`, `0027`, `0029`, `0030`) | XBL log in debugfs (reset reason), ftrace for RPMh traces, pstore console + 4 MB ramoops. Debug only; see Deep sleep plan step 8. Since 2026-10-15 reading `xbl_log` faults (synchronous external abort, the reading `cat` is killed): don't read it unless debugging a reset. |
+| Wi-Fi PCIe link off in sleep (`0031`, `9045`) | The root port had no driver (`pcie_ports=compat`) and advertised hot-plug, so it never left D0 and the link, controller, PHY and rails stayed on through sleep. Now D3cold; see Deep sleep plan. |
+| LDO E1/E3 off in sleep (`0032`) | What Android's sleep set does (PCIe/USB/UFS/DSI PHY rails). Retry of `0028`, which hung while the PCIe link was still up. |
+| In-game menu for RetroArch and Steam | Home opened RetroArch's own menu and Steam's Quick Access directly. Now Home opens ours (bottom screen) everywhere except PPSSPP/ARMSX2/AetherSX2. RetroArch: paused over its network command port (`PAUSE_TOGGLE`), with RetroArch menu, quick save/load, screenshot, restart. Steam: `steam-pad-profile.py` maps Home to F20 (Steam never sees it, `thor_ayn_button.py` opens our menu); Steam overlay / Quick Access are injected with InputPlumber's `SendButtonChord`, which skips the profile. |
+| Back to Home (`asgard-background.py`) | Leave a game without quitting: its windows go to sway's scratchpad and its processes are SIGSTOPped; Home's first tile returns to it. Starting another game asks to close it first. The old "Jump back in" tile is gone. |
+| gen1recomp on the top screen (`thor-sway-rotate.sh`) | LÖVE re-creates its window at every launcher↔game switch; with focus on the bottom screen the launcher (and its quit X) opened there. |
+
