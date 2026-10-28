@@ -25,82 +25,92 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 
 ## Features
 
-### Asgard Home
-- A dual-screen frontend styled after iiSU. The grid is on the top screen and the detail card on the bottom one;
-  L+R swaps them.
-- Library from ROCKNIX's systems, with system art, backdrops, covers and screenshots, play time, and a Recently
-  played tile.
-- Emulator and core per console and per game, plus ROCKNIX's emulator options (shaders, aspect ratio, Azahar's
-  resolution and layouts...) as settings rows.
-- **Trophies** tab: RetroAchievements progress per game (ROMs hashed like RA does).
-- Touch on the bottom screen, tile reordering (Y or a long press), menu sounds.
-- **Back to Home:** leave a game without quitting it (frozen and hidden); the first tile returns to it.
-- **Scrape this game** (Select): cover and screenshot from libretro thumbnails.
-- **In-game menu** on Home, on the bottom screen: quick save/load, screenshot, restart, quit, plus per-emulator
-  items (Azahar screens/layout/textures, Eden docked mode and speed, RetroArch menu, Steam overlay).
+✅ works · 🧪 built, not yet tested on the device · ⚠️ partial or with a workaround · ❌ missing or broken ·
+⏸️ deferred · 👀 works, being watched
 
-### Systems
-- **Emulators** from ROCKNIX (RetroArch, Azahar, melonDS, Dolphin, PPSSPP, ARMSX2...), with dual-screen layouts for
-  DS and 3DS.
-- **Switch:** Eden v0.2.1 built from source, handheld mode. Keys and firmware come from the card's `bios/NSO/`.
-- **Steam:** Valve's ARM64 client, with x86 games through FEX and Proton. It runs in a window on the top screen, so
-  the Thor's buttons keep working. Covers and store details are fetched for installed games, and Steam's pad
-  settings survive reboots.
-- **PC:** Steam plus native ports as `.desktop` apps (Gen1 Recomp, the LÖVE Pokémon Red/Blue/Yellow port).
-- **Tools:** Asgard Music, Firefox, Terminal, Moonlight and Asgard Files, with an on-screen keyboard on the bottom
-  screen.
-
-### Settings and the Thor Panel
-- **Settings** (Start): Wi-Fi, Bluetooth, VPNs (Tailscale, ZeroTier, WireGuard), USB mode, SSH/Samba/Syncthing,
-  stick lights, fan, CPU cap, charge limit, sleep mode, audio EQ, battery report, updates, date and time.
-- **Thor Panel** (AYN button): status tiles, fan modes, and volume and brightness per screen. The game is frozen
-  while it's open.
-- A volume/brightness overlay drawn in Asgard Home's style above games.
-
-### Thor hardware
-- **Sleep that works** (s2idle). The whole SoC powers down (CX, AOSS and DDR), and the drain is about 20–30 mA
-  (~0.3 %/h). The pad, Wi-Fi, audio and storage all resume.
-- **Both screens:** landscape bottom screen, games on the right screen, 60 Hz top panel, OLED Ultra Black, idle
-  blank (burn-in protection), and X turns both screens off.
-- **Touch on both screens**, calibrated for the rotated panels.
-- **Gyro:** the accelerometer and gyro are read from the ADSP sensor core and served as a DSU (cemuhook) motion
-  source. Azahar uses it (aiming in Ocarina of Time 3D works). It's on per game, since it keeps the DSP awake.
-- **Charge limit:** charging stops at the limit and starts again 5 % below it.
-- **Fast storage:** SD card at UHS-I SDR104 (76 MB/s), UFS at HS-G5 (2.6–2.8 GB/s).
-- **Audio:** the output follows the headphone jack. The speaker EQ is tuned from Android's preset, or Joey's. For
-  headphones, an AutoEQ profile can be picked by model and is saved per headphone. Charger in/out chimes.
-- **Battery report:** what used the battery since the last unplug (sleep, Home, each emulator), and the time left.
-- **Boot splash** "ASGARD OS" on the top screen, and a quiet boot.
-
-### System
-- **Personal config in `asgard.yml`**, not in the image (see below).
-- **Persistent event log** in `/storage/.config/thor/`: warnings, errors, kernel oopses, Wi-Fi and sleep events,
-  and a log for any boot that never shut down cleanly.
-
-## Missing or partial
-
-| Feature | State | Notes |
+| Feature | Status | Notes |
 |---|---|---|
-| Tools system (Firefox, Terminal, Moonlight, Files) | 🧪 Untested | Built and installed, not yet checked on the device. |
-| PC system (`.desktop` apps) | 🧪 Untested | Steam inside works; other apps launch directly. |
-| VPNs (Tailscale, ZeroTier, WireGuard) | 🧪 Untested | In Settings → Hardware → Network. |
-| Home in Azahar opens the menu at once | 🧪 Untested | It used to take ~1.2 s; a second press closed it. |
-| Start on the Recently played tile → Settings | 🧪 Untested | |
-| RetroArch bottom screen off | 🧪 Untested | Settings → Display. |
-| lowerdeck touch (GB/GBA bottom-screen companion) | 🧪 Untested | Tested in code only. |
-| `asgard.yml` | 🧪 Untested | Self-test passes; not yet applied on a real boot. |
-| Gyro for Steam and SDL games | 🧪 Partial | Sent to InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
-| Top screen hang at game launch | ⚠️ Partial | Intermittent. Fewer modesets at launch make it rarer, but it isn't proven gone. |
-| Bottom screen flicker | ⚠️ Partial | Android's panel timings (`9046`) didn't cure it. |
-| Pokémon Alpha Sapphire at auto 3DS resolution | ❌ Broken | Freezes the Thor (a GPU/display hang). Workaround: that game at 2×. |
-| gen1recomp on native Wayland | ⚠️ Workaround | No input under SDL3's Wayland backend; runs under XWayland. |
-| Thor Panel | ⚠️ Partial | Labels don't scale well; a rebuild in Asgard Home's style is planned. |
-| ScreenScraper | ⚠️ Partial | Wired in but off until a developer ID is set; our own scraper is planned. |
-| Language (`system.language`) | ❌ Missing | No locale generation; ROCKNIX's EmulationStation did it. |
-| Sleep drain below ~23 mA | ⏸️ Deferred | The rest is board-level (panels, touch, pad MCU, LEDs, Wi-Fi chip, PMIC). |
-| Event log: sway seat changes | ❌ Missing | Not logged. |
-| GPU `fenced register write` | 👀 Watching | Occasional; no hang seen. |
-| SD card at SDR104 | 👀 Watching | Android keeps UHS off as unstable; watch for mmc errors after sleep. |
+| **Frontend** | | |
+| Asgard Home | ✅ | Dual-screen frontend in iiSU's style: grid on top, detail card below, L+R swaps them. Replaces EmulationStation. |
+| Library and art | ✅ | System art, backdrops, covers, screenshots, play time, Recently played tile. |
+| Tile reordering | ✅ | Y or a long press, for consoles and games (saved per console). |
+| Trophies (RetroAchievements) | ✅ | Progress per game; ROMs hashed like RA does. Sign-in in Settings. |
+| Scraping | ⚠️ | Select → Scrape this game (libretro thumbnails). ScreenScraper is off until a developer ID is set; our own scraper is planned. |
+| Back to Home | ✅ | Leave a game without quitting it (frozen, hidden); the first tile returns to it. |
+| In-game menu (Home) | ✅ | On the bottom screen: quick save/load, screenshot, restart, quit, plus each emulator's own items (see the emulator table). |
+| Start on Recently played → Settings | 🧪 | |
+| Language | ❌ | No locale generation for `system.language` (ROCKNIX's EmulationStation did it). |
+| **Settings** | | |
+| Wi-Fi | ✅ | Scan, join, on-screen keyboard. |
+| Bluetooth | ✅ | |
+| VPN | 🧪 | Tailscale (sign-in link on screen), ZeroTier (join by network ID), WireGuard (`.conf` files from the Samba "config" share). |
+| USB mode, SSH, Samba, Syncthing | ✅ | |
+| Date and time, device name | ✅ | |
+| Per-emulator settings | ✅ | Default emulator and core per console, ROCKNIX's emulator options (shaders, aspect ratio, Azahar's resolution and layouts...) as settings rows. |
+| Per-game settings | ✅ | Emulator, core, the same options, CPU/fan profile and gyro, per game. |
+| GPU driver | ✅ | Turnip version selector. |
+| Calibration | ✅ | Touch and sticks. |
+| `asgard.yml` | 🧪 | Personal config outside the image (see below). Self-test passes; not yet applied on a real boot. |
+| **Thor Panel and overlays** | | |
+| Thor Panel (AYN button) | ⚠️ | Status tiles, fan modes, volume and per-screen brightness; the game is frozen while it's open. Labels don't scale well; a rebuild in Asgard Home's style is planned. |
+| Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
+| **Screens and input** | | |
+| Dual screens | ✅ | Landscape bottom screen, games placed on the right screen, quiet boot, "ASGARD OS" splash on the top screen. |
+| 60 Hz top panel | ✅ | |
+| OLED Ultra Black, idle blank | ✅ | Burn-in protection; X turns both screens off. |
+| Touch on both screens | ✅ | Calibrated for the rotated panels. |
+| Top screen hang at game launch | ⚠️ | Intermittent. Fewer modesets at launch make it rarer, not proven gone. |
+| Bottom screen flicker | ⚠️ | Android's panel timings (`9046`) didn't cure it. |
+| Stick lights, fan | ✅ | Fan modes and fixed speeds survive game launches. |
+| Gyro (DSU / cemuhook) | ✅ | From the ADSP sensor core; Azahar uses it (aiming in Ocarina of Time 3D works). On per game: it keeps the DSP awake. |
+| Gyro for Steam and SDL games | 🧪 | On InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
+| **Power** | | |
+| Sleep (s2idle) | ✅ | Full SoC sleep (CX, AOSS, DDR), 20–30 mA (~0.3 %/h). Pad, Wi-Fi, audio and storage resume. Emulators don't replay the time asleep. |
+| Sleep drain below ~23 mA | ⏸️ | The rest is board-level (panels, touch, pad MCU, LEDs, Wi-Fi chip, PMIC). |
+| Charge limit | ✅ | Stops at the limit, starts again 5 % below. Bypass charging. |
+| Battery report | ✅ | What used the battery since the last unplug (sleep, Home, each emulator), time left. |
+| CPU cap, performance profiles | ✅ | Per core type, 25–100 %; per-game profiles. |
+| **Audio** | | |
+| Output follows the headphone jack | ✅ | |
+| Speaker EQ | ✅ | Thor tuning (Android's preset), Joey's preset, or off. |
+| Headphone EQ (AutoEQ) | ✅ | Pick a profile by headphone model (~8,850); saved per headphone. |
+| Menu sounds, charger chimes | ✅ | |
+| **Storage** | | |
+| SD card (UHS-I SDR104, 76 MB/s) | 👀 | Android keeps UHS off as unstable; watch for mmc errors after sleep. |
+| UFS (HS-G5, 2.6–2.8 GB/s) | ✅ | |
+| **Logs** | | |
+| Event log, freeze reports, crash logs | ✅ | In `/storage/.config/thor/`: warnings, errors, kernel oopses, Wi-Fi and sleep events; a report for any boot that never shut down. Sway seat changes aren't logged. |
+| GPU `fenced register write` | 👀 | Occasional; no hang seen. |
+
+## Emulators, ports and tools
+
+Every ROCKNIX system is in the image; these are the ones in use and checked on Asgard. **Menu** is what Home opens
+in a game.
+
+| System | Default | Also available | Status | Menu | Notes |
+|---|---|---|---|---|---|
+| Game Boy / Color | RetroArch (Gambatte) | mednafen, SameBoy, mGBA, SkyEmu, ares... | ✅ | Full | |
+| Game Boy Advance | RetroArch (mGBA) | NanoBoyAdvance, mednafen, gpSP, SkyEmu... | ✅ | Full | lowerdeck (bottom-screen companion) touch fix 🧪. |
+| NES / SNES | RetroArch (Nestopia / Snes9x) | Mesen, FCEUmm, bsnes, mednafen, ares... | ✅ | Full | |
+| Nintendo 64 | RetroArch (Mupen64Plus-Next) | gopher64 1.1.42, mupen64plus, ares | ✅ | Full | |
+| Nintendo DS | melonDS | DraStic, DSperate 3.0.5, RetroArch cores | ✅ | Resume / Quit | One window per screen, no menu bar. |
+| Nintendo 3DS | Azahar 2126.2 | | ⚠️ | Full | Screens, layout, HD textures, Force 60 Hz, gyro. Alpha Sapphire at auto resolution freezes the Thor (use 2×). Instant menu 🧪. |
+| GameCube / Wii | Dolphin 2609 | RetroArch (Dolphin) | ✅ | Resume / Quit | NoGUI on Wayland can't pause. |
+| Switch | Eden 0.2.1 | Eden Duo 1.3.2.2 | ✅ | Full | Docked toggle, speed, overlay, GPU options. Tested: TWEWY, Legends Arceus, Legends Z-A, Violet. `.nsz` unsupported. Eden Duo: live companion windows on the bottom screen. |
+| PlayStation 2 | ARMSX2 2.8.4 | AetherSX2 | ✅ | Its own | |
+| PSP | PPSSPP | RetroArch (PPSSPP) | 🧪 | Its own | |
+| Dreamcast | Flycast | RetroArch (Flycast) | 🧪 | Its own | |
+| **Steam** | Steam (ARM64 client) | | ✅ | Full | x86 games through FEX + Proton, in a window on the top screen. Pad settings survive reboots; covers and store details fetched. Tested: Baba Is You, Hollow Knight, Undertale. Can't be paused. |
+| **PC** (`.desktop` apps) | | | 🧪 | Resume / Quit | Steam plus native apps. |
+| Gen1 Recomp | | | ⚠️ | Resume / Quit | Pokémon Red/Blue/Yellow (LÖVE). No input on native Wayland; runs under XWayland. |
+| Wind Waker HD | ZeldaWWHDRecomp 0.3.0 | | ✅ | Its own | Wii U GamePad window on the bottom screen. |
+| Dusklight | Twilight Princess port (dual-screen fork) | | ✅ | Resume / Quit | Companion on the bottom screen. |
+| Lumi-Dex | | | 🧪 | | Pokédex companion on the bottom screen while Brilliant Diamond runs in Eden. |
+| **Tools:** Asgard Music | | gmu | ✅ | | Playlists, screens-off playback. |
+| **Tools:** Firefox | Firefox ESR (Mozilla's aarch64 build) | | 🧪 | Resume / Quit | Restores its tabs after Quit. Asgard Keyboard on the bottom screen. |
+| **Tools:** Terminal | QTerminal | | 🧪 | Resume / Quit | Asgard Keyboard (Ctrl, Alt, arrows, symbols) on the bottom screen. |
+| **Tools:** Moonlight | moonlight-qt | | 🧪 | Resume / Quit | Game streaming from a PC. |
+| **Tools:** Files | Asgard Files | | 🧪 | | Internal storage, ROMs, SD card: copy, move, rename, delete. |
 
 ## Layout
 
