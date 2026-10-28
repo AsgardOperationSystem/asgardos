@@ -1,8 +1,6 @@
-diff --git a/projects/ROCKNIX/packages/rocknix/sources/scripts/volume b/projects/ROCKNIX/packages/rocknix/sources/scripts/volume
-index 1939f4cb2..6056954e5 100755
 --- a/projects/ROCKNIX/packages/rocknix/sources/scripts/volume
 +++ b/projects/ROCKNIX/packages/rocknix/sources/scripts/volume
-@@ -39,5 +39,14 @@ then
+@@ -39,5 +39,26 @@ then
    VOLUME=50
  fi
  
@@ -12,9 +10,21 @@ index 1939f4cb2..6056954e5 100755
 +SINK=$(pactl get-default-sink 2>/dev/null)
 +case "${SINK}" in
 +  thor_dsp_*)
-+    SINK=$(pactl list short sinks | awk -v d="__${SINK#thor_dsp_}__sink" 'tolower($2) ~ d {print $2; exit}')
++    ### Never fall back to the filter itself: at boot the device sink can register a moment after the filter, and a
++    ### level set on the filter stacks on the device's (55 % x 55 %) until the EQ is rebuilt. Wait for it (~5 s).
++    FILTER=${SINK}
++    for _ in 1 2 3 4 5 6 7 8 9 10; do
++      SINK=$(pactl list short sinks | awk -v d="__${FILTER#thor_dsp_}__sink" 'tolower($2) ~ d {print $2; exit}')
++      [ -n "${SINK}" ] && break
++      sleep 0.5
++    done
++    [ -n "${SINK}" ] || { set_setting "audio.volume" ${VOLUME}; exit 0; }
 +  ;;
 +esac
++### And put the filters back to 100 % if a level ever landed on one.
++for F in $(pactl list short sinks | awk '$2 ~ /^thor_dsp_/ {print $2}'); do
++  pactl -- set-sink-volume "${F}" 100%
++done
 +
 +pactl -- set-sink-volume "${SINK:-@DEFAULT_SINK@}" ${VOLUME}%
  set_setting "audio.volume" ${VOLUME}
