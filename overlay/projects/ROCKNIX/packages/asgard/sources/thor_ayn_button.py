@@ -39,6 +39,7 @@ EVENT_FMT = "llHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FMT)
 MENU_KEYS = {"ppsspp": KEY_ESC, "armsx2-qt": KEY_ESC, "aethersx2": KEY_ESC, "flycast": KEY_F1}  # their menu keys
 MENU_FIFO = "/run/asgard-home.cmd"
+FPS_FILE = "/run/thor-fps"         # the game's FPS just before the panel froze it; thor_panel.py shows it meanwhile
 OSK_PID = "/run/asgard-osk.pid"     # start_firefox.sh: its touch keyboard (wvkbd) on the bottom screen
 BACKGROUND = "/run/asgard-bg.json"   # asgard-background.py: a game is frozen behind Asgard Home ("Back to Home")
 
@@ -86,14 +87,47 @@ class Keyboard:
             time.sleep(0.05)
 
 
-def freeze_game(stop):
+def freeze_game(stop, env=None):
     """SIGSTOP (stop) / SIGCONT the running game's processes; works for every emulator, unlike their own pause keys.
-    Steam is left alone (it has its own overlay). Returns whether anything was frozen."""
+    Steam is left alone (it has its own overlay). Returns whether anything was frozen. With env, the game's FPS is
+    measured first (save_fps)."""
     names = [n for n in running_game() if n != "steam"]
+    if not stop:
+        try:
+            os.remove(FPS_FILE)
+        except OSError:
+            pass
     if not names or "steam" in running_game() or os.path.exists(BACKGROUND):  # a background game stays frozen
         return False
+    if stop and env:
+        save_fps(env)
     subprocess.run(["killall", "-STOP" if stop else "-CONT", *names], capture_output=True)
     return True
+
+
+def save_fps(env):
+    """sway's per-window frame counts (sway-100.02) twice, 0.5 s apart, into FPS_FILE: frozen, the game draws
+    nothing, so the panel's own measure would read 0. The busiest window counts; Home's own are skipped."""
+    def frames():
+        out = subprocess.run(["swaymsg", "-t", "get_tree", "-r"], env=env, capture_output=True, text=True).stdout
+        found = {}
+
+        def walk(n):
+            if "frames" in n and n.get("app_id") != "asgard-home":
+                found[n["id"]] = n["frames"]
+            for c in n.get("nodes", []) + n.get("floating_nodes", []):
+                walk(c)
+        try:
+            walk(json.loads(out))
+        except ValueError:
+            pass
+        return found
+    a, t0 = frames(), time.monotonic()
+    time.sleep(0.5)
+    b = frames()
+    rate = max((f - a.get(k, f) for k, f in b.items()), default=0) / (time.monotonic() - t0)
+    with open(FPS_FILE, "w") as f:
+        f.write(f"{rate:.0f}\n")
 
 
 def running_game():
@@ -243,12 +277,13 @@ def main():
                     else:
                         env = panel_env = frontend_env()
                         if env:
-                            paused = freeze_game(True)  # the game waits while the panel is open
                             osk(False)
                             park(env)
                             panel = subprocess.Popen(PANEL, env=env, start_new_session=True,
                                                      stdout=subprocess.DEVNULL,
                                                      stderr=open("/tmp/thor-panel.log", "a"))
+                            # the game waits while the panel is open; its FPS is measured while the panel starts
+                            paused = freeze_game(True, env)
                 continue
             if fds[fd] == "kbd":
                 if etype == EV_KEY and code == KEY_F20 and value == 1 and time.monotonic() - last_tap > DEBOUNCE_S:

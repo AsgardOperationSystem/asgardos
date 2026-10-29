@@ -65,7 +65,11 @@ def current_fps(st):
     """Frames/s of the busiest window since the previous status: sway's per-view "frames" (buffer commits, sway
     patch 1003), so every app works, emulators and Home alike. None until two samples, or on an unpatched sway.
     ponytail: counts presented frames, not the emulator's internal rate; a game that presents duplicate frames
-    reads high. Subsurfaces (mpv's dmabuf video) aren't counted."""
+    reads high. While the panel has the game frozen, thor_ayn_button.py's measure from just before (/run/thor-fps)."""
+    try:
+        return float(open("/run/thor-fps").read())
+    except (OSError, ValueError):
+        pass
     rc, out = run_cmd("swaymsg -t get_tree -r")
     if rc:
         return None
