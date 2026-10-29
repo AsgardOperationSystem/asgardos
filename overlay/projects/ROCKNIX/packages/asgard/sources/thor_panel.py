@@ -61,24 +61,28 @@ def net_rate(st):
     return (b - b0) / max(0.1, now - t0) / 1024 if t0 and now - t0 < 10 else 0.0
 
 
-def current_fps():
-    """FPS from the game window title where the emulator reports it (melonDS "[59/60]", "... 60 FPS"), else None.
-    ponytail: title-based only; RetroArch/Azahar don't put FPS in their titles, so they show "--"."""
+def current_fps(st):
+    """Frames/s of the busiest window since the previous status: sway's per-view "frames" (buffer commits, sway
+    patch 1003), so every app works, emulators and Home alike. None until two samples, or on an unpatched sway.
+    ponytail: counts presented frames, not the emulator's internal rate; a game that presents duplicate frames
+    reads high. Subsurfaces (mpv's dmabuf video) aren't counted."""
     rc, out = run_cmd("swaymsg -t get_tree -r")
     if rc:
         return None
+    frames = {}
 
     def walk(n):
-        t = str(n.get("name") or "")
-        m = re.search(r"\[(\d+)/\d+\]", t) or re.search(r"(\d+(?:\.\d+)?)\s*FPS", t, re.I)
-        if m and n.get("pid") and "Thor Panel" not in t:
-            return float(m.group(1))
+        if "frames" in n and "Thor Panel" not in str(n.get("name")):
+            frames[str(n["id"])] = n["frames"]
         for c in n.get("nodes", []) + n.get("floating_nodes", []):
-            r = walk(c)
-            if r is not None:
-                return r
+            walk(c)
+    walk(json.loads(out))
+    now = time.monotonic()
+    t0, f0 = st.get("fps", (0, {}))
+    st["fps"] = (now, frames)
+    if not frames or not t0 or now - t0 > 10:
         return None
-    return walk(json.loads(out))
+    return max((f - f0.get(k, f)) / max(0.1, now - t0) for k, f in frames.items())
 
 
 def stats(st):
@@ -101,7 +105,7 @@ def stats(st):
                    gauge("PWR", f"{watts:.2f}", "W", watts / 12),
                    gauge("RAM", f"{used / 1048576:.2f}", "GB", used / tot)],
         "bat": read(f"{BAT}/capacity", "?"), "charging": read(f"{BAT}/status") == "Charging",
-        "net": net_rate(st), "fps": current_fps(),
+        "net": net_rate(st), "fps": current_fps(st),
     }
 
 

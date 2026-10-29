@@ -33,6 +33,7 @@ One merge request each; its description and commits say what was broken, why, an
 | Speaker DSP | The speakers sounded thin and harsh without Android's JamesDSP preset. |
 | Thor Settings | All system settings lived in ROCKNIX ES; Asgard needs them without it. |
 | AYN button → Thor Panel | The AYN key did nothing on Linux; Home was only a hotkey modifier. |
+| Panel FPS from sway (`sway-100.02`) | The panel's FPS came from window titles, so only melonDS showed one. sway now counts each window's new frames (`frames` in `get_tree`); the panel shows the busiest window's rate. Also the input for an auto-TDP later. |
 | Asgard Home | ROCKNIX ES feels dated and isn't built for two screens; this is our own frontend. |
 | Asgard Home as the only frontend (`0009`) | ROCKNIX ES is removed from the image; the frontend unit boots Asgard Home. |
 | ADSP FastRPC remote heap (`0010`) | The ADSP sensors PD (gyro/accel) can't start without a reserved FastRPC heap. |

@@ -1,0 +1,36 @@
+diff -ruN a/include/sway/tree/view.h b/include/sway/tree/view.h
+--- a/include/sway/tree/view.h
++++ b/include/sway/tree/view.h
+@@ -81,6 +81,7 @@
+ 	struct sway_xdg_decoration *xdg_decoration;
+ 
+ 	pid_t pid;
++	uint64_t frames; // commits with a new buffer: FPS for the AYN panel
+ 	struct launcher_ctx *ctx;
+ 
+ 	// The size the view would want to be if it weren't tiled.
+diff -ruN a/sway/desktop/xdg_shell.c b/sway/desktop/xdg_shell.c
+--- a/sway/desktop/xdg_shell.c
++++ b/sway/desktop/xdg_shell.c
+@@ -310,6 +310,10 @@
+ 		return;
+ 	}
+ 
++	if (xdg_surface->surface->current.committed & WLR_SURFACE_STATE_BUFFER) {
++		view->frames++;
++	}
++
+ 	struct wlr_box *new_geo = &xdg_surface->geometry;
+ 	bool new_size = new_geo->width != view->geometry.width ||
+ 			new_geo->height != view->geometry.height ||
+diff -ruN a/sway/ipc-json.c b/sway/ipc-json.c
+--- a/sway/ipc-json.c
++++ b/sway/ipc-json.c
+@@ -581,6 +581,7 @@
+ 
+ static void ipc_json_describe_view(struct sway_container *c, json_object *object) {
+ 	json_object_object_add(object, "pid", json_object_new_int(c->view->pid));
++	json_object_object_add(object, "frames", json_object_new_int64(c->view->frames));
+ 
+ 	const char *app_id = view_get_app_id(c->view);
+ 	json_object_object_add(object, "app_id",
