@@ -77,7 +77,7 @@ Item {
     function wbSteps(neg, pos) {
         return Array.from({ length: 21 }, (_, i) => i - 10).map(v => [v === 0 ? "Neutral" : Math.abs(v) + " " + (v < 0 ? neg : pos), "" + v])
     }
-    // dflt: asgard-gamma's own default for an unset key (the bottom tint is +10, measured to match the top)
+    // dflt: asgard-gamma's own default for an unset key (bottom tint and contrast +3, chosen by eye)
     function wbRow(screen, which, title, neg, pos, dflt) {
         return choice("display", screen + " screen " + title, "Match the two screens", "asgard." + which + "." + screen.toLowerCase(),
                       dflt || "0", wbSteps(neg, pos), () => backend.shell("kill -HUP $(pidof asgard-gamma)"))
@@ -165,10 +165,9 @@ Item {
              choice("display", "Bottom screen refresh rate", "120 Hz is washed out for now (fix pending)", "asgard.refresh_bottom",
                     "60", [["120 Hz (washed out)", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-1 mode 1080x1240@" + v + "Hz"))],
             [wbRow("Top", "warmth", "warmth", "cooler", "warmer"), wbRow("Top", "tint", "tint", "greener", "pinker"),
-             wbRow("Bottom", "warmth", "warmth", "cooler", "warmer"), wbRow("Bottom", "tint", "tint", "greener", "pinker", "10"),
-             wbRow("Top", "contrast", "contrast", "softer", "punchier"), wbRow("Bottom", "contrast", "contrast", "softer", "punchier", get("asgard.ultra_black", "1") === "1" ? "10" : "6")],
+             wbRow("Bottom", "warmth", "warmth", "cooler", "warmer"), wbRow("Bottom", "tint", "tint", "greener", "pinker", "3"),
+             wbRow("Top", "contrast", "contrast", "softer", "punchier"), wbRow("Bottom", "contrast", "contrast", "softer", "punchier", "3")],
             // AYN's Ultra Black on the top panel (9061): sent at every panel power-on, so cycle the screen to apply it.
-            // asgard-gamma's bottom contrast default follows it (+10 on, +6 off: both matched to the top by webcam).
             [toggle("display", "OLED Ultra Black", "Top screen: deeper blacks; off shows more shadow detail", "asgard.ultra_black", "1",
                     () => backend.shell("echo " + (get("asgard.ultra_black", "1") === "1" ? "Y" : "N") +
                                         " > /sys/module/panel_chipone_icna35xx/parameters/ultra_black;" +

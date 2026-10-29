@@ -1,13 +1,10 @@
 // asgard-gamma: per-screen white balance through the DPU's gamma tables (wlr-gamma-control). The two Thor panels'
 // whites differ; this holds a ramp per output for as long as it runs (sway drops a ramp when its client exits).
 // Settings (system.cfg): asgard.warmth.top|bottom and asgard.tint.top|bottom, -10..10, 0 = the panel's own.
-// Unset, the bottom tint is +10: the bottom panel's white is yellow-green next to the top's, and green x0.80 matched
-// them within ~1 % at 50 % brightness (webcam, 2026-10-29, one unit; the top's white shifts with brightness).
-// asgard.contrast.top|bottom, -10..10: the ramp's exponent is 1 + step/10 (0 = the panel's own curve). Unset, the
-// bottom is +10 (exponent 2.0): the top panel crushes its shadows (grey 128 at 20 % of white at 50 % brightness, the
-// bottom 52 %), and input^2.0 put the bottom on the top's curve at every measured level (fits 1.94-2.18; the top gets
-// less steep when brighter, ~1.55 at 100 %, so the match is for everyday brightness). With Ultra Black off
-// (asgard.ultra_black=0, 9061) the top is less steep and the bottom default is +6 (exponent 1.6, fits 1.57-1.60).
+// Bottom defaults (unset keys): tint +3, contrast +3 (exponent 1.3), chosen by eye on the Thor (2026-10-29) with
+// Ultra Black on or off. Measured references (webcam): tint +10 (green x0.80) matched the top's white within ~1 % at
+// 50 % brightness; contrast +10 (exponent 2.0) put the bottom on the top's curve with Ultra Black on (grey 128 at
+// ~20 % of white, sRGB's ~22 %), +6 with it off. +3 keeps more shadow detail than either.
 // SIGHUP re-reads them. Gains only ever lower a channel, so nothing clips.
 #define _GNU_SOURCE
 #include <errno.h>
@@ -76,8 +73,8 @@ static void apply(struct out *o)
 	snprintf(kt, sizeof kt, "asgard.tint.%s", which);
 	snprintf(kc, sizeof kc, "asgard.contrast.%s", which);
 	int bottom = !strcmp(which, "bottom");
-	gains(cfg_int(kw, 0), cfg_int(kt, bottom ? 10 : 0), g);
-	double e = exponent(cfg_int(kc, !bottom ? 0 : cfg_int("asgard.ultra_black", 1) ? 10 : 6));
+	gains(cfg_int(kw, 0), cfg_int(kt, bottom ? 3 : 0), g);
+	double e = exponent(cfg_int(kc, bottom ? 3 : 0));
 
 	size_t len = o->size * 3 * sizeof(uint16_t);
 	int fd = memfd_create("asgard-gamma", MFD_CLOEXEC);
