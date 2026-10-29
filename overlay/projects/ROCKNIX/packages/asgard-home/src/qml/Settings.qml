@@ -160,8 +160,10 @@ Item {
                     () => backend.shell("systemctl restart thor-idle-blank"))],
             [choice("display", "Top screen refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh", "120",
                     [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-2 mode 1080x1920@" + v + "Hz")),
-             choice("display", "Bottom screen refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh_bottom",
-                    "60", [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-1 mode 1080x1240@" + v + "Hz"))],
+             // 120 Hz (9059) drives the bottom panel ~1.8x brighter with roughly half the colour saturation (webcam,
+             // 2026-10-29): its DDIC keeps the 60 Hz settings. Off by default until the panel's 120 Hz commands are known.
+             choice("display", "Bottom screen refresh rate", "120 Hz is washed out for now (fix pending)", "asgard.refresh_bottom",
+                    "60", [["120 Hz (washed out)", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-1 mode 1080x1240@" + v + "Hz"))],
             [wbRow("Top", "warmth", "warmth", "cooler", "warmer"), wbRow("Top", "tint", "tint", "greener", "pinker"),
              wbRow("Bottom", "warmth", "warmth", "cooler", "warmer"), wbRow("Bottom", "tint", "tint", "greener", "pinker", "10"),
              wbRow("Top", "contrast", "contrast", "softer", "punchier"), wbRow("Bottom", "contrast", "contrast", "softer", "punchier", get("asgard.ultra_black", "1") === "1" ? "10" : "6")],
