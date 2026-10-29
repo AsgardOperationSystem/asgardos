@@ -12,7 +12,11 @@ printf '#!/bin/sh\necho "$@" >> %s/kill.log\n' $T > $T/bin/kill
 printf '#!/bin/sh\necho "$@" >> %s/run.log\n' $T > $T/bin/systemd-run
 printf '#!/bin/sh\necho "b $(cat %s/lid)"\n' $T > $T/bin/busctl
 chmod +x $T/bin/*
-run() { PATH=$T/bin:$PATH KILL=$T/bin/kill SYS=$T/sys RUN=$T/run LOG=$T/log sh "$H" $1; }
+mkdir -p $T/sys/class/power_supply/battery $T/sys/class/power_supply/qcom-battmgr-usb $T/sys/class/rtc/rtc0
+P=$T/sys/class/power_supply; A=$T/sys/class/rtc/rtc0/wakealarm
+echo 6000000 > $P/battery/charge_full; echo 3000000 > $P/battery/charge_counter; echo 0 > $P/qcom-battmgr-usb/online
+echo 50 > $P/battery/capacity; : > $A
+run() { PATH=$T/bin:$PATH KILL=$T/bin/kill SYS=$T/sys RUN=$T/run LOG=$T/log CFG=$T/cfg RATE=$T/rate sh "$H" $1; }
 printf 'gb|retroarch|gambatte|100|Zelda\n' > $T/run/thor-playing.txt
 
 echo 1 > $W; echo false > $T/lid
@@ -25,4 +29,18 @@ grep -q '^-CONT' $T/kill.log && [ ! -e $T/run/.asgard-frozen ] || { echo "FAIL: 
 : > $T/kill.log; run pre; echo 2 > $W; echo true > $T/lid
 run post   # cable wake, lid shut: still stopped, re-suspend armed
 ! grep -q CONT $T/kill.log && grep -q 'systemctl suspend' $T/run.log || { echo "FAIL: cable wake"; cat $T/kill.log $T/run.log; exit 1; }
+
+# Charge limit asleep: on the charger at 50 % (limit 80), 2000 mA -> 30 % of 6000 mAh = 1800 mAh = 3240 s
+: > $T/run.log; rm -f $T/run/thor-playing.txt; echo 1 > $P/qcom-battmgr-usb/online; echo false > $T/lid
+printf 'asgard.charge_limit=80\n' > $T/cfg
+run pre
+[ "$(cat $A)" = +3240 ] || { echo "FAIL: alarm"; cat $A; exit 1; }
+# the alarm fired (reads back empty) after 3600 s and 1000 mAh, lid shut: rate learnt (1000 mA), re-suspend armed
+: > $A; read t0 c0 < $T/run/.asgard-charge-alarm; echo "$((t0 - 3600)) $c0" > $T/run/.asgard-charge-alarm
+echo 4000000 > $P/battery/charge_counter; echo true > $T/lid
+run post
+[ "$(cat $T/rate)" = 1000 ] && grep -q 'systemctl suspend' $T/run.log || { echo "FAIL: alarm wake"; cat $T/rate $T/run.log; exit 1; }
+# limit off ("full", 100) or unplugged: no alarm
+printf 'asgard.charge_limit=full\n' > $T/cfg; echo x > $A; run pre; [ "$(cat $A)" = x ] || { echo "FAIL: full"; exit 1; }
+printf 'asgard.charge_limit=80\n' > $T/cfg; echo 0 > $P/qcom-battmgr-usb/online; run pre; [ "$(cat $A)" = x ] || { echo "FAIL: unplugged"; exit 1; }
 echo OK
