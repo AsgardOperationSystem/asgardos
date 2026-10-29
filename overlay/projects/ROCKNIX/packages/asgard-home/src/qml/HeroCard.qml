@@ -21,7 +21,8 @@ Item {
     SequentialAnimation {
         id: settle
         PropertyAction { target: content; property: "scale"; value: 0.965 }
-        PropertyAction { target: content; property: "opacity"; value: 0.35 }
+        // from 0.75, not lower: the glass under the content is near-white, so a deep fade flashed the card pale
+        PropertyAction { target: content; property: "opacity"; value: 0.75 }
         ParallelAnimation {
             NumberAnimation { target: content; property: "scale"; to: 1; duration: 260; easing.type: Easing.OutCubic }
             NumberAnimation { target: content; property: "opacity"; to: 1; duration: 200 }
@@ -56,14 +57,22 @@ Item {
             id: content
             anchors.fill: parent
             // system: big name + count; game / jump: screenshot, cover, title, details
+            Image {  // the previous art, until the new one has loaded (async: the card flashed its white glass)
+                id: previous
+                anchors.fill: parent; fillMode: Image.PreserveAspectCrop
+                sourceSize: art.sourceSize; opacity: art.opacity
+                visible: art.status !== Image.Ready && !!art.source.toString()
+            }
             Image {
+                id: art
                 anchors.fill: parent; fillMode: Image.PreserveAspectCrop; asynchronous: true
                 sourceSize: Qt.size(1150, 650)
-                opacity: hero.game ? 0.9 : hero.item && hero.item.sys && hero.item.sys.art ? 0.55 : 0.22
+                opacity: hero.game || hero.item && hero.item.sys && hero.item.sys.art ? 0.9 : 0.22
                 source: hero.game ? (hero.game.shot || hero.game.cover) : (hero.item && hero.item.sys ? hero.item.sys.art || hero.item.sys.cover || "" : "")
+                onStatusChanged: if (status === Image.Ready) previous.source = source
             }
-            Rectangle {  // readable lower third over game art
-                visible: !!hero.game
+            Rectangle {  // readable lower third over game art, and under a console's logo and count
+                visible: !!hero.game || !!(hero.item && hero.item.sys && hero.item.sys.art)
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                 height: parent.height * 0.55
                 gradient: Gradient {
@@ -194,7 +203,7 @@ Item {
 
         // holographic grid
         Canvas {
-            anchors.fill: parent; opacity: hero.game ? 0.09 : 0.22
+            anchors.fill: parent; opacity: hero.game || hero.item && hero.item.sys && hero.item.sys.art ? 0.09 : 0.22
             Behavior on opacity { NumberAnimation { duration: Theme.fade } }
             onPaint: {
                 const c = getContext("2d"); c.strokeStyle = "#ffffff"; c.lineWidth = 1.5
