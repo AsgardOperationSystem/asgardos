@@ -294,7 +294,8 @@ Item {
                  choice("moon", "Sleep experiment", "Switched off during sleep, to find what drains the battery",
                         "asgard.sleep_experiment", "", [["None", ""], ["Wi-Fi off", "wifi"], ["Bluetooth off", "bt"],
                                                         ["Wi-Fi and Bluetooth off", "wifi bt"],
-                                                        ["Wi-Fi off every other sleep", "alt:wifi"]])]]
+                                                        ["Wi-Fi off every other sleep", "alt:wifi"],
+                                                        ["Bluetooth off every other sleep", "alt:bt"]])]]
     }
     // --- VPNs (Hardware > Network) -----------------------------------------------------------------------------
     function json(o, dflt) { try { return JSON.parse(o) } catch (e) { return dflt } }

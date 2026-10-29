@@ -13,6 +13,9 @@
 #   emu/game: what was running (playlog.py's /run/thor-playing.txt), empty in the menu.
 # Each sleep also saves the interconnect, regulator and power-domain summaries at sleep entry to
 # /storage/sleep-audit/<start>.txt (newest 40 kept): diff a good sleep's against a bad one's to find the voter.
+# <start>.trace: what the drivers switch in the suspend itself, after this hook (regulator enable/disable, GPIO
+# writes, RPMh sleep/wake-set votes, suspend/resume markers), from a private ftrace instance, so a rail or pin
+# left on across the sleep shows up by name.
 # Off unless Settings > Debug > Sleep audit (asgard.sleep_audit=1).
 S=${SYS:-/sys}
 OUT=${OUT:-/storage/sleep-audit.csv}
@@ -20,6 +23,9 @@ CFG=${CFG:-/storage/.config/system/configs/system.cfg}
 SNAP=${SNAP:-/run/.asgard-sleep-audit}
 DUMPS=${DUMPS:-/storage/sleep-audit}
 PLAYING=${PLAYING:-/run/thor-playing.txt}
+TR=${TR:-$S/kernel/tracing/instances/asgard-sleep}
+TRACE_EVENTS="regulator/regulator_enable regulator/regulator_disable_complete regulator/regulator_set_voltage
+  gpio/gpio_value rpmh/rpmh_send_msg power/suspend_resume"
 SUBS="apss adsp cdsp aosd cxsd ddr"
 
 snap() {
@@ -65,11 +71,16 @@ case "$1" in
       echo "=== $f"; cat $S/kernel/debug/$f
     done > $D/$(sed -n 's/^t=//p' $SNAP).txt 2>/dev/null
     ls -t $D/*.txt 2>/dev/null | tail -n +41 | xargs rm -f
+    ls -t $D/*.trace 2>/dev/null | tail -n +41 | xargs rm -f
+    { mkdir -p $TR && echo 0 > $TR/tracing_on && echo > $TR/trace && echo 1024 > $TR/buffer_size_kb
+      for e in $TRACE_EVENTS; do echo 1 > $TR/events/$e/enable; done
+      echo 1 > $TR/tracing_on; } 2>/dev/null
     ;;
   post)
     [ -r $SNAP ] || exit 0
     radios unblock
     snap > $SNAP.post
+    [ -r $TR/trace ] && { echo 0 > $TR/tracing_on; cat $TR/trace > $DUMPS/$(sed -n 's/^t=//p' $SNAP).trace; } 2>/dev/null
     [ "$(head -1 $OUT 2>/dev/null)" = "$HDR" ] || { [ -s $OUT ] && mv $OUT $OUT.1; echo "$HDR" > $OUT; }
     emu= game=
     [ -r $PLAYING ] && IFS='|' read -r sys emu core pid game < $PLAYING && emu=${emu:-$sys}
