@@ -1,32 +1,18 @@
 diff -ruN a/include/sway/tree/view.h b/include/sway/tree/view.h
 --- a/include/sway/tree/view.h
 +++ b/include/sway/tree/view.h
-@@ -81,6 +81,7 @@
+@@ -74,6 +74,7 @@
  	struct sway_xdg_decoration *xdg_decoration;
  
  	pid_t pid;
-+	uint64_t frames; // commits with a new buffer: FPS for the AYN panel
++	uint64_t frames; // commits with a new buffer, subsurfaces included: FPS for the AYN panel
  	struct launcher_ctx *ctx;
  
  	// The size the view would want to be if it weren't tiled.
-diff -ruN a/sway/desktop/xdg_shell.c b/sway/desktop/xdg_shell.c
---- a/sway/desktop/xdg_shell.c
-+++ b/sway/desktop/xdg_shell.c
-@@ -310,6 +310,10 @@
- 		return;
- 	}
- 
-+	if (xdg_surface->surface->current.committed & WLR_SURFACE_STATE_BUFFER) {
-+		view->frames++;
-+	}
-+
- 	struct wlr_box *new_geo = &xdg_surface->geometry;
- 	bool new_size = new_geo->width != view->geometry.width ||
- 			new_geo->height != view->geometry.height ||
 diff -ruN a/sway/ipc-json.c b/sway/ipc-json.c
 --- a/sway/ipc-json.c
 +++ b/sway/ipc-json.c
-@@ -581,6 +581,7 @@
+@@ -573,6 +573,7 @@
  
  static void ipc_json_describe_view(struct sway_container *c, json_object *object) {
  	json_object_object_add(object, "pid", json_object_new_int(c->view->pid));
@@ -34,3 +20,81 @@ diff -ruN a/sway/ipc-json.c b/sway/ipc-json.c
  
  	const char *app_id = view_get_app_id(c->view);
  	json_object_object_add(object, "app_id",
+diff -ruN a/sway/server.c b/sway/server.c
+--- a/sway/server.c
++++ b/sway/server.c
+@@ -11,6 +11,8 @@
+ #include <wlr/render/wlr_renderer.h>
+ #include <wlr/types/wlr_alpha_modifier_v1.h>
+ #include <wlr/types/wlr_compositor.h>
++#include <wlr/types/wlr_xdg_shell.h>
++#include "sway/tree/view.h"
+ #include <wlr/types/wlr_content_type_v1.h>
+ #include <wlr/types/wlr_cursor_shape_v1.h>
+ #include <wlr/types/wlr_data_control_v1.h>
+@@ -232,6 +234,49 @@
+ 	server->recreating_renderer = wl_event_loop_add_idle(server->wl_event_loop, do_renderer_recreate, server);
+ }
+ 
++// Count every buffer commit against the toplevel it belongs to, subsurfaces included: Qt apps (Eden, Azahar)
++// draw the game into a subsurface. The toplevel lookup returns NULL once the role is gone, so no stale view.
++struct frame_counter {
++	struct wlr_surface *surface;
++	struct wl_listener commit;
++	struct wl_listener destroy;
++};
++
++static void frame_counter_commit(struct wl_listener *listener, void *data) {
++	struct frame_counter *fc = wl_container_of(listener, fc, commit);
++	if (!(fc->surface->current.committed & WLR_SURFACE_STATE_BUFFER)) {
++		return;
++	}
++	struct wlr_xdg_toplevel *toplevel = wlr_xdg_toplevel_try_from_wlr_surface(
++		wlr_surface_get_root_surface(fc->surface));
++	struct sway_view *view = toplevel ? toplevel->base->data : NULL;
++	if (view) {
++		view->frames++;
++	}
++}
++
++static void frame_counter_destroy(struct wl_listener *listener, void *data) {
++	struct frame_counter *fc = wl_container_of(listener, fc, destroy);
++	wl_list_remove(&fc->commit.link);
++	wl_list_remove(&fc->destroy.link);
++	free(fc);
++}
++
++static void handle_new_surface_frames(struct wl_listener *listener, void *data) {
++	struct wlr_surface *surface = data;
++	struct frame_counter *fc = calloc(1, sizeof(*fc));
++	if (!fc) {
++		return;
++	}
++	fc->surface = surface;
++	fc->commit.notify = frame_counter_commit;
++	wl_signal_add(&surface->events.commit, &fc->commit);
++	fc->destroy.notify = frame_counter_destroy;
++	wl_signal_add(&surface->events.destroy, &fc->destroy);
++}
++
++static struct wl_listener new_surface_frames = { .notify = handle_new_surface_frames };
++
+ bool server_init(struct sway_server *server) {
+ 	sway_log(SWAY_DEBUG, "Initializing Wayland server");
+ 	server->wl_display = wl_display_create();
+@@ -281,6 +326,7 @@
+ 
+ 	server->compositor = wlr_compositor_create(server->wl_display, 6,
+ 		server->renderer);
++	wl_signal_add(&server->compositor->events.new_surface, &new_surface_frames);
+ 
+ 	wlr_subcompositor_create(server->wl_display);
+ 
+@@ -469,6 +515,7 @@
+ 
+ void server_fini(struct sway_server *server) {
+ 	// remove listeners
++	wl_list_remove(&new_surface_frames.link);
+ 	wl_list_remove(&server->renderer_lost.link);
+ 	wl_list_remove(&server->new_output.link);
+ 	wl_list_remove(&server->layer_shell_surface.link);
