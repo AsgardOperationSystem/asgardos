@@ -300,17 +300,27 @@ void Backend::readStatus()
     }
 }
 
+// The stick LEDs follow the screens: "poweroff" darkens them without touching the saved led.color, and back on
+// re-applies led.color (rgb / battery / off). The battery mode's service would relight them, so it stops too.
+static void sticksLeds(bool on)
+{
+    QProcess::startDetached("/bin/sh", {"-c", on ? ". /etc/profile; ledcontrol \"$(get_setting led.color)\""
+                                                 : "systemctl stop batteryledstatus.service; ledcontrol poweroff"});
+}
+
 // The top panel can be left off when the frontend (re)starts or comes back after a game/tool while the screens
 // were off: ROCKNIX's "Bottom" sway rule powers the bottom panel back on when our bottom window maps, nothing
 // powered the top one, and the top screen stayed dark. The frontend owns both panels while it is shown.
 void Backend::topScreenOn()
 {
+    if (m_screensOff)
+        sticksLeds(true);
     m_screensOff = false;
     QProcess::startDetached("swaymsg", {"output DSI-2 power on"});
     emit screensOffChanged();
 }
 
-// Both OLED panels off (pixels dark, the frontend keeps running and reading the pad) or back on.
+// Both OLED panels off (pixels dark, the frontend keeps running and reading the pad) or back on, stick LEDs too.
 void Backend::setScreensOff(bool off)
 {
     if (off == m_screensOff)
@@ -318,6 +328,7 @@ void Backend::setScreensOff(bool off)
     m_screensOff = off;
     const QString power = off ? "off" : "on";
     QProcess::startDetached("swaymsg", {QString("output DSI-2 power %1, output DSI-1 power %1").arg(power)});
+    sticksLeds(!off);
     emit screensOffChanged();
 }
 
