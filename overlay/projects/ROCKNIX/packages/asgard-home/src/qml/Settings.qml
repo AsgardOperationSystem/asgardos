@@ -79,7 +79,7 @@ Item {
     }
     // dflt: asgard-gamma's own default for an unset key (the bottom tint is +10, measured to match the top)
     function wbRow(screen, which, title, neg, pos, dflt) {
-        return choice("display", screen + " screen " + title, "Match the two screens' whites", "asgard." + which + "." + screen.toLowerCase(),
+        return choice("display", screen + " screen " + title, "Match the two screens", "asgard." + which + "." + screen.toLowerCase(),
                       dflt || "0", wbSteps(neg, pos), () => backend.shell("kill -HUP $(pidof asgard-gamma)"))
     }
     readonly property var fanModes: [["Quiet", "quiet"], ["Smart", "moderate"], ["Sport", "aggressive"],
@@ -163,7 +163,8 @@ Item {
              choice("display", "Bottom screen refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh_bottom",
                     "60", [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-1 mode 1080x1240@" + v + "Hz"))],
             [wbRow("Top", "warmth", "warmth", "cooler", "warmer"), wbRow("Top", "tint", "tint", "greener", "pinker"),
-             wbRow("Bottom", "warmth", "warmth", "cooler", "warmer"), wbRow("Bottom", "tint", "tint", "greener", "pinker", "10")],
+             wbRow("Bottom", "warmth", "warmth", "cooler", "warmer"), wbRow("Bottom", "tint", "tint", "greener", "pinker", "10"),
+             wbRow("Top", "contrast", "contrast", "softer", "punchier"), wbRow("Bottom", "contrast", "contrast", "softer", "punchier", "10")],
             // ROCKNIX's own switch (vertical-check): "vc" starts the save-state / brightness controls on the bottom
             // screen with RetroArch games; anything else leaves that screen off.
             [choice("gamepad", "RetroArch bottom screen", "Save-state and brightness controls in games",

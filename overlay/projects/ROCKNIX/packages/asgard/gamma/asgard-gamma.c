@@ -3,6 +3,10 @@
 // Settings (system.cfg): asgard.warmth.top|bottom and asgard.tint.top|bottom, -10..10, 0 = the panel's own.
 // Unset, the bottom tint is +10: the bottom panel's white is yellow-green next to the top's, and green x0.80 matched
 // them within ~1 % at 50 % brightness (webcam, 2026-10-29, one unit; the top's white shifts with brightness).
+// asgard.contrast.top|bottom, -10..10: the ramp's exponent is 1 + step/10 (0 = the panel's own curve). Unset, the
+// bottom is +10 (exponent 2.0): the top panel crushes its shadows (grey 128 at 20 % of white at 50 % brightness, the
+// bottom 52 %), and input^2.0 put the bottom on the top's curve at every measured level (fits 1.94-2.18; the top gets
+// less steep when brighter, ~1.55 at 100 %, so the match is for everyday brightness).
 // SIGHUP re-reads them. Gains only ever lower a channel, so nothing clips.
 #define _GNU_SOURCE
 #include <errno.h>
@@ -54,17 +58,25 @@ void gains(int warmth, int tint, double g[3])
 	if (tint < 0) { g[0] *= 1 + 0.02 * tint; g[2] *= 1 + 0.02 * tint; }
 }
 
+double exponent(int contrast)
+{
+	return 1 + contrast / 10.0;
+}
+
 static void apply(struct out *o)
 {
 	// DSI-2 is the top panel, DSI-1 the bottom one (ROCKNIX's `brightness` numbering is the other way round).
 	const char *which = !strcmp(o->name, "DSI-2") ? "top" : !strcmp(o->name, "DSI-1") ? "bottom" : NULL;
-	char kw[40], kt[40];
+	char kw[40], kt[40], kc[40];
 	double g[3];
 	if (!o->gc || !o->size || !which)
 		return;
 	snprintf(kw, sizeof kw, "asgard.warmth.%s", which);
 	snprintf(kt, sizeof kt, "asgard.tint.%s", which);
-	gains(cfg_int(kw, 0), cfg_int(kt, !strcmp(which, "bottom") ? 10 : 0), g);
+	snprintf(kc, sizeof kc, "asgard.contrast.%s", which);
+	int bottom = !strcmp(which, "bottom");
+	gains(cfg_int(kw, 0), cfg_int(kt, bottom ? 10 : 0), g);
+	double e = exponent(cfg_int(kc, bottom ? 10 : 0));
 
 	size_t len = o->size * 3 * sizeof(uint16_t);
 	int fd = memfd_create("asgard-gamma", MFD_CLOEXEC);
@@ -74,10 +86,10 @@ static void apply(struct out *o)
 	if (r != MAP_FAILED) {
 		for (uint32_t i = 0; i < o->size; i++)
 			for (int c = 0; c < 3; c++)
-				r[c * o->size + i] = (uint16_t)lround(65535.0 * i / (o->size - 1) * g[c]);
+				r[c * o->size + i] = (uint16_t)lround(65535.0 * pow((double)i / (o->size - 1), e) * g[c]);
 		munmap(r, len);
 		zwlr_gamma_control_v1_set_gamma(o->gc, fd);
-		fprintf(stderr, "%s: gains %.3f %.3f %.3f\n", o->name, g[0], g[1], g[2]);
+		fprintf(stderr, "%s: gains %.3f %.3f %.3f, exponent %.1f\n", o->name, g[0], g[1], g[2], e);
 	}
 	close(fd);
 }
@@ -124,7 +136,11 @@ static const struct wl_registry_listener reg_listener = { global, global_remove 
 
 int main(int argc, char **argv)
 {
-	if (argc == 4 && !strcmp(argv[1], "--gains")) {   // the mapping alone, for test_gamma.sh
+	if (argc == 3 && !strcmp(argv[1], "--exponent")) {   // the mappings alone, for test_gamma.sh
+		printf("%.1f\n", exponent(atoi(argv[2])));
+		return 0;
+	}
+	if (argc == 4 && !strcmp(argv[1], "--gains")) {
 		double g[3];
 		gains(atoi(argv[2]), atoi(argv[3]), g);
 		printf("%.3f %.3f %.3f\n", g[0], g[1], g[2]);
