@@ -1,0 +1,13 @@
+#!/bin/sh
+# systemd-sleep hook: drop the fan's 5 V rail (vdd_fan_5v0) for the sleep. pwm-fan's mode 1, which fancontrol sets on
+# every start, keeps the rail on while the fan is stopped, and the driver's suspend skips a fan that is already off,
+# so the rail stayed on through s2idle (2026-10-29 sleep trace). Mode 3 turns it off with the fan; the driver turns
+# it back on to spin up (sleep charging too). Mode 1 is restored at resume so fancontrol finds what it set.
+E=$(ls ${SYS:-/sys}/class/hwmon/hwmon*/pwm1_enable 2>/dev/null | head -1)
+M=${MARK:-/run/.asgard-fan-sleep}
+[ -n "$E" ] || exit 0
+case "$1" in
+  pre) [ "$(cat $E)" = 1 ] && echo 3 > $E && touch $M ;;
+  post) [ -e $M ] && { rm -f $M; [ "$(cat $E)" = 3 ] && echo 1 > $E; } ;;
+esac
+exit 0
