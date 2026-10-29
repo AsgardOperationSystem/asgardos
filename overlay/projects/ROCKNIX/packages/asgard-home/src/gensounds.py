@@ -15,7 +15,12 @@ def tone(parts, dur):
             out[s0 + i] += g * env * (math.sin(2 * math.pi * f * t) + 0.25 * math.sin(4 * math.pi * f * t))
     return out
 
+# Leading silence: after ~5 s idle the speaker sink suspends, and waking it and the aw88166 amps took longer than
+# the 50 ms move click, so the first click after a pause was never heard.
+LEAD = 0.08
+
 def save(path, samples):
+    samples = [0.0] * int(LEAD * RATE) + samples
     with wave.open(path, "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(RATE)
         w.writeframes(b"".join(struct.pack("<h", int(max(-1, min(1, s)) * 32767)) for s in samples))
