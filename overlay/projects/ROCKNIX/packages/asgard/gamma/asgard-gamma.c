@@ -6,7 +6,8 @@
 // asgard.contrast.top|bottom, -10..10: the ramp's exponent is 1 + step/10 (0 = the panel's own curve). Unset, the
 // bottom is +10 (exponent 2.0): the top panel crushes its shadows (grey 128 at 20 % of white at 50 % brightness, the
 // bottom 52 %), and input^2.0 put the bottom on the top's curve at every measured level (fits 1.94-2.18; the top gets
-// less steep when brighter, ~1.55 at 100 %, so the match is for everyday brightness).
+// less steep when brighter, ~1.55 at 100 %, so the match is for everyday brightness). With Ultra Black off
+// (asgard.ultra_black=0, 9061) the top is less steep and the bottom default is +6 (exponent 1.6, fits 1.57-1.60).
 // SIGHUP re-reads them. Gains only ever lower a channel, so nothing clips.
 #define _GNU_SOURCE
 #include <errno.h>
@@ -76,7 +77,7 @@ static void apply(struct out *o)
 	snprintf(kc, sizeof kc, "asgard.contrast.%s", which);
 	int bottom = !strcmp(which, "bottom");
 	gains(cfg_int(kw, 0), cfg_int(kt, bottom ? 10 : 0), g);
-	double e = exponent(cfg_int(kc, bottom ? 10 : 0));
+	double e = exponent(cfg_int(kc, !bottom ? 0 : cfg_int("asgard.ultra_black", 1) ? 10 : 6));
 
 	size_t len = o->size * 3 * sizeof(uint16_t);
 	int fd = memfd_create("asgard-gamma", MFD_CLOEXEC);
@@ -104,7 +105,9 @@ static void gc_size(void *data, struct zwlr_gamma_control_v1 *gc, uint32_t size)
 static void gc_failed(void *data, struct zwlr_gamma_control_v1 *gc)
 {
 	struct out *o = data;
-	fprintf(stderr, "%s: gamma control refused (another client holds it?)\n", o->name);
+	// wlroots refuses an output that is powered off (Home turns the bottom one off when it's unused): main()
+	// asks again every 5 s until it has them all.
+	fprintf(stderr, "%s: gamma control refused (powered off, or another client holds it); retrying\n", o->name);
 	zwlr_gamma_control_v1_destroy(gc);
 	o->gc = NULL;
 }
@@ -132,6 +135,22 @@ static void global(void *data, struct wl_registry *reg, uint32_t id, const char 
 	}
 }
 static void global_remove(void *data, struct wl_registry *reg, uint32_t id) {}
+
+// Ask for every output's gamma control we don't hold yet; returns how many are still missing after a roundtrip.
+static int request(struct wl_display *d)
+{
+	int missing = 0;
+	for (int i = 0; i < nouts; i++)
+		if (!outs[i].gc) {
+			outs[i].size = 0;
+			outs[i].gc = zwlr_gamma_control_manager_v1_get_gamma_control(mgr, outs[i].wl);
+			zwlr_gamma_control_v1_add_listener(outs[i].gc, &gc_listener, &outs[i]);
+		}
+	wl_display_roundtrip(d);   // gamma_size or failed
+	for (int i = 0; i < nouts; i++)
+		missing += !outs[i].gc;
+	return missing;
+}
 static const struct wl_registry_listener reg_listener = { global, global_remove };
 
 int main(int argc, char **argv)
@@ -158,10 +177,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "compositor has no wlr-gamma-control\n");
 		return 1;
 	}
-	for (int i = 0; i < nouts; i++) {
-		outs[i].gc = zwlr_gamma_control_manager_v1_get_gamma_control(mgr, outs[i].wl);
-		zwlr_gamma_control_v1_add_listener(outs[i].gc, &gc_listener, &outs[i]);
-	}
+	request(d);
 
 	sigset_t hup;
 	sigemptyset(&hup);
@@ -172,7 +188,16 @@ int main(int argc, char **argv)
 		while (wl_display_prepare_read(d))
 			wl_display_dispatch_pending(d);
 		wl_display_flush(d);
-		if (poll(fds, 2, -1) < 0 && errno != EINTR) {
+		int missing = 0;
+		for (int i = 0; i < nouts; i++)
+			missing += !outs[i].gc;
+		int n = poll(fds, 2, missing ? 5000 : -1);
+		if (n == 0) {   // retry the refused outputs
+			wl_display_cancel_read(d);
+			request(d);
+			continue;
+		}
+		if (n < 0 && errno != EINTR) {
 			wl_display_cancel_read(d);
 			return 1;
 		}

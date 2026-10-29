@@ -79,6 +79,10 @@ grep -q '^# thor-dusklight' "$C" || printf '%s\n' '# thor-dusklight' \
 # it and hand focus back to the TV window (2026-10-17).
 grep -q '^# thor-wwhd' "$C" || printf '%s\n' '# thor-wwhd' \
   'for_window [title="^GamePad — "] fullscreen enable, focus output DSI-2' >> "$C"
+# Top panel Ultra Black (asgard.ultra_black, Settings > Display, 9061): read at every panel init, so set it before
+# sway's first modeset re-inits the panel.
+[ "$(sed -n 's/^asgard\.ultra_black=//p' /storage/.config/system/configs/system.cfg | tail -1)" = 0 ] && UB=N || UB=Y
+echo $UB > /sys/module/panel_chipone_icna35xx/parameters/ultra_black 2>/dev/null
 # Top screen refresh rate (asgard.refresh, Settings > Display or the Thor Panel): 120 Hz unless set to 60.
 # Bottom screen (asgard.refresh_bottom, Settings > Display): 60 Hz unless set to 120 (9059).
 R=$(sed -n 's/^asgard\.refresh=//p' /storage/.config/system/configs/system.cfg | tail -1)
