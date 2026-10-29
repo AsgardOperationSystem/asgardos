@@ -56,7 +56,9 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
 | **Screens and input** | | |
 | Dual screens | ✅ | Landscape bottom screen, games placed on the right screen, quiet boot, "ASGARD OS" splash on the top screen. |
-| 60 Hz top panel | ✅ | |
+| 120 Hz on both screens | ✅ | Settings > Display, per screen (bottom defaults to 60). |
+| Full top brightness range | ✅ | The top panel goes to its 12-bit maximum (ROCKNIX stopped ~40 % short). |
+| Matched screen colours | ✅ | Per-screen white balance in the display hardware (`asgard-gamma`); the bottom is corrected to the top's white by default. |
 | OLED Ultra Black, idle blank | ✅ | Burn-in protection; X turns both screens off. |
 | Touch on both screens | ✅ | Calibrated for the rotated panels. |
 | Top screen hang at game launch | ⚠️ | Intermittent. Fewer modesets at launch make it rarer, not proven gone. |

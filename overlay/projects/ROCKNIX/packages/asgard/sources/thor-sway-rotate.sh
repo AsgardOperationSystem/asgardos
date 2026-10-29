@@ -80,9 +80,12 @@ grep -q '^# thor-dusklight' "$C" || printf '%s\n' '# thor-dusklight' \
 grep -q '^# thor-wwhd' "$C" || printf '%s\n' '# thor-wwhd' \
   'for_window [title="^GamePad — "] fullscreen enable, focus output DSI-2' >> "$C"
 # Top screen refresh rate (asgard.refresh, Settings > Display or the Thor Panel): 120 Hz unless set to 60.
+# Bottom screen (asgard.refresh_bottom, Settings > Display): 60 Hz unless set to 120 (9059).
 R=$(sed -n 's/^asgard\.refresh=//p' /storage/.config/system/configs/system.cfg | tail -1)
+RB=$(sed -n 's/^asgard\.refresh_bottom=//p' /storage/.config/system/configs/system.cfg | tail -1)
 sed -i '/^# asgard-refresh/,+1d' "$C"
 [ "$R" = 60 ] && printf '%s\n' '# asgard-refresh' 'output DSI-2 mode 1080x1920@60Hz' >> "$C"
+[ "$RB" = 120 ] && printf '%s\n' '# asgard-refresh-bottom' 'output DSI-1 mode 1080x1240@120Hz' >> "$C"
 # Bottom touchscreen: it already reports landscape coordinates (0-1239 x 0-1079), but sway turns touch input with
 # the output it's mapped to, and DSI-1 is rotated 90: taps landed rotated (tapping DS opened Music Player). This
 # matrix turns it back, the same one ROCKNIX gives the top touchscreen. Measured from raw vs delivered taps, 2026-10-10.

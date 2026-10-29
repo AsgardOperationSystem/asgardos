@@ -5,7 +5,7 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc rocknix-splash"
+PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc rocknix-splash"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
@@ -55,13 +55,20 @@ makeinstall_target() {
   cp ${PKG_DIR}/eq/joey-speaker.wav ${INSTALL}/usr/share/asgard/eq/
   ${CC} ${CFLAGS} -O2 -shared -fPIC ${LDFLAGS} -o ${INSTALL}/usr/lib/ladspa/asgard-limiter.so ${PKG_DIR}/eq/asgard-limiter.c -lm
 
+  # Per-screen white balance (asgard-gamma.service): a wlr-gamma-control client holding each panel's ramp.
+  wayland-scanner client-header ${PKG_DIR}/gamma/wlr-gamma-control-unstable-v1.xml ${PKG_BUILD}/wlr-gamma-control-unstable-v1-client-protocol.h
+  wayland-scanner private-code ${PKG_DIR}/gamma/wlr-gamma-control-unstable-v1.xml ${PKG_BUILD}/wlr-gamma-control.c
+  mkdir -p ${INSTALL}/usr/bin
+  ${CC} ${CFLAGS} -O2 -I${PKG_BUILD} ${LDFLAGS} -o ${INSTALL}/usr/bin/asgard-gamma ${PKG_DIR}/gamma/asgard-gamma.c \
+    ${PKG_BUILD}/wlr-gamma-control.c -lwayland-client -lm
+
   # Headphones outrank the speaker so the default output follows the jack (thor_dsp_* smart filters follow it).
   mkdir -p ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d
   cp ${PKG_DIR}/wireplumber/*.conf ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d/
 }
 
 post_install() {
-  for unit in asgard-bootanim asgard-charge-limit asgard-cores asgard-events asgard-lastboot essway thor-ayn-button thor-battery-log thor-bottom-touch thor-display-sleep thor-idle-blank thor-sensorspd; do
+  for unit in asgard-bootanim asgard-charge-limit asgard-gamma asgard-cores asgard-events asgard-lastboot essway thor-ayn-button thor-battery-log thor-bottom-touch thor-display-sleep thor-idle-blank thor-sensorspd; do
     enable_service ${unit}.service
   done
 }
