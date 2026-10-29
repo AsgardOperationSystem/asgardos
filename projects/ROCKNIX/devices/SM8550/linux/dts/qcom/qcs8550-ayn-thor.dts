@@ -570,3 +570,24 @@
 &ufs_mem_phy {
 	vdda-qref-supply = <&vreg_l1e_0p88>;
 };
+
+/*
+ * Asgard 0049: board-level sleep drain (Armada 431bf57 / PR #723). In sleep bob1's
+ * loads are off (SD vmmc, touch vcc, panel vci/vdd) or idle (mic bias), so let it
+ * drop to PFM in the sleep set, as Armada does on the Thor; L15B already does.
+ */
+&vreg_bob1 {
+	regulator-state-mem {
+		regulator-on-in-suspend;
+		regulator-mode = <RPMH_REGULATOR_MODE_LPM>;
+	};
+};
+
+/*
+ * Asgard 0049: the WSA2 macro has no user on the Thor (speakers are I2S aw88166,
+ * swr3 is disabled), but bound it holds q6prm TX MCLK votes that keep the ADSP
+ * waking through s2idle (Armada 0a201e5, Odin 3).
+ */
+&lpass_wsa2macro {
+	status = "disabled";
+};
