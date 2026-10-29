@@ -108,8 +108,15 @@ Item {
         color: "#ebedf2"; border.color: "white"; border.width: 2
 
         Text {
+            id: pausedTitle
             x: 44; y: 34; text: "Paused"
             font.family: Theme.font; font.pixelSize: 44; font.weight: Font.Black; color: "#2a2b3d"
+        }
+        Text {                               // the game's rate over the last few seconds before the pause
+            visible: backend.pauseFps >= 0
+            anchors.left: pausedTitle.right; anchors.leftMargin: 24; anchors.baseline: pausedTitle.baseline
+            text: backend.pauseFps + " FPS"; font.family: Theme.font; font.pixelSize: 28; font.weight: Font.Bold
+            color: "#6f7186"
         }
         Text {
             anchors.right: parent.right; anchors.rightMargin: 44; y: 46

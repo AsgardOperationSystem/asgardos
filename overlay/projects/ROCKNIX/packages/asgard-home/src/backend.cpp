@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
@@ -11,6 +12,7 @@
 #include <QSysInfo>
 #include <QXmlStreamReader>
 #include <algorithm>
+#include <functional>
 
 #include <cerrno>
 #include <cstring>
@@ -298,6 +300,48 @@ void Backend::readStatus()
         m_charging = charging;
         emit statusChanged();
     }
+    // The game's frame rate, for the pause menu: sampled while it runs in front, restarted after a pause.
+    if (playing() && !m_gameMenu)
+        sampleFps();
+    else
+        m_framesAt = 0;
+}
+
+// Frames per window from sway (sway-100.02's "frames": buffer commits, subsurfaces included); Home's own skipped.
+static QHash<qint64, qint64> windowFrames()
+{
+    QProcess p;
+    p.start("swaymsg", {"-t", "get_tree", "-r"});
+    p.waitForFinished(1000);
+    QHash<qint64, qint64> out;
+    std::function<void(const QJsonObject &)> walk = [&](const QJsonObject &n) {
+        if (n.contains("frames") && n["app_id"].toString() != "asgard-home")
+            out[n["id"].toInteger()] = n["frames"].toInteger();
+        for (const char *k : {"nodes", "floating_nodes"})
+            for (const QJsonValue &v : n[k].toArray())
+                walk(v.toObject());
+    };
+    walk(QJsonDocument::fromJson(p.readAllStandardOutput()).object());
+    return out;
+}
+
+// m_fps = the busiest game window's frames per second since the previous sample (-1 until there are two). Under a
+// second apart is too short to measure: the last rate stays.
+void Backend::sampleFps()
+{
+    const qint64 now = QDateTime::currentMSecsSinceEpoch();
+    if (m_framesAt && now - m_framesAt < 1000)
+        return;
+    const QHash<qint64, qint64> frames = windowFrames();
+    m_fps = -1;
+    if (m_framesAt) {
+        qint64 best = 0;
+        for (auto it = frames.cbegin(); it != frames.cend(); ++it)
+            best = std::max(best, it.value() - m_frames.value(it.key(), it.value()));
+        m_fps = int(best * 1000.0 / (now - m_framesAt) + 0.5);
+    }
+    m_frames = frames;
+    m_framesAt = now;
 }
 
 // The stick LEDs follow the screens: "poweroff" darkens them without touching the saved led.color, and back on
@@ -475,6 +519,8 @@ void Backend::command(const QString &cmd)
         const bool open = !m_gameMenu;
         if (!open)
             setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
+        else
+            sampleFps();         // the rate up to now, while the game still runs
         togglePause();
         if (open)
             setGameMenu(true);

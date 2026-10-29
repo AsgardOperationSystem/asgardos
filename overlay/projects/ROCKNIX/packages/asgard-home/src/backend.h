@@ -22,6 +22,7 @@ class Backend : public QObject
     Q_PROPERTY(QString hostname READ hostname CONSTANT)
     Q_PROPERTY(bool screensOff READ screensOff WRITE setScreensOff NOTIFY screensOffChanged)  // OLED rest (X)
     Q_PROPERTY(bool gameMenu READ gameMenu WRITE setGameMenu NOTIFY gameMenuChanged)  // in-game menu (Home tap)
+    Q_PROPERTY(int pauseFps READ pauseFps NOTIFY gameMenuChanged)  // the game's FPS just before the menu paused it, -1 unknown
 
 public:
     Backend(const QProcessEnvironment &gameEnv, QObject *parent = nullptr);
@@ -35,6 +36,7 @@ public:
     void setScreensOff(bool off);
     bool gameMenu() const { return m_gameMenu; }
     void setGameMenu(bool on);
+    int pauseFps() const { return m_fps; }
     QString hostname() const;
 
     Q_INVOKABLE QVariantList games(const QString &system) const { return m_games.value(system); }
@@ -72,6 +74,7 @@ private:
     void scan();
     void readPlaytime();
     void readStatus();
+    void sampleFps();
     void play(const QString &name);     // a sound, without the menu-sounds setting
     void topScreenOn();
     void command(const QString &cmd);
@@ -93,6 +96,9 @@ private:
     QVariantMap m_launched;           // the game m_game runs ({} for tools)
     bool m_background = false;
     bool m_gameMenu = false;
+    QHash<qint64, qint64> m_frames;   // sway's frame count per game window at m_framesAt (sampleFps)
+    qint64 m_framesAt = 0;            // ms, 0 = no sample yet
+    int m_fps = -1;
     bool m_sleepPaused = false;   // we paused the game for a sleep ("sleep"), to unpause on "wake"
     int m_keys = -1;   // uinput keyboard for emulator hotkeys
     int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu"), the sleep hook ("sleep", "wake")
