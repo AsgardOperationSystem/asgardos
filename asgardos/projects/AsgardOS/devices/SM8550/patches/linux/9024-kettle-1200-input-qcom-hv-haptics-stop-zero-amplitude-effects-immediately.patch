@@ -13,9 +13,11 @@ update cannot restart the motor with stale state.
 Ported from Armada's 1004 (virtudude <virtudude@protonmail.com>); this
 driver revision has no runtime PM references to balance.
 ---
+diff --git a/drivers/input/misc/qcom-hv-haptics.c b/drivers/input/misc/qcom-hv-haptics.c
+index 50b7dfa6a74a..5c110c92efa6 100644
 --- a/drivers/input/misc/qcom-hv-haptics.c
 +++ b/drivers/input/misc/qcom-hv-haptics.c
-@@ -2699,6 +2699,8 @@
+@@ -2699,6 +2699,8 @@ static void haptics_stop_constant_effect_play(struct work_struct *work)
  		dev_err(chip->dev, "disable hpwr_vreg failed\n");
  }
  
@@ -24,7 +26,7 @@ driver revision has no runtime PM references to balance.
  static int haptics_upload_effect(struct input_dev *dev,
  		struct ff_effect *effect, struct ff_effect *old);
  
-@@ -2740,16 +2742,7 @@
+@@ -2740,16 +2742,7 @@ static int haptics_upload_effect(struct input_dev *dev,
  		pr_debug("tried to upload an effect while the chip was busy playing, setting gain...\n");
  
  		if (gain == 0) {
@@ -42,7 +44,7 @@ driver revision has no runtime PM references to balance.
  		} else {
  			dev_dbg(chip->dev, "Setting gain to %hu...\n", gain);
  
-@@ -2859,8 +2852,10 @@
+@@ -2859,8 +2852,10 @@ static int haptics_playback(struct input_dev *dev, int effect_id, int val)
  	dev_dbg(chip->dev, "playback val = %d\n", val);
  
  	if (!!val && !chip->chip_is_playing) {

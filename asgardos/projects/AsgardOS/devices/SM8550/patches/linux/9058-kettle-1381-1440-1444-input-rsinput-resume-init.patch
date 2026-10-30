@@ -10,6 +10,8 @@ our 9006 status-stream check and the version_ack_pending window.
 Keeps our 1023 oversized-chunk slicing, which Kettle drops instead.
 Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
 ---
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index 8cbdcc2df30d..c69f1e540274 100644
 --- a/drivers/input/joystick/rsinput.c
 +++ b/drivers/input/joystick/rsinput.c
 @@ -6,8 +6,9 @@
@@ -31,7 +33,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  #include <linux/platform_device.h>
  #include <uapi/linux/sched/types.h>
  
-@@ -132,23 +134,16 @@
+@@ -132,23 +134,16 @@ module_param(axis_righty_antideadzone,int,0660);
   * firmware needs a variable amount of time to boot before it can parse
   * commands. Rather than blindly sleeping, we send a version request and wait
   * for the asynchronous version reply before sending the parameter command that
@@ -63,7 +65,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  
  struct rsinput_driver {
      struct serdev_device *serdev;
-@@ -166,16 +161,22 @@
+@@ -166,16 +161,22 @@ struct rsinput_driver {
      uint8_t rx_buf[1024];
      size_t rx_len;
      uint8_t sequence_number;
@@ -94,7 +96,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  };
  
  static bool rumble_enable = true;
-@@ -229,29 +230,24 @@
+@@ -229,29 +230,24 @@ static int rsinput_send_command(struct rsinput_driver *drv, uint8_t cmd, const u
  }
  
  /*
@@ -132,7 +134,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
      if (drv->enable_gpio)
          gpiod_set_value_cansleep(drv->enable_gpio, 1);
  
-@@ -259,7 +255,48 @@
+@@ -259,7 +255,48 @@ static void rsinput_power_on_mcu(struct rsinput_driver *drv) {
          gpiod_set_value_cansleep(drv->reset_gpio, 1);
  }
  
@@ -182,7 +184,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
      static const uint8_t version_request[] = {DATA_COMMOD_VERSION};
      static const uint8_t mcu_params[] = {
          DATA_COMMOD_SET_PAR,
-@@ -267,117 +304,50 @@
+@@ -267,117 +304,50 @@ static int rsinput_init_once(struct rsinput_driver *drv) {
          0x00, 0x00, 0x00, 0x28,
          0x00, 0x00, 0x00, 0x07
      };
@@ -259,26 +261,26 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
 -                 "MCU version handshake timed out (attempt %d/%d)\n",
 -                 attempt, MCU_INIT_MAX_ATTEMPTS);
 -    }
+-
+-    if (attempt > MCU_INIT_MAX_ATTEMPTS) {
+-        dev_err(&drv->serdev->dev,
+-                "MCU did not acknowledge version request; not sending params\n");
+-        return -ETIMEDOUT;
+-    }
 +        error = rsinput_request(drv, version_request, sizeof(version_request));
 +        if (!error)
 +            error = rsinput_request(drv, mcu_params, sizeof(mcu_params));
 +        if (!error)
 +            return 0;
  
--    if (attempt > MCU_INIT_MAX_ATTEMPTS) {
--        dev_err(&drv->serdev->dev,
--                "MCU did not acknowledge version request; not sending params\n");
--        return -ETIMEDOUT;
-+        dev_warn(&drv->serdev->dev, "MCU init attempt %d/%d failed: %d\n",
-+                 attempt, MCU_INIT_MAX_ATTEMPTS, error);
-     }
- 
 -    error = rsinput_send_command(drv, CMD_COMMOD, mcu_params, sizeof(mcu_params));
 -    if (error < 0) {
 -        dev_err(&drv->serdev->dev, "Failed to set MCU parameters: %d\n", error);
 -        return error;
--    }
--
++        dev_warn(&drv->serdev->dev, "MCU init attempt %d/%d failed: %d\n",
++                 attempt, MCU_INIT_MAX_ATTEMPTS, error);
+     }
+ 
 -    return 0;
 +    dev_err(&drv->serdev->dev, "MCU init failed: %d\n", error);
 +    return error;
@@ -306,17 +308,16 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
 -        dev_warn(&drv->serdev->dev,
 -                 "MCU status stream stalled (%d frames in %d ms), reinitialising (attempt %d/%d)\n",
 -                 frames, MCU_STREAM_WINDOW_MS, attempt, MCU_STREAM_MAX_ATTEMPTS);
--    }
++    /* Without a payload, the byte after the length is the checksum. */
++    if (payload_length < 1) {
++        dev_warn_ratelimited(&drv->serdev->dev, "Empty CMD_COMMOD frame\n");
++        return;
+     }
 -    /* Keep the device: a later resume can still recover it. */
 -    dev_err(&drv->serdev->dev, "MCU status stream still stalled after %d attempts\n",
 -            MCU_STREAM_MAX_ATTEMPTS);
 -    return 0;
 -}
-+    /* Without a payload, the byte after the length is the checksum. */
-+    if (payload_length < 1) {
-+        dev_warn_ratelimited(&drv->serdev->dev, "Empty CMD_COMMOD frame\n");
-+        return;
-+    }
 +    sub = data[FRAME_POS_DATA_1];
  
 -static void handle_cmd_commod(struct rsinput_driver *drv, const uint8_t *data, size_t payload_length) {
@@ -328,7 +329,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
                  char mcu_version[MCU_VERSION_MAX_LEN] = {0};
                  size_t version_length = payload_length;
                  if (version_length > MCU_VERSION_MAX_LEN - 1) {
-@@ -386,82 +356,79 @@
+@@ -386,82 +356,79 @@ static void handle_cmd_commod(struct rsinput_driver *drv, const uint8_t *data, s
                  memcpy(mcu_version, &data[FRAME_POS_DATA_1], version_length);
                  mcu_version[version_length] = '\0';
                  dev_info(&drv->serdev->dev, "MCU Version: %s\n", mcu_version);
@@ -447,10 +448,6 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
 -    int16_t raw_trig_l = (data[FRAME_POS_DATA_3] | (data[FRAME_POS_DATA_4] << 8));
 -    int16_t z = trigger_left_max - raw_trig_l;
 -    z = ( z < trigger_left_deadzone ) ? 0 : z - trigger_left_antideadzone;
--
--    int16_t raw_trig_r = (data[FRAME_POS_DATA_5] | (data[FRAME_POS_DATA_6] << 8));
--    int16_t rz = trigger_right_max - raw_trig_r;
--    rz = ( rz < trigger_right_deadzone ) ? 0 : rz - trigger_right_antideadzone;
 +    /*
 +     * Every report holds the whole button state: report all of it, and let
 +     * the input core pass on only the changes. No state of our own to go stale
@@ -459,7 +456,10 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
 +    keys = data[FRAME_POS_DATA_1] | (data[FRAME_POS_DATA_2] << 8);
 +    for (i = 0; i < ARRAY_SIZE(keymap); i++)
 +        input_report_key(drv->input, keymap[i], keys & BIT(i));
-+
+ 
+-    int16_t raw_trig_r = (data[FRAME_POS_DATA_5] | (data[FRAME_POS_DATA_6] << 8));
+-    int16_t rz = trigger_right_max - raw_trig_r;
+-    rz = ( rz < trigger_right_deadzone ) ? 0 : rz - trigger_right_antideadzone;
 +    int z = rsinput_trigger(&data[FRAME_POS_DATA_3], trigger_left_max,
 +                            trigger_left_deadzone, trigger_left_antideadzone);
 +    int rz = rsinput_trigger(&data[FRAME_POS_DATA_5], trigger_right_max,
@@ -467,7 +467,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  
      int16_t raw_x = -(int16_t)(data[FRAME_POS_DATA_7] | (data[FRAME_POS_DATA_8] << 8));
      int16_t x = raw_x + axis_leftx_center;
-@@ -487,49 +454,20 @@
+@@ -487,49 +454,20 @@ static void handle_cmd_status(struct rsinput_driver *drv, const uint8_t *data, s
      input_report_abs(drv->input, ABS_RY, drv->invert_ry ? ry * (-1) : ry);
  
      input_sync(drv->input);
@@ -529,7 +529,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
      }
  }
  
-@@ -547,18 +485,10 @@
+@@ -547,18 +485,10 @@ static size_t rsinput_rx(struct serdev_device *serdev, const u8 *data, size_t co
      }
  
      /*
@@ -552,7 +552,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
       * instead; each slice fits rx_buf alongside a partial frame.
       */
      if (count > sizeof(drv->rx_buf) / 2) {
-@@ -609,11 +539,18 @@
+@@ -609,11 +539,18 @@ static size_t rsinput_rx(struct serdev_device *serdev, const u8 *data, size_t co
          if (avail < frame_length)
              break;
  
@@ -574,7 +574,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
          consumed += frame_length;
          avail -= frame_length;
      }
-@@ -640,34 +577,23 @@
+@@ -640,34 +577,23 @@ static int rsinput_rumble_upload(struct input_dev *dev, struct ff_effect *effect
  	return qcom_spmi_haptics_global_upload(effect);
  }
  static int rsinput_rumble_play(struct input_dev *dev, int effect_id, int val) {
@@ -589,22 +589,22 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
 -//Show and store for rumble_enable
 -static ssize_t rumble_enable_show(struct device *dev, struct device_attribute *attr,
 -				  char *buf)
-+static void rsinput_vdd_disable(void *data)
- {
+-{
 -	return sprintf(buf, "%d\n", rumble_enable);
 -}
 -
 -static ssize_t rumble_enable_store(struct device *dev, struct device_attribute *attr,
 -				   const char *buf, size_t count)
--{
++static void rsinput_vdd_disable(void *data)
+ {
 -	int ret;
 -	bool val;
-+    struct rsinput_driver *drv = data;
- 
+-
 -	ret = kstrtobool(buf, &val);
 -	if (ret)
 -		return ret;
--
++    struct rsinput_driver *drv = data;
+ 
 -	rumble_enable = val;
 -	return count;
 +    /* Balanced against suspend, which may have dropped it already. */
@@ -617,7 +617,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  
  static int rsinput_probe(struct serdev_device *serdev) {
      struct rsinput_driver *drv;
-@@ -681,7 +607,8 @@
+@@ -681,7 +607,8 @@ static int rsinput_probe(struct serdev_device *serdev) {
      if (!drv)
      return -ENOMEM;
  
@@ -627,7 +627,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  
      drv->invert_x = device_property_present(&serdev->dev, "invert-x");
      drv->invert_y = device_property_present(&serdev->dev, "invert-y");
-@@ -729,42 +656,33 @@
+@@ -729,42 +656,33 @@ static int rsinput_probe(struct serdev_device *serdev) {
          return error;
      }
  
@@ -685,7 +685,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
      drv->input = devm_input_allocate_device(&serdev->dev);
      if (!drv->input)
          return -ENOMEM;
-@@ -791,25 +709,7 @@
+@@ -791,25 +709,7 @@ static int rsinput_probe(struct serdev_device *serdev) {
          input_set_capability(drv->input, EV_KEY, keymap[i]);
  
      __set_bit(EV_ABS, drv->input->evbit);
@@ -712,7 +712,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  
      input_set_capability(drv->input, EV_FF, FF_PERIODIC);
  
-@@ -826,21 +726,42 @@
+@@ -826,21 +726,42 @@ static int rsinput_probe(struct serdev_device *serdev) {
      if (error)
          return error;
  
@@ -759,7 +759,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
      input_unregister_device(drv->input);
      if (drv->enable_gpio)
          gpiod_set_value_cansleep(drv->enable_gpio, 0);
-@@ -848,8 +769,7 @@
+@@ -848,8 +769,7 @@ static void rsinput_remove(struct serdev_device *serdev) {
      if (drv->reset_gpio)
          gpiod_set_value_cansleep(drv->reset_gpio, 0);
  
@@ -769,7 +769,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
  }
  
  static int rsinput_suspend(struct device *dev)
-@@ -857,6 +777,8 @@
+@@ -857,6 +777,8 @@ static int rsinput_suspend(struct device *dev)
      struct rsinput_driver *drv = dev_get_drvdata(dev);
      int error;
  
@@ -778,7 +778,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
      /*
       * The MCU streams gamepad reports continuously over the UART. If it keeps
       * sending across the system-suspend teardown, the geni-serial RX interrupt
-@@ -883,18 +805,20 @@
+@@ -883,18 +805,20 @@ static int rsinput_suspend(struct device *dev)
          drv->vdd_off = true;
      }
  
@@ -802,7 +802,7 @@ Generated as the whole-file result: Kettle 91e3b5c rsinput.c + 1023.
              return error;
          }
          drv->vdd_off = false;
-@@ -903,6 +827,70 @@
+@@ -903,6 +827,70 @@ static int rsinput_resume(struct device *dev)
      return rsinput_init_commands(drv);
  }
  

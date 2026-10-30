@@ -26,9 +26,11 @@ resume call, so the tach IRQs and timer are re-armed on that path too.
 
 [ Armada, via portareOS projects/PortareOS/devices/SM8550/patches/linux/0530, rebased ]
 ---
+diff --git a/drivers/hwmon/pwm-fan.c b/drivers/hwmon/pwm-fan.c
+index 6c4093bd151f..657b3fad0398 100644
 --- a/drivers/hwmon/pwm-fan.c
 +++ b/drivers/hwmon/pwm-fan.c
-@@ -851,11 +851,45 @@
+@@ -847,11 +847,45 @@ static void pwm_fan_shutdown(struct platform_device *pdev)
  	pwm_fan_cleanup(ctx);
  }
  
@@ -74,7 +76,7 @@ resume call, so the tach IRQs and timer are re-armed on that path too.
  	mutex_lock(&ctx->lock);
  	ctx->pwm_awake = ctx->pwm_value;
  	/* The PWM and supply providers must keep working in s2idle */
-@@ -872,6 +906,10 @@
+@@ -868,6 +902,10 @@ static int pwm_fan_suspend(struct device *dev)
  	}
  	mutex_unlock(&ctx->lock);
  
@@ -85,7 +87,7 @@ resume call, so the tach IRQs and timer are re-armed on that path too.
  	return ret;
  }
  
-@@ -880,6 +918,8 @@
+@@ -876,6 +914,8 @@ static int pwm_fan_resume(struct device *dev)
  	struct pwm_fan_ctx *ctx = dev_get_drvdata(dev);
  	int ret;
  

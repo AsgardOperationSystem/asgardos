@@ -18,9 +18,11 @@ resume, so the GDSCs can collapse. The Qualcomm downstream driver
 (armada-os/armada deep-sleep @ f1e1a08, 0566, based on research by
 Noahcdls.)
 ---
+diff --git a/drivers/clk/qcom/gcc-sm8550.c b/drivers/clk/qcom/gcc-sm8550.c
+index 36a5b7de5b55..8c816c32b078 100644
 --- a/drivers/clk/qcom/gcc-sm8550.c
 +++ b/drivers/clk/qcom/gcc-sm8550.c
-@@ -3003,7 +3003,7 @@
+@@ -3003,7 +3003,7 @@ static struct gdsc pcie_0_gdsc = {
  	.pd = {
  		.name = "pcie_0_gdsc",
  	},
@@ -29,7 +31,7 @@ Noahcdls.)
  	.flags = VOTABLE | POLL_CFG_GDSCR | RETAIN_FF_ENABLE,
  };
  
-@@ -3014,7 +3014,7 @@
+@@ -3014,7 +3014,7 @@ static struct gdsc pcie_0_phy_gdsc = {
  	.pd = {
  		.name = "pcie_0_phy_gdsc",
  	},
@@ -38,7 +40,7 @@ Noahcdls.)
  	.flags = VOTABLE | POLL_CFG_GDSCR | RETAIN_FF_ENABLE,
  };
  
-@@ -3025,7 +3025,7 @@
+@@ -3025,7 +3025,7 @@ static struct gdsc pcie_1_gdsc = {
  	.pd = {
  		.name = "pcie_1_gdsc",
  	},
@@ -47,7 +49,7 @@ Noahcdls.)
  	.flags = VOTABLE | POLL_CFG_GDSCR | RETAIN_FF_ENABLE,
  };
  
-@@ -3036,7 +3036,7 @@
+@@ -3036,7 +3036,7 @@ static struct gdsc pcie_1_phy_gdsc = {
  	.pd = {
  		.name = "pcie_1_phy_gdsc",
  	},

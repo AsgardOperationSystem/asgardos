@@ -5,9 +5,11 @@ Follow-up to 9047 (Armada #723 0564). Armada #759: on a bus without clock
 stop the forced runtime resume resets the controller and loses the ports
 of any stream still open, so leave those buses as they were.
 ---
+diff --git a/drivers/soundwire/qcom.c b/drivers/soundwire/qcom.c
+index 832bf25282c1..d8457750ca48 100644
 --- a/drivers/soundwire/qcom.c
 +++ b/drivers/soundwire/qcom.c
-@@ -222,6 +222,7 @@
+@@ -221,6 +221,7 @@ struct qcom_swrm_ctrl {
  	u32 slave_status;
  	u32 wr_fifo_depth;
  	bool clock_stop_not_supported;
@@ -15,7 +17,7 @@ of any stream still open, so leave those buses as they were.
  };
  
  struct qcom_swrm_data {
-@@ -1807,8 +1808,29 @@
+@@ -1825,8 +1826,29 @@ static int __maybe_unused swrm_runtime_suspend(struct device *dev)
  	return 0;
  }
  

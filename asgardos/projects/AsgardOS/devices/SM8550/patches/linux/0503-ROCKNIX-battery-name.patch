@@ -4,14 +4,11 @@ Date: Mon, 19 Jan 2026 12:53:14 +0100
 Subject: [PATCH] power:supply: rename qcom battmgr sysfs
 
 ---
- drivers/power/supply/qcom_battmgr.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
 diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
-index 3c2837ef3461..157c2d965931 100644
+index 7716eb9e1aff..60ca9bcc03f6 100644
 --- a/drivers/power/supply/qcom_battmgr.c
 +++ b/drivers/power/supply/qcom_battmgr.c
-@@ -931,7 +931,7 @@ static const enum power_supply_property sm8550_bat_props[] = {
+@@ -922,7 +922,7 @@ static const enum power_supply_property sm8550_bat_props[] = {
  };
  
  static const struct power_supply_desc sm8550_bat_psy_desc = {
@@ -20,6 +17,3 @@ index 3c2837ef3461..157c2d965931 100644
  	.type = POWER_SUPPLY_TYPE_BATTERY,
  	.properties = sm8550_bat_props,
  	.num_properties = ARRAY_SIZE(sm8550_bat_props),
--- 
-2.52.0
-

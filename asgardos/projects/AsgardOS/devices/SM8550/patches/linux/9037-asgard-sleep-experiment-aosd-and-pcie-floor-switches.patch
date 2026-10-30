@@ -10,9 +10,11 @@ with 9045 (link powered down) and 9047 (LPASS votes released) the SoC reaches
 CXSD/AOSD/DDR LPM in s2idle, 99.9% of a 1 h sleep at ~23 mA (46 mA with the floor).
 ---
 diff --color -ru a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
---- a/drivers/pci/controller/dwc/pcie-qcom.c	2026-10-14 19:32:08.456088973 +0300
-+++ b/drivers/pci/controller/dwc/pcie-qcom.c	2026-10-14 19:32:25.745544106 +0300
-@@ -2212,6 +2212,15 @@
+diff --git a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
+index 6fd6cfeb4b21..686e2d2dd9e2 100644
+--- a/drivers/pci/controller/dwc/pcie-qcom.c
++++ b/drivers/pci/controller/dwc/pcie-qcom.c
+@@ -2393,6 +2393,15 @@ static int qcom_pcie_probe(struct platform_device *pdev)
   * the sleep-set bandwidth votes survive the platform sleep state.  Fall
   * back to dropping the OPP entirely when no suspend OPP is marked.
   */
@@ -28,7 +30,7 @@ diff --color -ru a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controll
  static int qcom_pcie_set_suspend_opp(struct qcom_pcie *pcie)
  {
  	struct device *dev = pcie->pci->dev;
-@@ -2220,7 +2229,7 @@
+@@ -2401,7 +2410,7 @@ static int qcom_pcie_set_suspend_opp(struct qcom_pcie *pcie)
  	int ret;
  
  	freq = dev_pm_opp_get_suspend_opp_freq(dev);
@@ -37,10 +39,11 @@ diff --color -ru a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controll
  		return dev_pm_opp_set_opp(dev, NULL);
  
  	opp = dev_pm_opp_find_freq_exact(dev, freq, true);
-diff --color -ru a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
---- a/drivers/soc/qcom/qcom_aoss.c	2026-10-14 19:32:08.455231400 +0300
-+++ b/drivers/soc/qcom/qcom_aoss.c	2026-10-14 19:32:25.745457302 +0300
-@@ -556,6 +556,42 @@
+diff --git a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
+index 259c41f0c34e..4af9285e9cd8 100644
+--- a/drivers/soc/qcom/qcom_aoss.c
++++ b/drivers/soc/qcom/qcom_aoss.c
+@@ -556,6 +556,42 @@ static const struct file_operations qmp_debugfs_fops = {
  	.write = qmp_debugfs_write,
  };
  
@@ -83,7 +86,7 @@ diff --color -ru a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
  static void qmp_debugfs_create(struct qmp *qmp)
  {
  	const struct qmp_debugfs_entry *entry;
-@@ -623,6 +659,10 @@
+@@ -623,6 +659,10 @@ static int qmp_probe(struct platform_device *pdev)
  
  	qmp_debugfs_create(qmp);
  
@@ -94,7 +97,7 @@ diff --color -ru a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
  	return 0;
  
  err_close_qmp:
-@@ -637,6 +677,7 @@
+@@ -637,6 +677,7 @@ static void qmp_remove(struct platform_device *pdev)
  {
  	struct qmp *qmp = platform_get_drvdata(pdev);
  

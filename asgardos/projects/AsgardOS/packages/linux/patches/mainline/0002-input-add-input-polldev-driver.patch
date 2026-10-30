@@ -4,16 +4,8 @@ Date: Wed, 24 Jan 2024 21:50:05 +0000
 Subject: [PATCH] input: add input-polldev driver
 
 ---
- drivers/input/Kconfig         |  13 ++
- drivers/input/Makefile        |   1 +
- drivers/input/input-polldev.c | 362 ++++++++++++++++++++++++++++++++++
- include/linux/input-polldev.h |  58 ++++++
- 4 files changed, 434 insertions(+)
- create mode 100644 drivers/input/input-polldev.c
- create mode 100644 include/linux/input-polldev.h
-
 diff --git a/drivers/input/Kconfig b/drivers/input/Kconfig
-index 3bdbd34314b3..779daf5009c1 100644
+index 88ecdf5218ee..d5340645e2ac 100644
 --- a/drivers/input/Kconfig
 +++ b/drivers/input/Kconfig
 @@ -51,6 +51,19 @@ config INPUT_FF_MEMLESS
@@ -37,11 +29,11 @@ index 3bdbd34314b3..779daf5009c1 100644
  	tristate "Sparse keymap support library"
  	help
 diff --git a/drivers/input/Makefile b/drivers/input/Makefile
-index c78753274921..e92c29174c36 100644
+index 2cd6e1c9a778..fb14d4f9f66b 100644
 --- a/drivers/input/Makefile
 +++ b/drivers/input/Makefile
 @@ -10,6 +10,7 @@ input-core-y := input.o input-compat.o input-mt.o input-poller.o ff-core.o
- input-core-y += touchscreen.o
+ input-core-y += touchscreen.o touch-overlay.o
  
  obj-$(CONFIG_INPUT_FF_MEMLESS)	+= ff-memless.o
 +obj-$(CONFIG_INPUT_POLLDEV)	+= input-polldev.o
@@ -480,6 +472,3 @@ index 000000000000..14821fd231c0
 +void input_unregister_polled_device(struct input_polled_dev *dev);
 +
 +#endif
--- 
-2.34.1
-

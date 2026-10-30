@@ -5,9 +5,11 @@ The top panel's backlight stopped at 3413. Measured on full white, its current w
 rising steeply there, and AYN's on-command starts the panel at 0xD75 (3445). Expose
 the DCS range (4095).
 ---
+diff --git a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
+index 70ed769ddab5..0e96d2c0cc87 100644
 --- a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
 +++ b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
-@@ -484,7 +484,12 @@
+@@ -485,7 +485,12 @@ static struct backlight_device *icna35xx_create_backlight(struct mipi_dsi_device
  	const struct backlight_properties props = {
  		.type = BACKLIGHT_RAW,
  		.brightness = 3413,

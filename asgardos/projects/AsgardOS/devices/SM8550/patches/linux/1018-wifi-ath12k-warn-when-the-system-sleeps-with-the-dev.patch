@@ -21,14 +21,11 @@ mean something different. This changes no behaviour.
 
 Signed-off-by: Edouard Durand <edouard.durand@gmail.com>
 ---
- drivers/net/wireless/ath/ath12k/core.c | 12 +++++++++++-
- 1 file changed, 11 insertions(+), 1 deletion(-)
-
 diff --git a/drivers/net/wireless/ath/ath12k/core.c b/drivers/net/wireless/ath/ath12k/core.c
-index 34d0a9e..fa62f63 100644
+index 73663c0cdf2c..bd9bb5f6d842 100644
 --- a/drivers/net/wireless/ath/ath12k/core.c
 +++ b/drivers/net/wireless/ath/ath12k/core.c
-@@ -167,11 +167,21 @@ EXPORT_SYMBOL(ath12k_core_suspend);
+@@ -170,11 +170,21 @@ EXPORT_SYMBOL(ath12k_core_suspend);
  
  int ath12k_core_suspend_late(struct ath12k_base *ab)
  {
@@ -51,6 +48,3 @@ index 34d0a9e..fa62f63 100644
  
  	ath12k_acpi_stop(ab);
  
--- 
-2.49.0.windows.1
-

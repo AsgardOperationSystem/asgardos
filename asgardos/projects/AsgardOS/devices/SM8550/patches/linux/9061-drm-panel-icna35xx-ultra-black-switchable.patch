@@ -5,9 +5,11 @@ Subject: [PATCH] drm/panel: chipone-icna35xx: Ultra Black switchable (ultra_blac
 every panel init: off sends Android's default-color-command (B7 byte 0x22, B8 byte 0x28, from
 the live Android DT). Asgard Settings writes it and power-cycles the top screen.
 ---
+diff --git a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
+index 0e96d2c0cc87..33e3b83e4bd5 100644
 --- a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
 +++ b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
-@@ -150,6 +150,14 @@
+@@ -151,6 +151,14 @@ static int icna3512_init_sequence(struct panel_info *pinfo)
  	return dsi_ctx.accum_err;
  }
  
@@ -22,7 +24,7 @@ the live Android DT). Asgard Settings writes it and power-cycles the top screen.
  static int icna3520_init_sequence(struct panel_info *pinfo)
  {
  	struct mipi_dsi_multi_context dsi_ctx = { .dsi = pinfo->dsi };
-@@ -211,14 +219,23 @@
+@@ -212,14 +220,23 @@ static int icna3520_init_sequence(struct panel_info *pinfo)
  
  	/*
  	 * AYN "OLED Ultra Black" (enhance_color on): reduces colour shift and

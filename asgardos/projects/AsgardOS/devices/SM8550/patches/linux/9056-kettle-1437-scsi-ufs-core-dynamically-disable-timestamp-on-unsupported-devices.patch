@@ -24,15 +24,11 @@ Tested-by: Xilin Wu <sophon@radxa.com>
 Link: https://patch.msgid.link/20260911024319.1346706-3-stanleyjhu@google.com
 Signed-off-by: Martin K. Petersen (Oracle) <mkp@kernel.org>
 ---
- drivers/ufs/core/ufshcd.c | 10 +++++++---
- include/ufs/ufs.h         |  1 +
- 2 files changed, 8 insertions(+), 3 deletions(-)
-
 diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
-index 0bc3adbe9..1269185fc 100644
+index ccafd264f699..5c416b9d6761 100644
 --- a/drivers/ufs/core/ufshcd.c
 +++ b/drivers/ufs/core/ufshcd.c
-@@ -8967,6 +8967,9 @@ static int ufs_get_device_desc(struct ufs_hba *hba)
+@@ -9020,6 +9020,9 @@ static int ufs_get_device_desc(struct ufs_hba *hba)
  
  	ufs_fixup_device_setup(hba);
  
@@ -42,7 +38,7 @@ index 0bc3adbe9..1269185fc 100644
  	ufshcd_wb_probe(hba, desc_buf);
  
  	ufshcd_temp_notif_probe(hba, desc_buf);
-@@ -9267,14 +9270,15 @@ static void ufshcd_set_timestamp_attr(struct ufs_hba *hba)
+@@ -9320,14 +9323,15 @@ static void ufshcd_set_timestamp_attr(struct ufs_hba *hba)
  	u64 ts_ns;
  	int err;
  
@@ -62,7 +58,7 @@ index 0bc3adbe9..1269185fc 100644
  			__func__, err);
  }
 diff --git a/include/ufs/ufs.h b/include/ufs/ufs.h
-index afbb32654..b0207e694 100644
+index afbb32654fab..b0207e694911 100644
 --- a/include/ufs/ufs.h
 +++ b/include/ufs/ufs.h
 @@ -662,6 +662,7 @@ struct ufs_dev_info {
@@ -73,6 +69,3 @@ index afbb32654..b0207e694 100644
  
  	/* Unique device ID string (manufacturer+model+serial+version+date) */
  	char *device_id;
--- 
-2.56.0
-

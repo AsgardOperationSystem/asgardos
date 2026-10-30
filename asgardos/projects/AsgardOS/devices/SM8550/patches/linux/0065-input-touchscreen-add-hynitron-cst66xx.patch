@@ -11,17 +11,11 @@ Firmware erase, upload and update paths are deliberately not implemented.
 
 Signed-off-by: danyi <mydanyi@users.noreply.github.com>
 ---
- drivers/input/touchscreen/Kconfig            |  12 +
- drivers/input/touchscreen/Makefile           |   1 +
- drivers/input/touchscreen/hynitron-cst66xx.c | 331 +++++++++++++++++++
- 3 files changed, 344 insertions(+)
- create mode 100644 drivers/input/touchscreen/hynitron-cst66xx.c
-
 diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
-index aeaf9a9..9933aec 100644
+index 1a1727e76dde..714ae84a263a 100644
 --- a/drivers/input/touchscreen/Kconfig
 +++ b/drivers/input/touchscreen/Kconfig
-@@ -475,6 +475,18 @@ config TOUCHSCREEN_HYNITRON_CSTXXX
+@@ -477,6 +477,18 @@ config TOUCHSCREEN_HYNITRON_CSTXXX
  	  To compile this driver as a module, choose M here: the
  	  module will be called hynitron-cstxxx.
  
@@ -41,10 +35,10 @@ index aeaf9a9..9933aec 100644
  	tristate "Hynitron CST816x touchscreen"
  	depends on I2C
 diff --git a/drivers/input/touchscreen/Makefile b/drivers/input/touchscreen/Makefile
-index f2b002a..40be8e2 100644
+index b6a93dbfefe0..9d35b73faef6 100644
 --- a/drivers/input/touchscreen/Makefile
 +++ b/drivers/input/touchscreen/Makefile
-@@ -51,6 +51,7 @@ obj-$(CONFIG_TOUCHSCREEN_GOODIX_BERLIN_SPI)	+= goodix_berlin_spi.o
+@@ -52,6 +52,7 @@ obj-$(CONFIG_TOUCHSCREEN_GOODIX_BERLIN_SPI)	+= goodix_berlin_spi.o
  obj-$(CONFIG_TOUCHSCREEN_HIDEEP)	+= hideep.o
  obj-$(CONFIG_TOUCHSCREEN_HIMAX_HX852X)	+= himax_hx852x.o
  obj-$(CONFIG_TOUCHSCREEN_HYNITRON_CSTXXX)	+= hynitron_cstxxx.o
@@ -54,7 +48,7 @@ index f2b002a..40be8e2 100644
  obj-$(CONFIG_TOUCHSCREEN_ILITEK)	+= ilitek_ts_i2c.o
 diff --git a/drivers/input/touchscreen/hynitron-cst66xx.c b/drivers/input/touchscreen/hynitron-cst66xx.c
 new file mode 100644
-index 0000000..84d4736
+index 000000000000..5c98064f1cdb
 --- /dev/null
 +++ b/drivers/input/touchscreen/hynitron-cst66xx.c
 @@ -0,0 +1,331 @@
@@ -389,5 +383,3 @@ index 0000000..84d4736
 +MODULE_AUTHOR("ROCKNIX contributors");
 +MODULE_DESCRIPTION("Hynitron CST66xx touchscreen driver");
 +MODULE_LICENSE("GPL");
--- 
-2.53.0.windows.3

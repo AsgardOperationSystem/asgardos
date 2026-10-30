@@ -5,9 +5,11 @@ Port of the downstream Qualcomm smp2p_sleepstate driver (msm-5.15, see
 OnePlusOSS/android_kernel_oneplus_sm8550). Local experiment, not upstream.
 ---
 diff '--color=never' -Nru a/drivers/soc/qcom/Kconfig b/drivers/soc/qcom/Kconfig
---- a/drivers/soc/qcom/Kconfig	2026-10-07 00:31:39.230125181 +0300
-+++ b/drivers/soc/qcom/Kconfig	2026-10-07 00:31:39.282930548 +0300
-@@ -209,6 +209,15 @@
+diff --git a/drivers/soc/qcom/Kconfig b/drivers/soc/qcom/Kconfig
+index 2b524154d9fb..056adebeacba 100644
+--- a/drivers/soc/qcom/Kconfig
++++ b/drivers/soc/qcom/Kconfig
+@@ -202,6 +202,15 @@ config QCOM_SMP2P
  	  Say yes here to support the Qualcomm Shared Memory Point to Point
  	  protocol.
  
@@ -23,10 +25,11 @@ diff '--color=never' -Nru a/drivers/soc/qcom/Kconfig b/drivers/soc/qcom/Kconfig
  config QCOM_SMSM
  	tristate "Qualcomm Shared Memory State Machine"
  	depends on MAILBOX
-diff '--color=never' -Nru a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
---- a/drivers/soc/qcom/Makefile	2026-10-07 00:31:39.229125155 +0300
-+++ b/drivers/soc/qcom/Makefile	2026-10-07 00:31:39.237521907 +0300
-@@ -27,6 +27,7 @@
+diff --git a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
+index 798643be3590..7fb2aee85a7d 100644
+--- a/drivers/soc/qcom/Makefile
++++ b/drivers/soc/qcom/Makefile
+@@ -28,6 +28,7 @@ obj-$(CONFIG_QCOM_SMEM) +=	qcom_smem.o
  obj-$(CONFIG_QCOM_SMEM_STATE) += smem_state.o
  CFLAGS_smp2p.o := -I$(src)
  obj-$(CONFIG_QCOM_SMP2P)	+= smp2p.o
@@ -34,9 +37,11 @@ diff '--color=never' -Nru a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefil
  obj-$(CONFIG_QCOM_SMSM)	+= smsm.o
  obj-$(CONFIG_QCOM_SOCINFO)	+= socinfo.o
  obj-$(CONFIG_QCOM_SPM)		+= spm.o
-diff '--color=never' -Nru a/drivers/soc/qcom/smp2p_sleepstate.c b/drivers/soc/qcom/smp2p_sleepstate.c
---- a/drivers/soc/qcom/smp2p_sleepstate.c	1970-01-01 02:00:00.000000000 +0200
-+++ b/drivers/soc/qcom/smp2p_sleepstate.c	2026-10-07 00:31:39.231125207 +0300
+diff --git a/drivers/soc/qcom/smp2p_sleepstate.c b/drivers/soc/qcom/smp2p_sleepstate.c
+new file mode 100644
+index 000000000000..311c3eff58ae
+--- /dev/null
++++ b/drivers/soc/qcom/smp2p_sleepstate.c
 @@ -0,0 +1,128 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*

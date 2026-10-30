@@ -7,17 +7,11 @@ Add a new driver for the SI-EN SN3112 12-channel 8-bit PWM LED controller.
 
 Signed-off-by: BigfootACA <bigfoot@classfun.cn>
 ---
- drivers/pwm/Kconfig      |  10 ++
- drivers/pwm/Makefile     |   1 +
- drivers/pwm/pwm-sn3112.c | 348 +++++++++++++++++++++++++++++++++++++++
- 3 files changed, 359 insertions(+)
- create mode 100644 drivers/pwm/pwm-sn3112.c
-
 diff --git a/drivers/pwm/Kconfig b/drivers/pwm/Kconfig
-index 3ff72389574d..666666666666 100644
+index 729776086879..8248733b3c50 100644
 --- a/drivers/pwm/Kconfig
 +++ b/drivers/pwm/Kconfig
-@@ -651,6 +651,16 @@ config PWM_SL28CPLD
+@@ -670,6 +670,16 @@ config PWM_SL28CPLD
  	  To compile this driver as a module, choose M here: the module
  	  will be called pwm-sl28cpld.
  
@@ -35,10 +29,10 @@ index 3ff72389574d..666666666666 100644
  	tristate "Sophgo SG2042 PWM support"
  	depends on ARCH_SOPHGO || COMPILE_TEST
 diff --git a/drivers/pwm/Makefile b/drivers/pwm/Makefile
-index c5ec9e168ee7c..f46223a7b9a52 100644
+index 5630a521a7cf..0efb5a8425bd 100644
 --- a/drivers/pwm/Makefile
 +++ b/drivers/pwm/Makefile
-@@ -51,6 +51,7 @@ obj-$(CONFIG_PWM_RZ_MTU3)	+= pwm-rz-mtu3.o
+@@ -60,6 +60,7 @@ obj-$(CONFIG_PWM_ROCKCHIP)	+= pwm-rockchip.o
  obj-$(CONFIG_PWM_SAMSUNG)	+= pwm-samsung.o
  obj-$(CONFIG_PWM_SIFIVE)	+= pwm-sifive.o
  obj-$(CONFIG_PWM_SL28CPLD)	+= pwm-sl28cpld.o
@@ -48,7 +42,7 @@ index c5ec9e168ee7c..f46223a7b9a52 100644
  obj-$(CONFIG_PWM_SPRD)		+= pwm-sprd.o
 diff --git a/drivers/pwm/pwm-sn3112.c b/drivers/pwm/pwm-sn3112.c
 new file mode 100644
-index 0000000000000..38ef948602a3c
+index 000000000000..a934dcb89a71
 --- /dev/null
 +++ b/drivers/pwm/pwm-sn3112.c
 @@ -0,0 +1,348 @@

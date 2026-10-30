@@ -14,6 +14,7 @@ already matches, the channel count is its weight, and mute walks every
 active decimator.
 ---
 diff --git a/sound/soc/codecs/lpass-tx-macro.c b/sound/soc/codecs/lpass-tx-macro.c
+index d40ac1c403d1..210bfc0b4dd5 100644
 --- a/sound/soc/codecs/lpass-tx-macro.c
 +++ b/sound/soc/codecs/lpass-tx-macro.c
 @@ -271,8 +271,6 @@ struct tx_macro {
@@ -25,7 +26,7 @@ diff --git a/sound/soc/codecs/lpass-tx-macro.c b/sound/soc/codecs/lpass-tx-macro
  	struct regmap *regmap;
  	struct clk *mclk;
  	struct clk *npl;
-@@ -887,21 +885,10 @@ static int tx_macro_tx_mixer_put(struct snd_kcontrol *kcontrol,
+@@ -888,21 +886,10 @@ static int tx_macro_tx_mixer_put(struct snd_kcontrol *kcontrol,
  	u32 enable = ucontrol->value.integer.value[0];
  	struct tx_macro *tx = snd_soc_component_get_drvdata(component);
  
@@ -50,7 +51,7 @@ diff --git a/sound/soc/codecs/lpass-tx-macro.c b/sound/soc/codecs/lpass-tx-macro
  	snd_soc_dapm_mixer_update_power(widget->dapm, kcontrol, enable, update);
  
  	return 1;
-@@ -1179,7 +1166,7 @@ static int tx_macro_get_channel_map(const struct snd_soc_dai *dai,
+@@ -1180,7 +1167,7 @@ static int tx_macro_get_channel_map(const struct snd_soc_dai *dai,
  	case TX_MACRO_AIF2_CAP:
  	case TX_MACRO_AIF3_CAP:
  		*tx_slot = tx->active_ch_mask[dai->id];
@@ -59,7 +60,7 @@ diff --git a/sound/soc/codecs/lpass-tx-macro.c b/sound/soc/codecs/lpass-tx-macro
  		break;
  	default:
  		break;
-@@ -1191,22 +1178,12 @@ static int tx_macro_digital_mute(struct snd_soc_dai *dai, int mute, int stream)
+@@ -1192,22 +1179,12 @@ static int tx_macro_digital_mute(struct snd_soc_dai *dai, int mute, int stream)
  {
  	struct snd_soc_component *component = dai->component;
  	struct tx_macro *tx = snd_soc_component_get_drvdata(component);
@@ -85,7 +86,7 @@ diff --git a/sound/soc/codecs/lpass-tx-macro.c b/sound/soc/codecs/lpass-tx-macro
  
  	return 0;
  }
-@@ -2313,11 +2290,6 @@ static int tx_macro_probe(struct platform_device *pdev)
+@@ -2314,11 +2291,6 @@ static int tx_macro_probe(struct platform_device *pdev)
  
  	tx->dev = dev;
  

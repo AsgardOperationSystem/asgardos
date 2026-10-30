@@ -8,9 +8,10 @@ source height, not width. Reserve rot90 pipes with test_bit.
 Signed-off-by: tiopex <tiopxyz@gmail.com>
 ---
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c
+index 06467fd9ed46..0869842789a2 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c
-@@ -476,7 +476,7 @@
+@@ -485,7 +485,7 @@ static void _dpu_plane_setup_scaler3(struct dpu_hw_sspp *pipe_hw,
  		}
  	}
  	if (!(MSM_FORMAT_IS_YUV(fmt)) && (src_h == dst_h)
@@ -19,7 +20,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c b/drivers/gpu/drm/msm/dis
  		return;
  
  	scale_cfg->dst_width = dst_w;
-@@ -704,17 +704,17 @@
+@@ -713,9 +713,9 @@ static int dpu_plane_check_inline_rotation(struct dpu_plane *pdpu,
  		return -EINVAL;
  	}
  
@@ -31,15 +32,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c b/drivers/gpu/drm/msm/dis
  		return -EINVAL;
  	}
  
- 	supported_formats = sblk->rotation_cfg->rot_format_list;
- 	num_formats = sblk->rotation_cfg->rot_num_formats;
- 
- 	if (!MSM_FORMAT_IS_UBWC(fmt) ||
- 		!dpu_find_format(fmt->pixel_format, supported_formats, num_formats))
- 		return -EINVAL;
- 
- 	return 0;
-@@ -758,6 +758,9 @@
+@@ -767,6 +767,9 @@ static int dpu_plane_atomic_check_pipe(struct dpu_plane *pdpu,
  	pipe_cfg->rotation = drm_rotation_simplify(new_plane_state->rotation,
  						   supported_rotations);
  
@@ -50,9 +43,10 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c b/drivers/gpu/drm/msm/dis
  
  	if (MSM_FORMAT_IS_YUV(fmt) &&
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
+index 7e77d88f8959..b9960da05296 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c
-@@ -817,7 +817,7 @@
+@@ -817,7 +817,7 @@ static struct dpu_hw_sspp *dpu_rm_try_sspp(struct dpu_rm *rm,
  		if (reqs->yuv && !hw_sspp->cap->sblk->csc_blk.len)
  			continue;
  
@@ -61,4 +55,3 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_rm.c b/drivers/gpu/drm/msm/disp/d
  			continue;
  
  		global_state->sspp_to_crtc_id[i] = crtc_id;
-

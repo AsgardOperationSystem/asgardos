@@ -17,9 +17,11 @@ PHY off before recalibrating on resume.
 
 Signed-off-by: jaewun <jaewun@users.noreply.github.com>
 
+diff --git a/drivers/ufs/host/ufs-qcom.c b/drivers/ufs/host/ufs-qcom.c
+index d9612bff0030..ec73ee84e553 100644
 --- a/drivers/ufs/host/ufs-qcom.c
 +++ b/drivers/ufs/host/ufs-qcom.c
-@@ -1253,7 +1253,9 @@
+@@ -1459,7 +1459,9 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
  				 enum ufs_notify_change_status status)
  {
  	struct ufs_qcom_host *host = ufshcd_get_variant(hba);
@@ -29,13 +31,13 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
  	int err;
  
  	/*
-@@ -1264,7 +1266,16 @@
+@@ -1470,8 +1472,17 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
  	if (!host)
  		return 0;
  
 +	drvdata = of_device_get_match_data(hba->dev);
  	phy = host->generic_phy;
-+
+ 
 +	/*
 +	 * no_phy_retention hosts can lose calibrated M-PHY state on phy_power_off().
 +	 * Keep the PHY powered when the link is only parked in HIBERN8; true
@@ -43,10 +45,11 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
 +	 */
 +	keep_phy = drvdata && drvdata->no_phy_retention &&
 +		   ufs_qcom_is_link_hibern8(hba);
- 
++
  	switch (status) {
  	case PRE_CHANGE:
-@@ -1283,19 +1294,23 @@
+ 		if (on) {
+@@ -1489,19 +1500,23 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
  				ufs_qcom_dev_ref_clk_ctrl(host, false);
  			}
  

@@ -16,9 +16,11 @@ Remove the kernel's bus vote when the GMU takes it over, as
 a6xx_gmu_stop() does ("Remove the bus vote"). The GPU OPP carries no
 clock on GMU platforms, so a NULL OPP only drops the interconnect vote.
 ---
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+index 6d49c51df1a2..68e61bfb559e 100644
 --- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
 +++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
-@@ -220,9 +220,12 @@
+@@ -220,9 +220,12 @@ void a6xx_gmu_set_freq(struct msm_gpu *gpu, struct dev_pm_opp *opp,
  
  	if (!gmu->legacy) {
  		a6xx_hfi_set_freq(gmu, perf_index, bw_index);

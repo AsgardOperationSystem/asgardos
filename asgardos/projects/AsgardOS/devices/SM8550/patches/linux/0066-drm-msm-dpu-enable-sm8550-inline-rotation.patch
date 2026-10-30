@@ -14,13 +14,11 @@ common patch 0013-drm-msm-dpu-fix-inline-rotation.
 
 Signed-off-by: tiopex <tiopxyz@gmail.com>
 ---
- drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_9_0_sm8550.h | 16 ++++++++--------
- drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c         | 30 ++++++++++++++++++++++++++++++
- 2 files changed, 38 insertions(+), 8 deletions(-)
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_9_0_sm8550.h b/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_9_0_sm8550.h
+index b3d0f221807b..ee1ef7a0da21 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_9_0_sm8550.h
 +++ b/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_9_0_sm8550.h
-@@ -58,29 +58,29 @@
+@@ -58,29 +58,29 @@ static const struct dpu_sspp_cfg sm8550_sspp[] = {
  	{
  		.name = "sspp_0", .id = SSPP_VIG0,
  		.base = 0x4000, .len = 0x344,
@@ -59,6 +57,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_9_0_sm8550.h b/drivers/gp
  		.type = SSPP_TYPE_VIG,
  	}, {
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c
+index c4065efe2c2f..02ad39c68be6 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c
 @@ -59,6 +59,9 @@
@@ -71,7 +70,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c b/drivers/gpu/drm/ms
  #define DMA_SDM845_MASK_NO_SDMA \
  	(BIT(DPU_SSPP_QOS) | \
  	BIT(DPU_SSPP_TS_PREFILL) | BIT(DPU_SSPP_TS_PREFILL_REC1) |\
-@@ -190,6 +193,23 @@
+@@ -190,6 +193,23 @@ static const u32 rotation_v2_formats[] = {
  	/* TODO add formats after validation */
  };
  
@@ -95,7 +94,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c b/drivers/gpu/drm/ms
  static const u32 wb2_formats_rgb_yuv[] = {
  	DRM_FORMAT_RGB565,
  	DRM_FORMAT_BGR565,
-@@ -309,6 +329,12 @@
+@@ -319,6 +339,12 @@ static const struct dpu_rotation_cfg dpu_rot_sc7280_cfg_v2 = {
  	.rot_format_list = rotation_v2_formats,
  };
  
@@ -108,7 +107,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_catalog.c b/drivers/gpu/drm/ms
  static const struct dpu_sspp_sub_blks dpu_vig_sblk_qseed2 =
  				_VIG_SBLK_QSEED2();
  
-@@ -340,6 +366,10 @@
+@@ -350,6 +376,10 @@ static const struct dpu_sspp_sub_blks dpu_vig_sblk_qseed3_3_1 =
  static const struct dpu_sspp_sub_blks dpu_vig_sblk_qseed3_3_2 =
  				_VIG_SBLK(SSPP_SCALER_VER(3, 2));
  

@@ -27,9 +27,11 @@ Suggested-by: Johannes Berg <johannes@xxxxxxxxxxxxxxxx>
 Cc: stable@xxxxxxxxxxxxxxx
 Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
 ---
+diff --git a/drivers/net/wireless/ath/ath12k/core.c b/drivers/net/wireless/ath/ath12k/core.c
+index bd9bb5f6d842..4bb14f9038a1 100644
 --- a/drivers/net/wireless/ath/ath12k/core.c
 +++ b/drivers/net/wireless/ath/ath12k/core.c
-@@ -1438,7 +1438,7 @@
+@@ -1460,7 +1460,7 @@ void ath12k_core_halt(struct ath12k *ar)
  
  	ath12k_mac_scan_finish(ar);
  	ath12k_mac_peer_cleanup_all(ar);
@@ -38,9 +40,11 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	cancel_work_sync(&ar->regd_update_work);
  	cancel_work_sync(&ar->regd_channel_update_work);
  	cancel_work_sync(&ab->rfkill_work);
+diff --git a/drivers/net/wireless/ath/ath12k/core.h b/drivers/net/wireless/ath/ath12k/core.h
+index 93fd227b4d19..e0cc8399d4ad 100644
 --- a/drivers/net/wireless/ath/ath12k/core.h
 +++ b/drivers/net/wireless/ath/ath12k/core.h
-@@ -636,11 +636,12 @@
+@@ -627,11 +627,12 @@ struct ath12k {
  		struct completion started;
  		struct completion completed;
  		struct completion on_channel;
@@ -54,9 +58,11 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		struct wiphy_work vdev_clean_wk;
  		struct ath12k_link_vif *arvif;
  	} scan;
+diff --git a/drivers/net/wireless/ath/ath12k/mac.c b/drivers/net/wireless/ath/ath12k/mac.c
+index 7b02af789279..9046a1a1e806 100644
 --- a/drivers/net/wireless/ath/ath12k/mac.c
 +++ b/drivers/net/wireless/ath/ath12k/mac.c
-@@ -5306,7 +5306,7 @@
+@@ -5317,7 +5317,7 @@ void __ath12k_mac_scan_finish(struct ath12k *ar)
  			ieee80211_remain_on_channel_expired(hw);
  		fallthrough;
  	case ATH12K_SCAN_STARTING:
@@ -65,7 +71,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		complete_all(&ar->scan.completed);
  		wiphy_work_queue(ar->ah->hw->wiphy, &ar->scan.vdev_clean_wk);
  		break;
-@@ -5384,6 +5384,8 @@
+@@ -5395,6 +5395,8 @@ static void ath12k_scan_abort(struct ath12k *ar)
  			    ar->scan.state);
  		break;
  	case ATH12K_SCAN_RUNNING:
@@ -74,7 +80,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		ar->scan.state = ATH12K_SCAN_ABORTING;
  		spin_unlock_bh(&ar->data_lock);
  
-@@ -5398,14 +5400,17 @@
+@@ -5409,14 +5411,17 @@ static void ath12k_scan_abort(struct ath12k *ar)
  	spin_unlock_bh(&ar->data_lock);
  }
  
@@ -97,7 +103,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  }
  
  static void ath12k_mac_scan_send_complete(struct ath12k *ar,
-@@ -5436,6 +5441,8 @@
+@@ -5447,6 +5452,8 @@ static void ath12k_scan_vdev_clean_work(struct wiphy *wiphy, struct wiphy_work *
  
  	arvif = ar->scan.arvif;
  
@@ -106,7 +112,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	/* The scan vdev has already been deleted. This can occur when a
  	 * new scan request is made on the same vif with a different
  	 * frequency, causing the scan arvif to move from one radio to
-@@ -5467,6 +5474,7 @@
+@@ -5478,6 +5485,7 @@ static void ath12k_scan_vdev_clean_work(struct wiphy *wiphy, struct wiphy_work *
  	}
  
  	ar->scan.state = ATH12K_SCAN_IDLE;
@@ -114,7 +120,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	ar->scan_channel = NULL;
  	ar->scan.roc_freq = 0;
  	spin_unlock_bh(&ar->data_lock);
-@@ -5753,6 +5761,7 @@
+@@ -5764,6 +5772,7 @@ static int ath12k_mac_initiate_hw_scan(struct ieee80211_hw *hw,
  		reinit_completion(&ar->scan.completed);
  		ar->scan.state = ATH12K_SCAN_STARTING;
  		ar->scan.is_roc = false;
@@ -122,7 +128,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		ar->scan.arvif = arvif;
  		ret = 0;
  		break;
-@@ -5809,6 +5818,7 @@
+@@ -5820,6 +5829,7 @@ static int ath12k_mac_initiate_hw_scan(struct ieee80211_hw *hw,
  
  		spin_lock_bh(&ar->data_lock);
  		ar->scan.state = ATH12K_SCAN_IDLE;
@@ -130,7 +136,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		spin_unlock_bh(&ar->data_lock);
  		goto exit;
  	}
-@@ -5816,9 +5826,10 @@
+@@ -5827,9 +5837,10 @@ static int ath12k_mac_initiate_hw_scan(struct ieee80211_hw *hw,
  	ath12k_dbg(ar->ab, ATH12K_DBG_MAC, "mac scan started");
  
  	/* Add a margin to account for event/command processing */
@@ -144,7 +150,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  
  exit:
  	if (arg) {
-@@ -5901,6 +5912,7 @@
+@@ -5912,6 +5923,7 @@ int ath12k_mac_op_hw_scan(struct ieee80211_hw *hw,
  				spin_lock_bh(&ar->data_lock);
  				ar->scan.arvif = NULL;
  				ar->scan.state = ATH12K_SCAN_IDLE;
@@ -152,7 +158,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  				ar->scan_channel = NULL;
  				ar->scan.roc_freq = 0;
  				spin_unlock_bh(&ar->data_lock);
-@@ -5936,7 +5948,7 @@
+@@ -5947,7 +5959,7 @@ void ath12k_mac_op_cancel_hw_scan(struct ieee80211_hw *hw,
  
  		ath12k_scan_abort(ar);
  
@@ -161,7 +167,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	}
  }
  EXPORT_SYMBOL(ath12k_mac_op_cancel_hw_scan);
-@@ -10069,7 +10081,7 @@
+@@ -10093,7 +10105,7 @@ static void ath12k_mac_stop(struct ath12k *ar)
  
  	clear_bit(ATH12K_FLAG_CAC_RUNNING, &ar->dev_flags);
  
@@ -170,7 +176,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	wiphy_work_cancel(ath12k_ar_to_hw(ar)->wiphy, &ar->scan.vdev_clean_wk);
  	cancel_work_sync(&ar->regd_channel_update_work);
  	cancel_work_sync(&ar->regd_update_work);
-@@ -11092,6 +11104,7 @@
+@@ -11116,6 +11128,7 @@ void ath12k_mac_op_remove_interface(struct ieee80211_hw *hw,
  			}
  
  			ar->scan.state = ATH12K_SCAN_IDLE;
@@ -178,7 +184,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  			ar->scan_channel = NULL;
  			ar->scan.roc_freq = 0;
  			spin_unlock_bh(&ar->data_lock);
-@@ -14011,7 +14024,7 @@
+@@ -14035,7 +14048,7 @@ int ath12k_mac_op_cancel_remain_on_channel(struct ieee80211_hw *hw,
  
  	ath12k_scan_abort(ar);
  
@@ -187,7 +193,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	wiphy_work_flush(hw->wiphy, &ar->scan.vdev_clean_wk);
  
  	return 0;
-@@ -14091,6 +14104,7 @@
+@@ -14115,6 +14128,7 @@ int ath12k_mac_op_remain_on_channel(struct ieee80211_hw *hw,
  		reinit_completion(&ar->scan.on_channel);
  		ar->scan.state = ATH12K_SCAN_STARTING;
  		ar->scan.is_roc = true;
@@ -195,7 +201,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		ar->scan.arvif = arvif;
  		ar->scan.roc_freq = chan->center_freq;
  		ar->scan.roc_notify = true;
-@@ -14133,6 +14147,7 @@
+@@ -14157,6 +14171,7 @@ int ath12k_mac_op_remain_on_channel(struct ieee80211_hw *hw,
  
  		spin_lock_bh(&ar->data_lock);
  		ar->scan.state = ATH12K_SCAN_IDLE;
@@ -203,7 +209,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  		spin_unlock_bh(&ar->data_lock);
  		return ret;
  	}
-@@ -14146,8 +14161,8 @@
+@@ -14170,8 +14185,8 @@ int ath12k_mac_op_remain_on_channel(struct ieee80211_hw *hw,
  		return -ETIMEDOUT;
  	}
  
@@ -214,7 +220,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  
  	return 0;
  }
-@@ -15194,6 +15209,7 @@
+@@ -15212,6 +15227,7 @@ static void ath12k_mac_setup(struct ath12k *ar)
  	ar->num_tx_chains = hweight32(pdev->cap.tx_chain_mask);
  	ar->num_rx_chains = hweight32(pdev->cap.rx_chain_mask);
  	ar->scan.arvif = NULL;
@@ -222,7 +228,7 @@ Signed-off-by: Runyu Xiao <runyu.xiao@xxxxxxxxxx>
  	ar->vdev_id_11d_scan = ATH12K_11D_INVALID_VDEV_ID;
  
  	spin_lock_init(&ar->data_lock);
-@@ -15219,7 +15235,7 @@
+@@ -15237,7 +15253,7 @@ static void ath12k_mac_setup(struct ath12k *ar)
  	ar->thermal.temperature = 0;
  	ar->thermal.hwmon_dev = NULL;
  

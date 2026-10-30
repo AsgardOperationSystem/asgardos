@@ -12,9 +12,11 @@ Read the tear check counter instead and treat it as lines since TE. A line
 count that cannot be read no longer produces a timestamp.
 
 ---
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+index f4b14487c93a..b5b2409d5d2c 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
-@@ -303,6 +303,20 @@
+@@ -303,6 +303,20 @@ static bool dpu_crtc_get_scanout_position(struct drm_crtc *crtc,
  
  	line = dpu_encoder_get_linecount(encoder);
  
@@ -35,7 +37,7 @@ count that cannot be read no longer produces a timestamp.
  	if (line < vactive_start)
  		line -= vactive_start;
  	else if (line > vactive_end)
-@@ -311,10 +325,6 @@
+@@ -311,10 +325,6 @@ static bool dpu_crtc_get_scanout_position(struct drm_crtc *crtc,
  		line -= vactive_start;
  
  	*vpos = line;
@@ -46,9 +48,11 @@ count that cannot be read no longer produces a timestamp.
  
  	return true;
  }
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c
+index 111f9dd5e053..843de1f8c7fe 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_encoder_phys_cmd.c
-@@ -523,9 +523,9 @@
+@@ -523,9 +523,9 @@ static int dpu_encoder_phys_cmd_get_line_count(
  
  	if (phys_enc->has_intf_te) {
  		hw_intf = phys_enc->hw_intf;
@@ -60,9 +64,11 @@ count that cannot be read no longer produces a timestamp.
  	}
  
  	hw_pp = phys_enc->hw_pp;
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.c
+index ac82b69aedf6..e7c29711a705 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.c
-@@ -356,6 +356,24 @@
+@@ -356,6 +356,24 @@ static u32 dpu_hw_intf_get_line_count(struct dpu_hw_intf *intf)
  	return DPU_REG_READ(c, INTF_LINE_COUNT);
  }
  
@@ -87,7 +93,7 @@ count that cannot be read no longer produces a timestamp.
  static void dpu_hw_intf_setup_misr(struct dpu_hw_intf *intf)
  {
  	dpu_hw_setup_misr(&intf->hw, INTF_MISR_CTRL, 0x1);
-@@ -654,6 +672,7 @@
+@@ -654,6 +672,7 @@ struct dpu_hw_intf *dpu_hw_intf_init(struct drm_device *dev,
  		c->ops.enable_tearcheck = dpu_hw_intf_enable_te;
  		c->ops.disable_tearcheck = dpu_hw_intf_disable_te;
  		c->ops.connect_external_te = dpu_hw_intf_connect_external_te;
@@ -95,9 +101,11 @@ count that cannot be read no longer produces a timestamp.
  		if (mdss_rev->core_major_ver >= 8)
  			c->ops.vsync_sel = dpu_hw_intf_vsync_sel_v8;
  		else
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.h
+index badd26305fc9..76370ad4640c 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.h
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_intf.h
-@@ -68,6 +68,8 @@
+@@ -68,6 +68,8 @@ struct dpu_hw_intf_cmd_mode_cfg {
   *                     feed pixels to this interface
   * @setup_misr: enable/disable MISR
   * @collect_misr: read MISR signature
@@ -106,7 +114,7 @@ count that cannot be read no longer produces a timestamp.
   * @enable_tearcheck:           Enables vsync generation and sets up init value of read
   *                              pointer and programs the tear check configuration
   * @disable_tearcheck:          Disables tearcheck block
-@@ -100,6 +102,8 @@
+@@ -100,6 +102,8 @@ struct dpu_hw_intf_ops {
  
  	// Tearcheck on INTF since DPU 5.0.0
  

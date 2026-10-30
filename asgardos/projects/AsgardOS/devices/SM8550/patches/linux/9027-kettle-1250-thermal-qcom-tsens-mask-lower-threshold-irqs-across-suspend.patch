@@ -20,9 +20,11 @@ resume: the first post-resume update of each thermal zone re-enables
 both directions via tsens_set_trips().
 
 ---
+diff --git a/drivers/thermal/qcom/tsens.c b/drivers/thermal/qcom/tsens.c
+index 50578871f038..476265aaa05f 100644
 --- a/drivers/thermal/qcom/tsens.c
 +++ b/drivers/thermal/qcom/tsens.c
-@@ -1127,6 +1127,29 @@
+@@ -1127,6 +1127,29 @@ static int tsens_get_temp(struct thermal_zone_device *tz, int *temp)
  	return priv->ops->get_temp(s, temp);
  }
  
@@ -52,7 +54,7 @@ both directions via tsens_set_trips().
  static int  __maybe_unused tsens_suspend(struct device *dev)
  {
  	int ret = 0;
-@@ -1155,7 +1178,10 @@
+@@ -1155,7 +1178,10 @@ static int __maybe_unused tsens_resume(struct device *dev)
  	return tsens_resume_common(priv);
  }
  

@@ -21,9 +21,11 @@ skipped a byte at a time so corrupt data cannot wedge the parser.
 buffered tail whenever the MCU is powered on, so a partial frame from
 before suspend cannot swallow the handshake's version reply.]
 ---
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index 9c99f74258ce..9d2f0948c722 100644
 --- a/drivers/input/joystick/rsinput.c
 +++ b/drivers/input/joystick/rsinput.c
-@@ -151,6 +151,7 @@
+@@ -151,6 +151,7 @@ struct rsinput_driver {
      bool invert_rx;
      bool invert_ry;
      uint8_t rx_buf[1024];
@@ -31,7 +33,7 @@ before suspend cannot swallow the handshake's version reply.]
      uint8_t sequence_number;
      struct completion version_ack;
      /*
-@@ -228,6 +229,15 @@
+@@ -228,6 +229,15 @@ static void rsinput_power_on_mcu(struct rsinput_driver *drv) {
  
      msleep(100);
  
@@ -47,7 +49,7 @@ before suspend cannot swallow the handshake's version reply.]
      if (drv->enable_gpio)
          gpiod_set_value_cansleep(drv->enable_gpio, 1);
  
-@@ -481,39 +491,74 @@
+@@ -481,39 +491,74 @@ static void rsinput_process_data(struct rsinput_driver *drv, const uint8_t *data
      }
  }
  
@@ -79,11 +81,7 @@ before suspend cannot swallow the handshake's version reply.]
 +     */
 +    if (drv->rx_len + count > sizeof(drv->rx_buf))
 +        drv->rx_len = 0;
- 
--    if (count < MCU_PKT_SIZE_MIN) {
--        dev_warn_ratelimited(&serdev->dev, "Frame too short for checksum validation\n");
--        goto error;
--    }
++
 +    memcpy(drv->rx_buf + drv->rx_len, data, count);
 +    drv->rx_len += count;
 +    avail = drv->rx_len;
@@ -100,11 +98,15 @@ before suspend cannot swallow the handshake's version reply.]
 +            continue;
 +        }
  
--    received_checksum = drv->rx_buf[count - 1];
+-    if (count < MCU_PKT_SIZE_MIN) {
+-        dev_warn_ratelimited(&serdev->dev, "Frame too short for checksum validation\n");
+-        goto error;
+-    }
 +        payload_length = frame[FRAME_POS_LEN_L] |
 +                         (frame[FRAME_POS_LEN_H] << 8);
 +        frame_length = MCU_PKT_SIZE_MIN + payload_length;
-+
+ 
+-    received_checksum = drv->rx_buf[count - 1];
 +        if (frame_length > sizeof(drv->rx_buf)) {
 +            consumed++;
 +            avail--;
@@ -114,15 +116,15 @@ before suspend cannot swallow the handshake's version reply.]
 -    computed_checksum = compute_checksum(drv->rx_buf, count);
 +        if (avail < frame_length)
 +            break;
- 
--    if (computed_checksum != received_checksum) {
--        dev_warn_ratelimited(&serdev->dev, "Checksum mismatch\n");
--        goto error;
++
 +        if (compute_checksum(frame, frame_length) == frame[frame_length - 1])
 +            rsinput_process_data(drv, frame, frame_length);
 +        else
 +            dev_warn_ratelimited(&serdev->dev, "Checksum mismatch\n");
-+
+ 
+-    if (computed_checksum != received_checksum) {
+-        dev_warn_ratelimited(&serdev->dev, "Checksum mismatch\n");
+-        goto error;
 +        consumed += frame_length;
 +        avail -= frame_length;
      }

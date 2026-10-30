@@ -4,11 +4,8 @@ Date: Wed, 4 Feb 2026 22:19:25 +0100
 Subject: [PATCH] rmi4: silence spam irq errors
 
 ---
- drivers/input/rmi4/rmi_driver.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
 diff --git a/drivers/input/rmi4/rmi_driver.c b/drivers/input/rmi4/rmi_driver.c
-index ccd9338a44db..3c964c87d427 100644
+index ff6b29576914..a5d8efa6e20c 100644
 --- a/drivers/input/rmi4/rmi_driver.c
 +++ b/drivers/input/rmi4/rmi_driver.c
 @@ -141,7 +141,7 @@ static int rmi_process_interrupt_requests(struct rmi_device *rmi_dev)
@@ -20,6 +17,3 @@ index ccd9338a44db..3c964c87d427 100644
  			return error;
  		}
  	}
--- 
-2.52.0
-

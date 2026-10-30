@@ -31,9 +31,11 @@ on after the gate worker has passed its initial eligibility check.
 
 Signed-off-by: gh123man <gh123man@users.noreply.github.com>
 ---
---- a/drivers/ufs/core/ufshcd.c	2026-08-25 21:37:00.258096745 +0800
-+++ b/drivers/ufs/core/ufshcd.c	2026-08-25 21:37:15.670766966 +0800
-@@ -2029,6 +2029,9 @@
+diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
+index ca8329052cbc..e049ebb8d30b 100644
+--- a/drivers/ufs/core/ufshcd.c
++++ b/drivers/ufs/core/ufshcd.c
+@@ -2040,6 +2040,9 @@ static void ufshcd_gate_work(struct work_struct *work)
  {
  	struct ufs_hba *hba = container_of(work, struct ufs_hba,
  			clk_gating.gate_work.work);
@@ -43,7 +45,7 @@ Signed-off-by: gh123man <gh123man@users.noreply.github.com>
  	int ret;
  
  	scoped_guard(spinlock_irqsave, &hba->clk_gating.lock) {
-@@ -2048,6 +2051,15 @@
+@@ -2059,6 +2062,15 @@ static void ufshcd_gate_work(struct work_struct *work)
  
  		if (hba->clk_gating.active_reqs)
  			return;
@@ -59,7 +61,7 @@ Signed-off-by: gh123man <gh123man@users.noreply.github.com>
  	}
  
  	scoped_guard(spinlock_irqsave, hba->host->host_lock) {
-@@ -2058,16 +2070,82 @@
+@@ -2069,16 +2081,82 @@ static void ufshcd_gate_work(struct work_struct *work)
  
  	/* put the link into hibern8 mode before turning off clocks */
  	if (ufshcd_can_hibern8_during_gating(hba)) {

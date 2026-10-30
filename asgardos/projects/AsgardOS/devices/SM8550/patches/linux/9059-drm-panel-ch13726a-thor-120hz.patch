@@ -5,9 +5,11 @@ AYN's Android DT lists dfps 120/60 for the bottom panel (qcom,dsi-supported-dfps
 and its dyn-clk 1011/505 Mbps are the lane rates of the 12/4/12 timings at 120 and 60 Hz.
 Offer the 120 Hz mode next to the preferred 60 Hz one; Asgard picks it from Settings.
 ---
+diff --git a/drivers/gpu/drm/panel/panel-ddic-ch13726a.c b/drivers/gpu/drm/panel/panel-ddic-ch13726a.c
+index eebca102edc8..c6779d30497e 100644
 --- a/drivers/gpu/drm/panel/panel-ddic-ch13726a.c
 +++ b/drivers/gpu/drm/panel/panel-ddic-ch13726a.c
-@@ -181,6 +181,25 @@
+@@ -182,6 +182,25 @@ static const struct drm_display_mode thor_display_mode = {
  	.height_mm = 75,
  };
  
@@ -33,7 +35,7 @@ Offer the 120 Hz mode next to the preferred 60 Hz one; Asgard picks it from Sett
  static int ch13726a_get_modes(struct drm_panel *panel,
  					struct drm_connector *connector)
  {
-@@ -198,7 +217,17 @@
+@@ -199,7 +218,17 @@ static int ch13726a_get_modes(struct drm_panel *panel,
  	connector->display_info.height_mm = mode->height_mm;
  	drm_mode_probed_add(connector, mode);
  

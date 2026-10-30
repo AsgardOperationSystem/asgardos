@@ -1,8 +1,8 @@
 diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
-index 03a550630..f5ec88f36 100644
+index e75344f4e0cd..25cd082e9289 100644
 --- a/Documentation/admin-guide/kernel-parameters.txt
 +++ b/Documentation/admin-guide/kernel-parameters.txt
-@@ -8133,6 +8133,14 @@ Kernel parameters
+@@ -8141,6 +8141,14 @@ Kernel parameters
  			USB_REQ_GET_DESCRIPTOR request in milliseconds
  			(default 5000 = 5.0 seconds).
  
@@ -18,7 +18,7 @@ index 03a550630..f5ec88f36 100644
  
  	usbcore.quirks=
 diff --git a/drivers/usb/core/config.c b/drivers/usb/core/config.c
-index 6a1fd967e..b7b719f7b 100644
+index 0e79b7f8a73d..d762384e6b33 100644
 --- a/drivers/usb/core/config.c
 +++ b/drivers/usb/core/config.c
 @@ -18,6 +18,148 @@
@@ -170,7 +170,7 @@ index 6a1fd967e..b7b719f7b 100644
  
  static int find_next_descriptor(unsigned char *buffer, int size,
      int dt1, int dt2, int *num_skipped)
-@@ -293,7 +435,7 @@ static int usb_parse_endpoint(struct device *ddev, int cfgno,
+@@ -285,7 +427,7 @@ static int usb_parse_endpoint(struct device *ddev, int cfgno,
  	struct usb_endpoint_descriptor *d;
  	struct usb_host_endpoint *endpoint;
  	int n, i, j, retval;
@@ -179,7 +179,7 @@ index 6a1fd967e..b7b719f7b 100644
  	const unsigned short *maxpacket_maxes;
  	u16 bcdUSB;
  
-@@ -432,6 +574,23 @@ static int usb_parse_endpoint(struct device *ddev, int cfgno,
+@@ -424,6 +566,23 @@ static int usb_parse_endpoint(struct device *ddev, int cfgno,
  		endpoint->desc.bInterval = n;
  	}
  
@@ -203,7 +203,7 @@ index 6a1fd967e..b7b719f7b 100644
  	/* Some buggy low-speed devices have Bulk endpoints, which is
  	 * explicitly forbidden by the USB spec.  In an attempt to make
  	 * them usable, we will try treating them as Interrupt endpoints.
-@@ -1153,3 +1312,11 @@ int usb_get_bos_descriptor(struct usb_device *dev)
+@@ -1161,3 +1320,11 @@ int usb_get_bos_descriptor(struct usb_device *dev)
  	usb_release_bos_descriptor(dev);
  	return ret;
  }
@@ -216,7 +216,7 @@ index 6a1fd967e..b7b719f7b 100644
 +	mutex_unlock(&interrupt_interval_override_mutex);
 +}
 diff --git a/drivers/usb/core/usb.c b/drivers/usb/core/usb.c
-index df166cafe..abe3a0eb7 100644
+index df166cafe106..abe3a0eb72f2 100644
 --- a/drivers/usb/core/usb.c
 +++ b/drivers/usb/core/usb.c
 @@ -1275,6 +1275,7 @@ static void __exit usb_exit(void)
@@ -228,7 +228,7 @@ index df166cafe..abe3a0eb7 100644
  	usb_major_cleanup();
  	usb_deregister(&usbfs_driver);
 diff --git a/drivers/usb/core/usb.h b/drivers/usb/core/usb.h
-index a9b37aeb5..f46788799 100644
+index a9b37aeb515b..f46788799632 100644
 --- a/drivers/usb/core/usb.h
 +++ b/drivers/usb/core/usb.h
 @@ -38,6 +38,7 @@ extern void usb_authorize_interface(struct usb_interface *);

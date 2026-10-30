@@ -25,14 +25,11 @@ Tested-by: Xilin Wu <sophon@radxa.com>
 Link: https://patch.msgid.link/20260911024319.1346706-2-stanleyjhu@google.com
 Signed-off-by: Martin K. Petersen (Oracle) <mkp@kernel.org>
 ---
- drivers/ufs/core/ufshcd.c | 29 +++++++++++++++++++++++------
- 1 file changed, 23 insertions(+), 6 deletions(-)
-
 diff --git a/drivers/ufs/core/ufshcd.c b/drivers/ufs/core/ufshcd.c
-index 234e18b50..0bc3adbe9 100644
+index 8c34603e5700..ccafd264f699 100644
 --- a/drivers/ufs/core/ufshcd.c
 +++ b/drivers/ufs/core/ufshcd.c
-@@ -3308,6 +3308,11 @@ ufshcd_dev_cmd_completion(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
+@@ -3362,6 +3362,11 @@ ufshcd_dev_cmd_completion(struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
  
  		if (response == 0) {
  			err = ufshcd_copy_query_response(hba, lrbp);
@@ -44,7 +41,7 @@ index 234e18b50..0bc3adbe9 100644
  		} else {
  			err = -EINVAL;
  			dev_err(hba->dev, "%s: unexpected response in Query RSP: %x\n",
-@@ -3470,6 +3475,8 @@ static int ufshcd_query_flag_retry(struct ufs_hba *hba,
+@@ -3524,6 +3529,8 @@ static int ufshcd_query_flag_retry(struct ufs_hba *hba,
  
  	for (retries = 0; retries < QUERY_REQ_RETRIES; retries++) {
  		ret = ufshcd_query_flag(hba, opcode, idn, index, flag_res);
@@ -53,7 +50,7 @@ index 234e18b50..0bc3adbe9 100644
  		if (ret)
  			dev_dbg(hba->dev,
  				"%s: failed with error %d, retries %d\n",
-@@ -3536,7 +3543,8 @@ int ufshcd_query_flag(struct ufs_hba *hba, enum query_opcode opcode,
+@@ -3590,7 +3597,8 @@ int ufshcd_query_flag(struct ufs_hba *hba, enum query_opcode opcode,
  	}
  
  	err = ufshcd_exec_dev_cmd(hba, DEV_CMD_TYPE_QUERY, timeout);
@@ -63,7 +60,7 @@ index 234e18b50..0bc3adbe9 100644
  	if (err) {
  		dev_err(hba->dev,
  			"%s: Sending flag query for idn %d failed, err = %d\n",
-@@ -3601,7 +3609,8 @@ int ufshcd_query_attr(struct ufs_hba *hba, enum query_opcode opcode,
+@@ -3655,7 +3663,8 @@ int ufshcd_query_attr(struct ufs_hba *hba, enum query_opcode opcode,
  	}
  
  	err = ufshcd_exec_dev_cmd(hba, DEV_CMD_TYPE_QUERY, dev_cmd_timeout);
@@ -73,7 +70,7 @@ index 234e18b50..0bc3adbe9 100644
  	if (err) {
  		dev_err(hba->dev, "%s: opcode 0x%.2x for idn %d failed, index %d, err = %d\n",
  				__func__, opcode, idn, index, err);
-@@ -3639,6 +3648,8 @@ int ufshcd_query_attr_retry(struct ufs_hba *hba,
+@@ -3693,6 +3702,8 @@ int ufshcd_query_attr_retry(struct ufs_hba *hba,
  	for (retries = QUERY_REQ_RETRIES; retries > 0; retries--) {
  		ret = ufshcd_query_attr(hba, opcode, idn, index,
  						selector, attr_val);
@@ -82,7 +79,7 @@ index 234e18b50..0bc3adbe9 100644
  		if (ret)
  			dev_dbg(hba->dev, "%s: failed with error %d, retries %d\n",
  				__func__, ret, retries);
-@@ -3700,6 +3711,8 @@ int ufshcd_query_attr_qword(struct ufs_hba *hba, enum query_opcode opcode,
+@@ -3754,6 +3765,8 @@ int ufshcd_query_attr_qword(struct ufs_hba *hba, enum query_opcode opcode,
  	}
  
  	err = ufshcd_exec_dev_cmd(hba, DEV_CMD_TYPE_QUERY, dev_cmd_timeout);
@@ -91,7 +88,7 @@ index 234e18b50..0bc3adbe9 100644
  	if (err) {
  		dev_err(hba->dev, "%s: opcode 0x%.2x for idn %d failed, index %d, selector %d, err = %d\n",
  			__func__, opcode, idn, index, sel, err);
-@@ -3763,7 +3776,8 @@ static int __ufshcd_query_descriptor(struct ufs_hba *hba,
+@@ -3817,7 +3830,8 @@ static int __ufshcd_query_descriptor(struct ufs_hba *hba,
  	}
  
  	err = ufshcd_exec_dev_cmd(hba, DEV_CMD_TYPE_QUERY, dev_cmd_timeout);
@@ -101,7 +98,7 @@ index 234e18b50..0bc3adbe9 100644
  	if (err) {
  		dev_err(hba->dev, "%s: opcode 0x%.2x for idn %d failed, index %d, err = %d\n",
  				__func__, opcode, idn, index, err);
-@@ -3806,7 +3820,7 @@ int ufshcd_query_descriptor_retry(struct ufs_hba *hba,
+@@ -3860,7 +3874,7 @@ int ufshcd_query_descriptor_retry(struct ufs_hba *hba,
  	for (retries = QUERY_REQ_RETRIES; retries > 0; retries--) {
  		err = __ufshcd_query_descriptor(hba, opcode, idn, index,
  						selector, desc_buf, buf_len);
@@ -110,7 +107,7 @@ index 234e18b50..0bc3adbe9 100644
  			break;
  	}
  
-@@ -3855,6 +3869,8 @@ int ufshcd_read_desc_param(struct ufs_hba *hba,
+@@ -3909,6 +3923,8 @@ int ufshcd_read_desc_param(struct ufs_hba *hba,
  	ret = ufshcd_query_descriptor_retry(hba, UPIU_QUERY_OPCODE_READ_DESC,
  					    desc_id, desc_index, 0,
  					    desc_buf, &buff_len);
@@ -119,7 +116,7 @@ index 234e18b50..0bc3adbe9 100644
  	if (ret) {
  		dev_err(hba->dev, "%s: Failed reading descriptor. desc_id %d, desc_index %d, param_offset %d, ret %d\n",
  			__func__, desc_id, desc_index, param_offset, ret);
-@@ -3941,8 +3957,9 @@ int ufshcd_read_string_desc(struct ufs_hba *hba, u8 desc_index, u8 **buf, enum u
+@@ -3995,8 +4011,9 @@ int ufshcd_read_string_desc(struct ufs_hba *hba, u8 desc_index, u8 **buf, enum u
  	ret = ufshcd_read_desc_param(hba, QUERY_DESC_IDN_STRING, desc_index, 0,
  				     (u8 *)uc_str, QUERY_DESC_MAX_SIZE);
  	if (ret < 0) {
@@ -131,6 +128,3 @@ index 234e18b50..0bc3adbe9 100644
  		str = NULL;
  		goto out;
  	}
--- 
-2.56.0
-

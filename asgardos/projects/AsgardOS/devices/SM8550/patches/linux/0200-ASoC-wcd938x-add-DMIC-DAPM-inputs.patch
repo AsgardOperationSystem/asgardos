@@ -13,14 +13,11 @@ Add explicit DAPM input widgets for the eight WCD DMICs and route each DMIC
 ADC from its matching input. This lets boards with WCD digital microphones
 power the full DMIC -> WCD TX SoundWire -> LPASS TX macro capture route.
 ---
- sound/soc/codecs/wcd938x.c | 16 ++++++++++++++++
- 1 file changed, 16 insertions(+)
-
 diff --git a/sound/soc/codecs/wcd938x.c b/sound/soc/codecs/wcd938x.c
-index f4f95985b61c..d759083af92b 100644
+index 9a9ea37ecab3..0233d533de70 100644
 --- a/sound/soc/codecs/wcd938x.c
 +++ b/sound/soc/codecs/wcd938x.c
-@@ -2651,6 +2651,14 @@ static const struct snd_soc_dapm_widget wcd938x_dapm_widgets[] = {
+@@ -2652,6 +2652,14 @@ static const struct snd_soc_dapm_widget wcd938x_dapm_widgets[] = {
  	SND_SOC_DAPM_MIC("Analog Mic3", NULL),
  	SND_SOC_DAPM_MIC("Analog Mic4", NULL),
  	SND_SOC_DAPM_MIC("Analog Mic5", NULL),
@@ -35,7 +32,7 @@ index f4f95985b61c..d759083af92b 100644
  
  	/*tx widgets*/
  	SND_SOC_DAPM_ADC_E("ADC1", NULL, SND_SOC_NOPM, 0, 0,
-@@ -2889,27 +2897,35 @@ static const struct snd_soc_dapm_route wcd938x_audio_map[] = {
+@@ -2901,27 +2909,35 @@ static const struct snd_soc_dapm_route wcd938x_audio_map[] = {
  
  	{"DMIC1_OUTPUT", NULL, "DMIC1_MIXER"},
  	{"DMIC1_MIXER", "Switch", "DMIC1"},
@@ -71,5 +68,3 @@ index f4f95985b61c..d759083af92b 100644
  
  	{"IN1_HPHL", NULL, "VDD_BUCK"},
  	{"IN1_HPHL", NULL, "CLS_H_PORT"},
--- 
-2.43.0

@@ -7,9 +7,11 @@ including the version reply, so the resume handshake timed out and the pad
 stayed in its default stream mode. Parse large chunks in slices instead.
 Also ignore RX until the input device exists (rebind NULL deref).
 ---
---- a/drivers/input/joystick/rsinput.c	2026-10-08 10:26:34.503202344 +0300
-+++ b/drivers/input/joystick/rsinput.c	2026-10-08 10:26:34.510326115 +0300
-@@ -504,8 +504,30 @@
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index 9d2f0948c722..a0de8c4a6126 100644
+--- a/drivers/input/joystick/rsinput.c
++++ b/drivers/input/joystick/rsinput.c
+@@ -504,8 +504,30 @@ static size_t rsinput_rx(struct serdev_device *serdev, const u8 *data, size_t co
          return count;
      }
  

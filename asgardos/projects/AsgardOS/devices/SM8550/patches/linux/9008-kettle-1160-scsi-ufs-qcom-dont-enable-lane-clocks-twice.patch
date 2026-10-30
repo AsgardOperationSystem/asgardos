@@ -17,9 +17,11 @@ Return early when the clocks are already enabled, mirroring the disable
 side.
 
 ---
+diff --git a/drivers/ufs/host/ufs-qcom.c b/drivers/ufs/host/ufs-qcom.c
+index 06fdd8029ac7..464eeb79460f 100644
 --- a/drivers/ufs/host/ufs-qcom.c
 +++ b/drivers/ufs/host/ufs-qcom.c
-@@ -357,6 +357,16 @@
+@@ -357,6 +357,16 @@ static int ufs_qcom_enable_lane_clks(struct ufs_qcom_host *host)
  {
  	int err;
  

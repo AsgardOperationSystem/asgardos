@@ -25,9 +25,11 @@ logged), and now and then it lands in that window:
 Clear only CM3_FAULT, as the downstream driver (kgsl) does, which writes
 its HFI_IRQ_MASK to GMU2HOST_INTR_CLR rather than the status it read.
 ---
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+index 68e61bfb559e..28a26466c59c 100644
 --- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
 +++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
-@@ -64,7 +64,13 @@
+@@ -64,7 +64,13 @@ static irqreturn_t a6xx_hfi_irq(int irq, void *data)
  	struct a6xx_gmu *gmu = data;
  	u32 status;
  

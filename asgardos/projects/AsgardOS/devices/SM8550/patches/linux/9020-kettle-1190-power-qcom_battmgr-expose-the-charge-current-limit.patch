@@ -14,9 +14,11 @@ firmware's reply to a property set instead of logging it as an unknown
 message. Userspace can then slow charging down, or hold a charge limit by
 setting 0 at the limit.
 ---
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+index ef9077453605..0d2bff0ca0c3 100644
 --- a/drivers/power/supply/qcom_battmgr.c
 +++ b/drivers/power/supply/qcom_battmgr.c
-@@ -260,6 +260,8 @@
+@@ -260,6 +260,8 @@ struct qcom_battmgr_info {
  	unsigned int charge_count;
  	unsigned int charge_ctrl_start;
  	unsigned int charge_ctrl_end;
@@ -25,7 +27,7 @@ setting 0 at the limit.
  	char model_number[BATTMGR_STRING_LEN];
  	char serial_number[BATTMGR_STRING_LEN];
  	char oem_info[BATTMGR_STRING_LEN];
-@@ -451,6 +453,8 @@
+@@ -451,6 +453,8 @@ static const u8 sm8350_bat_prop_map[] = {
  	[POWER_SUPPLY_PROP_POWER_NOW] = BATT_POWER_NOW,
  	[POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD] = BATT_CHG_CTRL_START_THR,
  	[POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD] = BATT_CHG_CTRL_END_THR,
@@ -34,7 +36,7 @@ setting 0 at the limit.
  };
  
  static int qcom_battmgr_bat_sm8350_update(struct qcom_battmgr *battmgr,
-@@ -640,6 +644,12 @@
+@@ -640,6 +644,12 @@ static int qcom_battmgr_bat_get_property(struct power_supply *psy,
  	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
  		val->intval = battmgr->info.charge_ctrl_end;
  		break;
@@ -47,7 +49,7 @@ setting 0 at the limit.
  	case POWER_SUPPLY_PROP_MANUFACTURE_YEAR:
  		val->intval = battmgr->info.year;
  		break;
-@@ -763,12 +773,35 @@
+@@ -763,12 +773,35 @@ static int qcom_battmgr_charge_control_thresholds_init(struct qcom_battmgr *batt
  	return 0;
  }
  
@@ -83,7 +85,7 @@ setting 0 at the limit.
  		return 1;
  	default:
  		return 0;
-@@ -791,6 +824,8 @@
+@@ -791,6 +824,8 @@ static int qcom_battmgr_bat_set_property(struct power_supply *psy,
  		return qcom_battmgr_set_charge_start_threshold(battmgr, pval->intval);
  	case POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD:
  		return qcom_battmgr_set_charge_end_threshold(battmgr, pval->intval);
@@ -92,7 +94,7 @@ setting 0 at the limit.
  	default:
  		return -EINVAL;
  	}
-@@ -926,6 +961,8 @@
+@@ -926,6 +961,8 @@ static const enum power_supply_property sm8550_bat_props[] = {
  	POWER_SUPPLY_PROP_POWER_NOW,
  	POWER_SUPPLY_PROP_CHARGE_CONTROL_START_THRESHOLD,
  	POWER_SUPPLY_PROP_CHARGE_CONTROL_END_THRESHOLD,
@@ -101,7 +103,7 @@ setting 0 at the limit.
  };
  
  static const struct power_supply_desc sm8550_bat_psy_desc = {
-@@ -1482,6 +1519,12 @@
+@@ -1482,6 +1519,12 @@ static void qcom_battmgr_sm8350_callback(struct qcom_battmgr *battmgr,
  		case BATT_CHG_CTRL_END_THR:
  			battmgr->info.charge_ctrl_end = le32_to_cpu(resp->intval.value);
  			break;
@@ -114,7 +116,7 @@ setting 0 at the limit.
  		default:
  			dev_warn(battmgr->dev, "unknown property %#x\n", property);
  			break;
-@@ -1563,6 +1606,14 @@
+@@ -1563,6 +1606,14 @@ static void qcom_battmgr_sm8350_callback(struct qcom_battmgr *battmgr,
  			break;
  		}
  		break;

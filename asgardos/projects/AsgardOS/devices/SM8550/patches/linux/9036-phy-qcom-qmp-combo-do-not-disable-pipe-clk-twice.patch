@@ -8,9 +8,11 @@ timeout on a USB-C cable wake (2026-10-12 09:55) left the clock refcount one sho
 pipe clock from then on, and every later resume failed the same way (dwc3_qcom_pm_resume returns -110), with
 the controller holding its 1 GB/s DDR vote through sleep until a reboot.
 ---
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-combo.c b/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
+index c39ced168d03..746ce0d9b10f 100644
 --- a/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
 +++ b/drivers/phy/qualcomm/phy-qcom-qmp-combo.c
-@@ -3909,16 +3909,12 @@
+@@ -4259,16 +4259,12 @@ static int qmp_combo_usb_power_on(struct phy *phy)
  	ret = readl_poll_timeout(status, val, !(val & PHYSTATUS), 200,
  			PHY_INIT_COMPLETE_TIMEOUT);
  	if (ret) {

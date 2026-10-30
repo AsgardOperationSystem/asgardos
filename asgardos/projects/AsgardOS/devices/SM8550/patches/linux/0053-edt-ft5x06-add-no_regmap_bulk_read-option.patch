@@ -7,11 +7,8 @@ AYN SM8550 have problem with regmap_bulk_read under i2c_hub_*
 
 Signed-off-by: Teguh Sobirin <teguh@sobir.in>
 ---
- drivers/input/touchscreen/edt-ft5x06.c | 42 ++++++++++++++++++++++++--
- 1 file changed, 40 insertions(+), 2 deletions(-)
-
 diff --git a/drivers/input/touchscreen/edt-ft5x06.c b/drivers/input/touchscreen/edt-ft5x06.c
-index bf498bd4dea9..f8a7e66aee55 100644
+index 300698255cd9..25689e4756b0 100644
 --- a/drivers/input/touchscreen/edt-ft5x06.c
 +++ b/drivers/input/touchscreen/edt-ft5x06.c
 @@ -146,6 +146,7 @@ struct edt_ft5x06_ts_data {
@@ -75,7 +72,7 @@ index bf498bd4dea9..f8a7e66aee55 100644
  	if (error) {
  		dev_err_ratelimited(dev, "Unable to fetch data, error: %d\n",
  				    error);
-@@ -1232,6 +1268,8 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client)
+@@ -1213,6 +1249,8 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client)
  		return error;
  	}
  
@@ -84,6 +81,3 @@ index bf498bd4dea9..f8a7e66aee55 100644
  	/*
  	 * Check which sleep modes we can support. Power-off requires the
  	 * reset-pin to ensure correct power-down/power-up behaviour. Start with
--- 
-2.34.1
-

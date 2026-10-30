@@ -3,9 +3,11 @@ Date: Wed, 23 Sep 2026 10:52:24 -0700
 Subject: [PATCH] drm/msm/dpu: correct the linear danger LUT on sm8250
 
 
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_6_0_sm8250.h b/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_6_0_sm8250.h
+index a591bab99687..2f4a57b7757f 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_6_0_sm8250.h
 +++ b/drivers/gpu/drm/msm/disp/dpu1/catalog/dpu_6_0_sm8250.h
-@@ -329,7 +329,7 @@
+@@ -330,7 +330,7 @@ static const struct dpu_perf_cfg sm8250_perf_data = {
  	.min_llcc_ib = 0,
  	.min_dram_ib = 800000,
  	.min_prefill_lines = 35,

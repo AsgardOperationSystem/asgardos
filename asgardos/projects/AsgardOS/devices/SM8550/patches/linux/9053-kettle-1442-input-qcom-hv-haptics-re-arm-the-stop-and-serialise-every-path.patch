@@ -20,7 +20,7 @@ still leaves the effect loaded, as before). Remove cancels stop_work, so
 a pending stop cannot run on the freed chip.
 ---
 diff --git a/drivers/input/misc/qcom-hv-haptics.c b/drivers/input/misc/qcom-hv-haptics.c
-index 78bf9e2..32c359d 100644
+index 78bf9e258754..32c359dbb40c 100644
 --- a/drivers/input/misc/qcom-hv-haptics.c
 +++ b/drivers/input/misc/qcom-hv-haptics.c
 @@ -2698,6 +2698,18 @@ static void haptics_stop_constant_effect_play(struct work_struct *work)

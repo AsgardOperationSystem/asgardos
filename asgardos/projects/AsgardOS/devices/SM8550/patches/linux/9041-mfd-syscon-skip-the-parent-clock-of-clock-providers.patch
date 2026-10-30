@@ -5,9 +5,11 @@ Taken from justririll/x1e-sleep kernel/sleep/. SM8550 TCSR is "qcom,sm8550-tcsr"
 with clocks = <&rpmhcc RPMH_CXO_CLK> and #clock-cells, so syscon keeps bi_tcxo (the
 sleep-set XO vote) prepared forever, which keeps AOP from turning the crystal off.
 ---
---- a/drivers/mfd/syscon.c	2026-09-29 07:29:46.620377869 +0300
-+++ b/drivers/mfd/syscon.c	2026-09-29 07:29:46.657377043 +0300
-@@ -123,7 +123,16 @@
+diff --git a/drivers/mfd/syscon.c b/drivers/mfd/syscon.c
+index 21a7fcdd2737..ee9ceca17aed 100644
+--- a/drivers/mfd/syscon.c
++++ b/drivers/mfd/syscon.c
+@@ -123,7 +123,16 @@ static struct syscon *of_syscon_register(struct device_node *np, bool check_res)
  	}
  
  	if (check_res) {

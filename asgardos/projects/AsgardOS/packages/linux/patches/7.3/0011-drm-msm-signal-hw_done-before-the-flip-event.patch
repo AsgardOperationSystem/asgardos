@@ -2,6 +2,8 @@ From: sunshineinabox <aqemail@gmail.com>
 Date: Thu, 17 Sep 2026 11:08:57 -0700
 Subject: [PATCH] drm/msm: signal hw_done before sending the page-flip event
 
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
+index 6431e9129fa4..f4b14487c93a 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.c
 @@ -755,6 +755,10 @@ void dpu_crtc_complete_commit(struct drm_crtc *crtc)
@@ -15,6 +17,8 @@ Subject: [PATCH] drm/msm: signal hw_done before sending the page-flip event
  	_dpu_crtc_complete_flip(crtc);
  }
  
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.h
+index 6eaba5696e8e..5eac9948a271 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.h
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_crtc.h
 @@ -250,6 +250,8 @@ void dpu_crtc_commit_kickoff(struct drm_crtc *crtc);
@@ -26,6 +30,8 @@ Subject: [PATCH] drm/msm: signal hw_done before sending the page-flip event
  struct drm_crtc *dpu_crtc_init(struct drm_device *dev, struct drm_plane *plane,
  			       struct drm_plane *cursor);
  
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
+index da3556eb6ecc..d4ba0e23db3c 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_kms.c
 @@ -489,6 +489,15 @@ static void dpu_kms_complete_commit(struct msm_kms *kms, unsigned crtc_mask)
@@ -52,6 +58,8 @@ Subject: [PATCH] drm/msm: signal hw_done before sending the page-flip event
  	.enable_vblank   = dpu_kms_enable_vblank,
  	.disable_vblank  = dpu_kms_disable_vblank,
  	.destroy         = dpu_kms_destroy,
+diff --git a/drivers/gpu/drm/msm/msm_atomic.c b/drivers/gpu/drm/msm/msm_atomic.c
+index a8babf1dbe0d..7f3df13edb57 100644
 --- a/drivers/gpu/drm/msm/msm_atomic.c
 +++ b/drivers/gpu/drm/msm/msm_atomic.c
 @@ -94,6 +94,8 @@ static void msm_atomic_async_commit(struct msm_kms *kms, int crtc_idx)
@@ -63,13 +71,13 @@ Subject: [PATCH] drm/msm: signal hw_done before sending the page-flip event
  	unlock_crtcs(kms, crtc_mask);
  	kms->funcs->disable_commit(kms);
  
-@@ -315,9 +317,17 @@ fallback:
+@@ -315,9 +317,17 @@ void msm_atomic_commit_tail(struct drm_atomic_commit *state)
  	lock_crtcs(kms, crtc_mask);
  	kms->funcs->complete_commit(kms, crtc_mask);
  	unlock_crtcs(kms, crtc_mask);
 -	kms->funcs->disable_commit(kms);
- 
 +
+ 
  	drm_atomic_helper_commit_hw_done(state);
 +
 +	if (kms->funcs->complete_flip) {
@@ -82,6 +90,8 @@ Subject: [PATCH] drm/msm: signal hw_done before sending the page-flip event
  	drm_atomic_helper_cleanup_planes(dev, state);
  
  	trace_msm_atomic_commit_tail_finish(async, crtc_mask);
+diff --git a/drivers/gpu/drm/msm/msm_kms.h b/drivers/gpu/drm/msm/msm_kms.h
+index f25b31e502d2..30666e02957b 100644
 --- a/drivers/gpu/drm/msm/msm_kms.h
 +++ b/drivers/gpu/drm/msm/msm_kms.h
 @@ -97,6 +97,8 @@ struct msm_kms_funcs {

@@ -24,9 +24,11 @@ and the Thor). Add the vdda-qref supply with the downstream load, so
 L1E is in HPM whenever the PHY is powered.
 ---
 diff --color -ruN a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
---- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c	2026-10-16 18:06:06.596157165 +0300
-+++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c	2026-10-16 18:06:06.596804029 +0300
-@@ -1299,9 +1299,16 @@
+diff --git a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+index af4cb29b9ee0..6d6be137ff48 100644
+--- a/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
++++ b/drivers/phy/qualcomm/phy-qcom-qmp-ufs.c
+@@ -1308,9 +1308,16 @@ static const struct regulator_bulk_data sm8475_ufsphy_vreg_l[] = {
  	{ .supply = "vdda-pll", .init_load_uA = 18340 },
  };
  

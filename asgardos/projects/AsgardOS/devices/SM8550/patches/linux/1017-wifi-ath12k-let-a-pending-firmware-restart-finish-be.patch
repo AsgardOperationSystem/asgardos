@@ -33,14 +33,11 @@ bounded wait on a path that already tolerates ATH12K_RESET_TIMEOUT_HZ.
 
 Signed-off-by: Edouard Durand <edouard.durand@gmail.com>
 ---
- drivers/net/wireless/ath/ath12k/core.c | 6 ++++++
- 1 file changed, 6 insertions(+)
-
 diff --git a/drivers/net/wireless/ath/ath12k/core.c b/drivers/net/wireless/ath/ath12k/core.c
-index 980a12f..34d0a9e 100644
+index b0107cde99ff..73663c0cdf2c 100644
 --- a/drivers/net/wireless/ath/ath12k/core.c
 +++ b/drivers/net/wireless/ath/ath12k/core.c
-@@ -121,6 +121,12 @@ int ath12k_core_suspend(struct ath12k_base *ab)
+@@ -124,6 +124,12 @@ int ath12k_core_suspend(struct ath12k_base *ab)
  	struct ath12k *ar;
  	int ret, i;
  
@@ -53,6 +50,3 @@ index 980a12f..34d0a9e 100644
  	ret = ath12k_core_continue_suspend_resume(ab);
  	if (ret <= 0)
  		return ret;
--- 
-2.49.0.windows.1
-

@@ -5,9 +5,11 @@ AYN's Android sends the frame-rate register (0x48) before sleep out; we
 sent it after, and the Thor's top panel came up broken at 60 Hz. Match the
 Android order, and log the rate each init runs at.
 ---
+diff --git a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
+index c0b36ec930e1..70ed769ddab5 100644
 --- a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
 +++ b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c
-@@ -163,6 +163,17 @@
+@@ -164,6 +164,17 @@ static int icna3520_init_sequence(struct panel_info *pinfo)
      mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x9C, 0xA5, 0xA5);
      mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0xFD, 0x5A, 0x5A);
  
@@ -25,7 +27,7 @@ Android order, and log the rate each init runs at.
  	mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x53, 0xE0);
      mipi_dsi_generic_write_seq_multi(&dsi_ctx, 0x35, 0x00);
  
-@@ -171,13 +182,11 @@
+@@ -172,13 +183,11 @@ static int icna3520_init_sequence(struct panel_info *pinfo)
  	mipi_dsi_msleep(&dsi_ctx, 120);
  
  	if (cur_vrefresh == 120) {

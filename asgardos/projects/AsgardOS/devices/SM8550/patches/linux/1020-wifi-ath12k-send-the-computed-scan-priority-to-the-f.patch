@@ -43,13 +43,11 @@ connects from its first quick scan every time.
 
 Signed-off-by: Edouard Durand <edouard.durand@gmail.com>
 ---
- drivers/net/wireless/ath/ath12k/wmi.c | 1 +
- 1 file changed, 1 insertion(+)
-
 diff --git a/drivers/net/wireless/ath/ath12k/wmi.c b/drivers/net/wireless/ath/ath12k/wmi.c
+index d5160af60e00..0028b88d8ad4 100644
 --- a/drivers/net/wireless/ath/ath12k/wmi.c
 +++ b/drivers/net/wireless/ath/ath12k/wmi.c
-@@ -2626,6 +2626,7 @@
+@@ -2704,6 +2704,7 @@ int ath12k_wmi_send_scan_start_cmd(struct ath12k *ar,
  		arg->scan_priority = WMI_SCAN_PRIORITY_MEDIUM;
  	else
  		arg->scan_priority = WMI_SCAN_PRIORITY_LOW;

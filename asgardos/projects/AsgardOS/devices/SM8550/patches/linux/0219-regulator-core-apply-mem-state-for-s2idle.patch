@@ -6,9 +6,11 @@ RPMh RSC sleep/wake handoff as deep suspend. Map PM_SUSPEND_TO_IDLE to the
 regulator-state-mem constraints so suspend sleep votes apply on the default
 path (upstream has no TO_IDLE devicetree binding).
 ---
+diff --git a/drivers/regulator/core.c b/drivers/regulator/core.c
+index 6a4008f387b5..2eaf51ba41ed 100644
 --- a/drivers/regulator/core.c
 +++ b/drivers/regulator/core.c
-@@ -465,7 +465,7 @@
+@@ -466,7 +466,7 @@ int regulator_check_voltage(struct regulator_dev *rdev,
  /* return 0 if the state is valid */
  static int regulator_check_states(suspend_state_t state)
  {
@@ -17,7 +19,7 @@ path (upstream has no TO_IDLE devicetree binding).
  }
  
  /* Make sure we select a voltage that suits the needs of all
-@@ -570,6 +570,12 @@
+@@ -571,6 +571,12 @@ regulator_get_suspend_state(struct regulator_dev *rdev, suspend_state_t state)
  	switch (state) {
  	case PM_SUSPEND_STANDBY:
  		return &rdev->constraints->state_standby;

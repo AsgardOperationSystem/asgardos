@@ -4,14 +4,11 @@ Date: Thu, 14 May 2026 15:15:36 +0200
 Subject: [PATCH] touchscreen:edt-ft5x06: allow to override input name
 
 ---
- drivers/input/touchscreen/edt-ft5x06.c | 5 +++++
- 1 file changed, 5 insertions(+)
-
 diff --git a/drivers/input/touchscreen/edt-ft5x06.c b/drivers/input/touchscreen/edt-ft5x06.c
-index d0ab644be006..dabc1b11bb5a 100644
+index d6c3d033b83d..300698255cd9 100644
 --- a/drivers/input/touchscreen/edt-ft5x06.c
 +++ b/drivers/input/touchscreen/edt-ft5x06.c
-@@ -1139,6 +1139,7 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client)
+@@ -1119,6 +1119,7 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client)
  	const struct edt_i2c_chip_data *chip_data;
  	struct edt_ft5x06_ts_data *tsdata;
  	unsigned int val;
@@ -19,7 +16,7 @@ index d0ab644be006..dabc1b11bb5a 100644
  	struct input_dev *input;
  	unsigned long irq_flags;
  	int error;
-@@ -1310,6 +1311,10 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client)
+@@ -1290,6 +1291,10 @@ static int edt_ft5x06_ts_probe(struct i2c_client *client)
  		"Model \"%s\", Rev. \"%s\", %dx%d sensors\n",
  		tsdata->name, tsdata->fw_version, tsdata->num_x, tsdata->num_y);
  
@@ -30,6 +27,3 @@ index d0ab644be006..dabc1b11bb5a 100644
  	input->name = tsdata->name;
  	input->id.bustype = BUS_I2C;
  	input->dev.parent = &client->dev;
--- 
-2.54.0
-

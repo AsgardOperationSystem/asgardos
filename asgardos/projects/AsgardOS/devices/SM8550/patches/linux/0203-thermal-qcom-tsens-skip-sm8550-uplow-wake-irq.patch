@@ -14,9 +14,11 @@ covers every SM8550 board, not just the one it was first observed on.
 Guard the disable side to match so the wake refcount stays balanced and
 resume does not warn about an unbalanced disable_irq_wake().
 ---
---- a/drivers/thermal/qcom/tsens.c	2026-08-25 19:01:04.024339245 +0800
-+++ b/drivers/thermal/qcom/tsens.c	2026-08-25 19:01:06.090453327 +0800
-@@ -1289,6 +1289,12 @@
+diff --git a/drivers/thermal/qcom/tsens.c b/drivers/thermal/qcom/tsens.c
+index b5ec70201e2f..50578871f038 100644
+--- a/drivers/thermal/qcom/tsens.c
++++ b/drivers/thermal/qcom/tsens.c
+@@ -1286,6 +1286,12 @@ static int tsens_reinit(struct tsens_priv *priv)
  	return 0;
  }
  
@@ -29,7 +31,7 @@ resume does not warn about an unbalanced disable_irq_wake().
  int tsens_suspend_common(struct tsens_priv *priv)
  {
  	if (!device_may_wakeup(priv->dev))
-@@ -1297,7 +1303,8 @@
+@@ -1294,7 +1300,8 @@ int tsens_suspend_common(struct tsens_priv *priv)
  	if (priv->feat->combo_int)
  		enable_irq_wake(priv->combined_irq);
  	else {
@@ -39,7 +41,7 @@ resume does not warn about an unbalanced disable_irq_wake().
  		if (priv->feat->crit_int)
  			enable_irq_wake(priv->crit_irq);
  	}
-@@ -1316,7 +1323,8 @@
+@@ -1313,7 +1320,8 @@ int tsens_resume_common(struct tsens_priv *priv)
  	if (priv->feat->combo_int)
  		disable_irq_wake(priv->combined_irq);
  	else {

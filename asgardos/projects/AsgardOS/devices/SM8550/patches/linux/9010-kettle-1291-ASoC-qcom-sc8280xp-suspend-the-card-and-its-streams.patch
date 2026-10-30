@@ -6,9 +6,11 @@ ignore_suspend, so snd_soc_suspend() never runs for it and open PCMs are
 never suspended. Wire up snd_soc_pm_ops and clear ignore_suspend on this
 card's links; none of them has to run while the system sleeps.
 ---
+diff --git a/sound/soc/qcom/sc8280xp.c b/sound/soc/qcom/sc8280xp.c
+index b96f94f81d02..644cb0819045 100644
 --- a/sound/soc/qcom/sc8280xp.c
 +++ b/sound/soc/qcom/sc8280xp.c
-@@ -222,6 +222,9 @@
+@@ -423,6 +423,9 @@ static void sc8280xp_add_be_ops(struct snd_soc_card *card)
  			link->be_hw_params_fixup = sc8280xp_be_hw_params_fixup;
  			link->ops = &sc8280xp_be_ops;
  		}
@@ -18,7 +20,7 @@ card's links; none of them has to run while the system sleeps.
  	}
  }
  
-@@ -287,6 +290,7 @@
+@@ -626,6 +629,7 @@ static struct platform_driver snd_sc8280xp_driver = {
  	.driver = {
  		.name = "snd-sc8280xp",
  		.of_match_table = snd_sc8280xp_dt_match,

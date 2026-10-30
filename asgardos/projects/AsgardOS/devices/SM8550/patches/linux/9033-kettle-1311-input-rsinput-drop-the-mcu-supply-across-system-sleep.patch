@@ -9,9 +9,11 @@ enable does not leave remove with an unbalanced disable.
 
 Ported from Armada 1007: this tree's suspend path has no rumble work to cancel.
 ---
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index 1b1350d7fdad..8cbdcc2df30d 100644
 --- a/drivers/input/joystick/rsinput.c
 +++ b/drivers/input/joystick/rsinput.c
-@@ -155,6 +155,7 @@
+@@ -155,6 +155,7 @@ struct rsinput_driver {
      struct input_dev *input;
      struct platform_device *platform_dev;
      struct regulator *vdd;
@@ -19,7 +21,7 @@ Ported from Armada 1007: this tree's suspend path has no rumble work to cancel.
      struct gpio_desc *boot_gpio;
      struct gpio_desc *enable_gpio;
      struct gpio_desc *reset_gpio;
-@@ -847,12 +848,14 @@
+@@ -847,12 +848,14 @@ static void rsinput_remove(struct serdev_device *serdev) {
      if (drv->reset_gpio)
          gpiod_set_value_cansleep(drv->reset_gpio, 0);
  
@@ -35,7 +37,7 @@ Ported from Armada 1007: this tree's suspend path has no rumble work to cancel.
  
      /*
       * The MCU streams gamepad reports continuously over the UART. If it keeps
-@@ -870,12 +873,32 @@
+@@ -870,12 +873,32 @@ static int rsinput_suspend(struct device *dev)
      if (drv->reset_gpio)
          gpiod_set_value_cansleep(drv->reset_gpio, 0);
  

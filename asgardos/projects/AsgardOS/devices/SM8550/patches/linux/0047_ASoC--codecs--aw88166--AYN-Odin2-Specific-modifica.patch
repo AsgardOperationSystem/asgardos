@@ -7,14 +7,11 @@ Subject: [PATCH] ASoC: codecs: aw88166: AYN SM8550 Specific modification
 - Add device match table, so can be loaded as module
 - AYN SM8550 have problem with regmap_raw_write under i2c_hub_*
 ---
- sound/soc/codecs/aw88166.c | 43 +++++++++++++++++++++++++++++++++-----
- 1 file changed, 38 insertions(+), 5 deletions(-)
-
 diff --git a/sound/soc/codecs/aw88166.c b/sound/soc/codecs/aw88166.c
-index daee4de9e3b0..58571a50b5c0 100644
+index d2a138211c59..89fe5c7788d7 100644
 --- a/sound/soc/codecs/aw88166.c
 +++ b/sound/soc/codecs/aw88166.c
-@@ -12,6 +12,7 @@
+@@ -13,6 +13,7 @@
  #include <linux/gpio/consumer.h>
  #include <linux/i2c.h>
  #include <linux/minmax.h>
@@ -22,7 +19,7 @@ index daee4de9e3b0..58571a50b5c0 100644
  #include <linux/regmap.h>
  #include <sound/soc.h>
  #include "aw88166.h"
-@@ -798,8 +799,9 @@ static int aw88166_dev_start(struct aw88166 *aw88166)
+@@ -799,8 +800,9 @@ static int aw88166_dev_start(struct aw88166 *aw88166)
  static int aw_dev_dsp_update_container(struct aw_device *aw_dev,
  			unsigned char *data, unsigned int len, unsigned short base)
  {
@@ -33,7 +30,7 @@ index daee4de9e3b0..58571a50b5c0 100644
  
  	ret = regmap_write(aw_dev->regmap, AW88166_DSPMADD_REG, base);
  	if (ret)
-@@ -812,6 +814,22 @@ static int aw_dev_dsp_update_container(struct aw_device *aw_dev,
+@@ -813,6 +815,22 @@ static int aw_dev_dsp_update_container(struct aw_device *aw_dev,
  		if (ret)
  			return ret;
  	}
@@ -56,7 +53,7 @@ index daee4de9e3b0..58571a50b5c0 100644
  
  	return 0;
  }
-@@ -1802,9 +1828,16 @@ static const struct i2c_device_id aw88166_i2c_id[] = {
+@@ -1800,9 +1818,16 @@ static const struct i2c_device_id aw88166_i2c_id[] = {
  };
  MODULE_DEVICE_TABLE(i2c, aw88166_i2c_id);
  
@@ -73,6 +70,3 @@ index daee4de9e3b0..58571a50b5c0 100644
  	},
  	.probe = aw88166_i2c_probe,
  	.id_table = aw88166_i2c_id,
--- 
-2.52.0
-

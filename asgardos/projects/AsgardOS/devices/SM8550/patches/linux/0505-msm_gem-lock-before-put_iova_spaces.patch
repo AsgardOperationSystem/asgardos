@@ -1,8 +1,8 @@
 diff --git a/drivers/gpu/drm/msm/msm_gem.c b/drivers/gpu/drm/msm/msm_gem.c
-index b27abaa13..982c96366 100644
+index c4cff3d53d81..e1602fcacae7 100644
 --- a/drivers/gpu/drm/msm/msm_gem.c
 +++ b/drivers/gpu/drm/msm/msm_gem.c
-@@ -53,25 +53,29 @@ static void msm_gem_close(struct drm_gem_object *obj, struct drm_file *file)
+@@ -54,25 +54,29 @@ static void msm_gem_close(struct drm_gem_object *obj, struct drm_file *file)
  {
  	struct msm_context *ctx = file->driver_priv;
  	struct drm_exec exec;
@@ -35,7 +35,7 @@ index b27abaa13..982c96366 100644
  
  	/*
  	 * TODO we might need to kick this to a queue to avoid blocking
-@@ -80,9 +84,58 @@ static void msm_gem_close(struct drm_gem_object *obj, struct drm_file *file)
+@@ -81,9 +85,58 @@ static void msm_gem_close(struct drm_gem_object *obj, struct drm_file *file)
  	dma_resv_wait_timeout(obj->resv, DMA_RESV_USAGE_BOOKKEEP, false,
  			      MAX_SCHEDULE_TIMEOUT);
  
@@ -96,7 +96,7 @@ index b27abaa13..982c96366 100644
  }
  
  /*
-@@ -106,9 +159,47 @@ void msm_gem_vma_put(struct drm_gem_object *obj)
+@@ -107,9 +160,47 @@ void msm_gem_vma_put(struct drm_gem_object *obj)
  
  #ifdef CONFIG_DRM_MSM_KMS
  	struct drm_exec exec;
@@ -146,7 +146,7 @@ index b27abaa13..982c96366 100644
  	drm_exec_fini(&exec);     /* drop locks */
  #endif
  }
-@@ -411,26 +502,109 @@ static void
+@@ -412,26 +503,109 @@ static void
  put_iova_spaces(struct drm_gem_object *obj, struct drm_gpuvm *vm,
  		bool close, const char *reason)
  {
@@ -265,7 +265,7 @@ index b27abaa13..982c96366 100644
  }
  
  static struct drm_gpuva *get_vma_locked(struct drm_gem_object *obj,
-@@ -556,8 +730,10 @@ int msm_gem_get_and_pin_iova_range(struct drm_gem_object *obj,
+@@ -560,8 +734,10 @@ int msm_gem_get_and_pin_iova_range(struct drm_gem_object *obj,
  	struct drm_exec exec;
  	int ret;
  
@@ -278,7 +278,7 @@ index b27abaa13..982c96366 100644
  	drm_exec_fini(&exec);     /* drop locks */
  
  	return ret;
-@@ -579,14 +755,16 @@ int msm_gem_get_iova(struct drm_gem_object *obj, struct drm_gpuvm *vm,
+@@ -583,14 +759,16 @@ int msm_gem_get_iova(struct drm_gem_object *obj, struct drm_gpuvm *vm,
  {
  	struct drm_gpuva *vma;
  	struct drm_exec exec;
@@ -302,7 +302,7 @@ index b27abaa13..982c96366 100644
  	}
  	drm_exec_fini(&exec);     /* drop locks */
  
-@@ -620,17 +798,20 @@ int msm_gem_set_iova(struct drm_gem_object *obj,
+@@ -624,17 +802,20 @@ int msm_gem_set_iova(struct drm_gem_object *obj,
  	struct drm_exec exec;
  	int ret = 0;
  
@@ -334,7 +334,7 @@ index b27abaa13..982c96366 100644
  		}
  	}
  	drm_exec_fini(&exec);     /* drop locks */
-@@ -658,14 +839,18 @@ void msm_gem_unpin_iova(struct drm_gem_object *obj, struct drm_gpuvm *vm)
+@@ -662,14 +843,18 @@ void msm_gem_unpin_iova(struct drm_gem_object *obj, struct drm_gpuvm *vm)
  {
  	struct drm_gpuva *vma;
  	struct drm_exec exec;
@@ -360,7 +360,7 @@ index b27abaa13..982c96366 100644
  }
  
 diff --git a/drivers/gpu/drm/msm/msm_gem_prime.c b/drivers/gpu/drm/msm/msm_gem_prime.c
-index 036d34c67..12ae6ef16 100644
+index beb7f22fd694..92847b70b0c3 100644
 --- a/drivers/gpu/drm/msm/msm_gem_prime.c
 +++ b/drivers/gpu/drm/msm/msm_gem_prime.c
 @@ -5,6 +5,7 @@

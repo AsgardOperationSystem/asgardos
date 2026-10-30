@@ -13,6 +13,8 @@ mutex in process context, and drain both playback work and delayed stop work
 before suspending the haptics device.
 
 ---
+diff --git a/drivers/input/misc/qcom-hv-haptics.c b/drivers/input/misc/qcom-hv-haptics.c
+index daca114fe066..50b7dfa6a74a 100644
 --- a/drivers/input/misc/qcom-hv-haptics.c
 +++ b/drivers/input/misc/qcom-hv-haptics.c
 @@ -632,6 +632,12 @@ struct haptics_chip {
@@ -64,13 +66,18 @@ before suspending the haptics device.
  	mutex_lock(&play->lock);
  	if ((play->pattern_src == FIFO) &&
  			atomic_read(&play->fifo_status.is_busy)) {
-@@ -6294,56 +6308,92 @@ static struct platform_driver haptics_driver = {
+@@ -6294,55 +6308,91 @@ static struct platform_driver haptics_driver = {
  };
  module_platform_driver(haptics_driver);
  
 -//
 -int qcom_spmi_haptics_global_upload(struct ff_effect *effect) {
 -	int ret;
+-
+-	if (!global_haptics)
+-		return -ENODEV;
+-
+-	spin_lock_irq(&global_haptics->input_dev->event_lock);
 +static void haptics_global_playback_work(struct work_struct *work)
 +{
 +	struct haptics_chip *chip = container_of(work, struct haptics_chip,
@@ -79,14 +86,7 @@ before suspending the haptics device.
 +	u32 sequence;
 +	int effect_id, val, ret;
  
--	if (!global_haptics)
--		return -ENODEV;
--
--	spin_lock_irq(&global_haptics->input_dev->event_lock);
--
 -	ret = global_haptics->input_dev->ff->upload(global_haptics->input_dev, effect, NULL);
--
--	spin_unlock_irq(&global_haptics->input_dev->event_lock);
 +	/*
 +	 * Force-feedback playback is called with the input device event lock held,
 +	 * so it cannot invoke the haptics callbacks directly: erase waits for the
@@ -100,19 +100,20 @@ before suspending the haptics device.
 +		effect_id = chip->global_effect_id;
 +		val = chip->global_playback_val;
 +		spin_unlock_irqrestore(&chip->global_playback_lock, flags);
- 
--	return ret;
++
 +		mutex_lock(&chip->global_ff_lock);
 +		if (val)
 +			ret = haptics_playback(chip->input_dev, effect_id, val);
 +		else
 +			ret = haptics_erase(chip->input_dev, effect_id);
 +		mutex_unlock(&chip->global_ff_lock);
-+
+ 
+-	spin_unlock_irq(&global_haptics->input_dev->event_lock);
 +		if (ret)
 +			dev_warn(chip->dev, "global %s failed: %d\n",
 +				 val ? "playback" : "erase", ret);
-+
+ 
+-	return ret;
 +		spin_lock_irqsave(&chip->global_playback_lock, flags);
 +		ret = sequence != chip->global_playback_seq;
 +		spin_unlock_irqrestore(&chip->global_playback_lock, flags);
@@ -165,25 +166,24 @@ before suspending the haptics device.
  
 -int qcom_spmi_haptics_global_set_gain(u16 gain) {
 -	if (!global_haptics)
+-		return -ENODEV;
 +int qcom_spmi_haptics_global_set_gain(u16 gain)
 +{
 +	struct haptics_chip *chip = READ_ONCE(global_haptics);
-+
-+	if (!chip)
- 		return -ENODEV;
  
 -	spin_lock_irq(&global_haptics->input_dev->event_lock);
--
++	if (!chip)
++		return -ENODEV;
+ 
  	//max is 0x7fff, and minimum is 0x4000 the same values android uses
  	gain = clamp(gain, 0x4000, 0x7fff);
  
 -	global_haptics->input_dev->ff->set_gain(global_haptics->input_dev, gain);
+-
+-	spin_unlock_irq(&global_haptics->input_dev->event_lock);
 +	mutex_lock(&chip->global_ff_lock);
 +	haptics_set_gain(chip->input_dev, gain);
 +	mutex_unlock(&chip->global_ff_lock);
  
--	spin_unlock_irq(&global_haptics->input_dev->event_lock);
--
  	return 0;
  }
- 

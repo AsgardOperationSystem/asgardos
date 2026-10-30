@@ -16,9 +16,11 @@ their own bits in the same register.
 Mask everything before the GMU boots. The write after a6xx_hfi_start()
 still unmasks the CM3 fault.
 ---
+diff --git a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
+index a4959cf0a49e..ec966a455ad6 100644
 --- a/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
 +++ b/drivers/gpu/drm/msm/adreno/a6xx_gmu.c
-@@ -1336,6 +1336,9 @@
+@@ -1354,6 +1354,9 @@ int a6xx_gmu_resume(struct a6xx_gpu *a6xx_gpu)
  	/* Set the bus quota to a reasonable value for boot */
  	a6xx_gmu_set_initial_bw(gpu, gmu);
  

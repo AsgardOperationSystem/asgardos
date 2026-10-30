@@ -13,9 +13,11 @@ resume re-power and re-initialise it.
 
 Signed-off-by: jaewun <jaewun@users.noreply.github.com>
 ---
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index f6995a523e63..40840e71c79f 100644
 --- a/drivers/input/joystick/rsinput.c
 +++ b/drivers/input/joystick/rsinput.c
-@@ -612,6 +612,38 @@
+@@ -626,6 +626,38 @@ static void rsinput_remove(struct serdev_device *serdev) {
      regulator_disable(drv->vdd);
  }
  
@@ -54,7 +56,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
  static const struct of_device_id rsinput_of_match[] = {
      { .compatible = "gamepad,rsinput" },
      { /* sentinel */ }
-@@ -624,6 +656,7 @@
+@@ -638,6 +670,7 @@ static struct serdev_device_driver rsinput_driver = {
      .driver = {
          .name = "rsinput",
          .of_match_table = rsinput_of_match,

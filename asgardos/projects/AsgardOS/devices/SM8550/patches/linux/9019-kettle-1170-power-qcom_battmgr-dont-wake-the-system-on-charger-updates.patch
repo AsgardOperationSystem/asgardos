@@ -15,9 +15,11 @@ the charger stops drawing power, and a device asleep on its charger runs
 the battery flat.
 ---
 Rebased for Asgard: our tree has INIT_WORK(enable_work) after the psy_cfg_supply setup.
---- a/drivers/power/supply/qcom_battmgr.c	2026-10-11 20:18:40.036889074 +0300
-+++ b/drivers/power/supply/qcom_battmgr.c	2026-10-11 20:18:40.042716281 +0300
-@@ -1655,6 +1655,15 @@
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+index 188f486c43dc..ef9077453605 100644
+--- a/drivers/power/supply/qcom_battmgr.c
++++ b/drivers/power/supply/qcom_battmgr.c
+@@ -1656,6 +1656,14 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
  	psy_cfg_supply.supplied_to = qcom_battmgr_battery;
  	psy_cfg_supply.num_supplicants = 1;
  
@@ -29,7 +31,6 @@ Rebased for Asgard: our tree has INIT_WORK(enable_work) after the psy_cfg_supply
 +	 */
 +	psy_cfg.no_wakeup_source = true;
 +	psy_cfg_supply.no_wakeup_source = true;
-+
- 	INIT_WORK(&battmgr->enable_work, qcom_battmgr_enable_worker);
  	mutex_init(&battmgr->lock);
  	init_completion(&battmgr->ack);
+ 

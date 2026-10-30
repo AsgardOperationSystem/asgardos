@@ -15,9 +15,11 @@ UFSHCD_QUIRK_BROKEN_AUTO_HIBERN8.
 
 Signed-off-by: jaewun <jaewun@users.noreply.github.com>
 ---
+diff --git a/drivers/ufs/host/ufs-qcom.c b/drivers/ufs/host/ufs-qcom.c
+index 7ee94d2c5215..d9612bff0030 100644
 --- a/drivers/ufs/host/ufs-qcom.c
 +++ b/drivers/ufs/host/ufs-qcom.c
-@@ -1157,6 +1157,18 @@
+@@ -1337,6 +1337,18 @@ static void ufs_qcom_advertise_quirks(struct ufs_hba *hba)
  
  	if (drvdata && drvdata->quirks)
  		hba->quirks |= drvdata->quirks;

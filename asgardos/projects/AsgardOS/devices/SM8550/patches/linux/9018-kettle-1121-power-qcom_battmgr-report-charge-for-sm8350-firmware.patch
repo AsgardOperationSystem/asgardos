@@ -10,9 +10,11 @@ SM8350-style firmware reports charge in uAh: set the unit accordingly,
 and expose charge_now on SM8550 backed by the charge counter (the
 remaining charge in uAh).
 ---
+diff --git a/drivers/power/supply/qcom_battmgr.c b/drivers/power/supply/qcom_battmgr.c
+index 60ca9bcc03f6..188f486c43dc 100644
 --- a/drivers/power/supply/qcom_battmgr.c
 +++ b/drivers/power/supply/qcom_battmgr.c
-@@ -439,6 +439,7 @@
+@@ -439,6 +439,7 @@ static const u8 sm8350_bat_prop_map[] = {
  	[POWER_SUPPLY_PROP_TEMP] = BATT_TEMP,
  	[POWER_SUPPLY_PROP_TECHNOLOGY] = BATT_TECHNOLOGY,
  	[POWER_SUPPLY_PROP_CHARGE_COUNTER] =  BATT_CHG_COUNTER,
@@ -20,7 +22,7 @@ remaining charge in uAh).
  	[POWER_SUPPLY_PROP_CYCLE_COUNT] = BATT_CYCLE_COUNT,
  	[POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN] =  BATT_CHG_FULL_DESIGN,
  	[POWER_SUPPLY_PROP_CHARGE_FULL] = BATT_CHG_FULL,
-@@ -583,7 +584,12 @@
+@@ -583,7 +584,12 @@ static int qcom_battmgr_bat_get_property(struct power_supply *psy,
  	case POWER_SUPPLY_PROP_CHARGE_NOW:
  		if (unit != QCOM_BATTMGR_UNIT_mAh)
  			return -ENODATA;
@@ -34,7 +36,7 @@ remaining charge in uAh).
  		break;
  	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
  		val->intval = battmgr->info.charge_count;
-@@ -911,6 +917,7 @@
+@@ -911,6 +917,7 @@ static const enum power_supply_property sm8550_bat_props[] = {
  	POWER_SUPPLY_PROP_CYCLE_COUNT,
  	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
  	POWER_SUPPLY_PROP_CHARGE_FULL,
@@ -42,7 +44,7 @@ remaining charge in uAh).
  	POWER_SUPPLY_PROP_MODEL_NAME,
  	POWER_SUPPLY_PROP_TIME_TO_FULL_AVG,
  	POWER_SUPPLY_PROP_TIME_TO_EMPTY_AVG,
-@@ -1658,6 +1665,15 @@
+@@ -1658,6 +1665,15 @@ static int qcom_battmgr_probe(struct auxiliary_device *adev,
  	else
  		battmgr->variant = QCOM_BATTMGR_SM8350;
  

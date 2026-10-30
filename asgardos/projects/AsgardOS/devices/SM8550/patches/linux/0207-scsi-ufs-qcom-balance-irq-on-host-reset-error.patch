@@ -15,7 +15,7 @@ entry.
 Signed-off-by: jaewun <jaewun@users.noreply.github.com>
 ---
 diff --git a/drivers/ufs/host/ufs-qcom.c b/drivers/ufs/host/ufs-qcom.c
-index 375fd24..61a5b3a 100644
+index 954be9343f42..e0f7b48704d4 100644
 --- a/drivers/ufs/host/ufs-qcom.c
 +++ b/drivers/ufs/host/ufs-qcom.c
 @@ -449,7 +449,7 @@ static int ufs_qcom_host_reset(struct ufs_hba *hba)
@@ -25,7 +25,7 @@ index 375fd24..61a5b3a 100644
 -		return ret;
 +		goto out;
  	}
-
+ 
  	/*
 @@ -463,15 +463,23 @@ static int ufs_qcom_host_reset(struct ufs_hba *hba)
  	if (ret) {
@@ -34,9 +34,9 @@ index 375fd24..61a5b3a 100644
 -		return ret;
 +		goto out;
  	}
-
+ 
  	usleep_range(1000, 1100);
-
+ 
 +	ret = 0;
 +out:
 +	/*
@@ -47,9 +47,9 @@ index 375fd24..61a5b3a 100644
 +	 */
  	if (reenable_intr)
  		ufshcd_enable_irq(hba);
-
+ 
 -	return 0;
 +	return ret;
  }
-
+ 
  static u32 ufs_qcom_get_hs_gear(struct ufs_hba *hba)

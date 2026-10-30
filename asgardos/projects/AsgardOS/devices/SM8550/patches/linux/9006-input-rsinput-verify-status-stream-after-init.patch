@@ -16,6 +16,8 @@ can still recover it.
 
 Signed-off-by: Chaos Ruler <zmelumian@gmail.com>
 ---
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index a0de8c4a6126..1b1350d7fdad 100644
 --- a/drivers/input/joystick/rsinput.c
 +++ b/drivers/input/joystick/rsinput.c
 @@ -6,6 +6,7 @@
@@ -26,7 +28,7 @@ Signed-off-by: Chaos Ruler <zmelumian@gmail.com>
  #include <linux/completion.h>
  #include <linux/errno.h>
  #include <linux/gpio/consumer.h>
-@@ -137,6 +138,17 @@
+@@ -137,6 +138,17 @@ module_param(axis_righty_antideadzone,int,0660);
   */
  #define MCU_VERSION_ACK_TIMEOUT_MS  500
  #define MCU_INIT_MAX_ATTEMPTS       3
@@ -44,7 +46,7 @@ Signed-off-by: Chaos Ruler <zmelumian@gmail.com>
  
  struct rsinput_driver {
      struct serdev_device *serdev;
-@@ -162,6 +174,7 @@
+@@ -162,6 +174,7 @@ struct rsinput_driver {
       * handshake cannot falsely complete the wait.
       */
      bool version_ack_pending;
@@ -52,7 +54,7 @@ Signed-off-by: Chaos Ruler <zmelumian@gmail.com>
  };
  
  static bool rumble_enable = true;
-@@ -245,7 +258,7 @@
+@@ -245,7 +258,7 @@ static void rsinput_power_on_mcu(struct rsinput_driver *drv) {
          gpiod_set_value_cansleep(drv->reset_gpio, 1);
  }
  
@@ -61,7 +63,7 @@ Signed-off-by: Chaos Ruler <zmelumian@gmail.com>
      static const uint8_t version_request[] = {DATA_COMMOD_VERSION};
      static const uint8_t mcu_params[] = {
          DATA_COMMOD_SET_PAR,
-@@ -333,6 +346,33 @@
+@@ -333,6 +346,33 @@ static int rsinput_init_commands(struct rsinput_driver *drv) {
      return 0;
  }
  
@@ -95,7 +97,7 @@ Signed-off-by: Chaos Ruler <zmelumian@gmail.com>
  static void handle_cmd_commod(struct rsinput_driver *drv, const uint8_t *data, size_t payload_length) {
      switch (data[FRAME_POS_DATA_1]) {
          case DATA_COMMOD_VERSION:
-@@ -475,6 +515,7 @@
+@@ -475,6 +515,7 @@ static void rsinput_process_data(struct rsinput_driver *drv, const uint8_t *data
                  handle_cmd_commod(drv, data, payload_length);
                  break;
              case CMD_STATUS:

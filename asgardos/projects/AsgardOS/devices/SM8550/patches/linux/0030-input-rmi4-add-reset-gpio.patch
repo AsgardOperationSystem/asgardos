@@ -4,16 +4,11 @@ Date: Thu, 21 Aug 2025 22:29:26 +0200
 Subject: [PATCH] input: rmi4: add reset-gpio
 
 ---
- drivers/input/rmi4/rmi_driver.c |  1 -
- drivers/input/rmi4/rmi_driver.h |  2 ++
- drivers/input/rmi4/rmi_i2c.c    | 22 ++++++++++++++++++++++
- 3 files changed, 24 insertions(+), 1 deletion(-)
-
 diff --git a/drivers/input/rmi4/rmi_driver.c b/drivers/input/rmi4/rmi_driver.c
-index 2168b6cd7167..ff6aed6a11c1 100644
+index a349dfd17519..ff6b29576914 100644
 --- a/drivers/input/rmi4/rmi_driver.c
 +++ b/drivers/input/rmi4/rmi_driver.c
-@@ -30,7 +30,6 @@
+@@ -32,7 +32,6 @@
  #define RMI4_PAGE_MASK 0xFF00
  
  #define RMI_DEVICE_RESET_CMD	0x01
@@ -22,7 +17,7 @@ index 2168b6cd7167..ff6aed6a11c1 100644
  void rmi_free_function_list(struct rmi_device *rmi_dev)
  {
 diff --git a/drivers/input/rmi4/rmi_driver.h b/drivers/input/rmi4/rmi_driver.h
-index 3bfe9013043e..e01453bd680f 100644
+index abeafb77a483..1310b34da3d0 100644
 --- a/drivers/input/rmi4/rmi_driver.h
 +++ b/drivers/input/rmi4/rmi_driver.h
 @@ -16,6 +16,8 @@
@@ -35,7 +30,7 @@ index 3bfe9013043e..e01453bd680f 100644
  	.attrs = _attrs,  \
  }
 diff --git a/drivers/input/rmi4/rmi_i2c.c b/drivers/input/rmi4/rmi_i2c.c
-index 3c0c5fd44702..b901168183ea 100644
+index e11d0acb9b96..2028fb09a57d 100644
 --- a/drivers/input/rmi4/rmi_i2c.c
 +++ b/drivers/input/rmi4/rmi_i2c.c
 @@ -4,6 +4,7 @@
@@ -96,6 +91,3 @@ index 3c0c5fd44702..b901168183ea 100644
  	rmi_i2c->client = client;
  	mutex_init(&rmi_i2c->page_mutex);
  
--- 
-2.50.1
-

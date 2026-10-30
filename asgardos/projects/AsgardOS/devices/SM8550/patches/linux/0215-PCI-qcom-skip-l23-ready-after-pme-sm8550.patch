@@ -15,9 +15,11 @@ helper, get_ltssm, the skip_l23_ready escape hatch), but nothing sets
 the flag for qcom. This lands in the SM8550 device patch dir, so only
 SM8550 builds are affected.
 ---
---- a/drivers/pci/controller/dwc/pcie-qcom.c	2026-08-25 19:11:23.915612378 +0800
-+++ b/drivers/pci/controller/dwc/pcie-qcom.c	2026-08-25 19:11:26.562970425 +0800
-@@ -2109,6 +2109,15 @@
+diff --git a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
+index b58a607b713f..2f110edc8995 100644
+--- a/drivers/pci/controller/dwc/pcie-qcom.c
++++ b/drivers/pci/controller/dwc/pcie-qcom.c
+@@ -2262,6 +2262,15 @@ static int qcom_pcie_probe(struct platform_device *pdev)
  
  	pp->ops = &qcom_pcie_dw_ops;
  

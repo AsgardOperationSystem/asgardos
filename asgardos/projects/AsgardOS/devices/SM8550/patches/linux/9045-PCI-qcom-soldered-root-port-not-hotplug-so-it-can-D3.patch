@@ -6,12 +6,15 @@ off, pci_bridge_d3_possible() returns false, the port stays in D0 in s2idle
 ("PCI PM: Skipped") and qcom_pcie_suspend_noirq() never powers the link down.
 ---
 diff --color -ru a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
---- a/drivers/pci/controller/dwc/pcie-qcom.c	2026-10-15 22:26:34.733796722 +0300
-+++ b/drivers/pci/controller/dwc/pcie-qcom.c	2026-10-15 22:26:34.742393088 +0300
-@@ -372,6 +372,16 @@
+diff --git a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
+index 686e2d2dd9e2..b3499519c883 100644
+--- a/drivers/pci/controller/dwc/pcie-qcom.c
++++ b/drivers/pci/controller/dwc/pcie-qcom.c
+@@ -396,6 +396,17 @@ static void qcom_pcie_set_slot_cap(struct dw_pcie *pci)
+ 	 * Attention Button Present in Slot Capabilities.
  	 */
- 	val = readl(pci->dbi_base + offset + PCI_EXP_SLTCAP);
- 	val |= PCI_EXP_SLTCAP_NCCS;
+ 	val &= ~PCI_EXP_SLTCAP_ABP;
++
 +	/*
 +	 * Asgard: the slot is a soldered WCN7850, not hot-pluggable. Left
 +	 * set, HPC makes the PCI core mark the Root Port is_pciehp, and

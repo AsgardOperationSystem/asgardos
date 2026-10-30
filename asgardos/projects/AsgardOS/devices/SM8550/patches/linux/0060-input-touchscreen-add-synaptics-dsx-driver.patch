@@ -21,23 +21,9 @@ Ported from SynapticsHostSW/synaptics_dsx_release_p3 with:
 
 Signed-off-by: Philippe Simons <simons.philippe@gmail.com>
 ---
- .../input/touchscreen/synaptics_dsx/Kconfig   |    6 +
- .../input/touchscreen/synaptics_dsx/Makefile  |    2 +
- .../synaptics_dsx/synaptics_dsx_core.c        | 1956 +++++++++++++++++
- .../synaptics_dsx/synaptics_dsx_core.h        |  299 +++
- .../synaptics_dsx/synaptics_dsx_i2c.c         |  453 ++++
- include/linux/input/synaptics_dsx.h           |   64 +
- 6 files changed, 2780 insertions(+)
- create mode 100644 drivers/input/touchscreen/synaptics_dsx/Kconfig
- create mode 100644 drivers/input/touchscreen/synaptics_dsx/Makefile
- create mode 100644 drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c
- create mode 100644 drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.h
- create mode 100644 drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_i2c.c
- create mode 100644 include/linux/input/synaptics_dsx.h
-
 diff --git a/drivers/input/touchscreen/synaptics_dsx/Kconfig b/drivers/input/touchscreen/synaptics_dsx/Kconfig
 new file mode 100644
-index 0000000..5ad819d
+index 000000000000..5ad819d5b87b
 --- /dev/null
 +++ b/drivers/input/touchscreen/synaptics_dsx/Kconfig
 @@ -0,0 +1,6 @@
@@ -49,7 +35,7 @@ index 0000000..5ad819d
 +	  to your system via I2C.
 diff --git a/drivers/input/touchscreen/synaptics_dsx/Makefile b/drivers/input/touchscreen/synaptics_dsx/Makefile
 new file mode 100644
-index 0000000..97310ed
+index 000000000000..97310ed530c5
 --- /dev/null
 +++ b/drivers/input/touchscreen/synaptics_dsx/Makefile
 @@ -0,0 +1,2 @@
@@ -57,7 +43,7 @@ index 0000000..97310ed
 +synaptics_dsx-objs := synaptics_dsx_core.o synaptics_dsx_i2c.o
 diff --git a/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c b/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c
 new file mode 100644
-index 0000000..078b85e
+index 000000000000..078b85e9ad87
 --- /dev/null
 +++ b/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.c
 @@ -0,0 +1,1956 @@
@@ -2019,7 +2005,7 @@ index 0000000..078b85e
 +MODULE_LICENSE("GPL v2");
 diff --git a/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.h b/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.h
 new file mode 100644
-index 0000000..59cedcc
+index 000000000000..59cedcca8349
 --- /dev/null
 +++ b/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_core.h
 @@ -0,0 +1,299 @@
@@ -2324,7 +2310,7 @@ index 0000000..59cedcc
 +#endif
 diff --git a/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_i2c.c b/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_i2c.c
 new file mode 100644
-index 0000000..d4dd395
+index 000000000000..d4dd395eb828
 --- /dev/null
 +++ b/drivers/input/touchscreen/synaptics_dsx/synaptics_dsx_i2c.c
 @@ -0,0 +1,453 @@
@@ -2783,7 +2769,7 @@ index 0000000..d4dd395
 +MODULE_LICENSE("GPL v2");
 diff --git a/include/linux/input/synaptics_dsx.h b/include/linux/input/synaptics_dsx.h
 new file mode 100644
-index 0000000..c9fb80c
+index 000000000000..c9fb80c82e51
 --- /dev/null
 +++ b/include/linux/input/synaptics_dsx.h
 @@ -0,0 +1,64 @@
@@ -2851,6 +2837,3 @@ index 0000000..c9fb80c
 +};
 +
 +#endif
--- 
-2.43.0
-

@@ -6,6 +6,7 @@ One merge request each; its description and commits say what was broken, why, an
 
 | Change | Why |
 |---|---|
+| Kernel 7.3.1 (2026-10-30) | Rebased from 7.2 as commits (workbench: `thor/linux-rebase`, pushed to `asgardos/linux`). Dropped, already in 7.3: `9007`, `9039`, the QCE runtime-PM series, 7.2 `0011` (adc-tm5) and `0016` (DP audio_prepare). ICNA35XX, CH13726A and SY7758 are upstream now in their own forms; ours are kept (60/120 Hz, Ultra Black, compatibles). Watch: 7.3 sets the DSP's MI2S mclk/bclk on sm8550 (speakers); suspend now uses 7.3's own geni UART and LPASS macro power-down. |
 | ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. Delete `0000` once it merges. |
 | s2idle + `fw_devlink` cmdline (`0001`) | CPUs never reached cluster sleep; GPU power domains stayed on because `sync_state()` waited forever. |
 | CPU0 idle quirk (`097-cpu0-idle`) | ROCKNIX disables CPU0's deep idle, so the CPU cluster could never power down. |
@@ -23,7 +24,7 @@ One merge request each; its description and commits say what was broken, why, an
 | melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
 | asgard package + boot tuning (`0008`) | Hostname, USB autosuspend, charge limit, CPU clock cap at every boot. |
 | asgard.yml | ROCKNIX preconfigures Wi-Fi and keys by baking them into the image; Asgard keeps them in a file next to it. |
-| Kettle sleep/GPU fixes (`9007`–`9017`) | Kettle `1150` `1160` `1180` `1291`–`1293` `1350`–`1352` `1384` `1385` (see Projects to learn from). Flashed 2026-10-11 20:02: GPU boot DDR vote gone, 60 s RTC sleep resumes clean (pad handshake first try, Wi-Fi, audio). Sleep drain over ≥1 h not measured yet. |
+| Kettle sleep/GPU fixes (`9007`–`9017`; `9007` dropped with 7.3) | Kettle `1150` `1160` `1180` `1291`–`1293` `1350`–`1352` `1384` `1385` (see Projects to learn from). Flashed 2026-10-11 20:02: GPU boot DDR vote gone, 60 s RTC sleep resumes clean (pad handshake first try, Wi-Fi, audio). Sleep drain over ≥1 h not measured yet. |
 | Bottom touch follows the panel (`thor-bottom-touch`) | Single-screen games run with DSI-1 off but its touchscreen on: a touch moved sway focus to the empty bottom workspace and RetroArch paused (`pause_nonactive`). The watcher enables/disables the touchscreen with every DSI-1 power change. Also: the AYN panel now powers DSI-1 off when it closes during a game. |
 | No seat1 touch (`0022`) | ROCKNIX attached both touchscreens to seat0 and seat1, so every touch reached Asgard Home twice; the phantom second press stole taps (Home power button did nothing). Recurs if ROCKNIX's `start_steam.sh`/Heroic launchers die before undoing `seat seat1 fallback true`; Home resets it after every game (`backend.cpp`). |
 | Display sleep hook | After resume the bottom panel lit up (black) even when it was off before sleep. |
@@ -52,7 +53,7 @@ One merge request each; its description and commits say what was broken, why, an
 | Speaker/headphone EQ, AutoEQ, Joey (`asgard-eq.py`, `eq/`) | Selectable EQ. Joey's Retro Handhelds JamesDSP preset as a minimum-phase FIR (`gen-speaker-ir.py`) + width-2 widener + `asgard-limiter` (our LADSPA lookahead limiter: PipeWire has none, and the preset adds +15 dB). PipeWire 1.2.6's parametric-equalizer module ignores node names, so AutoEQ files become biquad filter-chains. |
 | Home sounds via `pw-play` | `QSoundEffect`'s audio thread once spun at 100 % holding a lock the UI waited on: Home froze. Qt Multimedia is gone. |
 | Battery report, charger chimes, scraper | Settings → Hardware → Battery; `charger-in`/`out` on the charger's online flag (the battery reads "Not charging" at the limit); Select → Scrape this game. |
-| GPU stale RPMh votes (`9039`) | Upstream [d9108bfdb746](https://github.com/torvalds/linux/commit/d9108bfdb746edacdb05bd27959a4ae63c6c7f3f), not in 7.2: an inverted check left the GPU RSC awake after any GPU use, holding DDR at 1555 MHz (4224 after Eden) through sleep. Now 200 MHz. |
+| GPU stale RPMh votes (`9039`, dropped with 7.3) | Upstream [d9108bfdb746](https://github.com/torvalds/linux/commit/d9108bfdb746edacdb05bd27959a4ae63c6c7f3f), not in 7.2: an inverted check left the GPU RSC awake after any GPU use, holding DDR at 1555 MHz (4224 after Eden) through sleep. Now 200 MHz. |
 | Mesa 26.2.6 (`0048`) | ROCKNIX's 26.2.4 → 26.2.6 (bugfix releases: Turnip cache-invalidate fixes, Zink/kopper swapchain fixes). Brilliant Diamond's red/green triangles are gone without `TU_DEBUG=flushall` (Flush GPU caches off). |
 | LPASS released in sleep (`9047`, replaces `9040`) | Armada PR #723: upstream 7.3 PM-clock conversion of the wsa/va/tx/rx macros, macros + SoundWire + LPI pinctrl force-suspended across system sleep, and the board I2S clock dropped at suspend (rewritten for our `sc8280xp.c`). Lets AOP collapse CX. |
 | Syscon XO (`9041`) | From x1e-sleep: syscon kept TCSR's parent `bi_tcxo` prepared. |

@@ -10,9 +10,11 @@ PHY's power count goes unbalanced: it stays off with the controller
 running, or is left a reference it never drops. Remember whether the
 way down kept it powered and power it on on the way up only if not.
 ---
+diff --git a/drivers/ufs/host/ufs-qcom.c b/drivers/ufs/host/ufs-qcom.c
+index 464eeb79460f..d83836df0676 100644
 --- a/drivers/ufs/host/ufs-qcom.c
 +++ b/drivers/ufs/host/ufs-qcom.c
-@@ -1513,7 +1513,9 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
+@@ -1521,7 +1521,9 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
  				ufs_qcom_dev_ref_clk_ctrl(host, false);
  			}
  
@@ -23,7 +25,7 @@ way down kept it powered and power it on on the way up only if not.
  				err = phy_power_off(phy);
  				if (err) {
  					dev_err(hba->dev, "phy power off failed, ret=%d\n", err);
-@@ -1524,7 +1526,13 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
+@@ -1532,7 +1534,13 @@ static int ufs_qcom_setup_clocks(struct ufs_hba *hba, bool on,
  		break;
  	case POST_CHANGE:
  		if (on) {
@@ -38,6 +40,8 @@ way down kept it powered and power it on on the way up only if not.
  				err = phy_power_on(phy);
  				if (err) {
  					dev_err(hba->dev, "phy power on failed, ret = %d\n", err);
+diff --git a/drivers/ufs/host/ufs-qcom.h b/drivers/ufs/host/ufs-qcom.h
+index a5ad5ce44a19..f0cde770c027 100644
 --- a/drivers/ufs/host/ufs-qcom.h
 +++ b/drivers/ufs/host/ufs-qcom.h
 @@ -333,6 +333,8 @@ struct ufs_qcom_host {

@@ -61,9 +61,8 @@ exactly that shape and keeps the stride at four, the same as the code it
 replaces.
 
 ---
-
 diff --git a/drivers/pci/controller/dwc/pcie-qcom.c b/drivers/pci/controller/dwc/pcie-qcom.c
-index b58a607b713f..42cbeef083ca 100644
+index 4214c59df92e..6fd6cfeb4b21 100644
 --- a/drivers/pci/controller/dwc/pcie-qcom.c
 +++ b/drivers/pci/controller/dwc/pcie-qcom.c
 @@ -1143,50 +1143,90 @@ static void qcom_pcie_deinit_2_7_0(struct qcom_pcie *pcie)

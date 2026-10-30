@@ -11,26 +11,11 @@ rot90 swap). 1:1 RGB+rot keeps the scaler on but does not sharpen.
 
 Signed-off-by: tiopex <tiopxyz@gmail.com>
 ---
- drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c | 12 +++++++++++-
- drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h |  1 +
- drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c   | 21 +++++++++++++++++++++
- 3 files changed, 33 insertions(+), 1 deletion(-)
-
-diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h
---- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h
-+++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h
-@@ -81,6 +81,7 @@
- 	int16_t adjust_a[DPU_MAX_DE_CURVES];
- 	int16_t adjust_b[DPU_MAX_DE_CURVES];
- 	int16_t adjust_c[DPU_MAX_DE_CURVES];
-+	uint32_t blend;
- };
- 
- 
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c
+index c7a5f4a0d054..d42b84249db5 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c
-@@ -67,6 +67,8 @@
+@@ -67,6 +67,8 @@ static u32 dpu_hw_util_log_mask = DPU_DBG_MASK_NONE;
  #define QSEED3LITE_COEF_LUT_CTRL              0x4C
  #define QSEED3LITE_COEF_LUT_SWAP_BIT          0
  #define QSEED3LITE_DIR_FILTER_WEIGHT          0x60
@@ -39,7 +24,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c b/drivers/gpu/drm/msm/d
  #define QSEED3LITE_FILTERS                 2
  #define QSEED3LITE_SEPARABLE_LUTS             10
  #define QSEED3LITE_LUT_SIZE                   33
-@@ -256,7 +258,8 @@
+@@ -256,7 +258,8 @@ static void _dpu_hw_setup_scaler3_de(struct dpu_hw_blk_reg_map *c,
  
  	sharp_ctl = ((de_cfg->limit & 0xF) << 9) |
  		((de_cfg->prec_shift & 0x7) << 13) |
@@ -49,7 +34,7 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c b/drivers/gpu/drm/msm/d
  
  	shape_ctl = (de_cfg->thr_quiet & 0xFF) |
  		((de_cfg->thr_dieout & 0x3FF) << 16);
-@@ -326,8 +329,15 @@
+@@ -326,8 +329,15 @@ void dpu_hw_setup_scaler3(struct dpu_hw_blk_reg_map *c,
  	if (scaler3_cfg->de.enable) {
  		_dpu_hw_setup_scaler3_de(c, &scaler3_cfg->de, scaler_offset);
  		op_mode |= BIT(8);
@@ -65,10 +50,23 @@ diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.c b/drivers/gpu/drm/msm/d
  	if (scaler3_cfg->lut_flag) {
  		if (scaler_version < 0x2004)
  			_dpu_hw_setup_scaler3_lut(c, scaler3_cfg, scaler_offset);
+diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h
+index 628befc65ce3..3775ff9bcc44 100644
+--- a/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h
++++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_hw_util.h
+@@ -81,6 +81,7 @@ struct dpu_hw_scaler3_de_cfg {
+ 	int16_t adjust_a[DPU_MAX_DE_CURVES];
+ 	int16_t adjust_b[DPU_MAX_DE_CURVES];
+ 	int16_t adjust_c[DPU_MAX_DE_CURVES];
++	uint32_t blend;
+ };
+ 
+ 
 diff --git a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c b/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c
+index 1f6a59855988..162091346ba5 100644
 --- a/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c
 +++ b/drivers/gpu/drm/msm/disp/dpu1/dpu_plane.c
-@@ -487,6 +487,27 @@
+@@ -496,6 +496,27 @@ static void _dpu_plane_setup_scaler3(struct dpu_hw_sspp *pipe_hw,
  	scale_cfg->lut_flag = 0;
  	scale_cfg->blend_cfg = 1;
  	scale_cfg->enable = 1;

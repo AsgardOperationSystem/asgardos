@@ -35,9 +35,6 @@ Tested-by: Krzysztof Kozlowski <krzysztof.kozlowski@linaro.org>
 Link: https://patch.msgid.link/20250925040530.20731-1-liujianfeng1994@gmail.com
 Signed-off-by: Neil Armstrong <neil.armstrong@linaro.org>
 ---
- drivers/gpu/drm/display/drm_hdmi_audio_helper.c | 1 +
- 1 file changed, 1 insertion(+)
-
 diff --git a/drivers/gpu/drm/display/drm_hdmi_audio_helper.c b/drivers/gpu/drm/display/drm_hdmi_audio_helper.c
 index 7d78b02c1446..6ca1c7ad0632 100644
 --- a/drivers/gpu/drm/display/drm_hdmi_audio_helper.c
@@ -50,5 +47,3 @@ index 7d78b02c1446..6ca1c7ad0632 100644
  	.prepare = drm_connector_hdmi_audio_prepare,
  	.audio_shutdown = drm_connector_hdmi_audio_shutdown,
  	.mute_stream = drm_connector_hdmi_audio_mute_stream,
--- 
-GitLab

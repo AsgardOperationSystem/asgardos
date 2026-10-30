@@ -25,6 +25,8 @@ guard sufficient. Shared by probe() and resume(); probe's happy path is unchange
 
 Signed-off-by: jaewun <jaewun@users.noreply.github.com>
 ---
+diff --git a/drivers/input/joystick/rsinput.c b/drivers/input/joystick/rsinput.c
+index 40840e71c79f..9c99f74258ce 100644
 --- a/drivers/input/joystick/rsinput.c
 +++ b/drivers/input/joystick/rsinput.c
 @@ -6,9 +6,11 @@
@@ -39,7 +41,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
  #include <linux/input.h>
  #include <linux/kernel.h>
  #include <linux/module.h>
-@@ -124,6 +126,18 @@
+@@ -124,6 +126,18 @@ module_param(axis_righty_antideadzone,int,0660);
  
  #define MCU_VERSION_MAX_LEN       64
  
@@ -58,7 +60,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
  struct rsinput_driver {
      struct serdev_device *serdev;
      struct input_dev *input;
-@@ -138,6 +152,15 @@
+@@ -138,6 +152,15 @@ struct rsinput_driver {
      bool invert_ry;
      uint8_t rx_buf[1024];
      uint8_t sequence_number;
@@ -74,7 +76,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
  };
  
  static bool rumble_enable = true;
-@@ -170,6 +193,7 @@
+@@ -170,6 +193,7 @@ static int rsinput_send_command(struct rsinput_driver *drv, uint8_t cmd, const u
      frame[frame_len++] = FRAME_HEAD_3;
      frame[frame_len++] = FRAME_HEAD_4;
  
@@ -82,7 +84,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
      frame[frame_len++] = drv->sequence_number;
      drv->sequence_number++;
  
-@@ -189,9 +213,13 @@
+@@ -189,9 +213,13 @@ static int rsinput_send_command(struct rsinput_driver *drv, uint8_t cmd, const u
      return serdev_device_write_buf(drv->serdev, frame, frame_len);
  }
  
@@ -99,7 +101,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
      if (drv->boot_gpio)
          gpiod_set_value_cansleep(drv->boot_gpio, 0);
  
-@@ -205,22 +233,87 @@
+@@ -205,22 +233,87 @@ static int rsinput_init_commands(struct rsinput_driver *drv) {
  
      if (drv->reset_gpio)
          gpiod_set_value_cansleep(drv->reset_gpio, 1);
@@ -197,7 +199,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
      error = rsinput_send_command(drv, CMD_COMMOD, mcu_params, sizeof(mcu_params));
      if (error < 0) {
          dev_err(&drv->serdev->dev, "Failed to set MCU parameters: %d\n", error);
-@@ -245,6 +338,27 @@
+@@ -245,6 +338,27 @@ static void handle_cmd_commod(struct rsinput_driver *drv, const uint8_t *data, s
              } else {
                  dev_err(&drv->serdev->dev, "Invalid MCU version response length\n");
              }
@@ -225,7 +227,7 @@ Signed-off-by: jaewun <jaewun@users.noreply.github.com>
              break;
          case DATA_COMMOD_SET_PAR:
              dev_info(&drv->serdev->dev, "MCU parameters set successfully\n");
-@@ -458,6 +572,8 @@
+@@ -458,6 +572,8 @@ static int rsinput_probe(struct serdev_device *serdev) {
      if (!drv)
      return -ENOMEM;
  

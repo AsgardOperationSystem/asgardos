@@ -18,6 +18,10 @@
 /delete-node/ &aop_config_mem;
 /delete-node/ &camera_mem;
 /delete-node/ &ipa_fw_mem;
+/* 7.3 gives the IPA node memory-region = <&ipa_fw_mem>, deleted above */
+&ipa {
+	/delete-property/ memory-region;
+};
 /delete-node/ &ipa_gsi_mem;
 /delete-node/ &mpss_dsm_mem;
 /delete-node/ &mpss_mem;
@@ -1105,7 +1109,7 @@
 	status = "okay";
 };
 
-&pcieport0 {
+&pcie0_port0 {
 	/* WAKE# is active-low per PCIe CEM; ACTIVE_HIGH reads as permanently
 	 * asserted, so the WLAN endpoint could never signal wake cleanly. */
 	wake-gpios = <&tlmm 96 GPIO_ACTIVE_LOW>;

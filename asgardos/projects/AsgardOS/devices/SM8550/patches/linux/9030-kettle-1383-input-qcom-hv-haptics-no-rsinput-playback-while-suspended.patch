@@ -16,6 +16,8 @@ the input event lock), clear it under both, then cancel the work.
 Also give haptics_get_status_data()'s name a default and the sweep_run
 error message its missing argument (W=1 warnings).
 ---
+diff --git a/drivers/input/misc/qcom-hv-haptics.c b/drivers/input/misc/qcom-hv-haptics.c
+index 5c110c92efa6..78bf9e258754 100644
 --- a/drivers/input/misc/qcom-hv-haptics.c
 +++ b/drivers/input/misc/qcom-hv-haptics.c
 @@ -636,6 +636,7 @@ struct haptics_chip {

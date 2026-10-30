@@ -9,14 +9,11 @@ warning.
 
 Signed-off-by: Philippe Simons <simons.philippe@gmail.com>
 ---
- drivers/clk/qcom/dispcc-sm8550.c | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-
 diff --git a/drivers/clk/qcom/dispcc-sm8550.c b/drivers/clk/qcom/dispcc-sm8550.c
-index f27140c649f5..5f75e1ccf38f 100644
+index 418dcea20f00..418ac84c63d3 100644
 --- a/drivers/clk/qcom/dispcc-sm8550.c
 +++ b/drivers/clk/qcom/dispcc-sm8550.c
-@@ -622,7 +622,7 @@ static struct clk_rcg2 disp_cc_mdss_mdp_clk_src = {
+@@ -621,7 +621,7 @@ static struct clk_rcg2 disp_cc_mdss_mdp_clk_src = {
  		.name = "disp_cc_mdss_mdp_clk_src",
  		.parent_data = disp_cc_parent_data_8,
  		.num_parents = ARRAY_SIZE(disp_cc_parent_data_8),
@@ -25,6 +22,3 @@ index f27140c649f5..5f75e1ccf38f 100644
  		.ops = &clk_rcg2_shared_ops,
  	},
  };
--- 
-2.51.0
-

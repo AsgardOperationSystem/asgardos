@@ -7,8 +7,23 @@ sleep = 0, wake = 1 from a child of apps_rsc, as Android's qcom,dcvs-fp does at
 probe. Off by default; one-way until reboot.
 ---
 diff --color -ruN a/drivers/soc/qcom/asgard-ddr-wake.c b/drivers/soc/qcom/asgard-ddr-wake.c
---- a/drivers/soc/qcom/asgard-ddr-wake.c	1970-01-01 02:00:00.000000000 +0200
-+++ b/drivers/soc/qcom/asgard-ddr-wake.c	2026-10-14 20:45:31.394047431 +0300
+diff --git a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
+index 7fb2aee85a7d..f90c2969a80f 100644
+--- a/drivers/soc/qcom/Makefile
++++ b/drivers/soc/qcom/Makefile
+@@ -20,6 +20,7 @@ obj-$(CONFIG_QCOM_RAMP_CTRL)	+= ramp_controller.o
+ obj-$(CONFIG_QCOM_RMTFS_MEM)	+= rmtfs_mem.o
+ obj-$(CONFIG_QCOM_RPM_MASTER_STATS)	+= rpm_master_stats.o
+ obj-$(CONFIG_QCOM_RPMH)		+= qcom_rpmh.o
++obj-$(CONFIG_QCOM_RPMH)		+= asgard-ddr-wake.o
+ qcom_rpmh-y			+= rpmh-rsc.o
+ qcom_rpmh-y			+= rpmh.o
+ obj-$(CONFIG_QCOM_SMD_RPM)	+= rpm-proc.o smd-rpm.o
+diff --git a/drivers/soc/qcom/asgard-ddr-wake.c b/drivers/soc/qcom/asgard-ddr-wake.c
+new file mode 100644
+index 000000000000..b36c4b11364d
+--- /dev/null
++++ b/drivers/soc/qcom/asgard-ddr-wake.c
 @@ -0,0 +1,99 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
@@ -109,14 +124,3 @@ diff --color -ruN a/drivers/soc/qcom/asgard-ddr-wake.c b/drivers/soc/qcom/asgard
 +}
 +late_initcall(ddr_wake_init);
 +MODULE_LICENSE("GPL");
-diff --color -ruN a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
---- a/drivers/soc/qcom/Makefile	2026-10-14 20:44:21.078641735 +0300
-+++ b/drivers/soc/qcom/Makefile	2026-10-14 20:44:40.083198649 +0300
-@@ -20,6 +20,7 @@
- obj-$(CONFIG_QCOM_RMTFS_MEM)	+= rmtfs_mem.o
- obj-$(CONFIG_QCOM_RPM_MASTER_STATS)	+= rpm_master_stats.o
- obj-$(CONFIG_QCOM_RPMH)		+= qcom_rpmh.o
-+obj-$(CONFIG_QCOM_RPMH)		+= asgard-ddr-wake.o
- qcom_rpmh-y			+= rpmh-rsc.o
- qcom_rpmh-y			+= rpmh.o
- obj-$(CONFIG_QCOM_SMD_RPM)	+= rpm-proc.o smd-rpm.o

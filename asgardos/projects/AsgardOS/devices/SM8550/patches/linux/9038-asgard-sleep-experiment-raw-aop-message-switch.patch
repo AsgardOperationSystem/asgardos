@@ -7,9 +7,11 @@ sends for the WCN7850 (qcom,pdc_init_table, chip_cfg@1 = 0x1107) before
 retrying s2idle without the PCIe DDR floor. Depends on 9037.
 ---
 diff --color -ru a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
---- a/drivers/soc/qcom/qcom_aoss.c	2026-10-14 19:47:14.648619389 +0300
-+++ b/drivers/soc/qcom/qcom_aoss.c	2026-10-14 19:47:14.655235247 +0300
-@@ -592,6 +592,31 @@
+diff --git a/drivers/soc/qcom/qcom_aoss.c b/drivers/soc/qcom/qcom_aoss.c
+index 4af9285e9cd8..8a58c822262b 100644
+--- a/drivers/soc/qcom/qcom_aoss.c
++++ b/drivers/soc/qcom/qcom_aoss.c
+@@ -592,6 +592,31 @@ static const struct kernel_param_ops qmp_aosd_ops = {
  module_param_cb(aosd, &qmp_aosd_ops, &qmp_aosd, 0644);
  MODULE_PARM_DESC(aosd, "allow AOSD (XO shutdown) in system sleep; 0 = stop at CXSD");
  

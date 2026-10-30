@@ -9,9 +9,11 @@ first, Turnip's default queue (priority 8) starves freedreno GL clients
 a game keeps the ring busy. Map 0..2 onto HIGH..LOW in order and index
 the entity array from HIGH.
 ---
+diff --git a/drivers/gpu/drm/msm/msm_gpu.h b/drivers/gpu/drm/msm/msm_gpu.h
+index 82f3ef2c175a..0785f5c2b809 100644
 --- a/drivers/gpu/drm/msm/msm_gpu.h
 +++ b/drivers/gpu/drm/msm/msm_gpu.h
-@@ -529,12 +529,13 @@
+@@ -529,12 +529,13 @@ msm_context_is_vmbind(struct msm_context *ctx)
   * Each ring is associated with it's own scheduler instance.  However, our
   * UABI is that lower numerical values are higher priority.  So mapping the
   * single userspace priority level into ring_nr and sched_prio takes some
@@ -29,7 +31,7 @@ the entity array from HIGH.
   *
   * This allows generations without preemption (nr_rings==1) to have some
   * amount of prioritization, and provides more priority levels for gens
-@@ -549,10 +550,8 @@
+@@ -549,10 +550,8 @@ static inline int msm_gpu_convert_priority(struct msm_gpu *gpu, int prio,
  
  	rn = div_u64_rem(prio, NR_SCHED_PRIORITIES, &sp);
  
@@ -42,9 +44,11 @@ the entity array from HIGH.
  
  	if (rn >= gpu->nr_rings)
  		return -EINVAL;
+diff --git a/drivers/gpu/drm/msm/msm_submitqueue.c b/drivers/gpu/drm/msm/msm_submitqueue.c
+index d307cdd17d90..0b3a526c37a0 100644
 --- a/drivers/gpu/drm/msm/msm_submitqueue.c
 +++ b/drivers/gpu/drm/msm/msm_submitqueue.c
-@@ -137,7 +137,8 @@
+@@ -136,7 +136,8 @@ get_sched_entity(struct msm_context *ctx, struct msm_ringbuffer *ring,
  		 unsigned ring_nr, enum drm_sched_priority sched_prio)
  {
  	static DEFINE_MUTEX(entity_lock);

@@ -8,9 +8,11 @@ fail PLL lock with no clock, leaving the speakers silent.
 Start the playback port at prepare again so BCLK is up before PRE_PMU.
 The trigger's !is_port_started guard no-ops; capture is unchanged.
 ---
+diff --git a/sound/soc/qcom/qdsp6/q6apm-lpass-dais.c b/sound/soc/qcom/qdsp6/q6apm-lpass-dais.c
+index e204fd59e512..56a6b8ded782 100644
 --- a/sound/soc/qcom/qdsp6/q6apm-lpass-dais.c
 +++ b/sound/soc/qcom/qdsp6/q6apm-lpass-dais.c
-@@ -224,6 +224,20 @@
+@@ -265,6 +265,20 @@ static int q6apm_lpass_dai_prepare(struct snd_pcm_substream *substream, struct s
  		dev_err(dai->dev, "Failed to prepare Graph %d\n", rc);
  		goto err;
  	}

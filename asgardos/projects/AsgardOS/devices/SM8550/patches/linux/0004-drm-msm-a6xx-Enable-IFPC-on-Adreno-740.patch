@@ -5,14 +5,11 @@ Subject: [PATCH] drm/msm/a6xx: Enable IFPC on Adreno 740 Same as overclocked
  Adreno 741
 
 ---
- drivers/gpu/drm/msm/adreno/a6xx_catalog.c | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
-
 diff --git a/drivers/gpu/drm/msm/adreno/a6xx_catalog.c b/drivers/gpu/drm/msm/adreno/a6xx_catalog.c
-index 4c042133261c..1997bf46aef1 100644
+index 90a0c7ffb3c8..bf8d6dfea0ca 100644
 --- a/drivers/gpu/drm/msm/adreno/a6xx_catalog.c
 +++ b/drivers/gpu/drm/msm/adreno/a6xx_catalog.c
-@@ -1511,7 +1511,8 @@ static const struct adreno_info a7xx_gpus[] = {
+@@ -1545,7 +1545,8 @@ static const struct adreno_info a7xx_gpus[] = {
  		.inactive_period = DRM_MSM_INACTIVE_PERIOD,
  		.quirks = ADRENO_QUIRK_HAS_CACHED_COHERENT |
  			  ADRENO_QUIRK_HAS_HW_APRIV |
@@ -22,7 +19,7 @@ index 4c042133261c..1997bf46aef1 100644
  		.funcs = &a7xx_gpu_funcs,
  		.zapfw = "a740_zap.mdt",
  		.a6xx = &(const struct a6xx_info) {
-@@ -1519,6 +1520,7 @@ static const struct adreno_info a7xx_gpus[] = {
+@@ -1553,6 +1554,7 @@ static const struct adreno_info a7xx_gpus[] = {
  			.protect = &a730_protect,
  			.pwrup_reglist = &a7xx_pwrup_reglist,
  			.dyn_pwrup_reglist = &a7xx_dyn_pwrup_reglist,
@@ -30,4 +27,3 @@ index 4c042133261c..1997bf46aef1 100644
  			.gbif_cx = a640_gbif,
  			.gmu_chipid = 0x7020100,
  			.gmu_cgc_mode = 0x00020202,
-    

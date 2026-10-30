@@ -5,9 +5,11 @@ q6apm_get_audioreach_graph() ignores the result of the graph-open
 command, so a rejected or timed-out open returns a graph the DSP does not
 have. Drop the reference and return the error.
 ---
+diff --git a/sound/soc/qcom/qdsp6/q6apm.c b/sound/soc/qcom/qdsp6/q6apm.c
+index f167b9dae3fa..006e226d461e 100644
 --- a/sound/soc/qcom/qdsp6/q6apm.c
 +++ b/sound/soc/qcom/qdsp6/q6apm.c
-@@ -38,11 +38,13 @@
+@@ -38,11 +38,13 @@ int q6apm_send_cmd_sync(struct q6apm *apm, const struct gpr_pkt *pkt,
  					NULL, &apm->wait, pkt, rsp_opcode);
  }
  
@@ -22,7 +24,7 @@ have. Drop the reference and return the error.
  
  	mutex_lock(&apm->lock);
  	graph = idr_find(&apm->graph_idr, graph_id);
-@@ -87,7 +89,12 @@
+@@ -87,7 +89,12 @@ static struct audioreach_graph *q6apm_get_audioreach_graph(struct q6apm *apm, ui
  
  	kref_init(&graph->refcount);
  

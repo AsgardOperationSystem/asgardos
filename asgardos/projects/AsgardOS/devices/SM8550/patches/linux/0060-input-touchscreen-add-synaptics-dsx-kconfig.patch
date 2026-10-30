@@ -1,6 +1,8 @@
+diff --git a/drivers/input/touchscreen/Kconfig b/drivers/input/touchscreen/Kconfig
+index 9b9ae8ac3f7f..1a1727e76dde 100644
 --- a/drivers/input/touchscreen/Kconfig
 +++ b/drivers/input/touchscreen/Kconfig
-@@ -12,6 +12,8 @@
+@@ -12,6 +12,8 @@ menuconfig INPUT_TOUCHSCREEN
  
  if INPUT_TOUCHSCREEN
  
@@ -9,6 +11,8 @@
  config TOUCHSCREEN_88PM860X
  	tristate "Marvell 88PM860x touchscreen"
  	depends on MFD_88PM860X
+diff --git a/drivers/input/touchscreen/Makefile b/drivers/input/touchscreen/Makefile
+index bfd9de83389d..b6a93dbfefe0 100644
 --- a/drivers/input/touchscreen/Makefile
 +++ b/drivers/input/touchscreen/Makefile
 @@ -8,6 +8,7 @@

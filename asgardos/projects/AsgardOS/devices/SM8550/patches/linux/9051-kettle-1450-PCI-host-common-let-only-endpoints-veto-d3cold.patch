@@ -7,9 +7,11 @@ and clocks stay on through s2idle even though the endpoint reached D3hot.
 Skip non-endpoint devices in the walk. pci_host_common.endpoint_d3cold=0
 restores the previous behaviour.
 ---
+diff --git a/drivers/pci/controller/pci-host-common.c b/drivers/pci/controller/pci-host-common.c
+index a23907a875e5..3a1dd7abab99 100644
 --- a/drivers/pci/controller/pci-host-common.c
 +++ b/drivers/pci/controller/pci-host-common.c
-@@ -283,6 +283,11 @@
+@@ -266,6 +266,11 @@ void pci_host_common_remove(struct platform_device *pdev)
  }
  EXPORT_SYMBOL_GPL(pci_host_common_remove);
  
@@ -21,7 +23,7 @@ restores the previous behaviour.
  static int __pci_host_common_d3cold_possible(struct pci_dev *pdev,
  					     void *userdata)
  {
-@@ -291,6 +296,17 @@
+@@ -274,6 +279,17 @@ static int __pci_host_common_d3cold_possible(struct pci_dev *pdev,
  	if (!pdev->dev.driver && !pci_is_enabled(pdev))
  		return 0;
  

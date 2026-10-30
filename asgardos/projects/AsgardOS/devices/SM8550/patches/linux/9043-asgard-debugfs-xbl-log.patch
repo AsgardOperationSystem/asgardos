@@ -5,8 +5,23 @@ Read-only /sys/kernel/debug/xbl_log over reserved-memory xbl-dt-log-merged-regio
 for reading the bootloader's reset reason after the floor-dropped s2idle reset.
 ---
 diff --color -ruN a/drivers/soc/qcom/asgard-xbl-log.c b/drivers/soc/qcom/asgard-xbl-log.c
---- a/drivers/soc/qcom/asgard-xbl-log.c	1970-01-01 02:00:00.000000000 +0200
-+++ b/drivers/soc/qcom/asgard-xbl-log.c	2026-10-14 22:56:09.208670675 +0300
+diff --git a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
+index f90c2969a80f..d91058bd41fc 100644
+--- a/drivers/soc/qcom/Makefile
++++ b/drivers/soc/qcom/Makefile
+@@ -21,6 +21,7 @@ obj-$(CONFIG_QCOM_RMTFS_MEM)	+= rmtfs_mem.o
+ obj-$(CONFIG_QCOM_RPM_MASTER_STATS)	+= rpm_master_stats.o
+ obj-$(CONFIG_QCOM_RPMH)		+= qcom_rpmh.o
+ obj-$(CONFIG_QCOM_RPMH)		+= asgard-ddr-wake.o
++obj-$(CONFIG_QCOM_RPMH)		+= asgard-xbl-log.o
+ qcom_rpmh-y			+= rpmh-rsc.o
+ qcom_rpmh-y			+= rpmh.o
+ obj-$(CONFIG_QCOM_SMD_RPM)	+= rpm-proc.o smd-rpm.o
+diff --git a/drivers/soc/qcom/asgard-xbl-log.c b/drivers/soc/qcom/asgard-xbl-log.c
+new file mode 100644
+index 000000000000..b3005c148885
+--- /dev/null
++++ b/drivers/soc/qcom/asgard-xbl-log.c
 @@ -0,0 +1,44 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/*
@@ -52,14 +67,3 @@ diff --color -ruN a/drivers/soc/qcom/asgard-xbl-log.c b/drivers/soc/qcom/asgard-
 +}
 +late_initcall(xbl_log_init);
 +MODULE_LICENSE("GPL");
-diff --color -ruN a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
---- a/drivers/soc/qcom/Makefile	2026-10-14 22:56:09.204748391 +0300
-+++ b/drivers/soc/qcom/Makefile	2026-10-14 22:56:09.207146628 +0300
-@@ -21,6 +21,7 @@
- obj-$(CONFIG_QCOM_RPM_MASTER_STATS)	+= rpm_master_stats.o
- obj-$(CONFIG_QCOM_RPMH)		+= qcom_rpmh.o
- obj-$(CONFIG_QCOM_RPMH)		+= asgard-ddr-wake.o
-+obj-$(CONFIG_QCOM_RPMH)		+= asgard-xbl-log.o
- qcom_rpmh-y			+= rpmh-rsc.o
- qcom_rpmh-y			+= rpmh.o
- obj-$(CONFIG_QCOM_SMD_RPM)	+= rpm-proc.o smd-rpm.o

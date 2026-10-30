@@ -5,19 +5,13 @@ Subject: [PATCH] leds: Add driver for HEROIC HTR3212
 
 Signed-off-by: Teguh Sobirin <teguh@sobir.in>
 ---
- drivers/leds/Kconfig        |  10 ++
- drivers/leds/Makefile       |   1 +
- drivers/leds/leds-htr3212.c | 319 ++++++++++++++++++++++++++++++++++++
- 3 files changed, 330 insertions(+)
- create mode 100644 drivers/leds/leds-htr3212.c
-
 diff --git a/drivers/leds/Kconfig b/drivers/leds/Kconfig
-index 6e3dce7e35a4..ac9ce34b765c 100644
+index d0d3182236be..fd34fb8cda35 100644
 --- a/drivers/leds/Kconfig
 +++ b/drivers/leds/Kconfig
-@@ -218,6 +218,16 @@ config LEDS_EXPRESSWIRE
- 	bool
- 	depends on GPIOLIB
+@@ -227,6 +227,16 @@ config LEDS_EL15203000
+ 	  To compile this driver as a module, choose M here: the module
+ 	  will be called leds-el15203000.
  
 +config LEDS_HTR3212
 +	tristate "HEROIC HTR3212 LED driver"
@@ -33,10 +27,10 @@ index 6e3dce7e35a4..ac9ce34b765c 100644
  	tristate "LED support for CZ.NIC's Turris Omnia"
  	depends on LEDS_CLASS_MULTICOLOR
 diff --git a/drivers/leds/Makefile b/drivers/leds/Makefile
-index 9a0333ec1a86..36815a7526e9 100644
+index a68244bd50fb..7b84114bee73 100644
 --- a/drivers/leds/Makefile
 +++ b/drivers/leds/Makefile
-@@ -33,6 +33,7 @@ obj-$(CONFIG_LEDS_DA9052)		+= leds-da9052.o
+@@ -34,6 +34,7 @@ obj-$(CONFIG_LEDS_DA9052)		+= leds-da9052.o
  obj-$(CONFIG_LEDS_GPIO)			+= leds-gpio.o
  obj-$(CONFIG_LEDS_GPIO_REGISTER)	+= leds-gpio-register.o
  obj-$(CONFIG_LEDS_HP6XX)		+= leds-hp6xx.o
@@ -369,6 +363,3 @@ index 000000000000..8eb6c3c7866f
 +MODULE_AUTHOR("Teguh Sobirin <teguh@sobir.in");
 +MODULE_DESCRIPTION("HEROIC HTR3212 LED Driver");
 +MODULE_LICENSE("GPL v2");
--- 
-2.34.1
-

@@ -18,8 +18,10 @@ devices suspended and reset the SoC. Queue them on system_freezable_wq
 so they only run after resume.
 ---
 diff --color -ru a/drivers/mailbox/qcom-ipcc.c b/drivers/mailbox/qcom-ipcc.c
---- a/drivers/mailbox/qcom-ipcc.c	2026-10-10 15:33:11.237065472 +0300
-+++ b/drivers/mailbox/qcom-ipcc.c	2026-10-10 15:33:11.244538595 +0300
+diff --git a/drivers/mailbox/qcom-ipcc.c b/drivers/mailbox/qcom-ipcc.c
+index f2e5b9505bfc..a94eab01f405 100644
+--- a/drivers/mailbox/qcom-ipcc.c
++++ b/drivers/mailbox/qcom-ipcc.c
 @@ -9,6 +9,7 @@
  #include <linux/irqdomain.h>
  #include <linux/mailbox_controller.h>
@@ -28,7 +30,7 @@ diff --color -ru a/drivers/mailbox/qcom-ipcc.c b/drivers/mailbox/qcom-ipcc.c
  #include <linux/platform_device.h>
  
  #include <dt-bindings/mailbox/qcom-ipcc.h>
-@@ -320,9 +321,17 @@
+@@ -325,9 +326,17 @@ static int qcom_ipcc_probe(struct platform_device *pdev)
  	if (ret)
  		goto err_mbox;
  
@@ -45,13 +47,14 @@ diff --color -ru a/drivers/mailbox/qcom-ipcc.c b/drivers/mailbox/qcom-ipcc.c
 +			       IRQF_TRIGGER_HIGH | IRQF_NO_THREAD |
 +			       (of_machine_is_compatible("ayn,thor") ? IRQF_NO_SUSPEND : 0),
 +			       name, ipcc);
- 	if (ret < 0) {
- 		dev_err(&pdev->dev, "Failed to register the irq: %d\n", ret);
+ 	if (ret < 0)
  		goto err_req_irq;
-diff --color -ru a/drivers/soc/qcom/pmic_glink_altmode.c b/drivers/soc/qcom/pmic_glink_altmode.c
---- a/drivers/soc/qcom/pmic_glink_altmode.c	2026-10-10 16:10:40.454389602 +0300
-+++ b/drivers/soc/qcom/pmic_glink_altmode.c	2026-10-10 16:10:40.461877886 +0300
-@@ -450,7 +450,8 @@
+ 
+diff --git a/drivers/soc/qcom/pmic_glink_altmode.c b/drivers/soc/qcom/pmic_glink_altmode.c
+index 13c434f8d03a..b035d69e0da1 100644
+--- a/drivers/soc/qcom/pmic_glink_altmode.c
++++ b/drivers/soc/qcom/pmic_glink_altmode.c
+@@ -451,7 +451,8 @@ static void pmic_glink_altmode_sc8180xp_notify(struct pmic_glink_altmode *altmod
  	alt_port->mode = mode;
  	alt_port->hpd_state = hpd_state;
  	alt_port->hpd_irq = hpd_irq;
@@ -61,7 +64,7 @@ diff --color -ru a/drivers/soc/qcom/pmic_glink_altmode.c b/drivers/soc/qcom/pmic
  }
  
  #define SC8280XP_DPAM_MASK	0x3f
-@@ -501,7 +502,8 @@
+@@ -502,7 +503,8 @@ static void pmic_glink_altmode_sc8280xp_notify(struct pmic_glink_altmode *altmod
  		alt_port->tbt_data = *tbt;
  	}
  
@@ -71,9 +74,10 @@ diff --color -ru a/drivers/soc/qcom/pmic_glink_altmode.c b/drivers/soc/qcom/pmic
  }
  
  static void pmic_glink_altmode_callback(const void *data, size_t len, void *priv)
-diff --color -ru a/drivers/usb/typec/ucsi/ucsi_glink.c b/drivers/usb/typec/ucsi/ucsi_glink.c
---- a/drivers/usb/typec/ucsi/ucsi_glink.c	2026-10-10 15:33:11.237574004 +0300
-+++ b/drivers/usb/typec/ucsi/ucsi_glink.c	2026-10-10 16:10:40.461972538 +0300
+diff --git a/drivers/usb/typec/ucsi/ucsi_glink.c b/drivers/usb/typec/ucsi/ucsi_glink.c
+index 1db0c88d817e..15a6a4a46d3c 100644
+--- a/drivers/usb/typec/ucsi/ucsi_glink.c
++++ b/drivers/usb/typec/ucsi/ucsi_glink.c
 @@ -6,8 +6,11 @@
  #include <linux/auxiliary_bus.h>
  #include <linux/module.h>
@@ -86,7 +90,7 @@ diff --color -ru a/drivers/usb/typec/ucsi/ucsi_glink.c b/drivers/usb/typec/ucsi/
  #include <linux/soc/qcom/pdr.h>
  #include <linux/usb/typec_mux.h>
  #include <linux/gpio/consumer.h>
-@@ -342,7 +345,13 @@
+@@ -342,7 +345,13 @@ static void pmic_glink_ucsi_callback(const void *data, size_t len, void *priv)
  		pmic_glink_ucsi_write_ack(ucsi, data, len);
  		break;
  	case UC_UCSI_USBC_NOTIFY_IND:
@@ -101,7 +105,7 @@ diff --color -ru a/drivers/usb/typec/ucsi/ucsi_glink.c b/drivers/usb/typec/ucsi/
  		break;
  	}
  }
-@@ -401,6 +410,9 @@
+@@ -405,6 +414,9 @@ static int pmic_glink_ucsi_probe(struct auxiliary_device *adev,
  	ucsi->dev = dev;
  	dev_set_drvdata(dev, ucsi);
  
