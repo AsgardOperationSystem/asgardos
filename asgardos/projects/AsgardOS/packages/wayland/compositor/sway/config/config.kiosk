@@ -1,3 +1,6 @@
 seat * hide_cursor 1000
 default_border none
 exec_always mako
+# AsgardOS: no mouse pointer from InputPlumber's virtual DualSense touchpad (nothing uses it as a mouse; its
+# pointer sat over Settings until moved)
+input type:touchpad events disabled
