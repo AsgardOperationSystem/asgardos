@@ -695,6 +695,25 @@ wakeonlan() {
   fi
 }
 
+resolve_boot_label() {
+  # AsgardOS: the boot partition is labelled ROCKNIX or ASGARDOS while devices move from the old name to the new
+  # one. Use whichever exists, preferring the one on the command line, so fsck and mount_flash get a real device.
+  case "$boot" in
+    LABEL=ROCKNIX) alt=ASGARDOS ;;
+    LABEL=ASGARDOS) alt=ROCKNIX ;;
+    *) return ;;
+  esac
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+    /usr/sbin/blkid -L "${boot#LABEL=}" >/dev/null 2>&1 && return
+    if /usr/sbin/blkid -L "$alt" >/dev/null 2>&1; then
+      RUN_FSCK_DISKS="${RUN_FSCK_DISKS/$boot/LABEL=$alt}"
+      boot="LABEL=$alt"
+      return
+    fi
+    usleep 1000000
+  done
+}
+
 mount_flash() {
   progress "Mounting flash"
 
@@ -1296,6 +1315,7 @@ debug_msg "Unique identifier for this client: ${MACHINE_UID:-NOT AVAILABLE}"
 for BOOT_STEP in \
     load_modules \
     recovery_mode \
+    resolve_boot_label \
     check_disks \
     mount_flash \
     set_consolefont \
