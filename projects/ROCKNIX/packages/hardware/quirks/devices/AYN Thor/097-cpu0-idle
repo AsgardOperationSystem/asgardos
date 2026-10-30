@@ -1,0 +1,8 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0
+
+# Re-enable CPU0 idle state1 after the SM8550 platform quirk 096-cpuidle disables it.
+# With CPU0 held in WFI the CPU cluster never powers down, so s2idle never reaches
+# cluster_sleep_1 and never freezes the clock; systemd watchdogs then kill logind
+# at resume and Wi-Fi stays blocked. Local test, not upstream.
+echo 0 > /sys/devices/system/cpu/cpu0/cpuidle/state1/disable

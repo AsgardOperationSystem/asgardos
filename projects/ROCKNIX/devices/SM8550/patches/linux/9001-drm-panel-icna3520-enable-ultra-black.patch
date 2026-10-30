@@ -1,0 +1,27 @@
+From: Chaos Ruler <zmelumian@gmail.com>
+Subject: [PATCH] drm/panel: chipone-icna35xx: enable AYN Ultra Black on ICNA3520
+
+Send the enhance_color "on" sequence (9F/B7/B8) that AYN Android uses
+for the Thor top panel. Bytes from the Android DT
+qcom,mdss-dsi-enhance-color-command. Local test, not upstream.
+---
+--- a/drivers/gpu/drm/panel/panel-chipone-icna35xx.c	2026-10-07 20:27:02.193591477 +0300
++++ b/drivers/gpu/drm/panel/panel-chipone-icna35xx.c	2026-10-07 20:27:02.200766882 +0300
+@@ -200,6 +200,17 @@
+ 
+ 	mipi_dsi_dcs_set_display_on_multi(&dsi_ctx);
+ 
++	/*
++	 * AYN "OLED Ultra Black" (enhance_color on): reduces colour shift and
++	 * mura at low brightness. Same DCS long writes Android sends at 60/120 Hz.
++	 */
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0x9F, 0x00);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xB7, 0x00, 0x11, 0x11, 0x00, 0x55,
++				     0x55, 0x55, 0x55, 0x55, 0x55, 0x55, 0x55,
++				     0x55, 0x40, 0x40, 0x40, 0x15, 0x00);
++	mipi_dsi_dcs_write_seq_multi(&dsi_ctx, 0xB8, 0x00, 0x00, 0x02, 0x41, 0x17,
++				     0x02, 0x28, 0x17, 0x00);
++
+ 	return dsi_ctx.accum_err;
+ }
+ 

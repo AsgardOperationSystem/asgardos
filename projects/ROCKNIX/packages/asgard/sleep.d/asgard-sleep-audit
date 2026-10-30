@@ -1,0 +1,103 @@
+#!/bin/sh
+# systemd-sleep hook: one CSV line per sleep in /storage/sleep-audit.csv, to find what keeps sleep drain at
+# ~230-330 mA when other SM8550 builds with the same DDR floor reach ~54-80 mA.
+#   mah/avg_ma: battery charge_counter delta. The gauge updates in delayed steps, so only sleeps >= 1 h mean much.
+#   <sub>_cnt/<sub>_acc: qcom_stats deltas (entries / time asleep in 19.2 MHz ticks, /19200000 = s). aosd/cxsd/ddr > 0 =
+#   whole-SoC collapse.
+#   s1_s2idle: cluster_sleep_1 entries during s2idle (pm_genpd S1 'S2idle' column; its Time(ms) excludes s2idle).
+#   exp: what Settings > Debug > Sleep experiment (asgard.sleep_experiment) switched off for this sleep:
+#        wifi, bt (rfkill block before sleep, unblock after). Add a suspect here, one per test.
+#        alt:<x>: <x> on every other sleep only, so on/off pairs share the same day and state.
+#   ddr_mhz/ddr_pct: the DDR frequency the sleep spent most time at (qcom_stats/ddr_stats residency) and its share.
+#        The floor is 1555 MHz; a sleep held at 2092+ means some voter kept bandwidth (2026-10-11: 4224 after Eden).
+#   emu/game: what was running (playlog.py's /run/thor-playing.txt), empty in the menu.
+# Each sleep also saves the interconnect, regulator and power-domain summaries at sleep entry to
+# /storage/sleep-audit/<start>.txt (newest 40 kept): diff a good sleep's against a bad one's to find the voter.
+# <start>.trace: what the drivers switch in the suspend itself, after this hook (regulator enable/disable, GPIO
+# writes, RPMh sleep/wake-set votes, suspend/resume markers), from a private ftrace instance, so a rail or pin
+# left on across the sleep shows up by name.
+# Off unless Settings > Debug > Sleep audit (asgard.sleep_audit=1).
+S=${SYS:-/sys}
+OUT=${OUT:-/storage/sleep-audit.csv}
+CFG=${CFG:-/storage/.config/system/configs/system.cfg}
+SNAP=${SNAP:-/run/.asgard-sleep-audit}
+DUMPS=${DUMPS:-/storage/sleep-audit}
+PLAYING=${PLAYING:-/run/thor-playing.txt}
+TR=${TR:-$S/kernel/tracing/instances/asgard-sleep}
+TRACE_EVENTS="regulator/regulator_enable regulator/regulator_disable_complete regulator/regulator_set_voltage
+  gpio/gpio_value rpmh/rpmh_send_msg power/suspend_resume"
+SUBS="apss adsp cdsp aosd cxsd ddr"
+
+snap() {
+  echo "t=$(date +%s)"
+  echo "uah=$(cat $S/class/power_supply/battery/charge_counter 2>/dev/null)"
+  echo "uv=$(cat $S/class/power_supply/battery/voltage_now 2>/dev/null)"
+  for s in $SUBS; do
+    f=$S/kernel/debug/qcom_stats/$s
+    echo "${s}_cnt=$(awk '/^Count/ {print $2}' $f 2>/dev/null)"
+    echo "${s}_acc=$(awk '/^Accumulated/ {print $3}' $f 2>/dev/null)"
+  done
+  echo "s1=$(awk '$1 == "S1" {print $7}' $S/kernel/debug/pm_genpd/power-domain-cluster/idle_states 2>/dev/null)"
+  # "DDR Freq 1555Mhz:	CP IDX:4	count:1	Duration (ticks):1139593601024" -> ddr1555=1139593601024
+  awk '/^DDR Freq/ { f = $3; sub(/Mhz:/, "", f); d = $NF; sub(/.*:/, "", d); print "ddr" f "=" d }' \
+    $S/kernel/debug/qcom_stats/ddr_stats 2>/dev/null
+}
+HDR="start,secs,mah,avg_ma,uv_start,uv_end$(for s in $SUBS; do printf ",${s}_cnt,${s}_acc"; done),s1_s2idle,exp,ddr_mhz,ddr_pct,emu,game"
+
+# system.cfg: one key=value per line, the last one wins
+cfg() { sed -n "s/^$1=//p" "$CFG" 2>/dev/null | tail -1; }
+# $1 = block|unblock: apply the experiment's rfkill switches
+radios() {
+  for w in $(cat $SNAP.exp 2>/dev/null); do
+    case $w in wifi) rfkill $1 wlan ;; bt) rfkill $1 bluetooth ;; esac
+  done 2>/dev/null
+}
+
+case "$1" in
+  pre)
+    [ "$(cfg asgard.sleep_audit)" = 1 ] || exit 0
+    snap > $SNAP
+    exp=$(cfg asgard.sleep_experiment)
+    case $exp in alt:*) [ $(( $(wc -l < $OUT 2>/dev/null || echo 0) % 2 )) = 0 ] && exp=${exp#alt:} || exp= ;; esac
+    # Only radios that are on now: the post step unblocks what's in $SNAP.exp, and unblocking a radio that airplane
+    # mode or the Wi-Fi toggle had off turned it back on behind their back (2026-10-13: Wi-Fi came up in airplane mode).
+    on=; for w in $exp; do case $w in wifi) t=wlan ;; bt) t=bluetooth ;; *) continue ;; esac
+      grep -lx $t $S/class/rfkill/*/type 2>/dev/null | while read f; do [ "$(cat ${f%type}soft)" = 0 ] && echo on; done | grep -q on && on="$on $w"
+    done
+    echo $on > $SNAP.exp
+    radios block
+    D=$DUMPS; mkdir -p $D
+    for f in interconnect/interconnect_summary regulator/regulator_summary pm_genpd/pm_genpd_summary; do
+      echo "=== $f"; cat $S/kernel/debug/$f
+    done > $D/$(sed -n 's/^t=//p' $SNAP).txt 2>/dev/null
+    ls -t $D/*.txt 2>/dev/null | tail -n +41 | xargs rm -f
+    ls -t $D/*.trace 2>/dev/null | tail -n +41 | xargs rm -f
+    { mkdir -p $TR && echo 0 > $TR/tracing_on && echo > $TR/trace && echo 1024 > $TR/buffer_size_kb
+      for e in $TRACE_EVENTS; do echo 1 > $TR/events/$e/enable; done
+      echo 1 > $TR/tracing_on; } 2>/dev/null
+    ;;
+  post)
+    [ -r $SNAP ] || exit 0
+    radios unblock
+    snap > $SNAP.post
+    [ -r $TR/trace ] && { echo 0 > $TR/tracing_on; cat $TR/trace > $DUMPS/$(sed -n 's/^t=//p' $SNAP).trace; } 2>/dev/null
+    [ "$(head -1 $OUT 2>/dev/null)" = "$HDR" ] || { [ -s $OUT ] && mv $OUT $OUT.1; echo "$HDR" > $OUT; }
+    emu= game=
+    [ -r $PLAYING ] && IFS='|' read -r sys emu core pid game < $PLAYING && emu=${emu:-$sys}
+    # Missing counters read as 0 so one absent file can't break the line.
+    awk -F= -v ex="$(cat $SNAP.exp 2>/dev/null)" -v subs="$SUBS" -v out="$OUT" -v emu="$emu" -v game="$game" '
+      FNR == NR { a[$1] = $2; next } { b[$1] = $2 }
+      END {
+        n = split(subs, s, " ")
+        secs = b["t"] - a["t"]; mah = (a["uah"] - b["uah"]) / 1000
+        l = a["t"] "," secs "," mah "," (secs > 0 ? int(mah * 3600 / secs) : 0) "," a["uv"] "," b["uv"]
+        for (i = 1; i <= n; i++) l = l "," (b[s[i] "_cnt"] - a[s[i] "_cnt"]) "," (b[s[i] "_acc"] - a[s[i] "_acc"])
+        tot = 0; top = 0
+        for (k in b) if (k ~ /^ddr[0-9]+$/) { d = b[k] - a[k]; tot += d; if (d > top) { top = d; mhz = substr(k, 4) } }
+        gsub(/"/, "\"\"", game)
+        print l "," (b["s1"] - a["s1"]) "," ex "," mhz "," (tot > 0 ? int(100 * top / tot) : "") "," emu ",\"" game "\"" >> out
+      }' $SNAP $SNAP.post
+    rm -f $SNAP $SNAP.post $SNAP.exp
+    ;;
+esac
+exit 0

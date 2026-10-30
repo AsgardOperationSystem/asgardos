@@ -1,0 +1,41 @@
+#!/bin/sh
+# Thor: built-in pad (rsinput, MCU on UART2) dead after a long sleep (2026-10-10, twice).
+# Kernel patch 9006 re-inits the MCU when its status stream doesn't come back, but it does that inside the resume
+# callback, where all 3 tries can fail (version handshake timeouts). A full re-probe once resume is over works,
+# plus an InputPlumber restart (its virtual pad loses the source when rsinput's input device is recreated).
+# Healthy stream ~91 IRQ/s, stalled ~0-1. No controller needed: runs after every wake.
+# Installed as /usr/lib/systemd/system-sleep/asgard-pad-fix (log: /storage/pad-fix.log). Manual run: asgard-pad-fix check
+# MIN=1000 forces a re-probe (test). Settings > Debug: asgard.pad_fix=0 turns it off, asgard.pad_fix_log=0 stops the log.
+D=/sys/bus/serial/drivers/rsinput
+DEV=serial1-0
+LOG=${LOG:-/storage/pad-fix.log}
+MIN=${MIN:-20}  # IRQ/s
+CFG=${CFG:-/storage/.config/system/configs/system.cfg}
+
+# system.cfg: one key=value per line, the last one wins; unset = on
+on() { [ "$(sed -n "s/^$1=//p" "$CFG" 2>/dev/null | tail -1)" != 0 ]; }
+on asgard.pad_fix || exit 0
+on asgard.pad_fix_log || LOG=/dev/null
+
+irqs() { awk '/qcom_geni_serial_uart2/{print $2}' /proc/interrupts; }
+rate() { a=$(irqs); sleep 1; echo $(( $(irqs) - a )); }
+
+case "$1" in
+  post)
+    # systemd-suspend kills leftover children when it exits, so hand the check to a transient timer.
+    systemd-run --no-block --on-active=4 --unit="thor-pad-fix-$(date +%s)" "$(readlink -f "$0")" check >/dev/null 2>&1
+    ;;
+  check)
+    for try in 1 2 3; do
+      r=$(rate)
+      [ "$r" -ge "$MIN" ] && exit 0
+      echo "$(date '+%F %T') stalled ($r IRQ/s), re-probing rsinput (try $try)" >> "$LOG"
+      echo "thor-pad-fix: re-probing $DEV ($r IRQ/s)" > /dev/kmsg
+      echo $DEV > $D/unbind; sleep 0.5; echo $DEV > $D/bind; sleep 1
+      systemctl restart inputplumber; sleep 2
+      MIN=${MIN#1000}; MIN=${MIN:-20}  # a forced test run checks the real threshold afterwards
+    done
+    echo "$(date '+%F %T') still stalled after 3 re-probes ($(rate) IRQ/s)" >> "$LOG"
+    ;;
+esac
+exit 0

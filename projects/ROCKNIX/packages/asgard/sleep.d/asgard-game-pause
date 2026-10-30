@@ -1,0 +1,11 @@
+#!/bin/sh
+# systemd-sleep hook: Asgard Home pauses the running game before sleep and unpauses it after (its own pause, see
+# Backend::command "sleep"/"wake"), so emulators don't replay the time asleep. timeout: never hang the sleep if
+# Home isn't reading its command FIFO.
+F=/run/asgard-home.cmd
+[ -p "$F" ] || exit 0
+case "$1" in
+  pre)  timeout 1 sh -c "echo sleep >$F" && sleep 0.5 ;;   # the pause key/command reaches the emulator first
+  post) timeout 1 sh -c "echo wake >$F" ;;
+esac
+exit 0

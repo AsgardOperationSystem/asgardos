@@ -1,0 +1,54 @@
+#!/bin/bash
+# asgard-osd <label> <percent>: volume/brightness slider. Fallback when Asgard Home is not running: drawn by mako,
+# a dark glass pill whose fill grows with the level, and the percentage. Each call replaces the previous OSD
+# notification, so holding the key moves one bar instead of stacking toasts.
+LABEL=$1 VALUE=$2
+
+# Asgard Home draws it (an overlay in its own style, over games too) when it's running; mako otherwise.
+FIFO=/run/asgard-home.cmd
+if [ -p "$FIFO" ] && pidof asgard-home >/dev/null; then
+  timeout 1 sh -c 'echo "osd $1 $2" > '"$FIFO" _ "$LABEL" "$VALUE" && exit 0
+fi
+export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/var/run/0-runtime-dir}
+CONF=/storage/.config/mako/config
+ID=/run/asgard-osd.id
+ICONS=/usr/share/asgard/osd
+
+# Our mako section, rewritten whenever its version changes (it's the last section in the file).
+STYLE_VERSION=2
+if ! grep -qs "^# asgard-osd style $STYLE_VERSION\$" "$CONF"; then
+  mkdir -p "${CONF%/*}"
+  [ -f "$CONF" ] && sed -i '/^\[app-name=asgard-osd\]/,$d' "$CONF"
+  cat >> "$CONF" <<EOF
+[app-name=asgard-osd]
+# asgard-osd style $STYLE_VERSION
+format=%s
+font=Nunito ExtraBold 30
+text-alignment=left
+anchor=top-center
+width=380
+height=104
+padding=28,34
+margin=26
+border-radius=52
+border-size=2
+border-color=#ffffff2e
+background-color=#14162ae8
+text-color=#ffffff
+progress-color=over #8a6bffd9
+icon-location=left
+max-icon-size=44
+default-timeout=1200
+EOF
+  makoctl reload >/dev/null 2>&1
+fi
+
+case "$LABEL" in
+  Volume) [ "$VALUE" -le 0 ] 2>/dev/null && ICON=volume-mute || ICON=volume ;;
+  *) ICON=brightness ;;
+esac
+
+OLD=$(cat "$ID" 2>/dev/null)
+busctl --user call org.freedesktop.Notifications /org/freedesktop/Notifications org.freedesktop.Notifications \
+  Notify susssasa{sv}i asgard-osd "${OLD:-0}" "$ICONS/$ICON.png" "$VALUE%" "" 0 1 value i "$VALUE" 1200 2>/dev/null \
+  | awk '{print $2}' > "$ID"

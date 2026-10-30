@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Asgard's built-in entries for the Tools system (ROCKNIX's music); the user's ES-DE gamelist overrides them. -->
+<gameList>
+	<game>
+		<path>./Firefox.sh</path>
+		<name>Firefox</name>
+		<desc>The web on the Thor: the page on the top screen, a full touch keyboard on the bottom one. Your tabs come back after Quit.</desc>
+		<developer>Mozilla</developer>
+		<genre>Web browser</genre>
+		<releasedate>20261027T000000</releasedate>
+	</game>
+	<game>
+		<path>./Files.sh</path>
+		<name>Files</name>
+		<desc>Your SD card and the Thor's storage: browse, copy, move, rename and delete, with the pad or touch.</desc>
+		<developer>Asgard OS</developer>
+		<genre>File manager</genre>
+		<releasedate>20261027T000000</releasedate>
+	</game>
+	<game>
+		<path>./Moonlight.sh</path>
+		<name>Moonlight</name>
+		<desc>Stream games from your PC (Sunshine or GeForce Experience): pair once, then pick a game and play it on the Thor.</desc>
+		<developer>Moonlight Game Streaming Project</developer>
+		<genre>Game streaming</genre>
+		<releasedate>20261004T000000</releasedate>
+	</game>
+	<game>
+		<path>./Terminal.sh</path>
+		<name>Terminal</name>
+		<desc>A Linux shell on the Thor, with a touch keyboard. For when you know what you are doing.</desc>
+		<developer>QTerminal</developer>
+		<genre>Terminal</genre>
+		<releasedate>20261027T000000</releasedate>
+	</game>
+</gameList>

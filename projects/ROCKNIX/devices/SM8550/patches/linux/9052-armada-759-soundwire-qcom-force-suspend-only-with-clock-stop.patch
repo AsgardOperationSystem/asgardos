@@ -1,0 +1,48 @@
+From: Asgard
+Subject: [PATCH] soundwire: qcom: only force-suspend buses with clock stop (Armada #759)
+
+Follow-up to 9047 (Armada #723 0564). Armada #759: on a bus without clock
+stop the forced runtime resume resets the controller and loses the ports
+of any stream still open, so leave those buses as they were.
+---
+--- a/drivers/soundwire/qcom.c
++++ b/drivers/soundwire/qcom.c
+@@ -222,6 +222,7 @@
+ 	u32 slave_status;
+ 	u32 wr_fifo_depth;
+ 	bool clock_stop_not_supported;
++	bool sleep_suspended;
+ };
+ 
+ struct qcom_swrm_data {
+@@ -1807,8 +1808,29 @@
+ 	return 0;
+ }
+ 
++static int __maybe_unused swrm_suspend(struct device *dev)
++{
++	struct qcom_swrm_ctrl *ctrl = dev_get_drvdata(dev);
++
++	ctrl->sleep_suspended = !ctrl->clock_stop_not_supported;
++	if (!ctrl->sleep_suspended)
++		return 0;
++
++	return pm_runtime_force_suspend(dev);
++}
++
++static int __maybe_unused swrm_resume(struct device *dev)
++{
++	struct qcom_swrm_ctrl *ctrl = dev_get_drvdata(dev);
++
++	if (!ctrl->sleep_suspended)
++		return 0;
++
++	return pm_runtime_force_resume(dev);
++}
++
+ static const struct dev_pm_ops swrm_dev_pm_ops = {
+-	SET_SYSTEM_SLEEP_PM_OPS(pm_runtime_force_suspend, pm_runtime_force_resume)
++	SET_SYSTEM_SLEEP_PM_OPS(swrm_suspend, swrm_resume)
+ 	SET_RUNTIME_PM_OPS(swrm_runtime_suspend, swrm_runtime_resume, NULL)
+ };
+ 
