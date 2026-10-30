@@ -660,7 +660,7 @@ then
   fi
 fi
 
-### Asgard: back to the global CPU caps, all cores online, the fan as it was
+### Asgard: back to the menu's CPU profile (caps, cores off), the fan as it was
 /usr/share/asgard/asgard-perf-profile.sh restore
 
 ### Restore cooling profile.
@@ -683,15 +683,8 @@ else
 fi
 rm -f /tmp/.gpu_performance_level 2>/dev/null
 
-### Reset the number of cores to use.
-NUMTHREADS=$(get_setting "system.threads")
-${VERBOSE} && log $0 "Restore active threads (${NUMTHREADS})"
-if [ -n "${NUMTHREADS}" ]
-then
-        onlinethreads ${NUMTHREADS} 0 &
-else
-        onlinethreads all 1 &
-fi
+### Asgard: no "reset the number of cores" here: the restore above already brought every core back and then took the
+### menu's asgard.cpu_cores off ones offline again, and onlinethreads all (in the background) undid that after every game.
 
 ### Disable GPU profiling
 gpu_profiling "off"
