@@ -1,0 +1,13 @@
+diff --git a/Core/Settings.c b/Core/Settings.c
+index fa070ca..d3604d9 100644
+--- a/Core/Settings.c
++++ b/Core/Settings.c
+@@ -23,6 +23,8 @@ SettingsDefault (OUT SETTINGS *Settings)
+     .BootSource    = BOOT_SOURCE_AUTO,
+     .Rotation      = ROTATION_AUTO,
+     .ModelRotation = ROTATION_NONE,
++    // AsgardOS: show the boot partition's /logo/ pictures unless turned off in the menu.
++    .CustomLogo    = TRUE,
+   };
+ }
+ 

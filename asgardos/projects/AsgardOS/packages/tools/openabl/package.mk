@@ -1,6 +1,8 @@
 # SPDX-License-Identifier: GPL-2.0
 # AsgardOS: OpenABL, an open-source boot menu + Boot Loader Spec boot built into Qualcomm's ABL (GPL-3.0).
 # Installed to /usr/share/bootloader/openabl only: nothing flashes it (updateabl does, by hand, after a backup).
+# source-patches/: our changes to OpenABL (not applied to this release download). Build: OpenABL v1.2 + these patches,
+# ./build.sh sm8550 in the OpenABL tree, then install that build/out/abl_signed-SM8550.elf here instead.
 
 PKG_NAME="openabl"
 PKG_VERSION="1.2"
