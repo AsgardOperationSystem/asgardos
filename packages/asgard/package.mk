@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
-# Asgard OS layer for the AYN Thor: its own scripts, services and apps on top of ROCKNIX.
+# Asgard OS layer for the AYN Thor: its own scripts, services and apps on top of the base system.
 
 PKG_NAME="asgard"
 PKG_VERSION="1"
@@ -9,7 +9,7 @@ PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-ho
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
-# autostart/, system.d/ and sleep.d/ are installed by ROCKNIX's scripts/install (to autostart/common,
+# autostart/, system.d/ and sleep.d/ are installed by scripts/install (to autostart/common,
 # systemd/system and systemd/system-sleep).
 makeinstall_target() {
   # LÖVE ports run outside PortMaster (Gen1recomp's love.aarch64) need libtheoradec.so.1, which only PortMaster's

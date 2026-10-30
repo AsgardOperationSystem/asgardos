@@ -4,7 +4,7 @@
 #   THOR=user@host ./dev.sh thor ["right a"]   cross-build, copy to the Thor (/storage/asgard-dev), render there -> /tmp/asgard-thor-*.png
 # Keys are button names (up down left right a b x y lb rb select start) replayed before the shot.
 # ASGARD_ARGS: the mode to render (--files, --panel ...); the panel's thor_panel.py is the source tree's.
-# THOR_BUILD: a ROCKNIX SM8550 build dir with a built toolchain + qt6 (cross-compiling only).
+# THOR_BUILD: the SM8550 build dir (build/AsgardOS-SM8550.aarch64) with a built toolchain + qt6 (cross-compiling only).
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 REPO=$(git -C "$HERE" rev-parse --show-toplevel)

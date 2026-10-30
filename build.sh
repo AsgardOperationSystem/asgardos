@@ -14,7 +14,7 @@ if [ "$STEP" = stage ]; then
   NAME=$(basename "$TAR")
   SUM=$(cut -d' ' -f1 "$TAR.sha256")
   # Copied under a temporary name and renamed only once its checksum matches on the device: a copy cut short
-  # (the device rebooted mid-transfer, 2026-10-10) must never look like an update to ROCKNIX's installer,
+  # (the device rebooted mid-transfer, 2026-10-10) must never look like an update to the installer,
   # which only picks up *.tar.
   scp -q "$TAR" "$HOST:/storage/.update/$NAME.part"
   ssh "$HOST" "cd /storage/.update && echo '$SUM  $NAME.part' | sha256sum -c - >/dev/null \
@@ -23,9 +23,9 @@ if [ "$STEP" = stage ]; then
   exit
 fi
 
-# ROCKNIX's docker build copies the caller's whole environment into the container (scripts/get_env -> .env), so
+# The docker build copies the caller's whole environment into the container (scripts/get_env -> .env), so
 # it starts from an empty one: no tokens or session vars go in, and none of LOCAL_WIFI_SSID / LOCAL_WIFI_KEY /
-# LOCAL_SSH_KEYS_FILE, which ROCKNIX would bake into the image. Personal settings go in asgard.yml (inject-config.sh).
+# LOCAL_SSH_KEYS_FILE, which the build would bake into the image. Personal settings go in asgard.yml (inject-config.sh).
 # The tree is mounted at /work with HOME=/tmp, so binaries carry /work/... paths, not this machine's home dir and
 # user name. Changing the work dir or the build dir needs a clean build: rm -rf build/AsgardOS-SM8550.*
 if [ "$STEP" = build ]; then

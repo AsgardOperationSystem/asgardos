@@ -8,7 +8,7 @@ A Linux gaming OS for the **AYN Thor**, a dual-screen SM8550 handheld. It's buil
 - **Native settings, an in-game menu and tools**, so the Thor can be used without a keyboard or SSH.
 
 Since 2026-10-30 Asgard is its own fork of ROCKNIX, forked at ROCKNIX `7cffc96` with its full history. The
-distribution tree lives in `asgardos/` in this repo; ROCKNIX fixes are cherry-picked by hand, never merged wholesale.
+distribution tree is this repo; ROCKNIX fixes are cherry-picked by hand, never merged wholesale.
 
 ## Screenshots
 
@@ -117,10 +117,16 @@ in a game.
 ## Layout
 
 ```
-asgardos/          the distribution tree: our fork of ROCKNIX (ROCKNIX history included)
 build.sh          build the image (./build.sh), or stage it on a Thor (./build.sh stage)
 inject-config.sh  put your asgard.yml on an image's boot partition
-docs/             changes, sleep work, adding an emulator, screenshots
+distribution/     Asgard OS itself: options, kernel_options, logos, image tools, extra package patches
+device/           the board (SM8550): options, config.xml (DTB list), bootloader, rootfs overlay, kernel .config
+packages/         every package recipe; ours: asgard/, asgard-home/ (src/), asgardos/;
+                  linux/src is the kernel, a submodule (asgardos/linux)
+config/ scripts/  the build system (from LibreELEC by way of ROCKNIX, ours now)
+tools/            build helpers; tools/turnip/ builds extra Turnip (Vulkan) drivers
+docs/             changes, sleep work, adding an emulator, the supported emulators, screenshots
+build/            git-ignored: everything the build makes (build dirs, sources, target/ images, log/)
 thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace
 ```
 
