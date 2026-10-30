@@ -453,7 +453,7 @@ QtObject {
                     visible: app.items.length === 0
                     anchors.centerIn: parent
                     font.family: Theme.font; font.pixelSize: 48; font.weight: Font.Black; color: Theme.textDim
-                    text: app.tab === 2 ? (achievements.status || (app.stack.length ? "Loading…" : "No trophies yet")) : app.openSys !== "" ? "No games yet" : "Coming soon"
+                    text: app.tab === 2 ? (achievements.status || (app.stack.length ? "Loading…" : "No trophies yet")) : "Coming soon"
                     width: parent.width - 120; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap
                 }
             }
