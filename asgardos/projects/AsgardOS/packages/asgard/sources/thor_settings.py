@@ -532,27 +532,10 @@ def os_release():
 
 
 def page_updates(ui):
+    # AsgardOS has no update server: a build is installed by copying its .tar into /storage/.update.
     rel = os_release()
-    while True:
-        items = [("Installed", f'{rel.get("OS_VERSION", "?")} ({rel.get("BUILD_BRANCH", rel.get("OS_BUILD", "?"))})'),
-                 ("Check for updates", ""), ("Install update…", "")]
-        sel = ui.menu("Updates", items)
-        if sel is None:
-            return
-        if sel == 1:
-            ui.busy("Updates", "Checking…")
-            _, out = run_cmd("rocknix-update check", 60)
-            ui.message("Updates", ["Update available:" if out.startswith("http") else "No update available.",
-                                   out[-90:] if out.startswith("http") else ""])
-        elif sel == 2:
-            # Official ROCKNIX images replace this Thor's custom build (PR #3126 sleep work, rsinput fix, Ultra Black).
-            if not ui.confirm("Install official update",
-                              "replaces the custom Thor build. Continue?"):
-                continue
-            ui.busy("Updates", "Downloading… (this can take several minutes)")
-            rc, out = run_cmd("rocknix-update update", 3600)
-            ui.message("Updates", ["Downloaded. Reboot to install." if rc == 0 else "Update failed.",
-                                   (out.splitlines() or [""])[-1][:100]])
+    ui.message("Updates", [f'Installed: {rel.get("OS_VERSION", "?")} ({rel.get("BUILD_ID", "?")[:10]})',
+                           "Copy an AsgardOS .tar into /storage/.update and reboot to install it."])
 
 
 SERVICES = [("SSH", "ssh.enabled", "sshd"), ("Samba (file sharing)", "samba.enabled", "smbd nmbd"),
