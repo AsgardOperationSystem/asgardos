@@ -219,8 +219,7 @@ void Backend::scan()
                 games << g;
                 m_byPath[g["path"].toString()] = g;
             }
-            if (games.isEmpty())
-                continue;
+            // Systems without games are listed too (an empty grid when opened), so every emulator is visible.
             std::sort(games.begin(), games.end(), [](const QVariant &a, const QVariant &b) {
                 return a.toMap()["name"].toString().compare(b.toMap()["name"].toString(), Qt::CaseInsensitive) < 0;
             });

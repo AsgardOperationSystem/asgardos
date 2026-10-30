@@ -165,7 +165,7 @@ Item {
                     anchors.horizontalCenter: parent.horizontalCenter
                     font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Bold
                     color: sysLogo.visible ? Theme.textDim : "#5b5a88"; style: sysLogo.visible ? Text.Raised : Text.Normal; styleColor: "#80000000"
-                    text: hero.item && hero.item.sys ? hero.item.sys.count + " games" : ""
+                    text: hero.item && hero.item.sys ? hero.item.sys.count + (hero.item.sys.count === 1 ? " game" : " games") : ""
                 }
             }
         }
