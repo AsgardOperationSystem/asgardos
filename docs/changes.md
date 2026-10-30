@@ -2,7 +2,7 @@
 
 "Deep sleep plan" and "Projects to learn from" are in [sleep.md](sleep.md).
 
-One merge request each; its description and commits say what was broken, why, and what changed.
+Until 2026-10-10 each change was a merge request; their write-ups (what was broken, why, what changed) are in [merge-requests.md](merge-requests.md). Later changes are plain commits whose messages say the same.
 
 | Change | Why |
 |---|---|
