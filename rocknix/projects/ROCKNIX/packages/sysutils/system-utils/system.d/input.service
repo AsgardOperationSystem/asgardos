@@ -1,0 +1,16 @@
+[Unit]
+Description=Volume button service
+After=headphones.service
+Before=rocknix.target
+StartLimitIntervalSec=0
+
+[Service]
+MemoryLow=8M
+OOMScoreAdjust=-500
+Environment=HOME=/storage
+ExecStart=/usr/bin/input_sense
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

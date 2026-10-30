@@ -1,0 +1,87 @@
+#!/bin/sh
+# Thor: a USB-C attach/detach wakes the Thor (kernel patch 9005, so a charger plugged into a sleeping Thor
+# charges). Woken that way with the lid shut, it goes back to sleep after 15 s.
+# The running game (playlog.py's /run/thor-playing.txt: the launching shell's pid) is SIGSTOPped before every
+# sleep and only continued once the lid is open, so a cable wake with the lid shut doesn't play a second of the
+# game's audio. The kernel freezes it in suspend anyway; this just extends that over the 15 s cable wake.
+# Until 2026-10-11 this hook also rebound UCSI 75 s after every wake when it looked stuck (discharging, no
+# partner). Unplugged looks the same, so it fired on nearly every wake; the stuck state came from 0502 masking
+# the IPCC mailbox, which 9005 undoes on the Thor (Kettle Linux and Armada reached the same fix). Removed.
+# Charge limit asleep: asgard-charge-limit.sh is frozen in suspend, so a Thor that slept on the charger below the
+# limit charged on to full (2026-10-28: 40 -> 100 % overnight). Now it arms an RTC alarm for when the limit should be
+# reached; that wake, with the lid shut, lets the loop hold the charge (current 0) and goes back to sleep like a
+# cable wake. Rate: the last charging sleep's charge_counter delta, never below 2000 mA. The alarm aims at half the
+# way, so a rate read low can't carry it far past the limit (2026-10-30: learnt 989 mA, charged at ~1900, 65 -> 94 %
+# on one alarm); each wake arms the next, shorter alarm, at least 5 min apart.
+# Installed as /usr/lib/systemd/system-sleep/asgard-charge-fix (log: /storage/charge-fix.log).
+S=${SYS:-/sys}
+LOG=${LOG:-/storage/charge-fix.log}
+RUN=${RUN:-/run}
+FROZEN=$RUN/.asgard-frozen
+KILL=${KILL:-kill}
+CFG=${CFG:-/storage/.config/system/configs/system.cfg}
+B=$S/class/power_supply/battery
+RTC=$S/class/rtc/rtc0/wakealarm
+ALARM=$RUN/.asgard-charge-alarm
+RATE=${RATE:-/storage/.cache/asgard-charge-rate}
+cfg() { sed -n "s/^$1=//p" "$CFG" 2>/dev/null | tail -1; }
+
+# wakeup_active_count, not wakeup_count: the latter only counts when userspace arms /sys/power/wakeup_count.
+WC=$S/bus/auxiliary/devices/pmic_glink.ucsi.0/power/wakeup_active_count
+# Back to sleep in 15 s if the lid is still shut, else continue the game. systemd-suspend kills leftover children
+# when it exits, so hand the delay to a transient timer. logind often re-suspends on the shut lid first
+# ("suspend already in progress"): not a failure.
+resleep() {
+  systemd-run --no-block --on-active=15 --unit="thor-charge-resleep-$(date +%s)" \
+    /bin/sh -c "if $LID; then systemctl suspend 2>/dev/null || true; else kill -CONT \$(cat $FROZEN 2>/dev/null) 2>/dev/null; rm -f $FROZEN; fi" >/dev/null 2>&1
+}
+LID='busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null | grep -q true'
+
+case "$1" in
+  pre)
+    cat $WC > $RUN/.thor-ucsi-wakeups 2>/dev/null
+    rm -f $ALARM
+    limit=$(cfg asgard.charge_limit); limit=${limit:-80}
+    lvl=$(cat $B/capacity 2>/dev/null)
+    if [ "$(cat $S/class/power_supply/qcom-battmgr-usb/online 2>/dev/null)" = 1 ] && [ "$(cfg asgard.bypass_charging)" != 1 ] &&
+       [ "$limit" != full ] && [ "$limit" -lt 100 ] && [ -n "$lvl" ] && [ "$lvl" -lt "$limit" ]; then
+      ma=$(cat $RATE 2>/dev/null); [ "${ma:-0}" -ge 2000 ] || ma=2000
+      # uAh / mA * 3.6 = s, halved
+      secs=$(( (limit - lvl) * $(cat $B/charge_full) / 100 * 36 / 10 / ma / 2 ))
+      [ $secs -ge 300 ] || secs=300
+      echo 0 > $RTC; echo +$secs > $RTC
+      echo "$(date +%s) $(cat $B/charge_counter)" > $ALARM
+      echo "$(date '+%F %T') charging asleep at $lvl % (limit $limit %), RTC wake in ${secs} s at $ma mA" >> "$LOG"
+    fi
+    # Every descendant of the game's launching shell (runemu.sh, the emulator, its helpers).
+    root=$(cut -d'|' -f4 $RUN/thor-playing.txt 2>/dev/null)
+    if [ -n "$root" ]; then
+      ps -eo pid=,ppid= | awk -v r="$root" '{ p[$1] = $2 }
+        END { for (k in p) { x = k; while ((x in p) && x != r && x > 1) x = p[x]; if (x == r && k != r) print k } }' > $FROZEN
+      [ -s $FROZEN ] && $KILL -STOP $(cat $FROZEN) 2>/dev/null
+    fi
+    ;;
+  post)
+    # Woken by the cable with the lid shut: let PD settle, then go back to sleep (charging continues asleep).
+    # The game stays stopped; the timer continues it instead if the lid was opened in those 15 s.
+    fired=
+    if [ -r $ALARM ]; then
+      read t0 c0 < $ALARM; dt=$(( $(date +%s) - t0 )); dc=$(( $(cat $B/charge_counter) - c0 ))
+      [ $dt -ge 600 ] && [ $dc -gt 0 ] && echo $(( dc * 36 / 10 / dt )) > $RATE
+      # an alarm that went off reads back empty; one still pending means something else woke the Thor
+      [ -z "$(cat $RTC 2>/dev/null)" ] && fired=1
+      echo 0 > $RTC; rm -f $ALARM
+    fi
+    if [ -f $WC ] && [ "$(cat $WC)" != "$(cat $RUN/.thor-ucsi-wakeups 2>/dev/null)" ] && eval "$LID"; then
+      echo "$(date '+%F %T') usb-c wake with lid closed, re-suspending" >> "$LOG"
+      resleep
+    elif [ -n "$fired" ] && eval "$LID"; then
+      echo "$(date '+%F %T') charge-limit wake at $(cat $B/capacity) % with lid closed, re-suspending" >> "$LOG"
+      resleep
+    elif [ -s $FROZEN ]; then
+      $KILL -CONT $(cat $FROZEN) 2>/dev/null
+      rm -f $FROZEN
+    fi
+    ;;
+esac
+exit 0

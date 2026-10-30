@@ -1,5 +1,5 @@
 #!/bin/bash
-# Asgard OS: rocknix/ is our own fork of ROCKNIX (submodule, branch asgard); changes are commits there.
+# Asgard OS: rocknix/ is our fork of ROCKNIX, part of this repo; changes are ordinary commits.
 #   ./build.sh            build the SM8550 image (ROCKNIX's docker build) from rocknix/ as it stands
 #   ./build.sh stage [user@host]   put the built .tar in the device's /storage/.update (installs on next boot);
 #                                  the host defaults to $THOR
@@ -23,21 +23,13 @@ if [ "$STEP" = stage ]; then
   exit
 fi
 
-# fresh clone only: afterwards rocknix/ is where the work happens, and an update would detach it from its branch
-[ -e rocknix/.git ] || git submodule update -q --init rocknix
-# ROCKNIX's build runs git inside docker, which only mounts rocknix/: keep the submodule's git dir in there
-# instead of the usual ../.git/modules/rocknix pointer.
-if [ -f rocknix/.git ]; then
-  GD=$(git -C rocknix rev-parse --absolute-git-dir)
-  rm rocknix/.git && mv "$GD" rocknix/.git && git -C rocknix config --unset core.worktree
-fi
-
 # ROCKNIX's docker build copies the caller's whole environment into the container (scripts/get_env -> .env), so
 # it starts from an empty one: no tokens or session vars go in, and none of LOCAL_WIFI_SSID / LOCAL_WIFI_KEY /
 # LOCAL_SSH_KEYS_FILE, which ROCKNIX would bake into the image. Personal settings go in asgard.yml (inject-config.sh).
 # The tree is mounted at /work with HOME=/tmp, so binaries carry /work/... paths, not this machine's home dir and
 # user name. Changing the work dir needs a clean build: rm -rf rocknix/build.ROCKNIX-SM8550.*
+# docker mounts only rocknix/, which has no .git of its own: the build gets the version hash from here.
 if [ "$STEP" = build ]; then
-  env -i PATH="$PATH" TERM="${TERM:-dumb}" LANG=C.UTF-8 HOME=/tmp DOCKER_WORK_DIR=/work make -C rocknix docker-SM8550
+  env -i PATH="$PATH" TERM="${TERM:-dumb}" LANG=C.UTF-8 HOME=/tmp DOCKER_WORK_DIR=/work CUSTOM_GIT_HASH="$(git rev-parse HEAD)" make -C rocknix docker-SM8550
   ls -1 rocknix/target/*.img.gz rocknix/target/*.tar 2>/dev/null
 fi

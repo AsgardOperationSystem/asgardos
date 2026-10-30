@@ -1,0 +1,18 @@
+# Gyro, step 4: the accelerometer and gyro (read from the ADSP sensor core that thor-sensorspd brings up) served to
+# emulators as a cemuhook/DSU motion source on 127.0.0.1:26760. Not enabled: asgard-perf-profile.sh starts it for a game
+# whose Gyro option is on (Hardware overrides, default off) and for the menu with asgard.motion=1, and stops it otherwise
+# (while it streams, the ADSP wakes ~185 times a second).
+[Unit]
+Description=Thor motion sensors as a DSU (cemuhook) server
+After=thor-sensorspd.service
+BindsTo=thor-sensorspd.service
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/share/asgard/asgard-motiond.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/var/log/asgard-motiond.log
+StandardError=append:/var/log/asgard-motiond.log
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,80 @@
+--- a/src/shutdown/shutdown.c
++++ b/src/shutdown/shutdown.c
+@@ -444,7 +444,7 @@
+                    LOG_TARGET_KMSG))
+                 bump_sysctl_printk_log_level(LOG_WARNING);
+ 
+-        init_watchdog();
++        /* init_watchdog(); */
+ 
+         /* Lock us into memory. If the first mlockall call fails, don't attempt it again. */
+         if (safe_mlockall(MCL_FUTURE|MCL_ONFAULT) >= 0)
+@@ -479,7 +479,7 @@
+         for (bool last_try = false;;) {
+                 bool changed = false;
+ 
+-                (void) watchdog_ping();
++                /* (void) watchdog_ping(); */
+ 
+                 /* Let's trim the cgroup tree on each iteration so that we leave an empty cgroup tree around,
+                  * so that container managers get a nice notify event when we are down */
+@@ -586,7 +586,7 @@
+          * explicitly close the device with disarm=false here, before releasing the rest of the watchdog
+          * data. */
+         watchdog_close(/* disarm= */ false);
+-        watchdog_free_device();
++        /* watchdog_free_device(); */
+ 
+         const char *arguments[] = {
+                 NULL, /* Filled in by execute_directories(), when needed */
+@@ -622,13 +622,13 @@
+                         log_error_errno(r, "Failed to switch root to \"/run/initramfs\": %m");
+         }
+ 
+-        if (need_umount || need_swapoff || need_loop_detach || need_dm_detach || need_md_detach)
++        /* if (need_umount || need_swapoff || need_loop_detach || need_dm_detach || need_md_detach)
+                 log_error("Unable to finalize remaining%s%s%s%s%s ignoring.",
+                           need_umount ? " file systems," : "",
+                           need_swapoff ? " swap devices," : "",
+                           need_loop_detach ? " loop devices," : "",
+                           need_dm_detach ? " DM devices," : "",
+-                          need_md_detach ? " MD devices," : "");
++                          need_md_detach ? " MD devices," : ""); */
+ 
+         /* The kernel will automatically flush ATA disks and suchlike on reboot(), but the file systems need
+          * to be sync'ed explicitly in advance. So let's do this here, but not needlessly slow down
+--- a/src/shutdown/umount.c
++++ b/src/shutdown/umount.c
+@@ -343,7 +343,7 @@
+                                        UMOUNT_NOFOLLOW | /* Don't follow symlinks: this should never happen unless our mount list was wrong */
+                                        (m->umount_lazily ? MNT_DETACH : MNT_FORCE)));
+                 if (r < 0) {
+-                        log_full_errno(last_try ? LOG_ERR : LOG_INFO, r, "Failed to unmount %s: %m", m->path);
++                        /* log_full_errno(last_try ? LOG_ERR : LOG_INFO, r, "Failed to unmount %s: %m", m->path); */
+ 
+                         if (r == -EBUSY && last_try)
+                                 log_umount_blockers(m->path);
+--- a/src/volatile-root/volatile-root.c
++++ b/src/volatile-root/volatile-root.c
+@@ -53,7 +53,7 @@
+ 
+         r = umount_recursive(path, 0);
+         if (r < 0) {
+-                log_error_errno(r, "Failed to unmount %s: %m", path);
++                /* log_error_errno(r, "Failed to unmount %s: %m", path); */
+                 goto finish_umount;
+         }
+ 
+--- a/src/core/job.c
++++ b/src/core/job.c
+@@ -763,6 +763,10 @@
+         assert(t >= 0);
+         assert(t < _JOB_TYPE_MAX);
+ 
++        /* Suppress the console/journal status message for failed unmount jobs on mount units. */
++        if (t == JOB_STOP && result == JOB_FAILED && u->type == UNIT_MOUNT)
++                return;
++
+         if (!unit_log_level_test(u, job_done_messages[result].log_level))
+                 return;
+ 

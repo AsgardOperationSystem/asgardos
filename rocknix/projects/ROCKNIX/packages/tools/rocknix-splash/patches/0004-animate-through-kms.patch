@@ -1,0 +1,253 @@
+Boot animation through KMS, on the largest panel only
+
+The fbdev console is mirrored to every panel at the size they share (the
+Thor's bottom panel, 1080x1240), so on the top panel the splash covered only
+part of the screen and could not be centred. --animate now draws through
+KMS on the largest connected panel with a buffer of its own size, and turns
+the others off; one-shot modes stay on /dev/fb0 (a KMS picture goes away
+when the process exits). At boot the panels may still be probing, so it
+retries for 5 s before falling back to /dev/fb0, and logs which it used.
+The KMS buffer is portrait-native: rotate 90 like sway when the device tree
+gives no rotation.
+
+--- a/Makefile
++++ b/Makefile
+@@ -1,5 +1,5 @@
+ # Source files to be compiled
+-SRCS=main.c fbsplash.c svg_parser.c svg_renderer.c dt_rotation.c integrity.c
++SRCS=main.c fbsplash.c drmsplash.c svg_parser.c svg_renderer.c dt_rotation.c integrity.c
+ 
+ # Generate object file names from source files by replacing .c with .o
+ OBJS=$(SRCS:.c=.o)
+--- a/fbsplash.h
++++ b/fbsplash.h
+@@ -17,8 +17,12 @@
+     struct fb_var_screeninfo vinfo;
+     struct fb_fix_screeninfo finfo;
+     size_t screensize;
++    uint8_t *map;            // KMS dumb buffer (drm_init); NULL for /dev/fb0
+ } Framebuffer;
+ 
++/* Draw on the largest panel only through KMS (see drmsplash.c); NULL if not possible */
++Framebuffer* drm_init(void);
++
+ /* Display information structure for SVG rendering
+  * Contains screen and SVG dimensions and offsets for centering
+  */
+--- a/fbsplash.c
++++ b/fbsplash.c
+@@ -4,6 +4,7 @@
+ #include <fcntl.h>
+ #include <unistd.h>
+ #include <sys/ioctl.h>
++#include <sys/mman.h>
+ #include "fbsplash.h"
+ 
+ /* Initialize the framebuffer device
+@@ -158,7 +159,9 @@
+ 
+ /* Write the buffer to the framebuffer device */
+ void fb_flush(Framebuffer *fb) {
+-    if (fb && fb->buffer) {
++    if (fb && fb->buffer && fb->map) {
++        memcpy(fb->map, fb->buffer, fb->screensize);
++    } else if (fb && fb->buffer) {
+         lseek(fb->fd, 0, SEEK_SET);
+         write(fb->fd, fb->buffer, fb->screensize);
+     }
+@@ -170,6 +173,9 @@
+         if (fb->buffer) {
+             free(fb->buffer);
+         }
++        if (fb->map) {
++            munmap(fb->map, fb->screensize);
++        }
+         if (fb->fd >= 0) {
+             close(fb->fd);
+         }
+--- a/main.c
++++ b/main.c
+@@ -1,6 +1,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
++#include <fcntl.h>
+ #include <errno.h>
+ #include <signal.h>
+ #include <time.h>
+@@ -153,12 +154,26 @@
+         return 1;
+     }
+ 
+-    // Initialize framebuffer
+-    Framebuffer *fb = fb_init(fb_device);
++    // Initialize framebuffer: the animation draws through KMS on the top panel only (centred on its real size);
++    // one-shot modes stay on /dev/fb0, since a KMS picture goes away when the process exits.
++    // At boot the panels can still be probing when this starts (no connected connector yet): retry for 5 s.
++    Framebuffer *fb = NULL;
++    for (int i = 0; animated && !fb && i < 25; i++) {
++        fb = drm_init();
++        if (!fb)
++            usleep(200 * 1000);
++    }
++    fprintf(stderr, "rocknix-splash: drawing through %s\n", fb ? "KMS" : "/dev/fb0");
++    if (!fb)
++        fb = fb_init(fb_device);
+     if (!fb) {
+         fprintf(stderr, "Failed to initialize framebuffer\n");
+         return 1;
+     }
++    // A KMS buffer is in the panel's native orientation. The Thor's panels are portrait-native but mounted
++    // landscape with no rotation in the device tree; sway turns them with "transform 90", so do the same.
++    if (fb->map && !rotation && fb->vinfo.yres > fb->vinfo.xres)
++        rotation = 90;
+ 
+     // Calculate display parameters
+     DisplayInfo *display_info = calculate_display_info(fb);
+@@ -210,8 +225,19 @@
+ 
+     // Flush changes to the framebuffer
+     fb_flush(fb);
+-    if (animated)
++    if (animated) {
+         animate(fb, display_info, rotation, argc > 2 ? argv[2] : NULL);
++        if (fb->map) {
++            /* When we let go of the display the kernel shows the fbdev console again until sway takes over:
++             * make that black rather than the earlier (initramfs) splash. */
++            static const char zero[65536];
++            int f = open(fb_device, O_WRONLY);
++            while (f >= 0 && write(f, zero, sizeof zero) > 0)
++                ;
++            if (f >= 0)
++                close(f);
++        }
++    }
+ 
+ 
+     // Clean up
+--- /dev/null
++++ b/drmsplash.c
+@@ -0,0 +1,123 @@
++#include <fcntl.h>
++#include <stdint.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/ioctl.h>
++#include <sys/mman.h>
++#include <unistd.h>
++#include <drm/drm.h>
++#include <drm/drm_mode.h>
++#include "fbsplash.h"
++
++/* drm_init: draw through KMS on the largest connected panel only, with a buffer of its own size, and switch
++ * the other panels off. The fbdev console is mirrored to every panel at the size they all share (the AYN
++ * Thor's bottom panel, 1080x1240), so on the bigger top panel a framebuffer splash covered only part of it and
++ * could not be centred. KMS state lasts while the fd is open: for long-running modes (--animate) only.
++ * Returns NULL (callers fall back to /dev/fb0) when there is no DRM device or no master. */
++#define MAXN 16
++
++static int conn_crtc(int fd, uint32_t encoder_id, const uint32_t *crtcs, uint32_t ncrtcs) {
++    struct drm_mode_get_encoder enc = {.encoder_id = encoder_id};
++    if (!encoder_id || ioctl(fd, DRM_IOCTL_MODE_GETENCODER, &enc))
++        return 0;
++    if (enc.crtc_id)
++        return enc.crtc_id;
++    for (uint32_t i = 0; i < ncrtcs; i++)
++        if (enc.possible_crtcs & (1u << i))
++            return crtcs[i];
++    return 0;
++}
++
++Framebuffer *drm_init(void) {
++    int fd = open("/dev/dri/card0", O_RDWR | O_CLOEXEC);
++    if (fd < 0)
++        return NULL;
++    ioctl(fd, DRM_IOCTL_SET_MASTER, 0);   /* the first opener is master anyway; SETCRTC below fails without */
++
++    uint32_t conns[MAXN], crtcs[MAXN], encs[MAXN];
++    struct drm_mode_card_res res = {0};
++    if (ioctl(fd, DRM_IOCTL_MODE_GETRESOURCES, &res))
++        goto fail;
++    if (res.count_connectors > MAXN) res.count_connectors = MAXN;
++    if (res.count_crtcs > MAXN) res.count_crtcs = MAXN;
++    if (res.count_encoders > MAXN) res.count_encoders = MAXN;
++    res.count_fbs = 0;
++    res.connector_id_ptr = (uintptr_t)conns;
++    res.crtc_id_ptr = (uintptr_t)crtcs;
++    res.encoder_id_ptr = (uintptr_t)encs;
++    if (ioctl(fd, DRM_IOCTL_MODE_GETRESOURCES, &res))
++        goto fail;
++
++    struct drm_mode_modeinfo best_mode = {0};
++    uint32_t best_conn = 0, best_enc = 0, area = 0;
++    uint32_t other_enc[MAXN], nother = 0;
++    for (uint32_t i = 0; i < res.count_connectors; i++) {
++        struct drm_mode_get_connector c = {.connector_id = conns[i]};
++        if (ioctl(fd, DRM_IOCTL_MODE_GETCONNECTOR, &c) || c.connection != 1 || !c.count_modes)
++            continue;
++        struct drm_mode_modeinfo *modes = calloc(c.count_modes, sizeof *modes);
++        if (!modes)
++            continue;
++        c.modes_ptr = (uintptr_t)modes;
++        c.count_props = c.count_encoders = 0;
++        c.props_ptr = c.prop_values_ptr = c.encoders_ptr = 0;
++        if (!ioctl(fd, DRM_IOCTL_MODE_GETCONNECTOR, &c) && c.count_modes) {
++            const uint32_t a = (uint32_t)modes[0].hdisplay * modes[0].vdisplay;   /* modes[0]: preferred */
++            if (a > area) {
++                if (best_enc && nother < MAXN)
++                    other_enc[nother++] = best_enc;
++                area = a, best_mode = modes[0], best_conn = conns[i], best_enc = c.encoder_id;
++            } else if (c.encoder_id && nother < MAXN) {
++                other_enc[nother++] = c.encoder_id;
++            }
++        }
++        free(modes);
++    }
++    const uint32_t crtc = conn_crtc(fd, best_enc, crtcs, res.count_crtcs);
++    if (!best_conn || !crtc)
++        goto fail;
++
++    struct drm_mode_create_dumb cd = {.width = best_mode.hdisplay, .height = best_mode.vdisplay, .bpp = 32};
++    if (ioctl(fd, DRM_IOCTL_MODE_CREATE_DUMB, &cd))
++        goto fail;
++    struct drm_mode_fb_cmd fbc = {.width = cd.width, .height = cd.height, .pitch = cd.pitch, .bpp = 32,
++                                  .depth = 24, .handle = cd.handle};
++    struct drm_mode_map_dumb md = {.handle = cd.handle};
++    if (ioctl(fd, DRM_IOCTL_MODE_ADDFB, &fbc) || ioctl(fd, DRM_IOCTL_MODE_MAP_DUMB, &md))
++        goto fail;
++    uint8_t *map = mmap(NULL, cd.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, md.offset);
++    if (map == MAP_FAILED)
++        goto fail;
++    memset(map, 0, cd.size);
++
++    for (uint32_t i = 0; i < nother; i++) {   /* the other panels off (they showed the mirrored console) */
++        struct drm_mode_crtc off = {.crtc_id = conn_crtc(fd, other_enc[i], crtcs, res.count_crtcs)};
++        if (off.crtc_id && off.crtc_id != crtc)
++            ioctl(fd, DRM_IOCTL_MODE_SETCRTC, &off);
++    }
++    struct drm_mode_crtc set = {.crtc_id = crtc, .fb_id = fbc.fb_id, .set_connectors_ptr = (uintptr_t)&best_conn,
++                                .count_connectors = 1, .mode = best_mode, .mode_valid = 1};
++    if (ioctl(fd, DRM_IOCTL_MODE_SETCRTC, &set)) {
++        munmap(map, cd.size);
++        goto fail;
++    }
++
++    Framebuffer *fb = calloc(1, sizeof *fb);
++    if (!fb || !(fb->buffer = calloc(1, cd.size))) {
++        free(fb);
++        munmap(map, cd.size);
++        goto fail;
++    }
++    fb->fd = fd;
++    fb->map = map;
++    fb->screensize = cd.size;
++    fb->vinfo.xres = fb->vinfo.xres_virtual = cd.width;
++    fb->vinfo.yres = fb->vinfo.yres_virtual = cd.height;
++    fb->vinfo.bits_per_pixel = 32;
++    fb->finfo.line_length = cd.pitch;
++    return fb;
++
++fail:
++    close(fd);
++    return NULL;
++}

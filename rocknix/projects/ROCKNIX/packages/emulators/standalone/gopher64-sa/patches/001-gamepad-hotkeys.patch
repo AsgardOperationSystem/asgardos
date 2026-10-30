@@ -1,0 +1,161 @@
+diff --git a/parallel-rdp/interface.cpp b/parallel-rdp/interface.cpp
+index 7395fcc..3be35c0 100644
+--- a/parallel-rdp/interface.cpp
++++ b/parallel-rdp/interface.cpp
+@@ -119,11 +119,15 @@ static size_t fragment_size;
+ static std::vector<bool> rdram_dirty;
+ static uint64_t sync_signal;
+ 
++static bool guide_held = false;
++static bool r2_held = false;
++static bool fast_forward_toggled = false;
++
+ static TTF_Font *message_font;
+ static std::queue<Message> messages;
+ 
+-static float message_font_size = 25.0;
+-static float achievement_challenge_indicator_font_size = 12.0;
++static float message_font_size = 30.0;
++static float achievement_challenge_indicator_font_size = 30.0;
+ 
+ static TTF_Font *achievement_challenge_indicator_font;
+ static std::vector<const char *> achievement_challenge_indicators;
+@@ -318,7 +322,117 @@ bool sdl_event_filter(void *userdata, SDL_Event *event) {
+   } else if (event->type == SDL_EVENT_RENDER_DEVICE_RESET) {
+     wsi->init_surface_swapchain();
+   }
++else if (event->type == SDL_EVENT_GAMEPAD_BUTTON_DOWN)
++{
++    switch (event->gbutton.button)
++    {
++    case SDL_GAMEPAD_BUTTON_GUIDE:
++        guide_held = true;
++        break;
++
++    case SDL_GAMEPAD_BUTTON_RIGHT_SHOULDER: // R1
++        if (guide_held)
++        {
++            callback.save_state = true;
++            return 1;
++        }
++        break;
++
++    case SDL_GAMEPAD_BUTTON_LEFT_SHOULDER: // L1
++        if (guide_held)
++        {
++            callback.load_state = true;
++            return 1;
++        }
++        break;
++
++    case SDL_GAMEPAD_BUTTON_WEST: // West
++        if (guide_held)
++        {
++            display_fps = !display_fps;
++            rdp_onscreen_message(
++                display_fps ? "FPS display ON" : "FPS display OFF",
++                MESSAGE_SHORT
++            );
++            return 1;
++        }
++        break;
++
++    case SDL_GAMEPAD_BUTTON_SOUTH: // South
++        if (guide_held)
++        {
++            callback.reset_game = true;
++            rdp_onscreen_message("Reset game", MESSAGE_SHORT);
++            return 1;
++        }
++        break;
++
++    case SDL_GAMEPAD_BUTTON_START: //Start
++        if (guide_held)
++        {
++            if (gfx_info.fullscreen)
++                callback.emu_running = false;
++            return 1;
++        }
++        break;
++
++    case SDL_GAMEPAD_BUTTON_MISC1: // Share
++        if (guide_held)
++        {
++          SDL_RunOnMainThread(ra_display_inprogress_achievements, nullptr, true);
++        }
++        break;
+ 
++    default:
++        if (guide_held)
++            return 1; // block other inputs while guide held
++        break;
++    }
++}
++else if (event->type == SDL_EVENT_GAMEPAD_AXIS_MOTION)
++{
++    switch (event->gaxis.axis)
++    {
++    case SDL_GAMEPAD_AXIS_RIGHT_TRIGGER: // R2
++    {
++        bool pressed = event->gaxis.value > 0;
++
++        if (pressed && !r2_held && guide_held)
++        {
++            fast_forward_toggled = !fast_forward_toggled;
++            callback.enable_speedlimiter = !fast_forward_toggled;
++
++            rdp_onscreen_message(
++                fast_forward_toggled ? "Fast forward on"
++                                     : "Fast forward off",
++                MESSAGE_SHORT
++            );
++
++            r2_held = true;
++            return 1;
++        }
++
++        if (!pressed)
++            r2_held = false;
++    }
++    break;
++
++    default:
++        break;
++    }
++}
++else if (event->type == SDL_EVENT_GAMEPAD_BUTTON_UP)
++{
++    switch (event->gbutton.button)
++    {
++    case SDL_GAMEPAD_BUTTON_GUIDE:
++        guide_held = false;
++        break;
++
++    default:
++        break;
++    }
++}
+   return 0;
+ }
+ 
+diff --git a/src/ui/input.rs b/src/ui/input.rs
+index ee7d689..7e50cb7 100644
+--- a/src/ui/input.rs
++++ b/src/ui/input.rs
+@@ -418,6 +418,16 @@ pub fn get(ui: &mut ui::Ui, channel: usize) -> InputData {
+ 
+     let (mut x, mut y) = set_axis(profile, joystick, controller, ui.input.keyboard_state);
+ 
++    // Guide is the hotkey modifier (parallel-rdp's event filter): no game input while it's held.
++    if !controller.is_null()
++        && unsafe {
++            sdl3_sys::gamepad::SDL_GetGamepadButton(controller, sdl3_sys::gamepad::SDL_GamepadButton::GUIDE)
++        }
++    {
++        keys = 0;
++        (x, y) = (0.0, 0.0);
++    }
++
+     #[cfg(target_os = "android")]
+     {
+         if channel == 0

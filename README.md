@@ -7,9 +7,8 @@ A Linux gaming OS for the **AYN Thor**, a dual-screen SM8550 handheld. It's buil
 - **Thor support** that ROCKNIX lacks: working sleep, both screens, touch, gyro, charge limit and audio tuning.
 - **Native settings, an in-game menu and tools**, so the Thor can be used without a keyboard or SSH.
 
-Since 2026-10-30 Asgard is its own fork of ROCKNIX (`rocknix/`, branch `asgard`), forked at ROCKNIX `7cffc96`
-with its full history. Changes are ordinary commits there; ROCKNIX fixes are cherry-picked by hand, never merged
-wholesale.
+Since 2026-10-30 Asgard is its own fork of ROCKNIX, forked at ROCKNIX `7cffc96` with its full history. The
+distribution tree lives in `rocknix/` in this repo; ROCKNIX fixes are cherry-picked by hand, never merged wholesale.
 
 ## Screenshots
 
@@ -118,7 +117,7 @@ in a game.
 ## Layout
 
 ```
-rocknix/          the Asgard distribution tree: our fork of ROCKNIX (submodule asgardos-distribution, branch asgard)
+rocknix/          the distribution tree: our fork of ROCKNIX (ROCKNIX history included)
 build.sh          build the image (./build.sh), or stage it on a Thor (./build.sh stage)
 inject-config.sh  put your asgard.yml on an image's boot partition
 frontend/         -> Asgard Home's source (rocknix/projects/ROCKNIX/packages/asgard-home/src)
@@ -129,16 +128,14 @@ thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor works
 ## Building
 
 ```
-git clone --recurse-submodules https://github.com/AsgardOperationSystem/asgardos.git
+git clone https://github.com/AsgardOperationSystem/asgardos.git
 cd asgardos && ./build.sh      # ROCKNIX's docker build of the SM8550 image -> rocknix/target/
 ```
 `./build.sh stage root@<thor>` copies the update to a running Thor; it's applied on the next reboot.
 
-To change the OS, commit in `rocknix/` (branch `asgard`), push it, then record the new commit here:
-`git add rocknix && git commit`. To take a fix from ROCKNIX: `git -C rocknix fetch rocknix next` and
-`git -C rocknix cherry-pick <sha>`. Until 2026-10-30 Asgard was patches/ + overlay/ on a pinned ROCKNIX; each
-old patch is now one commit in `rocknix/` ("Asgard patch NNNN" in its message), and overlay/'s history stays in
-this repo's git log.
+To take a fix from ROCKNIX: `git remote add rocknix https://github.com/ROCKNIX/distribution.git` once, then
+`git fetch rocknix next` and `git cherry-pick -Xsubtree=rocknix <sha>`. Until 2026-10-30 Asgard was patches/ +
+overlay/ on a pinned ROCKNIX; each old patch is now one commit ("Asgard patch NNNN" in its message).
 
 ## Personal config: asgard.yml
 

@@ -1,0 +1,11 @@
+--- a/src/shared/machine-id-setup.c
++++ b/src/shared/machine-id-setup.c
+@@ -168,7 +168,7 @@
+                                                                etc_machine_id,
+                                                                etc);
+ 
+-                                return log_error_errno(errno, "Cannot create '%s': %m", etc_machine_id);
++                                return 0;
+                         }
+ 
+                         log_debug("Successfully opened new '%s' file.", etc_machine_id);

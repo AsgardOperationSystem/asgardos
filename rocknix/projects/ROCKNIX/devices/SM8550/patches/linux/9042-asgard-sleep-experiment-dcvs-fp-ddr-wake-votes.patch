@@ -1,0 +1,122 @@
+From: Asgard <asgard@localhost>
+Subject: [PATCH] soc: qcom: asgard-ddr-wake: Android dcvs_fp MC4/SH5 sleep/wake votes on request
+
+Re-test of the old 9002 idea now that 9039 (GMU stale RPMh votes) is in:
+/sys/module/asgard_ddr_wake/parameters/enable=1 votes MC4 (DDR) and SH5 (LLCC)
+sleep = 0, wake = 1 from a child of apps_rsc, as Android's qcom,dcvs-fp does at
+probe. Off by default; one-way until reboot.
+---
+diff --color -ruN a/drivers/soc/qcom/asgard-ddr-wake.c b/drivers/soc/qcom/asgard-ddr-wake.c
+--- a/drivers/soc/qcom/asgard-ddr-wake.c	1970-01-01 02:00:00.000000000 +0200
++++ b/drivers/soc/qcom/asgard-ddr-wake.c	2026-10-14 20:45:31.394047431 +0300
+@@ -0,0 +1,99 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/*
++ * Asgard sleep experiment: Android's dcvs_fp DDR/LLCC sleep/wake votes.
++ *
++ * At probe, Android's qcom,dcvs-fp (a child of apps_rsc) votes the DDR (MC4)
++ * and LLCC (SH5) BCMs sleep = 0 and wake = 1, so DDR may enter low power
++ * while the CPU subsystem sleeps and has a minimal vote again the moment it
++ * wakes. Mainline never touches MC4/SH5. This sends the same two writes when
++ * /sys/module/asgard_ddr_wake/parameters/enable is set to 1 (one-way until
++ * reboot). Android's fast-path TCS (active-time DCVS) is not ported.
++ */
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/of_platform.h>
++#include <linux/platform_device.h>
++#include <soc/qcom/cmd-db.h>
++#include <soc/qcom/rpmh.h>
++#include <soc/qcom/tcs.h>
++
++static struct device *ddr_wake_dev;
++static bool ddr_wake_enabled;
++
++static int ddr_wake_send(void)
++{
++	static const char * const bcms[] = { "MC4", "SH5" };
++	struct tcs_cmd cmds[ARRAY_SIZE(bcms)] = {};
++	int i, ret;
++
++	for (i = 0; i < ARRAY_SIZE(bcms); i++) {
++		cmds[i].addr = cmd_db_read_addr(bcms[i]);
++		if (!cmds[i].addr)
++			return -ENODEV;
++		cmds[i].data = BCM_TCS_CMD(1, 1, 0, 0);
++	}
++	ret = rpmh_write_async(ddr_wake_dev, RPMH_SLEEP_STATE, cmds, ARRAY_SIZE(cmds));
++	if (ret)
++		return ret;
++
++	for (i = 0; i < ARRAY_SIZE(bcms); i++)
++		cmds[i].data = BCM_TCS_CMD(1, 1, 0, 1);
++	ret = rpmh_write_async(ddr_wake_dev, RPMH_WAKE_ONLY_STATE, cmds, ARRAY_SIZE(cmds));
++
++	dev_info(ddr_wake_dev, "MC4 0x%x / SH5 0x%x: sleep 0, wake 1 (%d)\n",
++		 cmds[0].addr, cmds[1].addr, ret);
++	return ret;
++}
++
++static int ddr_wake_set(const char *val, const struct kernel_param *kp)
++{
++	bool on;
++	int ret = kstrtobool(val, &on);
++
++	if (ret)
++		return ret;
++	if (!on || ddr_wake_enabled)
++		return on ? 0 : -EINVAL;	/* ponytail: one-way switch, reboot to undo */
++	if (!ddr_wake_dev)
++		return -ENODEV;
++	ret = ddr_wake_send();
++	if (!ret)
++		ddr_wake_enabled = true;
++	return ret;
++}
++
++static const struct kernel_param_ops ddr_wake_ops = {
++	.set = ddr_wake_set,
++	.get = param_get_bool,
++};
++module_param_cb(enable, &ddr_wake_ops, &ddr_wake_enabled, 0644);
++MODULE_PARM_DESC(enable, "1 = vote MC4/SH5 sleep 0, wake 1 like Android's dcvs_fp");
++
++/*
++ * rpmh_write*() looks up the RSC through dev->parent, so the voter has to be a
++ * child of apps_rsc. ROCKNIX adds the Thor DT after the kernel patches, so the
++ * child is created here instead of in DT. ponytail: first "qcom,rpmh-rsc" only.
++ */
++static int __init ddr_wake_init(void)
++{
++	struct platform_device_info info = { .name = "asgard-ddr-wake", .id = PLATFORM_DEVID_NONE };
++	struct platform_device *rsc, *pdev;
++	struct device_node *np;
++
++	np = of_find_compatible_node(NULL, NULL, "qcom,rpmh-rsc");
++	if (!np)
++		return 0;
++	rsc = of_find_device_by_node(np);
++	of_node_put(np);
++	if (!rsc)
++		return 0;
++	info.parent = &rsc->dev;
++	pdev = platform_device_register_full(&info);
++	put_device(&rsc->dev);
++	if (IS_ERR(pdev))
++		return PTR_ERR(pdev);
++	ddr_wake_dev = &pdev->dev;
++	return 0;
++}
++late_initcall(ddr_wake_init);
++MODULE_LICENSE("GPL");
+diff --color -ruN a/drivers/soc/qcom/Makefile b/drivers/soc/qcom/Makefile
+--- a/drivers/soc/qcom/Makefile	2026-10-14 20:44:21.078641735 +0300
++++ b/drivers/soc/qcom/Makefile	2026-10-14 20:44:40.083198649 +0300
+@@ -20,6 +20,7 @@
+ obj-$(CONFIG_QCOM_RMTFS_MEM)	+= rmtfs_mem.o
+ obj-$(CONFIG_QCOM_RPM_MASTER_STATS)	+= rpm_master_stats.o
+ obj-$(CONFIG_QCOM_RPMH)		+= qcom_rpmh.o
++obj-$(CONFIG_QCOM_RPMH)		+= asgard-ddr-wake.o
+ qcom_rpmh-y			+= rpmh-rsc.o
+ qcom_rpmh-y			+= rpmh.o
+ obj-$(CONFIG_QCOM_SMD_RPM)	+= rpm-proc.o smd-rpm.o

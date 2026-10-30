@@ -1,5 +1,0 @@
-[submodule "rocknix"]
-	path = rocknix
-	url = https://github.com/AsgardOperationSystem/asgardos.git
-	branch = asgard
-	ignore = dirty

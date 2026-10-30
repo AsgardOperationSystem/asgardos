@@ -1,0 +1,10 @@
+--- a/units/debug-shell.service.in
++++ b/units/debug-shell.service.in
+@@ -16,6 +16,7 @@
+ After=systemd-vconsole-setup.service
+ 
+ [Service]
++WorkingDirectory=/storage
+ Environment=ENV=/etc/profile
+ ExecStart=/bin/sh -c 'echo -en "\033[?25h"; exec /bin/sh'
+ Restart=always

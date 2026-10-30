@@ -1,0 +1,14 @@
+[Unit]
+Description=Core dumps kept on /storage
+DefaultDependencies=no
+RequiresMountsFor=/var /storage
+After=systemd-tmpfiles-setup.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# /var is tmpfs: systemd-coredump's directory lives on /storage instead.
+ExecStart=/bin/sh -c 'mkdir -p /storage/.cache/cores /var/lib/systemd/coredump && mount --bind /storage/.cache/cores /var/lib/systemd/coredump'
+
+[Install]
+WantedBy=multi-user.target

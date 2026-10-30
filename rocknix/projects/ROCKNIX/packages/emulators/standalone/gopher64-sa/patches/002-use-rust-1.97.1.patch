@@ -1,0 +1,21 @@
+diff --git a/Cargo.toml b/Cargo.toml
+index 55cac11..051f020 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -2,7 +2,7 @@
+ name = "gopher64"
+ version = "1.1.42"
+ edition = "2024"
+-rust-version = "1.99.0"
++rust-version = "1.97.1"
+ 
+ [features]
+ default = ["gui"]
+diff --git a/rust-toolchain.toml b/rust-toolchain.toml
+index b6cff89..7243604 100644
+--- a/rust-toolchain.toml
++++ b/rust-toolchain.toml
+@@ -1,2 +1,2 @@
+ [toolchain]
+-channel = "1.99.0"
++channel = "1.97.1"

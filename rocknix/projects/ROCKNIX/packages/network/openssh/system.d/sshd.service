@@ -1,0 +1,16 @@
+[Unit]
+Description=OpenSSH server
+ConditionKernelCommandLine=|ssh
+ConditionPathExists=|/storage/.cache/services/sshd.conf
+Requires=sshd.socket
+After=sshd.socket
+PropagatesStopTo=sshd.socket
+Wants=sshd-keygen.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+
+[Install]
+WantedBy=multi-user.target

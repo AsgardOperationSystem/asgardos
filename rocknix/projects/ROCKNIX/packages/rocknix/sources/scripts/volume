@@ -1,0 +1,64 @@
+#!/bin/sh
+
+# SPDX-License-Identifier: GPL-2.0-or-later
+# Copyright (C) 2023 JELOS (https://github.com/JustEnoughLinuxOS)
+
+
+# Source minimal predefined functions and variables
+# to ensure as much performance as possible.
+. /etc/profile.d/001-functions
+
+VOLUME=$(get_setting "audio.volume")
+MAX_VOLUME=100
+MIN_VOLUME=0
+STEP=5
+
+case ${1} in
+  "+"|"up")
+    VOLUME=$(( ${VOLUME} + ${STEP} ))
+  ;;
+  "-"|"down")
+    VOLUME=$(( ${VOLUME} - ${STEP} ))
+  ;;
+  "restore")
+    true
+  ;;
+  *)
+    VOLUME=${1}
+  ;;
+esac
+
+if (( ${VOLUME} < ${MIN_VOLUME} ))
+then
+  VOLUME=${MIN_VOLUME}
+elif (( ${VOLUME} > ${MAX_VOLUME} ))
+then
+  VOLUME=${MAX_VOLUME}
+elif [ -z "${VOLUME}" ]
+then
+  VOLUME=50
+fi
+
+### Asgard: the EQ filters (thor_dsp_speaker/_headphones) pass through at 100 %; set the device they play to.
+### At boot hdmi_sense has just cleared the default, so @DEFAULT_SINK@ is the first sink listed: the filter.
+SINK=$(pactl get-default-sink 2>/dev/null)
+case "${SINK}" in
+  thor_dsp_*)
+    ### Never fall back to the filter itself: at boot the device sink can register a moment after the filter, and a
+    ### level set on the filter stacks on the device's (55 % x 55 %) until the EQ is rebuilt. Wait for it (~5 s).
+    FILTER=${SINK}
+    for _ in 1 2 3 4 5 6 7 8 9 10; do
+      SINK=$(pactl list short sinks | awk -v d="__${FILTER#thor_dsp_}__sink" 'tolower($2) ~ d {print $2; exit}')
+      [ -n "${SINK}" ] && break
+      sleep 0.5
+    done
+    [ -n "${SINK}" ] || { set_setting "audio.volume" ${VOLUME}; exit 0; }
+  ;;
+esac
+### And put the filters back to 100 % if a level ever landed on one.
+for F in $(pactl list short sinks | awk '$2 ~ /^thor_dsp_/ {print $2}'); do
+  pactl -- set-sink-volume "${F}" 100%
+done
+
+pactl -- set-sink-volume "${SINK:-@DEFAULT_SINK@}" ${VOLUME}%
+set_setting "audio.volume" ${VOLUME}
