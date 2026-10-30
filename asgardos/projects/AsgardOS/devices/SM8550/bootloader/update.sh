@@ -18,11 +18,12 @@ mount -o remount,rw $BOOT_ROOT
 
 if [ -d "$SYSTEM_ROOT/usr/share/bootloader/rocknix_abl" ]; then
   mkdir -p $BOOT_ROOT/rocknix_abl
-  echo "Updating AsgardOS ABL on SD..."
+  echo "Copying the ROCKNIX ABL files to $BOOT_ROOT/rocknix_abl..."
   cp $SYSTEM_ROOT/usr/share/bootloader/rocknix_abl/* $BOOT_ROOT/rocknix_abl
 fi
 
-$SYSTEM_ROOT/usr/bin/updateabl
+# AsgardOS: an update never flashes abl_a/abl_b. ROCKNIX ran updateabl here, which rewrites both slots whenever
+# they differ from the bundled ABL. Flash it by hand (updateabl) after checking the backup in thor/rocknix-abl/.
 
 ### REMOVE IN THE FUTURE ###
 # cleanup old boot files
