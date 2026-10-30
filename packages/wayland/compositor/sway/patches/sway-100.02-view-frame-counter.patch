@@ -32,12 +32,13 @@ diff -ruN a/sway/server.c b/sway/server.c
  #include <wlr/types/wlr_content_type_v1.h>
  #include <wlr/types/wlr_cursor_shape_v1.h>
  #include <wlr/types/wlr_data_control_v1.h>
-@@ -232,6 +234,49 @@
+@@ -232,6 +234,56 @@
  	server->recreating_renderer = wl_event_loop_add_idle(server->wl_event_loop, do_renderer_recreate, server);
  }
  
 +// Count every buffer commit against the toplevel it belongs to, subsurfaces included: Qt apps (Eden, Azahar)
-+// draw the game into a subsurface. The toplevel lookup returns NULL once the role is gone, so no stale view.
++// draw the game into a subsurface. XWayland windows too (Azahar on the dual screens runs with xcb): sway keeps the
++// view in xsurface->data, NULL once it's gone. The lookups return NULL once the role is gone, so no stale view.
 +struct frame_counter {
 +	struct wlr_surface *surface;
 +	struct wl_listener commit;
@@ -49,9 +50,15 @@ diff -ruN a/sway/server.c b/sway/server.c
 +	if (!(fc->surface->current.committed & WLR_SURFACE_STATE_BUFFER)) {
 +		return;
 +	}
-+	struct wlr_xdg_toplevel *toplevel = wlr_xdg_toplevel_try_from_wlr_surface(
-+		wlr_surface_get_root_surface(fc->surface));
++	struct wlr_surface *root = wlr_surface_get_root_surface(fc->surface);
++	struct wlr_xdg_toplevel *toplevel = wlr_xdg_toplevel_try_from_wlr_surface(root);
 +	struct sway_view *view = toplevel ? toplevel->base->data : NULL;
++#if WLR_HAS_XWAYLAND
++	if (!toplevel) {
++		struct wlr_xwayland_surface *xsurface = wlr_xwayland_surface_try_from_wlr_surface(root);
++		view = xsurface ? xsurface->data : NULL;
++	}
++#endif
 +	if (view) {
 +		view->frames++;
 +	}
@@ -82,7 +89,7 @@ diff -ruN a/sway/server.c b/sway/server.c
  bool server_init(struct sway_server *server) {
  	sway_log(SWAY_DEBUG, "Initializing Wayland server");
  	server->wl_display = wl_display_create();
-@@ -281,6 +326,7 @@
+@@ -281,6 +333,7 @@
  
  	server->compositor = wlr_compositor_create(server->wl_display, 6,
  		server->renderer);
@@ -90,7 +97,7 @@ diff -ruN a/sway/server.c b/sway/server.c
  
  	wlr_subcompositor_create(server->wl_display);
  
-@@ -469,6 +515,7 @@
+@@ -469,6 +522,7 @@
  
  void server_fini(struct sway_server *server) {
  	// remove listeners
