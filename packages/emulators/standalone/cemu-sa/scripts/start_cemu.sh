@@ -225,6 +225,7 @@ esac
 
 # Vsync
 [[ -z $VSYNC ]] && VSYNC="1"
+xmlstarlet ed --inplace -u "//Graphic/VSync" -v "$VSYNC" ${CEMU_CONFIG_ROOT}/settings.xml
 
 # GX2 draw done sync
 [[ -z $GX2_DRAW_DONE_SYNC ]] && GX2_DRAW_DONE_SYNC="true"
@@ -298,8 +299,8 @@ xmlstarlet ed --inplace -u "//Overlay/VRAMUsage" -v "${OVERLAY_SHOW_VRAM_USAGE}"
 #
 
 # Notification position
-[[ -z $NOTIFICATION_POSITION ]] && NOTIFICATION_POSITION="0"
-xmlstarlet ed --inplace -u "//Notification/Position" -v "${NOTIFICATION_POSITION}" ${CEMU_CONFIG_ROOT}/settings.xml
+[[ -z $NOTIFICATION_POS ]] && NOTIFICATION_POS="0"
+xmlstarlet ed --inplace -u "//Notification/Position" -v "${NOTIFICATION_POS}" ${CEMU_CONFIG_ROOT}/settings.xml
 
 # Overlay text scale
 [[ -z $NOTIFICATION_TEXT_SCALE ]] && NOTIFICATION_TEXT_SCALE="100"

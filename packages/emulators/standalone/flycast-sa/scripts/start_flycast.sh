@@ -63,7 +63,7 @@ fi
 GAME=$(echo "${1}"| sed "s#^/.*/##")
 PLATFORM=$(echo "${2}"| sed "s#^/.*/##")
 ASPECT=$(get_setting aspect_ratio "${PLATFORM}" "${GAME}")
-ASKIP=$(get_setting auto_frame_skip "${PLATFORM}" "${GAME}")
+ASKIP=$(get_setting auto_frame_skipping "${PLATFORM}" "${GAME}")
 FPS=$(get_setting show_fps "${PLATFORM}" "${GAME}")
 IRES=$(get_setting internal_resolution "${PLATFORM}" "${GAME}")
 GRENDERER=$(get_setting graphics_backend "${PLATFORM}" "${GAME}")
@@ -82,6 +82,13 @@ else
   unset EMUPERF
 fi
 
+# Flycast's emu.cfg holds only what differs from its defaults: add the keys edited below (at Flycast's defaults)
+# when missing, else their sed -i c\ edits change nothing.
+for kv in rend.WideScreen=no rend.SuperWideScreen=no rend.ShowFPS=no rend.vsync=yes pvr.AutoSkipFrame=0 \
+          rend.Resolution=480 rend.WidescreenGameHacks=no rend.IntegerScale=no; do
+  grep -q "^${kv%%=*} =" "${CONF_DIR}/${FLYCAST_INI}" || sed -i "/^\[config\]/a ${kv%%=*} = ${kv#*=}" "${CONF_DIR}/${FLYCAST_INI}"
+done
+
   #AspectRatio
         if [ "$ASPECT" = "w" ]; then
                 sed -i '/^rend.WideScreen =/c\rend.WideScreen = yes' "${CONF_DIR}/${FLYCAST_INI}"
@@ -99,7 +106,7 @@ fi
                 sed -i '/^pvr.AutoSkipFrame =/c\pvr.AutoSkipFrame = 1' "${CONF_DIR}/${FLYCAST_INI}"
         elif [ "$ASKIP" = "max" ]; then
                 sed -i '/^pvr.AutoSkipFrame =/c\pvr.AutoSkipFrame = 2' "${CONF_DIR}/${FLYCAST_INI}"
-	else
+	elif [ "$ASKIP" = "off" ]; then
 		sed -i '/^pvr.AutoSkipFrame =/c\pvr.AutoSkipFrame = 0' "${CONF_DIR}/${FLYCAST_INI}"
         fi
 
@@ -147,6 +154,18 @@ fi
 	else
 		sed -i '/^rend.vsync =/c\rend.vsync = no' "${CONF_DIR}/${FLYCAST_INI}"
         fi
+
+# Asgard: widescreen cheats, integer scaling (unset = the emulator's own value)
+WIDESCREEN_CHEATS=$(get_setting widescreen_cheats "${PLATFORM}" "${GAME}")
+case "${WIDESCREEN_CHEATS}" in
+  1) sed -i '/^rend.WidescreenGameHacks =/c\rend.WidescreenGameHacks = yes' "${CONF_DIR}/${FLYCAST_INI}" ;;
+  0) sed -i '/^rend.WidescreenGameHacks =/c\rend.WidescreenGameHacks = no' "${CONF_DIR}/${FLYCAST_INI}" ;;
+esac
+INTEGER_SCALING=$(get_setting integer_scaling "${PLATFORM}" "${GAME}")
+case "${INTEGER_SCALING}" in
+  1) sed -i '/^rend.IntegerScale =/c\rend.IntegerScale = yes' "${CONF_DIR}/${FLYCAST_INI}" ;;
+  0) sed -i '/^rend.IntegerScale =/c\rend.IntegerScale = no' "${CONF_DIR}/${FLYCAST_INI}" ;;
+esac
 
 #Retroachievements
 /usr/bin/cheevos_flycast.sh

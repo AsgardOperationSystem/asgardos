@@ -88,11 +88,14 @@ fi
 		sed -i '/^SkipBufferEffects =/c\SkipBufferEffects = False' ${CONF_DIR}/${PPSSPP_INI}
 	fi
 
-  #VSYNC
-	if [ "${VSYNC}" = "1" ]; then
-		sed -i '/^VSyncInterval =/c\VSyncInterval = True' ${CONF_DIR}/${PPSSPP_INI}
-	else
-		sed -i '/^VSyncInterval =/c\VSyncInterval = False' ${CONF_DIR}/${PPSSPP_INI}
+  #VSYNC: PPSSPP's key is VerticalSync (VSyncInterval / VSync are older ones it ignores); unset = PPSSPP's own (on)
+	if [ "${VSYNC}" = "1" ] || [ "${VSYNC}" = "0" ]; then
+		[ "${VSYNC}" = "1" ] && V=True || V=False
+		if grep -q '^VerticalSync =' ${CONF_DIR}/${PPSSPP_INI}; then
+			sed -i "/^VerticalSync =/c\\VerticalSync = ${V}" ${CONF_DIR}/${PPSSPP_INI}
+		else
+			sed -i "/^\[Graphics\]/a VerticalSync = ${V}" ${CONF_DIR}/${PPSSPP_INI}
+		fi
 	fi
 
   #Clock Speed
@@ -103,6 +106,18 @@ fi
 	else
 		sed -i '/^CPUSpeed =/c\CPUSpeed = 0' ${CONF_DIR}/${PPSSPP_INI}
 	fi
+
+# Asgard: stretch and integer scaling (unset = the emulator's own value)
+STRETCH=$(get_setting stretch "${PLATFORM}" "${GAME}")
+case "${STRETCH}" in
+  1) sed -i '/^DisplayStretch =/c\DisplayStretch = True' ${CONF_DIR}/${PPSSPP_INI} ;;
+  0) sed -i '/^DisplayStretch =/c\DisplayStretch = False' ${CONF_DIR}/${PPSSPP_INI} ;;
+esac
+INTEGER_SCALING=$(get_setting integer_scaling "${PLATFORM}" "${GAME}")
+case "${INTEGER_SCALING}" in
+  1) sed -i '/^DisplayIntegerScale =/c\DisplayIntegerScale = True' ${CONF_DIR}/${PPSSPP_INI} ;;
+  0) sed -i '/^DisplayIntegerScale =/c\DisplayIntegerScale = False' ${CONF_DIR}/${PPSSPP_INI} ;;
+esac
 
 #Retroachievements
 /usr/bin/cheevos_ppsspp.sh

@@ -80,6 +80,17 @@ else
     sed -i 's/^fix_main_2d_screen = .*/fix_main_2d_screen = 0/' /storage/.config/drastic/config/drastic.cfg
 fi
 
+# Asgard: screen swap and orientation (unset = the emulator's own value)
+SCREEN_SWAP=$(get_setting screen_swap "${PLATFORM}" "${GAME}")
+case "${SCREEN_SWAP}" in
+  0) sed -i '/^screen_swap =/c\screen_swap = 0' /storage/.config/drastic/config/drastic.cfg ;;
+  1) sed -i '/^screen_swap =/c\screen_swap = 1' /storage/.config/drastic/config/drastic.cfg ;;
+esac
+SCREEN_ORIENTATION=$(get_setting screen_orientation "${PLATFORM}" "${GAME}")
+case "${SCREEN_ORIENTATION}" in
+  0) sed -i '/^screen_orientation =/c\screen_orientation = 0' /storage/.config/drastic/config/drastic.cfg ;;
+  1) sed -i '/^screen_orientation =/c\screen_orientation = 1' /storage/.config/drastic/config/drastic.cfg ;;
+esac
 cd /storage/.config/drastic/
 @HOTKEY@
 

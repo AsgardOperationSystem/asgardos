@@ -424,6 +424,21 @@ for CFG in "${CONF_DIR}/Hotkeys.ini" "${CONF_DIR}/GCPadNew.ini" "${CONF_DIR}/Wii
   fi
 done
 
+# Asgard: crop, anisotropic filtering (unset = the emulator's own value)
+CROP=$(get_setting crop "${PLATFORM}" "${GAME}")
+case "${CROP}" in
+  1) sed -i '/^Crop =/c\Crop = True' ${CONF_DIR}/${GFX_INI} ;;
+  0) sed -i '/^Crop =/c\Crop = False' ${CONF_DIR}/${GFX_INI} ;;
+esac
+ANISOTROPIC_FILTERING=$(get_setting anisotropic_filtering "${PLATFORM}" "${GAME}")
+case "${ANISOTROPIC_FILTERING}" in
+  0) sed -i '/^MaxAnisotropy =/c\MaxAnisotropy = 0' ${CONF_DIR}/${GFX_INI} ;;
+  1) sed -i '/^MaxAnisotropy =/c\MaxAnisotropy = 1' ${CONF_DIR}/${GFX_INI} ;;
+  2) sed -i '/^MaxAnisotropy =/c\MaxAnisotropy = 2' ${CONF_DIR}/${GFX_INI} ;;
+  3) sed -i '/^MaxAnisotropy =/c\MaxAnisotropy = 3' ${CONF_DIR}/${GFX_INI} ;;
+  4) sed -i '/^MaxAnisotropy =/c\MaxAnisotropy = 4' ${CONF_DIR}/${GFX_INI} ;;
+esac
+
 # Link  .config/dolphin-emu to .local
 rm -rf /storage/.local/share/dolphin-emu
 ln -sf /storage/.config/dolphin-emu /storage/.local/share/dolphin-emu

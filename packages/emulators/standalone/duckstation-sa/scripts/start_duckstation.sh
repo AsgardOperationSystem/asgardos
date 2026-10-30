@@ -126,6 +126,29 @@ fi
     sed -i '/^VSync =/c\VSync = true' ${CONF_FILE}
   fi
 
+# Asgard: widescreen hack, PGXP, integer scaling, crop (unset = the emulator's own value)
+WIDESCREEN_HACK=$(get_setting widescreen_hack "${PLATFORM}" "${GAME}")
+case "${WIDESCREEN_HACK}" in
+  1) sed -i '/^WidescreenHack =/c\WidescreenHack = true' ${CONF_FILE} ;;
+  0) sed -i '/^WidescreenHack =/c\WidescreenHack = false' ${CONF_FILE} ;;
+esac
+PGXP=$(get_setting pgxp "${PLATFORM}" "${GAME}")
+case "${PGXP}" in
+  1) sed -i '/^PGXPEnable =/c\PGXPEnable = true' ${CONF_FILE} ;;
+  0) sed -i '/^PGXPEnable =/c\PGXPEnable = false' ${CONF_FILE} ;;
+esac
+INTEGER_SCALING=$(get_setting integer_scaling "${PLATFORM}" "${GAME}")
+case "${INTEGER_SCALING}" in
+  1) sed -i '/^IntegerScaling =/c\IntegerScaling = true' ${CONF_FILE} ;;
+  0) sed -i '/^IntegerScaling =/c\IntegerScaling = false' ${CONF_FILE} ;;
+esac
+CROP=$(get_setting crop "${PLATFORM}" "${GAME}")
+case "${CROP}" in
+  None) sed -i '/^CropMode =/c\CropMode = None' ${CONF_FILE} ;;
+  Overscan) sed -i '/^CropMode =/c\CropMode = Overscan' ${CONF_FILE} ;;
+  Borders) sed -i '/^CropMode =/c\CropMode = Borders' ${CONF_FILE} ;;
+esac
+
 #Retroachievements
 # Disabled, not working. Seems like Duckstation changed the token encruption...
 # /usr/bin/cheevos_duckstation.sh

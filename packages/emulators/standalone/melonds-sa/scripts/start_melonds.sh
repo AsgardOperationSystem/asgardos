@@ -115,7 +115,7 @@ enable_second_screen() {
 
 if [ "$SLAYOUT" = "6" ]; then
     enable_second_screen
-elif [ -n "$SLAYOUT" ] && [ "$SLAYOUT" != "0" ]; then
+elif [ -n "$SLAYOUT" ]; then   # "0" (even) too: chosen, not the dual-screen default
     sed -i "/^ScreenSizing=/c\ScreenSizing=$SLAYOUT" "${CONF_DIR}/${MELONDS_INI}"
 elif [ "${DEVICE_HAS_DUAL_SCREEN}" = "true" ]; then
     enable_second_screen
@@ -215,6 +215,16 @@ esac
 @PANFROST@
 @HOTKEY@
 @LIBMALI@
+
+# Asgard: integer scaling, screen aspect, filter (unset = the emulator's own value)
+INTEGER_SCALING=$(get_setting integer_scaling "${PLATFORM}" "${GAME}")
+[ -n "${INTEGER_SCALING}" ] && sed -i "/^IntegerScaling=/c\IntegerScaling=${INTEGER_SCALING}" "${CONF_DIR}/${MELONDS_INI}"
+TOP_SCREEN_ASPECT=$(get_setting top_screen_aspect "${PLATFORM}" "${GAME}")
+[ -n "${TOP_SCREEN_ASPECT}" ] && sed -i "/^ScreenAspectTop=/c\ScreenAspectTop=${TOP_SCREEN_ASPECT}" "${CONF_DIR}/${MELONDS_INI}"
+BOTTOM_SCREEN_ASPECT=$(get_setting bottom_screen_aspect "${PLATFORM}" "${GAME}")
+[ -n "${BOTTOM_SCREEN_ASPECT}" ] && sed -i "/^ScreenAspectBot=/c\ScreenAspectBot=${BOTTOM_SCREEN_ASPECT}" "${CONF_DIR}/${MELONDS_INI}"
+SCREEN_FILTER=$(get_setting screen_filter "${PLATFORM}" "${GAME}")
+[ -n "${SCREEN_FILTER}" ] && sed -i "/^ScreenFilter=/c\ScreenFilter=${SCREEN_FILTER}" "${CONF_DIR}/${MELONDS_INI}"
 
 #Generate a new MelonDS.toml each run (temporary hack)
 rm -rf "${CONF_DIR}/melonDS.toml"

@@ -61,7 +61,7 @@ if [ ! -z "${CORRECT_ASPECT}" ]
 then
     CR=" -${CORE}.correct_aspect ${CORRECT_ASPECT}"
 fi
-if [[ "${CORE}" =~ pce[_fast] ]]
+if [[ "${CORE}" =~ ^pce(_fast)?$ ]]
 then
     if [ "$(get_setting nospritelimit ${PLATFORM} "${GAME}")" = "1" ]
     then
@@ -79,14 +79,14 @@ then
     then
         FEATURES_CMDLINE+=$CR
         OCM=$(get_setting ocmultiplier ${PLATFORM} "${GAME}")
-        if [ ${OCM} > 1 ]
+        if [ -n "${OCM}" ]
         then
             FEATURES_CMDLINE+=" -${CORE}.ocmultiplier ${OCM}"
         else
             FEATURES_CMDLINE+=" -${CORE}.ocmultiplier 1"
         fi
         CDS=$(get_setting cdspeed ${PLATFORM} "${GAME}")
-        if [ ${CDS} > 1 ]
+        if [ -n "${CDS}" ]
         then
             FEATURES_CMDLINE+=" -${CORE}.cdspeed ${CDS}"
         else
@@ -141,7 +141,7 @@ then
         FEATURES_CMDLINE+=" -${CORE}.spex.sound 0"
     fi
     SFXCR=$(get_setting superfx.clock_rate ${PLATFORM} "${GAME}")
-    if [ ${SFXCR} > 1 ]
+    if [ -n "${SFXCR}" ]
     then
         FEATURES_CMDLINE+=" -${CORE}.superfx.clock_rate ${SFXCR}"
     else
@@ -154,7 +154,7 @@ then
         FEATURES_CMDLINE+=" -${CORE}.superfx.icache 0"
     fi
     CX4CR=$(get_setting cx4.clock_rate ${PLATFORM} "${GAME}")
-    if [ ${CX4CR} > 1 ]
+    if [ -n "${CX4CR}" ]
     then
         FEATURES_CMDLINE+=" -${CORE}.cx4.clock_rate ${CX4CR}"
     else
@@ -170,9 +170,9 @@ then
         FEATURES_CMDLINE+=" -${CORE}.cpu_emulation fast"
     fi
     DM=$(get_setting 3dmode "${PLATFORM}" "${GAME}")
-    if [[ "${DM}" =~ anaglyph|cscope|sidebyside|vli|hli|left|right]  ]]
+    if [[ "${DM}" =~ ^(anaglyph|cscope|sidebyside|vli|hli|left|right)$ ]]
     then
-        FEATURES_CMDLINE+=" -${CORE}.3dmode ${CE}"
+        FEATURES_CMDLINE+=" -${CORE}.3dmode ${DM}"
     fi
 elif [ "${CORE}" = "pcfx" ]
 then
@@ -184,7 +184,7 @@ then
         FEATURES_CMDLINE+=" -${CORE}.cpu_emulation auto"
     fi
     CS=$(get_setting cdspeed "${PLATFORM}" "${GAME}")
-    if [ CS > 2]
+    if [ -n "${CS}" ]
     then
         FEATURES_CMDLINE+=" -${CORE}.cdspeed ${CS}"
     else

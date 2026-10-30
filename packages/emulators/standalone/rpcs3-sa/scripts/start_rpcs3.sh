@@ -165,6 +165,20 @@ else
   sed -i '/Performance Overlay:/ {n; s/Enabled: .*/Enabled: false/}' "${CONFIG_YML}"
 fi
 
+# Asgard: stretch to display, shader mode (unset = the emulator's own value)
+STRETCH=$(get_setting stretch_to_display "${PLATFORM}" "${GAME}")
+case "${STRETCH}" in
+  1) sed -i "s#Stretch To Display Area:.*\$#Stretch To Display Area: true#" "${CONFIG_YML}" ;;
+  0) sed -i "s#Stretch To Display Area:.*\$#Stretch To Display Area: false#" "${CONFIG_YML}" ;;
+esac
+SHADER_MODE=$(get_setting shader_mode "${PLATFORM}" "${GAME}")
+case "${SHADER_MODE}" in
+  0) sed -i "s#Shader Mode:.*\$#Shader Mode: Async Shader Recompiler#" "${CONFIG_YML}" ;;
+  1) sed -i "s#Shader Mode:.*\$#Shader Mode: Async with Shader Interpreter#" "${CONFIG_YML}" ;;
+  2) sed -i "s#Shader Mode:.*\$#Shader Mode: Shader Interpreter only#" "${CONFIG_YML}" ;;
+  3) sed -i "s#Shader Mode:.*\$#Shader Mode: Legacy Recompiler#" "${CONFIG_YML}" ;;
+esac
+
 #Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")
 if [ "${CORES}" = "little" ]

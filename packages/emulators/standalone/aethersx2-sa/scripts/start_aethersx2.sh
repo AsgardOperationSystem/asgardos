@@ -192,6 +192,27 @@ fi
                 sed -i '/^HWDownloadMode =/c\HWDownloadMode = 3' /storage/.config/aethersx2/inis/PCSX2.ini
         fi
 
+# Asgard: vsync, integer scaling, blending accuracy (unset = the emulator's own value)
+VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")
+case "${VSYNC}" in
+  1) sed -i '/^VsyncEnable =/c\VsyncEnable = 1' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  0) sed -i '/^VsyncEnable =/c\VsyncEnable = 0' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+esac
+INTEGER_SCALING=$(get_setting integer_scaling "${PLATFORM}" "${GAME}")
+case "${INTEGER_SCALING}" in
+  1) sed -i '/^IntegerScaling =/c\IntegerScaling = true' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  0) sed -i '/^IntegerScaling =/c\IntegerScaling = false' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+esac
+BLENDING_ACCURACY=$(get_setting blending_accuracy "${PLATFORM}" "${GAME}")
+case "${BLENDING_ACCURACY}" in
+  0) sed -i '/^accurate_blending_unit =/c\accurate_blending_unit = 0' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  1) sed -i '/^accurate_blending_unit =/c\accurate_blending_unit = 1' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  2) sed -i '/^accurate_blending_unit =/c\accurate_blending_unit = 2' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  3) sed -i '/^accurate_blending_unit =/c\accurate_blending_unit = 3' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  4) sed -i '/^accurate_blending_unit =/c\accurate_blending_unit = 4' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+  5) sed -i '/^accurate_blending_unit =/c\accurate_blending_unit = 5' /storage/.config/aethersx2/inis/PCSX2.ini ;;
+esac
+
 #Widescreen patches
 	if [ "$ENABLE_WIDESCREEN_PATCHES" = "true" ]
 	then

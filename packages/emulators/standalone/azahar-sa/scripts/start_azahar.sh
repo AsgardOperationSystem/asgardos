@@ -61,8 +61,11 @@ EMOUSE=$(get_setting emulate_mouse "${PLATFORM}" "${GAME}")
 RENDERER=$(get_setting graphics_backend "${PLATFORM}" "${GAME}")
 RES=$(get_setting resolution_scale "${PLATFORM}" "${GAME}")
 INTEGER_SCALING=$(get_setting integer_scaling "${PLATFORM}" "${GAME}")
+STRETCH_TOP=$(get_setting stretch_top_screen "${PLATFORM}" "${GAME}")
+STRETCH_BOTTOM=$(get_setting stretch_bottom_screen "${PLATFORM}" "${GAME}")
 ROTATE=$(get_setting rotate_screen "${PLATFORM}" "${GAME}")
 SLAYOUT=$(get_setting screen_layout "${PLATFORM}" "${GAME}")
+SWAP=$(get_setting swap_screens "${PLATFORM}" "${GAME}")
 CSHADERS=$(get_setting cache_shaders "${PLATFORM}" "${GAME}")
 HSHADERS=$(get_setting hardware_shaders "${PLATFORM}" "${GAME}")
 ACCURATE_HW_SHADERS=$(get_setting accurate_hardware_shaders "${PLATFORM}" "${GAME}")
@@ -126,6 +129,15 @@ case "${INTEGER_SCALING}" in
   *) sed -i '/^use_integer_scaling=/c\use_integer_scaling=false' ${CONF_FILE};;
 esac
 
+# Stretch each screen to fill its window (no black bars, not the 3DS's shape) - default to false
+for s in top bottom; do
+  sed -i "/^screen_${s}_stretch\\\\default=/c\\screen_${s}_stretch\\\\default=false" ${CONF_FILE}
+done
+[ "${STRETCH_TOP}" = "1" ] && v=true || v=false
+sed -i "/^screen_top_stretch=/c\\screen_top_stretch=${v}" ${CONF_FILE}
+[ "${STRETCH_BOTTOM}" = "1" ] && v=true || v=false
+sed -i "/^screen_bottom_stretch=/c\\screen_bottom_stretch=${v}" ${CONF_FILE}
+
 # Rotate Screen - default to false
 sed -i '/^upright_screen\\default=/c\upright_screen\\default=false' ${CONF_FILE}
 
@@ -171,6 +183,11 @@ sed -i '/^layout_option\\default=/c\layout_option\\default=false' ${CONF_FILE}
 sed -i '/^swap_screen\\default=/c\swap_screen\\default=false' ${CONF_FILE}
 
 case "${SLAYOUT}" in
+  0)
+    # Top / Bottom, chosen: on dual-screen devices too, where unset means separate windows
+    sed -i '/^layout_option=/c\layout_option=0' ${CONF_FILE}
+    sed -i '/^swap_screen=/c\swap_screen=false' ${CONF_FILE}
+    ;;
   1a)
     # Single Screen (TOP)
     sed -i '/^layout_option=/c\layout_option=1' ${CONF_FILE}
@@ -208,6 +225,9 @@ case "${SLAYOUT}" in
     ;;
 esac
 
+# Swap screens: not with the single-screen layouts, which pick their screen themselves
+case "${SLAYOUT}" in 1a|1b) ;; *) [ "${SWAP}" = "1" ] && sed -i '/^swap_screen=/c\swap_screen=true' ${CONF_FILE} ;; esac
+
 # With separate windows the bottom screen goes on the second screen.
 SCANOUT_LAYOUT=$(awk -F= '/^layout_option=/ {print $2; exit}' ${CONF_FILE})
 case "${SCANOUT_LAYOUT}" in
@@ -218,6 +238,9 @@ case "${SCANOUT_LAYOUT}" in
   *) SCANOUT_W=400; SCANOUT_H=240 ;;  # separate windows: the top screen
 esac
 SCANOUT_W2=320; SCANOUT_H2=240
+if [ "${SCANOUT_LAYOUT}" = "4" ] && grep -q '^swap_screen=true' ${CONF_FILE}; then   # the windows swap screens
+  SCANOUT_W=320; SCANOUT_W2=400
+fi
 if [ "${ROTATE}" = "1" ]; then
   SCANOUT_T=${SCANOUT_W}; SCANOUT_W=${SCANOUT_H}; SCANOUT_H=${SCANOUT_T}
   SCANOUT_W2=240; SCANOUT_H2=320
