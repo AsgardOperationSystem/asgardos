@@ -13,3 +13,8 @@ PKG_LONGDESC="Libogg contains necessary functionality to create, decode, and wor
 PKG_BUILD_FLAGS="+pic"
 
 PKG_CMAKE_OPTS_TARGET="-DINSTALL_DOCS=OFF"
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_CMAKE_OPTS_TARGET="-DBUILD_SHARED_LIBS=ON \
+                       -DINSTALL_DOCS=OFF"

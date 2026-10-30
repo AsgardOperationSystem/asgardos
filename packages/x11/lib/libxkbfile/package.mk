@@ -12,3 +12,7 @@ PKG_DEPENDS_TARGET="toolchain util-macros libX11"
 PKG_LONGDESC="Libxkbfile provides an interface to read and manipulate description files for XKB, the X11 keyboard configuration extension."
 
 PKG_MESON_OPTS_TARGET="-Ddefault_library=static"
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_MESON_OPTS_TARGET="${PKG_MESON_OPTS_TARGET/-Ddefault_library=static/-Ddefault_library=shared}"

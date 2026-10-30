@@ -15,3 +15,9 @@ PKG_CMAKE_OPTS_TARGET="-DBUILD_TESTING=OFF \
                        -DWAVPACK_BUILD_PROGRAMS=OFF \
                        -DWAVPACK_ENABLE_ASM=OFF \
                        -DWAVPACK_INSTALL_DOCS=OFF"
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_URL="https://github.com/dbry/WavPack/releases/download/${PKG_VERSION}/${PKG_NAME}-${PKG_VERSION}.tar.xz"
+
+PKG_CMAKE_OPTS_TARGET+=" -DBUILD_SHARED_LIBS=ON"

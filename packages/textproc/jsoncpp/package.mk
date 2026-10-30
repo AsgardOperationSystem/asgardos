@@ -14,3 +14,7 @@ PKG_BUILD_FLAGS="+pic"
 
 PKG_MESON_OPTS_TARGET="-Dtests=false \
                        --default-library static"
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_MESON_OPTS_TARGET="-Dtests=false"

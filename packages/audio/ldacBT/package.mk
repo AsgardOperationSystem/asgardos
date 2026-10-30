@@ -11,3 +11,8 @@ PKG_DEPENDS_TARGET="toolchain"
 PKG_LONGDESC="LDAC Bluetooth encoder library (build tools)"
 
 PKG_CMAKE_OPTS_TARGET="-DLDAC_SOFT_FLOAT=OFF"
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_CMAKE_OPTS_TARGET="-DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+                       -DLDAC_SOFT_FLOAT=OFF"

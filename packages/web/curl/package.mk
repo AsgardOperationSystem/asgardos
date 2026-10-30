@@ -112,3 +112,7 @@ post_makeinstall_target() {
   sed -e "s:\(['= ]\)/usr:\\1${PKG_ORIG_SYSROOT_PREFIX}/usr:g" -i ${TOOLCHAIN}/bin/${PKG_NAME}-config
   chmod +x ${TOOLCHAIN}/bin/${PKG_NAME}-config
 }
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_CMAKE_OPTS_TARGET="${PKG_CMAKE_OPTS_TARGET//\/run\/libreelec\/cacert.pem/\/run\/asgardos\/cacert.pem}"

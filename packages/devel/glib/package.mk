@@ -41,3 +41,11 @@ post_makeinstall_target() {
   # glib binaries must be executed from toolchain
   sed -e "s#bindir=\${prefix}/bin#bindir=${TOOLCHAIN}/bin#" -i "${SYSROOT_PREFIX}/usr/lib/pkgconfig/"{gio,glib}-2.0.pc
 }
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_MESON_OPTS_HOST="-Ddefault_library=shared \
+                     -Dinstalled_tests=false \
+                     -Dlibmount=disabled \
+                     -Dintrospection=disabled \
+                     -Dtests=false"

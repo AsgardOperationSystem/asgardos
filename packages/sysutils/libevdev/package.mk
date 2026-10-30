@@ -20,3 +20,7 @@ PKG_MESON_OPTS_TARGET=" \
 post_makeinstall_target() {
   rm -rf ${INSTALL}/usr/bin
 }
+
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
+PKG_URL="https://www.freedesktop.org/software/libevdev/${PKG_NAME}-${PKG_VERSION}.tar.xz"
