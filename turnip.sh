@@ -10,11 +10,11 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 V=$1; HOST=${2:-}
-# ./build.sh builds in ROCKNIX's container with rocknix/ at /work, so its toolchain and cross files name /work paths:
+# ./build.sh builds in ROCKNIX's container with asgardos/ at /work, so its toolchain and cross files name /work paths:
 # meson and ninja run in that container too, with turnip/ at /turnip.
 B=/work/build.ROCKNIX-SM8550.aarch64
-CROSS=$(cd rocknix && ls -d build.ROCKNIX-SM8550.aarch64/build/mesa-*/.aarch64-rocknix-linux-gnu 2>/dev/null | head -1)   # the image's Mesa build: its cross files
-[ -f "rocknix/$CROSS/meson.conf" ] || { echo "no Mesa build in rocknix/: run ./build.sh first"; exit 1; }
+CROSS=$(cd asgardos && ls -d build.ROCKNIX-SM8550.aarch64/build/mesa-*/.aarch64-rocknix-linux-gnu 2>/dev/null | head -1)   # the image's Mesa build: its cross files
+[ -f "asgardos/$CROSS/meson.conf" ] || { echo "no Mesa build in asgardos/: run ./build.sh first"; exit 1; }
 CROSS=/work/$CROSS
 NAME="mesa-$V"; [ "$V" = main ] && NAME="mesa-main-$(date +%Y%m%d)"
 SUFFIX=${PATCH:+-$(basename "$PATCH" .patch)}
@@ -30,7 +30,7 @@ fi
 
 # build-work/, not build/: a meson build dir is tied to the source path it was set up with (the host's, before /work).
 docker run --rm --init --user "$(id -u):$(id -g)" -e HOME=/tmp -v "$PWD/rocknix:/work" -v "$PWD/turnip:/turnip" \
-  ghcr.io/rocknix/rocknix-build:latest bash -euc '
+  ghcr.io/asgardos/rocknix-build:latest bash -euc '
   B=$1; CROSS=$2; C=$3
   export PATH="$B/toolchain/bin:$PATH"   # its meson, ninja and python (with mako/pyyaml)
   meson setup $([ -d "$C/build-work" ] && echo --reconfigure) "$C/build-work" "$C" --cross-file="$CROSS/meson.conf" --native-file="$CROSS/meson-host.conf" \

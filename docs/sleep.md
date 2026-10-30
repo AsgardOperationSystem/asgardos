@@ -56,7 +56,7 @@ sends that Linux doesn't. Stopping ADSP/CDSP isn't a valid test: DDR LPM stopped
 4. ~~Retry `0028`.~~ Done as `0032`: works, but CX still doesn't collapse.
 5. Floor-dropped overnight sleep: `echo 0 > /sys/module/pcie_qcom/parameters/suspend_floor` (runtime, resets at
    boot), lid closed, unplugged, then compare drain with the ~100 mA baseline. If it holds, make 0 the default.
-   Short tests: `~/Projects/asgard/thor/rocknix/aosd-test.sh c` (`a` = floor kept, safe).
+   Short tests: `~/Projects/asgard/thor/asgardos/aosd-test.sh c` (`a` = floor kept, safe).
 6. CX: list the AOP QMP messages the downstream drivers send (`qmp_send`/`aop_msg` in the OnePlus tree) and replay
    them at runtime through `qcom_aoss.send` (`9038`). Then the display RSC.
 7. If still blocked: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for
