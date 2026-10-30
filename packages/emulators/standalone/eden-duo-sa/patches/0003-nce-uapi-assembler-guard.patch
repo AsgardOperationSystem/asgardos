@@ -1,0 +1,18 @@
+Linux 7.3 UAPI headers guard C declarations with __ASSEMBLER__ instead of __ASSEMBLY__,
+so asm-generic/signal.h redeclared sigset_t against glibc's. Define it around these two
+includes only: glibc checks __ASSEMBLER__ too.
+
+--- a/src/core/arm/nce/arm_nce_asm_definitions.h
++++ b/src/core/arm/nce/arm_nce_asm_definitions.h
+@@ -4,9 +4,11 @@
+ #pragma once
+ 
+ #define __ASSEMBLY__
++#define __ASSEMBLER__
+ 
+ #include <asm-generic/signal.h>
+ #include <asm-generic/unistd.h>
++#undef __ASSEMBLER__
+ 
+ #define ReturnToRunCodeByExceptionLevelChangeSignal SIGUSR2
+ #define BreakFromRunCodeSignal SIGURG
