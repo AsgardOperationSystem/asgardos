@@ -8,14 +8,14 @@ PKG_SHA256="37f600f2bef3c5e8300147059568b2a2e40a7ad6ccc65ce942556d49429cc667"
 PKG_LICENSE="LGPL-2.1-or-later"
 PKG_SITE="https://www.gnu.org/software/libc/"
 PKG_URL="https://ftp.gnu.org/pub/gnu/glibc/${PKG_NAME}-${PKG_VERSION}.tar.xz"
-# ROCKNIX: pigz:host added
+# AsgardOS: pigz:host added
 PKG_DEPENDS_TARGET="ccache:host autotools:host linux:host gcc:bootstrap pigz:host Python3:host"
 PKG_DEPENDS_INIT="glibc"
 PKG_LONGDESC="The Glibc package contains the main C library."
-# ROCKNIX: force bfd, no gold
+# AsgardOS: force bfd, no gold
 PKG_BUILD_FLAGS="+bfd -gold"
 
-# ROCKNIX: lowest kernel across supported devices (RK3588 runs a 6.1 BSP)
+# AsgardOS: lowest kernel across supported devices (RK3588 runs a 6.1 BSP)
 case "${DEVICE}" in
   RK3588)
     OPT_ENABLE_KERNEL=6.1.0
@@ -46,7 +46,7 @@ PKG_CONFIGURE_OPTS_TARGET="BASH_SHELL=/bin/sh \
                            --disable-nscd \
                            --disable-timezone-tools"
 
-# ROCKNIX: new-compiler warning churn must not break the build
+# AsgardOS: new-compiler warning churn must not break the build
 PKG_CONFIGURE_OPTS_TARGET+=" --disable-werror"
 
 if build_with_debug; then
@@ -61,7 +61,7 @@ post_unpack() {
 
 pre_configure_target() {
   # Filter out some problematic *FLAGS
-  # ROCKNIX: build glibc at -O3
+  # AsgardOS: build glibc at -O3
   export CFLAGS=$(echo ${CFLAGS} | sed -e "s|-ffast-math||g")
   export CFLAGS=$(echo ${CFLAGS} | sed -e "s|-Ofast|-O3|g")
   export CFLAGS=$(echo ${CFLAGS} | sed -e "s|-O.|-O3|g")
@@ -113,7 +113,7 @@ post_makeinstall_target() {
     cp -a ${INSTALL}/usr/share/i18n/locales ${INSTALL}/.noinstall
     mv ${INSTALL}/usr/share/i18n/charmaps ${INSTALL}/.noinstall
 
-  # ROCKNIX: keep all glibc programs (no GLIBC_INCLUDE_BIN cleanup)
+  # AsgardOS: keep all glibc programs (no GLIBC_INCLUDE_BIN cleanup)
 
   safe_remove ${INSTALL}/usr/lib/audit
   safe_remove ${INSTALL}/usr/lib/glibc
@@ -136,7 +136,7 @@ post_makeinstall_target() {
     cp ${PKG_DIR}/config/nsswitch-target.conf ${INSTALL}/etc/nsswitch.conf
     cp ${PKG_DIR}/config/host.conf ${INSTALL}/etc
     cp ${PKG_DIR}/config/gai.conf ${INSTALL}/etc
-    # ROCKNIX: writable ld.so.cache location
+    # AsgardOS: writable ld.so.cache location
     cp ${PKG_DIR}/config/ld.so.conf ${INSTALL}/etc
 
   ln -sf /storage/.cache/ld.so.cache ${INSTALL}/etc/ld.so.cache

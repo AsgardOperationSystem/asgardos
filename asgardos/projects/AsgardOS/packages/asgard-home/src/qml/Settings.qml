@@ -61,7 +61,7 @@ Item {
         sh("usb", "usbgadget")
         sh("update", "ls /storage/.update/*.tar /storage/.update/*.img.gz 2>/dev/null | head -1")
         sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
-        if (get("bluetooth.enabled") === "1") sh("bt", "rocknix-bluetooth list", parseBt)
+        if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt)
     }
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
         return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
@@ -175,7 +175,7 @@ Item {
             // ROCKNIX's own switch (vertical-check): "vc" starts the save-state / brightness controls on the bottom
             // screen with RetroArch games; anything else leaves that screen off.
             [choice("gamepad", "RetroArch bottom screen", "Save-state and brightness controls in games",
-                    "rocknix.bottomscreen.type", "vc", [["Controls", "vc"], ["Off", "off"]])],
+                    "asgardos.bottomscreen.type", "vc", [["Controls", "vc"], ["Off", "off"]])],
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.
@@ -229,7 +229,7 @@ Item {
              link("shield", "WireGuard", "Tunnels from .conf files", wireguardPage, wgRefresh)]]
         case "About": {
             const os = backend.osInfo()
-            return [[info("info", "Asgard OS", "ROCKNIX " + (os.VERSION || "") + "  ·  built " + (os.BUILD_DATE || "")),
+            return [[info("info", "Asgard OS", "AsgardOS " + (os.VERSION || "") + "  ·  built " + (os.BUILD_DATE || "")),
                      info("chip", "Device", "AYN Thor  ·  " + (os.HW_DEVICE || "SM8550")),
                      info("gamepad", "Library", backend.systems.length + " systems")],
                     [live.update
@@ -460,11 +460,11 @@ Item {
         const on = get("bluetooth.enabled") === "1"
         const rows = [[{ kind: "toggle", icon: "bluetooth", title: "Bluetooth", sub: live.btMsg || (on ? "On" : "Off"), on: on,
                          activate: () => { set("bluetooth.enabled", on ? "0" : "1"); note("btMsg", on ? "Turning off…" : "Turning on…")
-                                           backend.exec("rocknix-bluetooth " + (on ? "disable" : "enable"), () => { note("btMsg", ""); refresh() }) } }]]
+                                           backend.exec("asgardos-bluetooth " + (on ? "disable" : "enable"), () => { note("btMsg", ""); refresh() }) } }]]
         if (!on) return rows
         rows[0].push(action("bluetooth", "Pair a new device", live.pairing ? "Put the device in pairing mode now…" : "Controllers, headphones",
                             () => { if (live.pairing) return; note("pairing", true)
-                                    backend.exec("rocknix-bluetooth trust input", o => {
+                                    backend.exec("asgardos-bluetooth trust input", o => {
                                         note("pairing", false); note("btMsg", (o.trim().split("\n").pop() || "").slice(0, 60)); refresh() }) }))
         if ((live.bt || []).length)
             rows.push(live.bt.map(d => link("bluetooth", d.name, d.connected ? "Connected" : "Paired", () => btDevicePage(d))))
@@ -472,10 +472,10 @@ Item {
     }
     function btDevicePage(d) {
         return [[action("bluetooth", d.connected ? "Disconnect" : "Connect", d.mac,
-                        () => backend.exec("rocknix-bluetooth " + (d.connected ? "disconnect " : "connect ") + d.mac, () => refresh())),
+                        () => backend.exec("asgardos-bluetooth " + (d.connected ? "disconnect " : "connect ") + d.mac, () => refresh())),
                  action("power", "Forget this device", d.name,
                         () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
-                                      () => backend.exec("rocknix-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))]]
+                                      () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))]]
     }
 
     readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],
@@ -622,7 +622,7 @@ Item {
     function optionsPage(prefix, emu, core, inherit) {
         const feats = features(emu, core)
         if (feats === null) return [[info("refresh", "Loading options…", emu + " / " + core)]]
-        if (!feats.length) return [[info("info", "No extra options", emu + " / " + core + " has none in ROCKNIX")]]
+        if (!feats.length) return [[info("info", "No extra options", emu + " / " + core + " has none")]]
         const row = f => {
             const key = prefix + "." + f.key
             const cur = get(key)

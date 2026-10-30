@@ -72,5 +72,5 @@ EMUPERF="${FAST_CORES}"
 [ "${CORES}" = "little" ] && EMUPERF="${SLOW_CORES}"
 [ "${CORES}" = "all" ] && EMUPERF=""
 
-# The companion window ("Eden - Screen 2 (DSMod aux)") goes to the bottom screen by ROCKNIX's "Screen 2" rules.
+# The companion window ("Eden - Screen 2 (DSMod aux)") goes to the bottom screen by AsgardOS's "Screen 2" rules.
 ${EMUPERF} /usr/bin/eden-duo-cli -f --aux-window -g "${1}"

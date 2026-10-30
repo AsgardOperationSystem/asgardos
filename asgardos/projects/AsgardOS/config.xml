@@ -1,4 +1,4 @@
-<rocknix>
+<asgardos>
   <H700 dtb_prefix="allwinner">
     <DDR4 mkimage_options="dtb,extlinux,uboot" fdt="dtb.img" fdt_type="fdt">
         <file>sun50i-h700-anbernic-rg35xx-plus</file>
@@ -153,4 +153,4 @@
     <file>cq8725s-ayn-odin3</file>
     <file>sm8750-konkr-pf-elite</file>
   </SM8750>
-</rocknix>
+</asgardos>

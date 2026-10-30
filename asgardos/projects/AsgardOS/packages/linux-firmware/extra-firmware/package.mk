@@ -7,7 +7,7 @@ PKG_SHA256="b994fa1c451708bc7addd256e68e0a872559e54e4ddec27f73e6197d64aefc0c"
 PKG_LICENSE="proprietary"
 PKG_SITE="https://github.com/ROCKNIX/extra-firmware"
 PKG_URL="https://github.com/ROCKNIX/extra-firmware/archive/${PKG_VERSION}.tar.gz"
-PKG_LONGDESC="extra-firmware: Extra kernel firmware needed for ROCKNIX devices"
+PKG_LONGDESC="extra-firmware: Extra kernel firmware needed for AsgardOS devices"
 PKG_TOOLCHAIN="manual"
 
 makeinstall_target() {

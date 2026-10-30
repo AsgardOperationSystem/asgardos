@@ -55,4 +55,4 @@ if plane_rotation; then
 fi
 
 # Per-game fractional scale hint from runemu.
-echo WLR_FULLSCREEN_SCALE_HINT_FILE=/run/rocknix/fullscreen-scale-hint >> ${SWAY_CONFIG_RUN}
+echo WLR_FULLSCREEN_SCALE_HINT_FILE=/run/asgardos/fullscreen-scale-hint >> ${SWAY_CONFIG_RUN}

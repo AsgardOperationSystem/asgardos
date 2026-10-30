@@ -1,7 +1,7 @@
 [Unit]
 Description=EmulationStation emulator frontend
-ConditionPathExists=/run/rocknix/start.games
-After=rocknix-automount.service
+ConditionPathExists=/run/asgardos/start.games
+After=asgardos-automount.service
 
 [Service]
 Environment=XDG_RUNTIME_DIR=/var/run/0-runtime-dir
@@ -17,4 +17,4 @@ RestartSec=2
 StartLimitInterval=0
 
 [Install]
-WantedBy=rocknix.target
+WantedBy=asgardos.target

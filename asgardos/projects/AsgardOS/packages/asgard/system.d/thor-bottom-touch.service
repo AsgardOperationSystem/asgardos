@@ -8,5 +8,5 @@ Restart=always
 RestartSec=5
 
 [Install]
-# rocknix.target, like essway (see thor-idle-blank.service)
-WantedBy=rocknix.target
+# asgardos.target, like essway (see thor-idle-blank.service)
+WantedBy=asgardos.target

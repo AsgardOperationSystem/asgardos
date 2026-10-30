@@ -1,5 +1,5 @@
 From: ROCKNIX <maintainers@rocknix.org>
-Subject: [PATCH] target: add ROCKNIX target specifications
+Subject: [PATCH] target: add AsgardOS target specifications
 
 Built-in targets replace the JSON specs that rustc 1.95+ only loads with -Zunstable-options.
 
@@ -11,18 +11,18 @@ index b6dc05b..d723746 100644
  }
  
  supported_targets! {
-+    ("x86_64-asgardos-linux-gnu", x86_64_rocknix_linux_gnu),
-+    ("aarch64-asgardos-linux-gnu", aarch64_rocknix_linux_gnu),
-+    ("armv8a-asgardos-linux-gnueabi", armv8a_rocknix_linux_gnueabi),
-+    ("armv9a-asgardos-linux-gnueabi", armv9a_rocknix_linux_gnueabi),
++    ("x86_64-asgardos-linux-gnu", x86_64_asgardos_linux_gnu),
++    ("aarch64-asgardos-linux-gnu", aarch64_asgardos_linux_gnu),
++    ("armv8a-asgardos-linux-gnueabi", armv8a_asgardos_linux_gnueabi),
++    ("armv9a-asgardos-linux-gnueabi", armv9a_asgardos_linux_gnueabi),
      ("x86_64-libreelec-linux-gnu", x86_64_libreelec_linux_gnu),
      ("aarch64-libreelec-linux-gnu", aarch64_libreelec_linux_gnu),
      ("armv7a-libreelec-linux-gnueabihf", armv7a_libreelec_linux_gnueabihf),
-diff --git a/compiler/rustc_target/src/spec/targets/aarch64_rocknix_linux_gnu.rs b/compiler/rustc_target/src/spec/targets/aarch64_rocknix_linux_gnu.rs
+diff --git a/compiler/rustc_target/src/spec/targets/aarch64_asgardos_linux_gnu.rs b/compiler/rustc_target/src/spec/targets/aarch64_asgardos_linux_gnu.rs
 new file mode 100644
 index 0000000..7a9de6a
 --- /dev/null
-+++ b/compiler/rustc_target/src/spec/targets/aarch64_rocknix_linux_gnu.rs
++++ b/compiler/rustc_target/src/spec/targets/aarch64_asgardos_linux_gnu.rs
 @@ -0,0 +1,34 @@
 +use crate::spec::{
 +    Arch, FramePointer, SanitizerSet, StackProbeType, Target, TargetMetadata, TargetOptions, base,
@@ -32,7 +32,7 @@ index 0000000..7a9de6a
 +    Target {
 +        llvm_target: "aarch64-unknown-linux-gnu".into(),
 +        metadata: TargetMetadata {
-+            description: Some("ARM64 Linux for ROCKNIX (kernel 4.1, glibc 2.17+)".into()),
++            description: Some("ARM64 Linux for AsgardOS (kernel 4.1, glibc 2.17+)".into()),
 +            tier: Some(3),
 +            host_tools: Some(false),
 +            std: Some(true),
@@ -58,11 +58,11 @@ index 0000000..7a9de6a
 +        },
 +    }
 +}
-diff --git a/compiler/rustc_target/src/spec/targets/armv8a_rocknix_linux_gnueabi.rs b/compiler/rustc_target/src/spec/targets/armv8a_rocknix_linux_gnueabi.rs
+diff --git a/compiler/rustc_target/src/spec/targets/armv8a_asgardos_linux_gnueabi.rs b/compiler/rustc_target/src/spec/targets/armv8a_asgardos_linux_gnueabi.rs
 new file mode 100644
 index 0000000..86766c1
 --- /dev/null
-+++ b/compiler/rustc_target/src/spec/targets/armv8a_rocknix_linux_gnueabi.rs
++++ b/compiler/rustc_target/src/spec/targets/armv8a_asgardos_linux_gnueabi.rs
 @@ -0,0 +1,27 @@
 +use crate::spec::{Arch, CfgAbi, FloatAbi, Target, TargetMetadata, TargetOptions, base};
 +
@@ -70,7 +70,7 @@ index 0000000..86766c1
 +    Target {
 +        llvm_target: "arm-unknown-linux-gnueabihf".into(),
 +        metadata: TargetMetadata {
-+            description: Some("Armv6 Linux hardfloat for ROCKNIX (kernel 3.2, glibc 2.17)".into()),
++            description: Some("Armv6 Linux hardfloat for AsgardOS (kernel 3.2, glibc 2.17)".into()),
 +            tier: Some(3),
 +            host_tools: Some(false),
 +            std: Some(true),
@@ -91,11 +91,11 @@ index 0000000..86766c1
 +        },
 +    }
 +}
-diff --git a/compiler/rustc_target/src/spec/targets/armv9a_rocknix_linux_gnueabi.rs b/compiler/rustc_target/src/spec/targets/armv9a_rocknix_linux_gnueabi.rs
+diff --git a/compiler/rustc_target/src/spec/targets/armv9a_asgardos_linux_gnueabi.rs b/compiler/rustc_target/src/spec/targets/armv9a_asgardos_linux_gnueabi.rs
 new file mode 100644
 index 0000000..86766c1
 --- /dev/null
-+++ b/compiler/rustc_target/src/spec/targets/armv9a_rocknix_linux_gnueabi.rs
++++ b/compiler/rustc_target/src/spec/targets/armv9a_asgardos_linux_gnueabi.rs
 @@ -0,0 +1,27 @@
 +use crate::spec::{Arch, CfgAbi, FloatAbi, Target, TargetMetadata, TargetOptions, base};
 +
@@ -103,7 +103,7 @@ index 0000000..86766c1
 +    Target {
 +        llvm_target: "arm-unknown-linux-gnueabihf".into(),
 +        metadata: TargetMetadata {
-+            description: Some("Armv6 Linux hardfloat for ROCKNIX (kernel 3.2, glibc 2.17)".into()),
++            description: Some("Armv6 Linux hardfloat for AsgardOS (kernel 3.2, glibc 2.17)".into()),
 +            tier: Some(3),
 +            host_tools: Some(false),
 +            std: Some(true),
@@ -124,11 +124,11 @@ index 0000000..86766c1
 +        },
 +    }
 +}
-diff --git a/compiler/rustc_target/src/spec/targets/x86_64_rocknix_linux_gnu.rs b/compiler/rustc_target/src/spec/targets/x86_64_rocknix_linux_gnu.rs
+diff --git a/compiler/rustc_target/src/spec/targets/x86_64_asgardos_linux_gnu.rs b/compiler/rustc_target/src/spec/targets/x86_64_asgardos_linux_gnu.rs
 new file mode 100644
 index 0000000..dce89c7
 --- /dev/null
-+++ b/compiler/rustc_target/src/spec/targets/x86_64_rocknix_linux_gnu.rs
++++ b/compiler/rustc_target/src/spec/targets/x86_64_asgardos_linux_gnu.rs
 @@ -0,0 +1,34 @@
 +use crate::spec::{
 +    Arch, Cc, LinkerFlavor, Lld, SanitizerSet, StackProbeType, Target, TargetMetadata, base,
@@ -152,7 +152,7 @@ index 0000000..dce89c7
 +    Target {
 +        llvm_target: "x86_64-unknown-linux-gnu".into(),
 +        metadata: TargetMetadata {
-+            description: Some("64-bit Linux for ROCKNIX (kernel 3.2+, glibc 2.17+)".into()),
++            description: Some("64-bit Linux for AsgardOS (kernel 3.2+, glibc 2.17+)".into()),
 +            tier: Some(3),
 +            host_tools: Some(false),
 +            std: Some(true),

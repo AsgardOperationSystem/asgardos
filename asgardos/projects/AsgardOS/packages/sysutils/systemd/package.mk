@@ -13,7 +13,7 @@ PKG_LONGDESC="A system and session manager for Linux, compatible with SysV and L
 PKG_BUILD_FLAGS="+lto"
 
 PKG_MESON_OPTS_TARGET="--libdir=/usr/lib \
-                       -Dfallback-hostname=ROCKNIX \
+                       -Dfallback-hostname=AsgardOS \
                        -Dsplit-bin=true \
                        -Dtty-gid=5 \
                        -Dtests=false \
@@ -170,9 +170,9 @@ post_makeinstall_target() {
   printf 'EARLY_FILTER=%s\nLATE_FILTER=%s\n' "$(printf -- '--subsystem-nomatch=%s ' ${late})" \
          "$(printf -- '--subsystem-match=%s ' ${late})" > ${INSTALL}/usr/lib/udev/coldplug-late.conf
 
-  sed -e 's|^SUBSYSTEM=="block", TAG+="systemd"$|SUBSYSTEM=="block", ENV{ROCKNIX_INTERNAL_EMMC}!="1", TAG+="systemd"|' \
+  sed -e 's|^SUBSYSTEM=="block", TAG+="systemd"$|SUBSYSTEM=="block", ENV{ASGARDOS_INTERNAL_EMMC}!="1", TAG+="systemd"|' \
       -i ${INSTALL}/usr/lib/udev/rules.d/99-systemd.rules
-  grep -q ROCKNIX_INTERNAL_EMMC ${INSTALL}/usr/lib/udev/rules.d/99-systemd.rules || die "99-systemd.rules block tag line changed"
+  grep -q ASGARDOS_INTERNAL_EMMC ${INSTALL}/usr/lib/udev/rules.d/99-systemd.rules || die "99-systemd.rules block tag line changed"
 
   # adjust systemd-hwdb-update (we have read-only /etc).
   sed '/^ConditionNeedsUpdate=.*$/d' -i ${INSTALL}/usr/lib/systemd/system/systemd-hwdb-update.service
@@ -280,8 +280,8 @@ post_makeinstall_target() {
   cp ${PKG_DIR}/scripts/systemd-timesyncd-setup ${INSTALL}/usr/sbin
 
   # /etc/resolv.conf and /etc/hosts must be writable
-  ln -sf /run/rocknix/resolv.conf ${INSTALL}/etc/resolv.conf
-  ln -sf /run/rocknix/hosts ${INSTALL}/etc/hosts
+  ln -sf /run/asgardos/resolv.conf ${INSTALL}/etc/resolv.conf
+  ln -sf /run/asgardos/hosts ${INSTALL}/etc/hosts
 
   # provide 'halt', 'shutdown', 'reboot' & co.
   ln -sf /usr/bin/systemctl ${INSTALL}/usr/sbin/halt
@@ -306,10 +306,10 @@ post_makeinstall_target() {
   mkdir -p ${INSTALL}/usr/lib/systemd/oomd/rules.d
   cp ${PKG_DIR}/oomd/rules.d/*.oomrule ${INSTALL}/usr/lib/systemd/oomd/rules.d
   mkdir -p ${INSTALL}/usr/lib/systemd/coredump.conf.d
-  printf "[Coredump]\nStorage=none\nProcessSizeMax=0\n" > ${INSTALL}/usr/lib/systemd/coredump.conf.d/10-rocknix.conf
+  printf "[Coredump]\nStorage=none\nProcessSizeMax=0\n" > ${INSTALL}/usr/lib/systemd/coredump.conf.d/10-asgardos.conf
   mkdir -p ${INSTALL}/usr/lib/systemd/timesyncd.conf.d
-  printf "[Time]\nSaveIntervalSec=15min\n" > ${INSTALL}/usr/lib/systemd/timesyncd.conf.d/10-rocknix.conf
-  cat >${INSTALL}/usr/lib/tmpfiles.d/rocknix-thp.conf <<EOF
+  printf "[Time]\nSaveIntervalSec=15min\n" > ${INSTALL}/usr/lib/systemd/timesyncd.conf.d/10-asgardos.conf
+  cat >${INSTALL}/usr/lib/tmpfiles.d/asgardos-thp.conf <<EOF
 w- /sys/kernel/mm/transparent_hugepage/enabled - - - - ${THP_MODE:-madvise}
 w- /sys/kernel/mm/transparent_hugepage/defrag - - - - ${THP_DEFRAG:-defer+madvise}
 w- /sys/kernel/mm/transparent_hugepage/shmem_enabled - - - - advise

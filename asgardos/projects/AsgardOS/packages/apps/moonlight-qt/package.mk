@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: GPL-2.0
 # Moonlight (moonlight-qt): the game-streaming client's full GUI (pairing, hosts, apps, settings; controller and touch)
-# for Tools > Moonlight. ROCKNIX ships moonlight-embedded (/usr/bin/moonlight, command line only, its Moonlight system);
+# for Tools > Moonlight. AsgardOS ships moonlight-embedded (/usr/bin/moonlight, command line only, its Moonlight system);
 # this one installs as /usr/bin/moonlight-qt beside it. Built from the release's source tarball (submodules included)
 # against the image's Qt 6, SDL2, FFmpeg, libplacebo (Vulkan) and Wayland.
 

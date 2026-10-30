@@ -20,7 +20,7 @@ pre_make_target() {
   export BUILD_SYSROOT=${SYSROOT_PREFIX}
 
   case ${TARGET_ARCH} in
-    aarch64) PKG_MAKE_OPTS_TARGET+=" platform=${DEVICE}_rocknix" ;;
+    aarch64) PKG_MAKE_OPTS_TARGET+=" platform=${DEVICE}_asgardos" ;;
   esac
 }
 

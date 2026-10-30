@@ -11,7 +11,7 @@ PKG_DEPENDS_TARGET="toolchain glslang:host ffmpeg SDL2 boost zlib libusb zstd lz
 PKG_LONGDESC="Eden - Nintendo Switch emulator (yuzu fork); NCE runs game code natively on arm64"
 
 # Dependencies missing from (or too old in) the sysroot are fetched by Eden's CPMUtil at configure time.
-# Vulkan headers come bundled with the utility libraries ROCKNIX doesn't ship (Eden won't mix the two).
+# Vulkan headers come bundled with the utility libraries AsgardOS doesn't ship (Eden won't mix the two).
 PKG_CMAKE_OPTS_TARGET="-DCMAKE_BUILD_TYPE=Release \
                        -DVulkanHeaders_FORCE_BUNDLED=ON \
                        -DENABLE_QT=ON \

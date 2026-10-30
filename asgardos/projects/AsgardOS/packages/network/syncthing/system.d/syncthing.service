@@ -1,6 +1,6 @@
 [Unit]
 Description=Start SyncThing
-After=rocknix.service
+After=asgardos.service
 
 [Service]
 Slice=background.slice
@@ -8,4 +8,4 @@ Type=simple
 ExecStart=/usr/bin/start_syncthing.sh
 
 [Install]
-WantedBy=rocknix.service
+WantedBy=asgardos.service

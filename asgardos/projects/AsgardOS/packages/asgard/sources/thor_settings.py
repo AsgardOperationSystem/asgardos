@@ -218,7 +218,7 @@ def pick(ui, title, choices, current):
 def options_page(ui, title, prefix, features, inherit_prefix=None):
     """Edit `<prefix>.<feature>` keys. 'Default' removes the key; inherit_prefix shows what it falls back to."""
     if not features:
-        ui.message(title, ["This emulator has no extra options in ROCKNIX."])
+        ui.message(title, ["This emulator has no extra options."])
         return
     sel = 0
     while True:
@@ -374,7 +374,7 @@ def page_wifi(ui):
 
 
 def bt_devices():
-    _, out = run_cmd("rocknix-bluetooth list", 30)
+    _, out = run_cmd("asgardos-bluetooth list", 30)
     devs = []
     for line in out.splitlines():
         if line.startswith("<device"):
@@ -399,22 +399,22 @@ def page_bluetooth(ui):
         if sel == 0:
             conf.set("bluetooth.enabled", "0" if enabled else "1")
             ui.busy("Bluetooth", "Turning Bluetooth " + ("off…" if enabled else "on…"))
-            run_cmd("rocknix-bluetooth " + ("disable" if enabled else "enable"), 60)
+            run_cmd("asgardos-bluetooth " + ("disable" if enabled else "enable"), 60)
         elif sel == 1:
             if not enabled:
                 ui.message("Bluetooth", ["Turn Bluetooth on first."])
                 continue
             ui.busy("Bluetooth", "Put the device in pairing mode now (60 s)…")
-            rc, out = run_cmd("rocknix-bluetooth trust input", 75)
+            rc, out = run_cmd("asgardos-bluetooth trust input", 75)
             ui.message("Bluetooth", (out.splitlines() or ["Done."])[-4:])
         else:
             mac, name, conn = devs[sel - 2]
             i = ui.menu(name, [("Disconnect" if conn else "Connect", ""), ("Forget this device", "")])
             if i == 0:
                 ui.busy(name, "Disconnecting…" if conn else "Connecting…")
-                run_cmd(f"rocknix-bluetooth {'disconnect' if conn else 'connect'} {mac}", 45)
+                run_cmd(f"asgardos-bluetooth {'disconnect' if conn else 'connect'} {mac}", 45)
             elif i == 1 and ui.confirm(f"Forget {name}"):
-                run_cmd(f"rocknix-bluetooth remove {mac}", 30)
+                run_cmd(f"asgardos-bluetooth remove {mac}", 30)
 
 
 COLORS = [("Red", (255, 0, 0)), ("Orange", (255, 100, 0)), ("Yellow", (255, 200, 0)), ("Green", (0, 255, 0)),

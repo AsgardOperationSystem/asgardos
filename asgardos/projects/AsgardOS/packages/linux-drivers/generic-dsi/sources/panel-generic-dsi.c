@@ -703,7 +703,7 @@ static void generic_panel_remove(struct mipi_dsi_device *dsi)
 }
 
 static const struct of_device_id generic_panel_of_match[] = {
-    { .compatible = "rocknix,generic-dsi" },
+    { .compatible = "asgardos,generic-dsi" },
     { /* sentinel */ }
 };
 MODULE_DEVICE_TABLE(of, generic_panel_of_match);

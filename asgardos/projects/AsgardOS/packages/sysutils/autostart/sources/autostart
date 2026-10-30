@@ -44,7 +44,7 @@ fi
 
 ### Start the automount service
 tocon "Starting storage services..."
-systemctl start rocknix-automount
+systemctl start asgardos-automount
 
 ### Run common start scripts
 for script in /usr/lib/autostart/common/*
@@ -85,8 +85,8 @@ log "Startup complete..."
 . /etc/profile
 
 ### Lock is a prerequisite for emustation
-rm /run/rocknix/start.games 2>&1 >>${BOOTLOG}
-touch /run/rocknix/start.games 2>&1 >>${BOOTLOG}
+rm /run/asgardos/start.games 2>&1 >>${BOOTLOG}
+touch /run/asgardos/start.games 2>&1 >>${BOOTLOG}
 log "Starting ${UI_SERVICE}..."
 systemctl start ${UI_SERVICE} 2>&1 >>${BOOTLOG} &
 

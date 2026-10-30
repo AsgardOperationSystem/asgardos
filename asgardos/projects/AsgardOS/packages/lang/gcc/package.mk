@@ -3,13 +3,13 @@
 
 . ${ROOT}/packages/lang/gcc/package.mk
 
-# ROCKNIX: ship libatomic on aarch64 too (core enables arm/riscv64 only)
+# AsgardOS: ship libatomic on aarch64 too (core enables arm/riscv64 only)
 if [ "${TARGET_ARCH}" = "aarch64" ]; then
   OPTS_LIBATOMIC="--enable-libatomic"
   PKG_CONFIGURE_OPTS_HOST="${PKG_CONFIGURE_OPTS_HOST/--disable-libatomic/--enable-libatomic}"
 fi
 
-# ROCKNIX: build libgomp (core disables it) and ship it with the target libs
+# AsgardOS: build libgomp (core disables it) and ship it with the target libs
 PKG_CONFIGURE_OPTS_HOST="${PKG_CONFIGURE_OPTS_HOST/--disable-libgomp/--enable-libgomp}"
 
 post_makeinstall_target() {

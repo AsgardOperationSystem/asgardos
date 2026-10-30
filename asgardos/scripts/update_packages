@@ -4,7 +4,7 @@
 
 # Based on work by ToKe79 and Shanti Gilbert
 
-OPTIONS="distributions/ROCKNIX/options"
+OPTIONS="distributions/AsgardOS/options"
 PACKAGES=("projects/AsgardOS/packages/virtual/emulators/package.mk" \
           "projects/AsgardOS/packages/virtual/es-themes/package.mk" \
           "projects/AsgardOS/packages/virtual/gamesupport/package.mk" )

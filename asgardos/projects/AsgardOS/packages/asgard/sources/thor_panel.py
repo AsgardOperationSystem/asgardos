@@ -270,7 +270,7 @@ def activate(key, st):
             if conf.get("wifi.enabled", "1") == "1":
                 run_cmd("wifictl enable", 60)
             if conf.get("bluetooth.enabled", "0") == "1":
-                run_cmd("rocknix-bluetooth enable", 60)
+                run_cmd("asgardos-bluetooth enable", 60)
         return "Airplane mode on" if on else "Airplane mode off"
     elif key == "vibrate":
         cur = ra_rumble()

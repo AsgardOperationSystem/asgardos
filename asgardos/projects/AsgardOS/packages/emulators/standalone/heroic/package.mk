@@ -5,7 +5,7 @@ PKG_NAME="heroic"
 PKG_VERSION="1.0"
 PKG_LICENSE="proprietary"
 PKG_SITE="https://heroicgameslauncher.com"
-PKG_LONGDESC="Heroic Games Launcher runtime scripts for ROCKNIX"
+PKG_LONGDESC="Heroic Games Launcher runtime scripts for AsgardOS"
 PKG_TOOLCHAIN="manual"
 
 makeinstall_target() {

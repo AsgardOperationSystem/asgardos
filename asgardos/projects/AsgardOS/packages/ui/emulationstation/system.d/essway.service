@@ -1,7 +1,7 @@
 [Unit]
 Description=EmulationStation-with-Sway
 # This path never exist on rk3566
-#ConditionPathExists=/run/rocknix/start.games
+#ConditionPathExists=/run/asgardos/start.games
 Requires=sway.service
 After=sway.service
 
@@ -15,4 +15,4 @@ Restart=always
 RestartSec=2
 
 [Install]
-WantedBy=rocknix.target
+WantedBy=asgardos.target

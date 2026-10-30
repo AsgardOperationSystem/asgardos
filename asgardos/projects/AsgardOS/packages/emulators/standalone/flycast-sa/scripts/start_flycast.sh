@@ -52,7 +52,7 @@ fi
 
 # Asgard: copies of the shipped mapping start with "digital]" (its "[" was missing), so Flycast skipped the section.
 sed -i '1s/^digital\]$/[digital]/' "${CONF_DIR}/mappings/SDL_Keyboard.cfg"
-# F1 opens Flycast's menu (as in ROCKNIX's InputPlumber mapping); the Home button sends it (thor_ayn_button.py).
+# F1 opens Flycast's menu (as in AsgardOS's InputPlumber mapping); the Home button sends it (thor_ayn_button.py).
 # Flycast reads bind0, bind1... in order, so it gets the next free number.
 if ! grep -q ":btn_menu" "${CONF_DIR}/mappings/SDL_Keyboard.cfg"; then
   N=$(grep -c "^bind" "${CONF_DIR}/mappings/SDL_Keyboard.cfg")

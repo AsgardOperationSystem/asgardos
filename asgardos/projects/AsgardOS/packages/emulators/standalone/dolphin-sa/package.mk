@@ -50,7 +50,7 @@ PKG_CMAKE_OPTS_TARGET+=" -DENABLE_QT=ON \
                          -DCMAKE_EXE_LINKER_FLAGS=-flto=$(nproc) \
                          -DMBEDTLS_FATAL_WARNINGS=OFF \
                          -DCMAKE_BUILD_TYPE=Release \
-                         -DDISTRIBUTOR="ROCKNIX" \
+                         -DDISTRIBUTOR="AsgardOS" \
                          -DENABLE_NOGUI=ON \
                          -DENABLE_EVDEV=ON \
                          -DENABLE_SDL=ON \

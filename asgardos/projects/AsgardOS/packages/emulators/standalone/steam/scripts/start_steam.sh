@@ -219,7 +219,7 @@ steam_launch_bigpicture() {
   unset MESA_LOADER_DRIVER_OVERRIDE
 
   # Asgard: Steam inside sway by default (asgard.steam_nested): gamescope as a fullscreen sway window on the top
-  # panel, so the bottom panel stays sway's (Thor Panel, overlays). 0: ROCKNIX's way, gamescope owning the display.
+  # panel, so the bottom panel stays sway's (Thor Panel, overlays). 0: AsgardOS's way, gamescope owning the display.
   local backend_flags="--backend drm --force-orientation ${force_orientation} ${rotate_flags}"
   if [ "$(get_setting asgard.steam_nested)" != "0" ] && [ -n "${WAYLAND_DISPLAY}" ]; then
     backend_flags="--backend wayland -f"

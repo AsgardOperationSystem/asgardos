@@ -18,7 +18,7 @@ mount -o remount,rw $BOOT_ROOT
 
 if [ -d "$SYSTEM_ROOT/usr/share/bootloader/rocknix_abl" ]; then
   mkdir -p $BOOT_ROOT/rocknix_abl
-  echo "Updating ROCKNIX ABL on SD..."
+  echo "Updating AsgardOS ABL on SD..."
   cp $SYSTEM_ROOT/usr/share/bootloader/rocknix_abl/* $BOOT_ROOT/rocknix_abl
 fi
 

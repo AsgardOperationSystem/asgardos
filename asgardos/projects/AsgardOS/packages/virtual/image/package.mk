@@ -13,7 +13,7 @@ PKG_DEPENDS_TARGET="toolchain squashfs-tools:host dosfstools:host fakeroot:host 
                     ${BOOTLOADER} busybox lsof umtprd util-linux usb-modeswitch jq socat \
                     p7zip file grep util-linux btrfs-progs zstd lz4 empty lzo libzip \
                     bash coreutils system-utils autostart quirks powerstate sdl2notify \
-                    gzip six xmlstarlet pyudev dialog network mako-osd rocknix"
+                    gzip six xmlstarlet pyudev dialog network mako-osd asgardos"
 
 PKG_UI="textviewer lowerdeck"
 

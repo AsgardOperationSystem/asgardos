@@ -15,8 +15,8 @@ case ${DEVICE} in
     ;;
 esac
 
-# rocknix-touchscreen-keyboard requires sway
-[[ "${WINDOWMANAGER}" = "swaywm-env" ]] && PKG_GAMESUPPORT+=" rocknix-touchscreen-keyboard"
+# asgardos-touchscreen-keyboard requires sway
+[[ "${WINDOWMANAGER}" = "swaywm-env" ]] && PKG_GAMESUPPORT+=" asgardos-touchscreen-keyboard"
 
 PKG_DEPENDS_TARGET="${PKG_GAMESUPPORT}"
 

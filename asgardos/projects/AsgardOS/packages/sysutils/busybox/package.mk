@@ -131,11 +131,11 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/usr/sbin
     cp ${PKG_DIR}/scripts/kernel-overlays-setup ${INSTALL}/usr/sbin
 
-  mkdir -p ${INSTALL}/usr/lib/rocknix/
-    cp ${PKG_DIR}/scripts/functions ${INSTALL}/usr/lib/rocknix/
-    cp ${PKG_DIR}/scripts/fs-resize ${INSTALL}/usr/lib/rocknix/
+  mkdir -p ${INSTALL}/usr/lib/asgardos/
+    cp ${PKG_DIR}/scripts/functions ${INSTALL}/usr/lib/asgardos/
+    cp ${PKG_DIR}/scripts/fs-resize ${INSTALL}/usr/lib/asgardos/
     sed -e "s/@DISTRONAME@/${DISTRONAME}/g" \
-        -i ${INSTALL}/usr/lib/rocknix/fs-resize
+        -i ${INSTALL}/usr/lib/asgardos/fs-resize
 
   mkdir -p ${INSTALL}/etc
     cp ${PKG_DIR}/config/profile ${INSTALL}/etc

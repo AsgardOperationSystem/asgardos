@@ -68,7 +68,7 @@
   # Debug tty path
     DEBUG_TTY="/dev/ttyMSM0"
 
-  # Build and install rocknix joypad driver (yes / no)
+  # Build and install asgardos joypad driver (yes / no)
     ROCKNIX_JOYPAD="no"
 
   # ZRAM Algorithm

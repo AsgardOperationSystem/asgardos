@@ -21,7 +21,7 @@ mkimage_uboot() {
     dd if="${RELEASE_DIR}/3rdparty/bootloader/H700_${SUBDEVICE}_u-boot-sunxi-with-spl.bin" of="${DISK}" bs=1K seek=8 conv=fsync,notrunc >"${SAVE_ERROR}" 2>&1 || show_error
   elif [ -f "${RELEASE_DIR}/3rdparty/bootloader/rocknix-u-boot.img" ]; then
     # SM8750, SM8650 & SM8550
-    echo "image: copying rocknix u-boot files..."
+    echo "image: copying asgardos u-boot files..."
     mcopy -o "${RELEASE_DIR}/3rdparty/bootloader/rocknix-u-boot.img" ::
     mcopy -s -o "${RELEASE_DIR}/3rdparty/bootloader/device_trees" ::
   else
@@ -106,7 +106,7 @@ mkimage_grub() {
 }
 
 mkimage_abl() {
-  echo "image: copying ROCKNIX ABL..."
+  echo "image: copying AsgardOS ABL..."
   mcopy "${RELEASE_DIR}/3rdparty/bootloader/rocknix_abl" ::
 }
 

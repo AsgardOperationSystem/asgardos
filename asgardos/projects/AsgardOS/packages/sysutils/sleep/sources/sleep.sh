@@ -110,7 +110,7 @@ wifi_wait_down() {
 
 case $1 in
   pre)
-    rocknix-games-freeze freeze >${EVENTLOG} 2>&1
+    asgardos-games-freeze freeze >${EVENTLOG} 2>&1
 
     if [ "$(get_setting wifi.enabled)" == "1" ]; then
       # while still associated, so resume rejoins this network and not
@@ -165,6 +165,6 @@ case $1 in
     fi
 
     quirks post
-    rocknix-games-freeze thaw >${EVENTLOG} 2>&1
+    asgardos-games-freeze thaw >${EVENTLOG} 2>&1
     ;;
 esac

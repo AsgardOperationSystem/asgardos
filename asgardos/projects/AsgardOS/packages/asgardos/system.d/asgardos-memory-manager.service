@@ -1,0 +1,17 @@
+[Unit]
+Description=AsgardOS Memory Manager
+After=local-fs.target
+DefaultDependencies=no
+Conflicts=shutdown.target
+Before=shutdown.target systemd-oomd.service
+
+[Service]
+Environment=HOME=/storage
+Type=oneshot
+ExecStart=/usr/bin/asgardos-memory-manager --setup
+ExecReload=/usr/bin/asgardos-memory-manager --reload
+ExecStop=/usr/bin/asgardos-memory-manager --stop
+RemainAfterExit=yes
+
+[Install]
+WantedBy=basic.target

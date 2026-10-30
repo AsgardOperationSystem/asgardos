@@ -7,7 +7,7 @@ PKG_SHA256="89ade1769d6eb7b4f37265f26407a422cdbcf517487f80eb1c29964904ca138e"
 PKG_LICENSE="GPL"
 PKG_SITE="https://github.com/ROCKNIX/rocknix-joypad"
 PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
-PKG_LONGDESC="rocknix-joypad: ROCKNIX joypad driver"
+PKG_LONGDESC="rocknix-joypad: AsgardOS joypad driver"
 PKG_TOOLCHAIN="manual"
 PKG_IS_KERNEL_PKG="yes"
 
