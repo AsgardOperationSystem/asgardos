@@ -122,6 +122,8 @@ def default_label(name):
         return "100%"
     if name == "motion":
         return "Off"
+    if name == "gl driver":
+        return "freedreno"
     if name == "gpu driver":
         try:
             return open("/usr/share/mesa/version").read().strip()
@@ -153,6 +155,9 @@ PERF_FEATURES = [("cpu cap little", CPU), ("cpu cap mid", CPU), ("cpu cap prime"
                  ("eq headphones", [("Thor's own", "thor"), ("AutoEQ profile", "autoeq"), ("Off", "off")]),
                  ("sleep mode", [("Suspend", "suspend"), ("Screens off, keep running", "screen")]),
                  ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF)]
+# OpenGL through Zink (Mesa's GL on top of the Vulkan driver, the GPU driver option's if set) instead of freedreno:
+# runemu.sh exports MESA_LOADER_DRIVER_OVERRIDE=zink.
+GL_DRIVER = ("gl driver", [("Zink (OpenGL on Vulkan)", "zink")])
 HW = "Hardware overrides"
 GROUPS = {"cpu cap little": HW, "cpu cap mid": HW, "cpu cap prime": HW, "fan mode": HW, "motion": HW, "eq speaker": HW + "/Sound EQ", "eq headphones": HW + "/Sound EQ",
           "sleep mode": HW + "/Sleep", "sleep wifi": HW + "/Sleep", "sleep bt": HW + "/Sleep"}
@@ -177,6 +182,7 @@ def load_features():
         base = _standard(emu.get("features")) + _feats(emu.find("features"))
         if drivers:   # every emulator: only Vulkan ones load it, the rest ignore VK_DRIVER_FILES
             base = [("gpu driver", drivers)] + base
+        base = [GL_DRIVER] + base   # likewise: only OpenGL ones load it
         base = PERF_FEATURES + base
         out[(emu.get("name"), None)] = base
         for core in emu.findall("cores/core"):
@@ -212,7 +218,7 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "autosave": "Auto save/load state", "shaderset": "Shader set",
           "gpu accuracy": "GPU accuracy", "astc decoding": "ASTC texture decoding",
           "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)",
-          "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)",
+          "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)", "gl driver": "OpenGL driver",
           "cpu cap little": "Little core (A510)", "cpu cap mid": "Big cores (A715/A710)",
           "cpu cap prime": "Prime core (X3)",
           "fan mode": "Fan", "motion": "Gyro (motion sensors)", "eq speaker": "Speaker EQ", "eq headphones": "Headphone EQ", "sleep mode": "Lid / power button", "sleep wifi": "Wi-Fi while screens off",
@@ -637,7 +643,7 @@ def dump_features(emulator, core):
     feats = load_features().get((emulator, core)) or load_features().get((emulator, None))
     if feats is None:   # not in ROCKNIX's catalogue (e.g. gmu, the Music Player): the options every emulator gets
         drivers = gpu_driver_choices()
-        feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else [])
+        feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else []) + [GL_DRIVER]
     print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
                        **({"default": default_label(n)} if default_label(n) else {}),
                        **({"group": GROUPS[n]} if n in GROUPS else {})} for n, ch in feats]))

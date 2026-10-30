@@ -587,9 +587,12 @@ Item {
             rows.push(action("refresh", "Use " + g.sysName + " settings", sysEmu + " / " + sysCore,
                              () => { set(k("emulator"), ""); set(k("core"), "") }))
         const st = backend.playStats(g.path)
+        const cacheKey = "shaderCache:" + g.path   // asgard-shader-cache.sh's answer: what it deleted, or why not
         return [rows, [info("info", "Played", st.playtime ? Math.round(st.playtime / 60) + " min" : "Never"),
                        link("chip", "Emulator options", "This game only; unset ones follow " + g.sysName,
-                            () => optionsPage(g.sys + '["' + file + '"]', emu, get(k("core"), sysCore), g.sys))]]
+                            () => optionsPage(g.sys + '["' + file + '"]', emu, get(k("core"), sysCore), g.sys)),
+                       action("broom", "Delete shader cache", live[cacheKey] || "Rebuilt on the next launch; fixes a black screen at start",
+                              () => sh(cacheKey, "/usr/share/asgard/asgard-shader-cache.sh " + q(g.sys) + " " + q(g.path) + " 2>&1"))]]
     }
 
     // ROCKNIX's per-emulator options (es_features.cfg), read through thor_settings.py --features as JSON.
