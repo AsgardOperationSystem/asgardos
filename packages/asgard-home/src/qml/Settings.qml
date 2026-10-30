@@ -193,6 +193,10 @@ Item {
                                       while (values[i] === "off" && allCoresOff("asgard", "", c[0], "off"))
                                       set(key, values[i]); backend.shell("/usr/share/asgard/asgard-cpu-cap.sh") } }
             }),
+             // The GPU's clock cap while in Home (asgard.gpu_cap, asgard-cpu-cap.sh); games set their own.
+             choice("chip", "GPU (Adreno 740) · menu", "% of top clock · only in Asgard Home", "asgard.gpu_cap", "100",
+                    Array.from({ length: 16 }, (_, i) => [(25 + 5 * i) + "%", "" + (25 + 5 * i)]),
+                    () => backend.shell("/usr/share/asgard/asgard-cpu-cap.sh")),
              { kind: "choice", icon: "fan", title: "Fan", sub: "Curve, or a fixed speed",
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
                step: d => { const i = Math.max(0, fanModes.findIndex(m => m[1] === fanNow()));
