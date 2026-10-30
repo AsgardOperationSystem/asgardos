@@ -115,6 +115,16 @@ def gpu_driver_choices():
     return [(n, n) for n in sorted(names)]
 
 
+def default_label(name):
+    """What an unset feature means, where it isn't just "Default": the image's own Mesa for the GPU driver."""
+    if name == "gpu driver":
+        try:
+            return open("/usr/share/mesa/version").read().strip()
+        except OSError:
+            pass
+    return ""
+
+
 # Per-system / per-game profile (asgard-perf-profile.sh, run by runemu.sh around the emulator): clock cap and cores
 # per core type, the fan, the gyro (asgard-motiond; unset = off), the sound EQ and what the lid / power key do. Unset ("Default") =
 # the global Settings > Hardware values. Listed first, all under one "Hardware overrides" submenu.
@@ -233,7 +243,8 @@ def options_page(ui, title, prefix, features, inherit_prefix=None):
             if not val:
                 parent = conf.get(f"{inherit_prefix}.{name.replace(' ', '_')}") if inherit_prefix else ""
                 plabel = next((lbl for lbl, v in choices if v == parent), parent)
-                label = f"Default ({plabel})" if parent else "Default"
+                dflt = default_label(name)
+                label = f"Default ({plabel})" if parent else f"Default ({dflt})" if dflt else "Default"
             items.append((pretty(name), label))
         sel = ui.menu(title, items, sel, lr=True)
         if sel is None:
@@ -243,7 +254,8 @@ def options_page(ui, title, prefix, features, inherit_prefix=None):
         if ui.last_action in ("left", "right"):
             v = cycle([""] + [c for _, c in choices], conf.get(key), ui.last_action)
         else:
-            v = pick(ui, pretty(name), [("Default", "")] + choices, conf.get(key))
+            dflt = default_label(name)
+            v = pick(ui, pretty(name), [(f"Default ({dflt})" if dflt else "Default", "")] + choices, conf.get(key))
         if v is not None:
             conf.set(key, v or None)
 
@@ -619,6 +631,7 @@ def dump_features(emulator, core):
         drivers = gpu_driver_choices()
         feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else [])
     print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
+                       **({"default": default_label(n)} if default_label(n) else {}),
                        **({"group": GROUPS[n]} if n in GROUPS else {})} for n, ch in feats]))
 
 

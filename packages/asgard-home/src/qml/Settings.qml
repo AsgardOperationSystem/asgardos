@@ -631,7 +631,8 @@ Item {
             const values = [""].concat(f.choices.map(c => c[1]))
             const type = f.key.startsWith("cpu_cores_") ? f.key.slice(10) : ""
             const unset = f.key.startsWith("cpu_") ? "Stock" : "Default"   // games run cores at stock, not the menu's
-            const dflt = f.key === "motion" ? unset + " (Off)" : unset      // asgard-perf-profile.sh: gyro off unless on
+            const dflt = f.key === "motion" ? unset + " (Off)"              // asgard-perf-profile.sh: gyro off unless on
+                       : f.default ? unset + " (" + f.default + ")" : unset  // thor_settings.py: e.g. the image's Mesa
             return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? unset + " (" + label(parent) + ")" : dflt,
                      step: d => { let i = Math.max(0, values.indexOf(cur))
                                   for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off

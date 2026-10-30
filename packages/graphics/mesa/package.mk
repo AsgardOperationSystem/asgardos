@@ -108,3 +108,9 @@ if [ "${VULKAN_SUPPORT}" = "yes" ]; then
 else
   PKG_MESON_OPTS_TARGET+=" -Dvulkan-drivers="
 fi
+
+post_makeinstall_target() {
+  # The settings menus name the default Vulkan driver ("Default (mesa-<version>)") from this.
+  mkdir -p ${INSTALL}/usr/share/mesa
+  echo "mesa-${PKG_VERSION}" > ${INSTALL}/usr/share/mesa/version
+}
