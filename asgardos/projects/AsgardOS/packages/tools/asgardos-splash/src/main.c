@@ -1,0 +1,262 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <signal.h>
+#include <time.h>
+#include <string.h>
+#include "fbsplash.h"
+#include "svg_parser.h"
+#include "svg_renderer.h"
+#include "dt_rotation.h"
+
+int z9(void);
+
+/*
+ * SVG path data for the Asgard logo: "ASGARD OS" in Nunito Black (SIL OFL 1.1),
+ * one path per letter, on the same 1284x500 canvas as the ROCKNIX logo.
+ */
+const char *svg_paths[] = {
+    "M 108.1 334.5 C 104.6 334.5 101.8 333.7 99.5 332.1 C 97.1 330.5 95.7 328.3 95.1 325.5 C 94.6 322.6 95.1 319.5 96.6 315.9 L 137.9 227.1 C 139.9 222.8 142.3 219.7 145.3 217.7 C 148.2 215.7 151.5 214.7 155.3 214.7 C 159.0 214.7 162.3 215.7 165.1 217.7 C 168.0 219.7 170.4 222.8 172.5 227.1 L 213.8 315.9 C 215.5 319.5 216.2 322.7 215.7 325.5 C 215.2 328.4 213.8 330.6 211.5 332.2 C 209.3 333.7 206.5 334.5 203.2 334.5 C 198.7 334.5 195.3 333.5 193.0 331.5 C 190.6 329.5 188.5 326.3 186.6 321.9 L 177.6 300.9 L 189.2 309.3 L 121.0 309.3 L 132.8 300.9 L 123.8 321.9 C 121.8 326.3 119.8 329.5 117.7 331.5 C 115.6 333.5 112.4 334.5 108.1 334.5 Z M 155.0 248.0 L 135.7 293.9 L 131.1 285.9 L 179.3 285.9 L 174.7 293.9 L 155.3 248.0 Z",
+    "M 282.3 334.8 C 277.9 334.8 273.3 334.5 268.5 333.9 C 263.7 333.3 259.2 332.4 254.8 331.2 C 250.5 330.0 246.7 328.5 243.2 326.9 C 240.3 325.4 238.2 323.5 237.0 321.2 C 235.7 318.8 235.3 316.3 235.6 313.6 C 236.0 311.0 236.9 308.6 238.4 306.6 C 240.0 304.5 242.0 303.1 244.6 302.4 C 247.1 301.7 250.0 302.1 253.2 303.5 C 257.4 305.5 262.1 307.0 267.4 308.1 C 272.7 309.3 277.7 309.8 282.3 309.8 C 289.6 309.8 294.7 308.8 297.7 306.9 C 300.6 305.0 302.1 302.6 302.1 299.7 C 302.1 297.2 301.0 295.1 299.0 293.6 C 297.0 292.0 293.3 290.7 288.1 289.6 L 268.8 285.5 C 258.2 283.2 250.3 279.4 245.1 273.9 C 239.9 268.3 237.3 261.2 237.3 252.5 C 237.3 246.7 238.5 241.5 240.8 236.8 C 243.2 232.1 246.6 228.1 251.0 224.8 C 255.3 221.5 260.5 218.9 266.5 217.1 C 272.5 215.3 279.3 214.4 286.7 214.4 C 292.4 214.4 298.2 215.0 304.1 216.3 C 310.0 217.6 315.1 219.5 319.5 222.0 C 322.0 223.3 323.8 225.1 324.9 227.5 C 326.0 229.8 326.5 232.2 326.2 234.7 C 326.0 237.2 325.2 239.3 323.7 241.2 C 322.2 243.1 320.2 244.3 317.7 244.9 C 315.2 245.6 312.3 245.1 308.9 243.7 C 305.6 242.3 302.0 241.2 298.0 240.5 C 294.0 239.8 290.1 239.4 286.3 239.4 C 282.2 239.4 278.8 239.9 275.9 240.8 C 273.0 241.7 270.8 243.1 269.3 244.9 C 267.9 246.6 267.1 248.7 267.1 251.0 C 267.1 253.3 268.1 255.3 270.0 256.9 C 271.9 258.5 275.5 259.8 280.7 260.9 L 299.9 265.1 C 310.6 267.4 318.6 271.2 323.9 276.5 C 329.2 281.8 331.9 288.7 331.9 297.2 C 331.9 303.0 330.7 308.1 328.4 312.8 C 326.1 317.4 322.8 321.4 318.5 324.6 C 314.2 327.9 309.0 330.4 302.9 332.2 C 296.8 333.9 290.0 334.8 282.3 334.8 Z",
+    "M 416.4 334.8 C 403.0 334.8 391.7 332.3 382.3 327.4 C 373.0 322.4 365.9 315.4 361.0 306.5 C 356.2 297.5 353.7 287.1 353.7 275.2 C 353.7 265.9 355.2 257.5 358.1 250.1 C 361.1 242.6 365.3 236.2 370.8 230.9 C 376.3 225.5 383.1 221.4 391.1 218.6 C 399.1 215.8 408.2 214.4 418.4 214.4 C 423.9 214.4 429.5 214.9 435.3 216.0 C 441.0 217.0 446.6 219.0 452.2 221.8 C 455.0 223.2 457.0 225.0 458.0 227.4 C 459.1 229.8 459.4 232.2 459.0 234.8 C 458.6 237.4 457.7 239.8 456.2 242.0 C 454.7 244.1 452.7 245.6 450.2 246.3 C 447.6 247.0 444.8 246.6 441.5 245.2 C 438.2 243.6 434.6 242.5 430.8 241.6 C 426.9 240.8 422.8 240.4 418.5 240.4 C 411.1 240.4 405.0 241.7 400.0 244.4 C 395.1 247.0 391.5 250.9 389.0 256.1 C 386.6 261.3 385.4 267.7 385.4 275.2 C 385.4 286.4 388.1 294.9 393.7 300.7 C 399.2 306.4 407.4 309.3 418.2 309.3 C 421.5 309.3 425.1 309.0 429.0 308.3 C 433.0 307.6 436.9 306.7 440.9 305.5 L 435.3 316.9 L 435.3 288.6 L 423.7 288.6 C 419.9 288.6 417.0 287.7 415.0 285.8 C 412.9 283.9 411.9 281.3 411.9 277.8 C 411.9 274.4 412.9 271.8 415.0 270.0 C 417.0 268.1 419.9 267.2 423.7 267.2 L 448.2 267.2 C 452.0 267.2 455.0 268.2 457.0 270.3 C 459.1 272.3 460.1 275.3 460.1 279.2 L 460.1 315.8 C 460.1 319.1 459.4 321.9 458.0 324.2 C 456.7 326.5 454.5 328.2 451.5 329.2 C 446.3 331.0 440.7 332.3 434.6 333.3 C 428.5 334.3 422.4 334.8 416.4 334.8 Z",
+    "M 495.9 334.5 C 492.5 334.5 489.6 333.7 487.3 332.1 C 485.0 330.5 483.5 328.3 483.0 325.5 C 482.4 322.6 482.9 319.5 484.5 315.9 L 525.7 227.1 C 527.7 222.8 530.2 219.7 533.1 217.7 C 536.0 215.7 539.3 214.7 543.1 214.7 C 546.9 214.7 550.1 215.7 553.0 217.7 C 555.8 219.7 558.2 222.8 560.3 227.1 L 601.6 315.9 C 603.3 319.5 604.0 322.7 603.5 325.5 C 603.0 328.4 601.6 330.6 599.3 332.2 C 597.1 333.7 594.3 334.5 591.0 334.5 C 586.6 334.5 583.2 333.5 580.8 331.5 C 578.4 329.5 576.3 326.3 574.4 321.9 L 565.5 300.9 L 577.1 309.3 L 508.8 309.3 L 520.6 300.9 L 511.6 321.9 C 509.6 326.3 507.6 329.5 505.5 331.5 C 503.4 333.5 500.2 334.5 495.9 334.5 Z M 542.8 248.0 L 523.6 293.9 L 518.9 285.9 L 567.1 285.9 L 562.5 293.9 L 543.1 248.0 Z",
+    "M 642.0 334.5 C 637.1 334.5 633.4 333.1 630.7 330.4 C 628.1 327.7 626.8 323.9 626.8 319.1 L 626.8 231.6 C 626.8 226.6 628.1 222.8 630.8 220.2 C 633.5 217.5 637.3 216.2 642.2 216.2 L 682.9 216.2 C 696.2 216.2 706.4 219.4 713.6 225.9 C 720.9 232.4 724.5 241.3 724.5 252.8 C 724.5 260.2 722.9 266.6 719.6 272.1 C 716.4 277.6 711.7 281.8 705.5 284.7 C 699.4 287.6 691.9 289.1 682.9 289.1 L 684.2 286.1 L 692.2 286.1 C 696.9 286.1 701.1 287.2 704.8 289.5 C 708.4 291.8 711.5 295.2 713.9 299.9 L 722.2 314.8 C 723.9 318.0 724.8 321.1 724.7 324.1 C 724.6 327.2 723.4 329.7 721.1 331.6 C 718.8 333.5 715.6 334.5 711.2 334.5 C 706.9 334.5 703.4 333.6 700.7 331.8 C 698.0 330.1 695.6 327.3 693.5 323.6 L 678.4 295.9 C 677.1 293.5 675.4 291.8 673.4 290.8 C 671.3 289.9 669.0 289.4 666.4 289.4 L 657.2 289.4 L 657.2 319.1 C 657.2 323.9 656.0 327.7 653.4 330.4 C 650.9 333.1 647.1 334.5 642.0 334.5 Z M 657.2 267.9 L 677.5 267.9 C 683.3 267.9 687.8 266.7 690.9 264.4 C 694.0 262.1 695.5 258.5 695.5 253.6 C 695.5 249.0 694.0 245.5 690.9 243.1 C 687.8 240.7 683.3 239.6 677.5 239.6 L 657.2 239.6 Z",
+    "M 769.6 333.0 C 764.4 333.0 760.4 331.6 757.7 328.9 C 755.0 326.2 753.7 322.3 753.7 317.3 L 753.7 231.9 C 753.7 226.9 755.0 223.0 757.7 220.3 C 760.4 217.6 764.4 216.2 769.6 216.2 L 802.0 216.2 C 822.4 216.2 838.1 221.3 849.2 231.4 C 860.3 241.6 865.8 256.0 865.8 274.5 C 865.8 283.8 864.4 292.0 861.5 299.3 C 858.6 306.5 854.5 312.6 849.1 317.7 C 843.7 322.7 837.0 326.5 829.1 329.1 C 821.2 331.7 812.2 333.0 802.0 333.0 Z M 784.1 308.3 L 800.0 308.3 C 805.9 308.3 810.9 307.6 815.2 306.2 C 819.5 304.7 823.0 302.6 825.8 299.9 C 828.6 297.1 830.7 293.6 832.1 289.4 C 833.5 285.2 834.2 280.3 834.2 274.5 C 834.2 263.0 831.4 254.6 825.7 249.1 C 820.1 243.6 811.5 240.9 800.0 240.9 L 784.1 240.9 Z",
+    "M 1007.5 334.8 C 995.6 334.8 985.3 332.3 976.3 327.3 C 967.4 322.3 960.4 315.2 955.5 306.2 C 950.6 297.1 948.1 286.6 948.1 274.5 C 948.1 265.5 949.6 257.2 952.4 249.8 C 955.2 242.4 959.2 236.1 964.5 230.8 C 969.7 225.5 976.0 221.4 983.3 218.6 C 990.6 215.8 998.6 214.4 1007.5 214.4 C 1019.3 214.4 1029.6 216.9 1038.5 221.8 C 1047.4 226.8 1054.3 233.8 1059.3 242.8 C 1064.3 251.8 1066.8 262.4 1066.8 274.5 C 1066.8 283.6 1065.4 291.8 1062.5 299.2 C 1059.7 306.6 1055.7 313.0 1050.4 318.3 C 1045.2 323.7 1038.9 327.8 1031.6 330.6 C 1024.3 333.4 1016.3 334.8 1007.5 334.8 Z M 1007.5 309.3 C 1013.3 309.3 1018.3 307.9 1022.4 305.2 C 1026.4 302.4 1029.6 298.4 1031.8 293.2 C 1034.0 288.0 1035.1 281.8 1035.1 274.5 C 1035.1 263.6 1032.7 255.1 1027.8 249.0 C 1023.0 242.9 1016.2 239.9 1007.5 239.9 C 1001.7 239.9 996.8 241.2 992.6 244.0 C 988.5 246.7 985.3 250.6 983.1 255.7 C 980.9 260.8 979.8 267.1 979.8 274.5 C 979.8 285.5 982.2 294.0 987.1 300.1 C 991.9 306.2 998.7 309.3 1007.5 309.3 Z",
+    "M 1138.2 334.8 C 1133.7 334.8 1129.1 334.5 1124.3 333.9 C 1119.5 333.3 1115.0 332.4 1110.7 331.2 C 1106.4 330.0 1102.5 328.5 1099.1 326.9 C 1096.1 325.4 1094.0 323.5 1092.8 321.2 C 1091.6 318.8 1091.1 316.3 1091.4 313.6 C 1091.8 311.0 1092.7 308.6 1094.3 306.6 C 1095.8 304.5 1097.8 303.1 1100.4 302.4 C 1102.9 301.7 1105.8 302.1 1109.0 303.5 C 1113.2 305.5 1117.9 307.0 1123.2 308.1 C 1128.6 309.3 1133.5 309.8 1138.2 309.8 C 1145.4 309.8 1150.6 308.8 1153.5 306.9 C 1156.4 305.0 1157.9 302.6 1157.9 299.7 C 1157.9 297.2 1156.9 295.1 1154.8 293.6 C 1152.8 292.0 1149.1 290.7 1144.0 289.6 L 1124.6 285.5 C 1114.0 283.2 1106.1 279.4 1100.9 273.9 C 1095.7 268.3 1093.1 261.2 1093.1 252.5 C 1093.1 246.7 1094.3 241.5 1096.7 236.8 C 1099.0 232.1 1102.4 228.1 1106.8 224.8 C 1111.1 221.5 1116.3 218.9 1122.3 217.1 C 1128.4 215.3 1135.1 214.4 1142.5 214.4 C 1148.2 214.4 1154.0 215.0 1159.9 216.3 C 1165.9 217.6 1171.0 219.5 1175.3 222.0 C 1177.8 223.3 1179.6 225.1 1180.7 227.5 C 1181.8 229.8 1182.3 232.2 1182.1 234.7 C 1181.8 237.2 1181.0 239.3 1179.5 241.2 C 1178.0 243.1 1176.0 244.3 1173.5 244.9 C 1171.0 245.6 1168.1 245.1 1164.7 243.7 C 1161.5 242.3 1157.8 241.2 1153.8 240.5 C 1149.8 239.8 1145.9 239.4 1142.1 239.4 C 1138.0 239.4 1134.6 239.9 1131.7 240.8 C 1128.8 241.7 1126.6 243.1 1125.2 244.9 C 1123.7 246.6 1122.9 248.7 1122.9 251.0 C 1122.9 253.3 1123.9 255.3 1125.8 256.9 C 1127.8 258.5 1131.3 259.8 1136.5 260.9 L 1155.7 265.1 C 1166.4 267.4 1174.4 271.2 1179.7 276.5 C 1185.0 281.8 1187.7 288.7 1187.7 297.2 C 1187.7 303.0 1186.5 308.1 1184.2 312.8 C 1181.9 317.4 1178.6 321.4 1174.3 324.6 C 1170.0 327.9 1164.8 330.4 1158.7 332.2 C 1152.6 333.9 1145.8 334.8 1138.2 334.8 Z",
+};
+
+/* ASGARD in the aurora purple, OS in the frontend's soft lavender */
+const char *svg_colors[] = {
+    "rgb(138,107,255)",
+    "rgb(138,107,255)",
+    "rgb(138,107,255)",
+    "rgb(138,107,255)",
+    "rgb(138,107,255)",
+    "rgb(138,107,255)",
+    "rgb(201,200,224)",
+    "rgb(201,200,224)",
+};
+
+#define NUM_PATHS (sizeof(svg_paths) / sizeof(svg_paths[0]))
+
+/*
+ * Main program entry point
+ */
+/* --animate: a row of dots under the logo with a light running along it, until SIGTERM (sway stops the service as
+ * it takes the display over) or two minutes pass. The dots are SVG paths on the logo's canvas, so the panel
+ * rotation is handled the same way as the logo. */
+#define DOTS 5
+
+/* Logo + dots are placed as one group: centred on the panel and sized for its rotation. The stock fitting sized
+ * the unrotated canvas, so on the Thor's portrait-scanned top panel the rotated logo came out small and off
+ * centre. Group on the canvas: logo x 94.6-1187.7, y 214.4-334.8; dots at y 448 (r 14). */
+#define GROUP_W 1093.1f
+#define GROUP_H 247.6f
+#define GROUP_DX 0.9f    /* moves the group's centre to the canvas centre (642, 250) */
+#define GROUP_DY -88.2f
+static float place_scale = 1;
+static void place(SVGPath *svg, int rotation, uint32_t w, uint32_t h) {
+    for (uint32_t i = 0; i < svg->num_paths; i++)
+        for (uint32_t j = 0; j < svg->paths[i].num_points; j++) {
+            svg->paths[i].points[j].x += GROUP_DX;
+            svg->paths[i].points[j].y += GROUP_DY;
+        }
+    if (rotation)
+        rotate_svg_path(svg, rotation);   /* about the canvas centre */
+    for (uint32_t i = 0; i < svg->num_paths; i++)
+        for (uint32_t j = 0; j < svg->paths[i].num_points; j++) {
+            Point *p = &svg->paths[i].points[j];
+            p->x = (p->x - 642) * place_scale + w / 2.0f;
+            p->y = (p->y - 250) * place_scale + h / 2.0f;
+        }
+}
+static volatile sig_atomic_t stop_anim;
+static void on_term(int sig) { (void)sig; stop_anim = 1; }
+
+/* --bar PCT [TICK]: a progress bar where the dots are (update install). PCT -1: busy, a segment that moves
+ * with TICK. Draws only the bar: the logo is already on screen from a plain run. */
+static void draw_rect(Framebuffer *fb, DisplayInfo *di, int rotation, float x0, float x1, const char *color) {
+    const float y0 = 440, y1 = 456;
+    char d[256];
+    snprintf(d, sizeof d, "M %.1f %.1f L %.1f %.1f L %.1f %.1f L %.1f %.1f Z", x0, y0, x1, y0, x1, y1, x0, y1);
+    SVGPath *svg = parse_svg_path(d, color);
+    if (!svg)
+        return;
+    place(svg, rotation, di->screen_width, di->screen_height);
+    render_svg_path(fb, svg, di);
+    free_svg_path(svg);
+}
+
+static void draw_bar(Framebuffer *fb, DisplayInfo *di, int rotation, int pct, int tick) {
+    const float left = 642 - 300, width = 600;
+    draw_rect(fb, di, rotation, left, left + width, "rgb(46,36,86)");                 /* track */
+    if (pct >= 0) {
+        const float w = width * (pct > 100 ? 100 : pct) / 100.0f;
+        if (w > 0)
+            draw_rect(fb, di, rotation, left, left + w, "rgb(138,107,255)");
+    } else {
+        const float seg = width / 4, x = left + (tick % 16) * (width - seg) / 15;
+        draw_rect(fb, di, rotation, x, x + seg, "rgb(138,107,255)");
+    }
+}
+
+static void draw_dot(Framebuffer *fb, DisplayInfo *di, int rotation, int i, const char *color) {
+    const float r = 14, cx = 642 + (i - (DOTS - 1) / 2.0f) * 54, cy = 448, k = r * 0.5523f;
+    char d[512];
+    snprintf(d, sizeof d, "M %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f "
+             "C %.1f %.1f %.1f %.1f %.1f %.1f C %.1f %.1f %.1f %.1f %.1f %.1f Z",
+             cx - r, cy, cx - r, cy - k, cx - k, cy - r, cx, cy - r, cx + k, cy - r, cx + r, cy - k, cx + r, cy,
+             cx + r, cy + k, cx + k, cy + r, cx, cy + r, cx - k, cy + r, cx - r, cy + k, cx - r, cy);
+    SVGPath *svg = parse_svg_path(d, color);
+    if (!svg)
+        return;
+    place(svg, rotation, di->screen_width, di->screen_height);
+    render_svg_path(fb, svg, di);
+    free_svg_path(svg);
+}
+
+/* blank: a backlight (/sys/class/backlight/...) to switch off while animating, the panel the framebuffer is also
+ * mirrored to (the Thor's bottom screen); bl_power keeps its brightness. */
+#define THOR_BOTTOM_BL "/sys/class/backlight/ae94000.dsi.0"
+static void set_bl_power(const char *blank, const char *v) {
+    char path[256];
+    snprintf(path, sizeof path, "%s/bl_power", blank);
+    FILE *f = fopen(path, "w");
+    if (f) { fputs(v, f); fclose(f); }
+}
+
+static void animate(Framebuffer *fb, DisplayInfo *di, int rotation, const char *blank) {
+    static const char *shade[] = {"rgb(138,107,255)", "rgb(92,72,170)", "rgb(46,36,86)"};  /* lit, near, dim */
+    if (blank)
+        set_bl_power(blank, "4");
+    signal(SIGTERM, on_term);
+    signal(SIGINT, on_term);
+    for (int frame = 0; !stop_anim && frame < 120 * 1000 / 140; frame++) {
+        const int lit = frame % (DOTS + 2) - 1;   /* runs past both ends, so the row rests dim for a beat */
+        for (int i = 0; i < DOTS; i++)
+            draw_dot(fb, di, rotation, i, shade[i == lit ? 0 : (i == lit - 1 || i == lit + 1) ? 1 : 2]);
+        fb_flush(fb);
+        nanosleep(&(struct timespec){0, 140 * 1000 * 1000}, NULL);
+    }
+    if (blank)
+        set_bl_power(blank, "0");
+}
+
+int main(int argc, char **argv) {
+    const int animated = argc > 1 && strcmp(argv[1], "--animate") == 0;
+    const int bar = argc > 2 && strcmp(argv[1], "--bar") == 0;
+    const char *fb_device = "/dev/fb0";
+
+    // Get rotation from device tree
+    int rotation = get_display_rotation();
+
+    // Check framebuffer device accessibility
+    if (access(fb_device, R_OK | W_OK) != 0) {
+        fprintf(stderr, "Cannot access %s: %s\n", fb_device, strerror(errno));
+        return 1;
+    }
+
+    // Initialize framebuffer: the animation draws through KMS on the top panel only (centred on its real size);
+    // one-shot modes stay on /dev/fb0, since a KMS picture goes away when the process exits.
+    // At boot the panels can still be probing when this starts (no connected connector yet): retry for 5 s.
+    Framebuffer *fb = NULL;
+    for (int i = 0; animated && !fb && i < 25; i++) {
+        fb = drm_init();
+        if (!fb)
+            usleep(200 * 1000);
+    }
+    fprintf(stderr, "asgardos-splash: drawing through %s\n", fb ? "KMS" : "/dev/fb0");
+    if (!fb)
+        fb = fb_init(fb_device);
+    if (!fb) {
+        fprintf(stderr, "Failed to initialize framebuffer\n");
+        return 1;
+    }
+    // /dev/fb0 on the Thor is allocated at the largest panel (the top one, 1080x1920) but reports the size the panels
+    // share (1080x1240); each panel scans it from the corner. Draw on all of it, so the picture is centred on the top
+    // panel, where the splash and update bar are meant to be (not a double buffer: that would be twice the height).
+    if (!fb->map && fb->vinfo.yres_virtual > fb->vinfo.yres && fb->vinfo.yres_virtual < 2 * fb->vinfo.yres) {
+        fb->vinfo.yres = fb->vinfo.yres_virtual;
+        // The bottom panel scans the same buffer and would show a cut-off part of it: its backlight off (bl_power
+        // keeps the brightness). Sway's start turns it back on (asgard-rotate.conf). ponytail: the Thor's DSI-1.
+        set_bl_power(THOR_BOTTOM_BL, "4");
+    }
+    // Either buffer is in the panel's native orientation. The Thor's panels are portrait-native but mounted
+    // landscape with no rotation in the device tree; sway turns them with "transform 90", so do the same.
+    if (!rotation && fb->vinfo.yres > fb->vinfo.xres)
+        rotation = 90;
+
+    // Calculate display parameters
+    DisplayInfo *display_info = calculate_display_info(fb);
+    if (!display_info) {
+        fprintf(stderr, "Failed to calculate display information\n");
+        fb_cleanup(fb);
+        return 1;
+    }
+    // place() maps canvas points to pixels itself; make the renderer's own transform the identity.
+    {
+        const int sideways = rotation == 90 || rotation == 270;
+        const float w = display_info->screen_width, h = display_info->screen_height;
+        const float a = 0.6f * (sideways ? h : w) / GROUP_W, b = 0.6f * (sideways ? w : h) / GROUP_H;
+        place_scale = a < b ? a : b;
+        display_info->svg_width = 1284;
+        display_info->svg_height = 500;
+        display_info->x_offset = display_info->y_offset = 0;
+    }
+    if (bar) {
+        draw_bar(fb, display_info, rotation, atoi(argv[2]), argc > 3 ? atoi(argv[3]) : 0);
+        fb_flush(fb);
+        free(display_info);
+        fb_cleanup(fb);
+        return 0;
+    }
+
+    // Clear screen to black
+    for (uint32_t y = 0; y < fb->vinfo.yres; y++) {
+        for (uint32_t x = 0; x < fb->vinfo.xres; x++) {
+            set_pixel(fb, x, y, 0x00000000);
+        }
+    }
+
+    // Process and render each path component
+    for (size_t i = 0; i < NUM_PATHS; i++) {
+        SVGPath *svg = parse_svg_path(svg_paths[i], svg_colors[i]);
+        if (!svg) {
+            fprintf(stderr, "Failed to parse SVG path %zu\n", i);
+            continue;
+        }
+
+        // Apply rotation from device tree if specified
+        place(svg, rotation, display_info->screen_width, display_info->screen_height);
+
+        // Render the path
+        render_svg_path(fb, svg, display_info);
+        free_svg_path(svg);
+    }
+
+    // Flush changes to the framebuffer
+    fb_flush(fb);
+    if (animated) {
+        animate(fb, display_info, rotation, argc > 2 ? argv[2] : NULL);
+        if (fb->map) {
+            /* When we let go of the display the kernel shows the fbdev console again until sway takes over:
+             * make that black rather than the earlier (initramfs) splash. */
+            static const char zero[65536];
+            int f = open(fb_device, O_WRONLY);
+            while (f >= 0 && write(f, zero, sizeof zero) > 0)
+                ;
+            if (f >= 0)
+                close(f);
+        }
+    }
+
+
+    // Clean up
+    free(display_info);
+    fb_cleanup(fb);
+
+    return 0;
+}

@@ -103,7 +103,7 @@ ProgressTask_Spinner() {
 
   while [ ! -f /dev/.progress/stop ]; do
     echo -en "\b${spinner:$count:1}"
-    [ "${SPLASH_BAR}" = "yes" ] && /usr/bin/rocknix-splash --bar -1 $count
+    [ "${SPLASH_BAR}" = "yes" ] && /usr/bin/asgardos-splash --bar -1 $count
     usleep 500000
     count=$(((count + 1) % 8))
   done
@@ -125,7 +125,7 @@ ProgressTask_Percent() {
   while [ ! -f /dev/.progress/stop ]; do
     [ -f ${filename} ] && csize=$(stat -t "${filename}" | awk '{print $2}') || csize=0
     echo $csize $fsize | awk '{ printf "\b\b\b\b%3d%%", ($1 * 100 / $2) }'
-    [ "${SPLASH_BAR}" = "yes" ] && /usr/bin/rocknix-splash --bar $(echo $csize $fsize | awk '{ printf "%d", ($1 * 100 / $2) }')
+    [ "${SPLASH_BAR}" = "yes" ] && /usr/bin/asgardos-splash --bar $(echo $csize $fsize | awk '{ printf "%d", ($1 * 100 / $2) }')
     usleep 250000
   done
 

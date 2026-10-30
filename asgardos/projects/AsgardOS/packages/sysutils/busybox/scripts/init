@@ -484,7 +484,7 @@ hdmi_con() {
 }
 
 load_splash() {
-  /usr/bin/rocknix-splash
+  /usr/bin/asgardos-splash
 }
 
 do_reboot() {
@@ -922,11 +922,11 @@ check_update() {
   sync
 
   # Asgard: the logo with a progress bar (SPLASH_BAR, see functions) instead of the installer's text.
-  if [ -x /usr/bin/rocknix-splash ]; then
+  if [ -x /usr/bin/asgardos-splash ]; then
     export SPLASH_BAR=yes
     exec >/dev/null 2>&1
-    /usr/bin/rocknix-splash
-    /usr/bin/rocknix-splash --bar -1 0
+    /usr/bin/asgardos-splash
+    /usr/bin/asgardos-splash --bar -1 0
   else
     clear >/dev/console
   fi

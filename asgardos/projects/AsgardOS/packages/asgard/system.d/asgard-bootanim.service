@@ -8,7 +8,7 @@ Before=sway.service
 
 [Service]
 # Drawn through KMS on the top panel; without DRM master it falls back to /dev/fb0 and switches this backlight off.
-ExecStart=/usr/bin/rocknix-splash --animate /sys/class/backlight/ae94000.dsi.0
+ExecStart=/usr/bin/asgardos-splash --animate /sys/class/backlight/ae94000.dsi.0
 
 [Install]
 WantedBy=sysinit.target
