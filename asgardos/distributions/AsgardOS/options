@@ -199,8 +199,9 @@
   GET_HANDLER_SUPPORT="${GET_HANDLER_SUPPORT:-archive git file}"
 
 # Partition labels for USB/SD installation media
-  # Stays ROCKNIX: the Thor's ABL and installtointernal find the boot partition by this name/label.
-  DISTRO_BOOTLABEL="ROCKNIX"
+  # Boot partition label. Devices installed before 2026-10-30 may still carry ROCKNIX: init accepts either. The Thor's
+  # ABL (ROCKNIX v1.2) finds the partition by its GPT name, which installtointernal keeps as ROCKNIX.
+  DISTRO_BOOTLABEL="ASGARDOS"
   DISTRO_DISKLABEL="STORAGE"
 
 # Settings package name - blank if not required

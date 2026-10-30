@@ -178,7 +178,7 @@ RK_END_MB=$(( RK_START_MB + 2048 ))  # 2 GiB
 echo "Creating AsgardOS partition #$RK_NUM (${RK_START_MB}MiB–${RK_END_MB}MiB)..."
 parted -a optimal -s "$DEVICE" \
   mkpart primary fat32 "${RK_START_MB}MiB" "${RK_END_MB}MiB"
-parted -s "$DEVICE" name "$RK_NUM" ROCKNIX
+parted -s "$DEVICE" name "$RK_NUM" ROCKNIX   # the GPT name ROCKNIX ABL v1.2 boots from: keep it until OpenABL
 parted -s "$DEVICE" set "$RK_NUM" msftdata on
 parted -s "$DEVICE" set "$RK_NUM" boot on
 
@@ -187,7 +187,7 @@ if mount | grep -q "^${RK_PART_DEV} "; then
   echo "Auto-unmounting ${RK_PART_DEV}..."
   umount "${RK_PART_DEV}"
 fi
-mkfs.vfat -F 32 -n ROCKNIX "${RK_PART_DEV}" &>/dev/null
+mkfs.vfat -F 32 -n ASGARDOS "${RK_PART_DEV}" &>/dev/null
 
 # 8) Create STORAGE partition
 echo "Creating STORAGE partition #$ST_NUM (from ${RK_END_MB}MiB to end)..."
