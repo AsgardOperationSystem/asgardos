@@ -1,6 +1,6 @@
 #!/bin/bash
 # Asgard OS: build the image from this tree as it stands, or stage a built update on a Thor.
-#   ./build.sh            build the SM8550 image (docker build, our pinned build container)
+#   ./build.sh            build the SM8550 image (docker build, our pinned build container); log in build/log/
 #   ./build.sh stage [user@host]   put the built .tar in the device's /storage/.update (installs on next boot);
 #                                  the host defaults to $THOR
 # Everything the build makes goes to build/ (git-ignored): build dirs, sources/, target/, log/.
@@ -29,6 +29,10 @@ fi
 # The tree is mounted at /work with HOME=/tmp, so binaries carry /work/... paths, not this machine's home dir and
 # user name. Changing the work dir or the build dir needs a clean build: rm -rf build/AsgardOS-SM8550.*
 if [ "$STEP" = build ]; then
+  mkdir -p build/log
+  LOG=build/log/build-$(date +%Y%m%d-%H%M%S).log
+  echo "log: $LOG"
+  exec > >(tee "$LOG") 2>&1
   env -i PATH="$PATH" TERM="${TERM:-dumb}" LANG=C.UTF-8 HOME=/tmp DOCKER_WORK_DIR=/work CUSTOM_GIT_HASH="$(git rev-parse HEAD)" make docker-SM8550
   ls -1 build/target/*.img.gz build/target/*.tar 2>/dev/null
 fi
