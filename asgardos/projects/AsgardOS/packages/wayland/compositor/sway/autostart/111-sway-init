@@ -182,8 +182,10 @@ if [ "${QUIRK_DEVICE}" = "AYN Thor" ]; then
   echo 'for_window [app_id="emulationstation"] reload' >> $SWAY_HOME/config
   echo 'for_window [app_id="emulationstation"] exec "sleep 1 && swaymsg seat seat1 cursor press button1 && swaymsg seat seat1 cursor release button1"' >> $SWAY_HOME/config
   echo "exec_always swaymsg '[app_id=\"emulationstation\"]' focus output ${con}, output ${second_con} power off" >> $SWAY_HOME/config
-  echo 'exec_always swaymsg input "0:0:top_touchscreen" map_to_output DSI-2' >> $SWAY_HOME/config
-  echo 'exec_always swaymsg input "0:0:bottom_touchscreen" map_to_output DSI-1' >> $SWAY_HOME/config
+  # Asgard: config rules, not exec_always swaymsg: sway applies these whenever the touchscreen appears. The swaymsg
+  # could run before it did (a fresh card's first boot), leaving the top touchscreen spread over both panels.
+  echo 'input "0:0:top_touchscreen" map_to_output DSI-2' >> $SWAY_HOME/config
+  echo 'input "0:0:bottom_touchscreen" map_to_output DSI-1' >> $SWAY_HOME/config
   echo 'exec_always swaymsg input "0:0:bottom_touchscreen" events disabled' >> $SWAY_HOME/config
   # Asgard: no seat1 attach for the touchscreens. Attached to seat0 and seat1, every touch reached Asgard Home
   # twice (the second at a wrong spot), and the phantom press stole taps, e.g. the Home power button.
