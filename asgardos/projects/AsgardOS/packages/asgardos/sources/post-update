@@ -56,6 +56,8 @@ fi
 echo "Sync modules..." >>${LOG}
 tocon "Update tool modules..."
 rsync -a /usr/config/modules/* /storage/.config/modules/
+# AsgardOS: rsync keeps files the image no longer has; drop the tool entry that ROCKNIX named.
+rm -f "/storage/.config/modules/Install ROCKNIX.sh" /storage/.config/modules/images/install-rocknix.svg
 cp -f /usr/config/retroarch/retroarch-core-options.cfg /storage/.config/retroarch/retroarch-core-options.cfg
 
 ### Apply developer ssh keys if they exist

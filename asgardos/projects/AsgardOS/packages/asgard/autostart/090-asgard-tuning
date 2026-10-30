@@ -2,7 +2,7 @@
 # Asgard boot tuning for the AYN Thor. Knobs are system.cfg keys, so asgard.yml can set them too.
 . /etc/profile.d/001-functions
 
-# /etc/hostname is read-only (says ROCKNIX); apply system.hostname.
+# The read-only image has no /etc/hostname (systemd falls back to AsgardOS); apply system.hostname.
 H=$(get_setting system.hostname)
 [ -n "$H" ] && hostname "$H"
 
