@@ -69,7 +69,7 @@ if [ "${DISPLAYSERVER}" = "wl" ]; then
       true
       ;;
     *)
-      PKG_DEPENDS_TARGET+=" ${WINDOWMANAGER}"
+      PKG_DEPENDS_TARGET+=" ${WINDOWMANAGER} libdecor" # libdecor: configure picks it up when installed
       ;;
   esac
   PKG_CMAKE_OPTS_TARGET+=" -DSDL_WAYLAND=ON \

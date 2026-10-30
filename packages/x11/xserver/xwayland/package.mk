@@ -50,6 +50,7 @@ PKG_MESON_OPTS_TARGET+=" -Dxvfb=false \
                        -Ddri3=true \
                        -Ddrm=true \
                        -Dlibunwind=false \
+                       -Dlibdecor=false \
                        -Ddocs=false \
                        -Ddevel-docs=false"
 

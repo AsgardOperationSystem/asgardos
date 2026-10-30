@@ -15,6 +15,12 @@ PKG_PATCH_DIRS+=" ${DEVICE}"
 
 get_graphicdrivers
 
+# Picked up by configure when already installed: declared, so a clean parallel build gets them too.
+PKG_DEPENDS_TARGET+=" systemd"
+if [ "${ARCH}" = "aarch64" ]; then
+  PKG_DEPENDS_TARGET+=" elfutils lua54 spirv-tools xcb-util-keysyms"
+fi
+
 if listcontains "${GRAPHIC_DRIVERS}" "panfrost"; then
   PKG_DEPENDS_TARGET+=" mesa:host"
 fi

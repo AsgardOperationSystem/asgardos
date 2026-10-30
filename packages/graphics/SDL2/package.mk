@@ -10,6 +10,8 @@ PKG_SITE="https://www.libsdl.org/"
 PKG_URL="https://www.libsdl.org/release/SDL2-${PKG_VERSION}.tar.gz"
 PKG_DEPENDS_HOST="toolchain:host"
 PKG_DEPENDS_TARGET="toolchain alsa-lib systemd dbus pulseaudio libdrm"
+# Picked up by configure when already installed: declared, so a clean parallel build gets them too.
+PKG_DEPENDS_TARGET+=" pipewire"
 PKG_LONGDESC="Simple DirectMedia Layer is a cross-platform development library designed to provide low level access to audio, keyboard, mouse, joystick, and graphics hardware."
 
 if [ ! "${OPENGL_SUPPORT}" = "no" ]; then
@@ -51,7 +53,7 @@ if [ "${DISPLAYSERVER}" = "wl" ]; then
       true
       ;;
     *)
-      PKG_DEPENDS_TARGET+=" ${WINDOWMANAGER}"
+      PKG_DEPENDS_TARGET+=" ${WINDOWMANAGER} libdecor" # libdecor: see the note on pipewire
       ;;
   esac
   PKG_CMAKE_OPTS_TARGET+=" -DSDL_WAYLAND=ON \
