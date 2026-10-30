@@ -38,9 +38,11 @@ def load(paths):
                         rows.append({"ts": int(r["ts"]), "pct": int(r["capacity"]), "ua": int(r["current_ua"]),
                                      "uah": int(r["charge_uah"]), "app": r.get("app") or "",
                                      "game": r.get("game") or "", "core": r.get("core") or "",
-                                     # older logs have no bat_status: the current's sign says it
-                                     "chg": r.get("bat_status") in ("Charging", "Full") if r.get("bat_status")
-                                            else int(r["current_ua"]) > 0})
+                                     # plugged in counts too: "Not charging" at the charge limit still tops up
+                                     # while asleep, and a +mAh sleep zeroed the session's Sleep line.
+                                     # Older logs have no bat_status: the current's sign says it
+                                     "chg": r.get("usb_online") == "1" or r.get("bat_status") in ("Charging", "Full")
+                                            if r.get("bat_status") else int(r["current_ua"]) > 0})
                     except (KeyError, TypeError, ValueError):
                         continue   # a line cut by a crash or rotation
         except OSError:
