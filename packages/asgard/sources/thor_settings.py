@@ -100,16 +100,19 @@ def shader_choices():
     return [("Auto", "auto"), ("None", "none")] + [(n, n) for n in names.split() if n]
 
 
-GPU_DRIVERS = "/storage/.config/gpu-drivers"   # extra Turnip builds (turnip.sh in the Asgard repo), one dir each
+# Extra Turnip builds, one dir each: the image's (turnip-extra package) and the user's (tools/turnip/turnip.sh)
+GPU_DRIVERS = ("/storage/.config/gpu-drivers", "/usr/lib/gpu-drivers")
 
 
 def gpu_driver_choices():
     """Installed Turnip builds; unset ("Default") is the image's own Mesa. runemu.sh exports VK_DRIVER_FILES."""
-    try:
-        names = sorted(d for d in os.listdir(GPU_DRIVERS) if os.path.isfile(f"{GPU_DRIVERS}/{d}/icd.json"))
-    except OSError:
-        return []
-    return [(n, n) for n in names]
+    names = set()
+    for top in GPU_DRIVERS:
+        try:
+            names.update(d for d in os.listdir(top) if os.path.isfile(f"{top}/{d}/icd.json"))
+        except OSError:
+            pass
+    return [(n, n) for n in sorted(names)]
 
 
 # Per-system / per-game profile (asgard-perf-profile.sh, run by runemu.sh around the emulator): clock cap and cores

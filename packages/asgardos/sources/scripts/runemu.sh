@@ -427,13 +427,18 @@ then
 fi
 
 ### Vulkan driver (Asgard): an extra Turnip build in /storage/.config/gpu-drivers/<name>/ (the Asgard repo's turnip.sh)
-### instead of the image's Mesa, per system or game ("GPU driver" in the emulator options)
+### or /usr/lib/gpu-drivers/<name>/ (the image's) instead of the image's Mesa, per system or game ("GPU driver" in the
+### emulator options)
 GPUDRIVER=$(get_setting "gpu_driver" "${PLATFORM}" "${ROMNAME##*/}")
-if [ -n "${GPUDRIVER}" ] && [ -f "/storage/.config/gpu-drivers/${GPUDRIVER}/icd.json" ]
-then
-    ${VERBOSE} && log $0 "Vulkan driver ${GPUDRIVER}"
-    export VK_DRIVER_FILES="/storage/.config/gpu-drivers/${GPUDRIVER}/icd.json"
-fi
+for GPUDIR in /storage/.config/gpu-drivers /usr/lib/gpu-drivers
+do
+    if [ -n "${GPUDRIVER}" ] && [ -f "${GPUDIR}/${GPUDRIVER}/icd.json" ]
+    then
+        ${VERBOSE} && log $0 "Vulkan driver ${GPUDIR}/${GPUDRIVER}"
+        export VK_DRIVER_FILES="${GPUDIR}/${GPUDRIVER}/icd.json"
+        break
+    fi
+done
 
 ### Offline all but the number of threads we need for this game if configured.
 NUMTHREADS=$(get_setting "threads" "${PLATFORM}" "${ROMNAME##*/}")
