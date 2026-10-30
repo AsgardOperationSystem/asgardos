@@ -22,6 +22,15 @@ if [ -d "$SYSTEM_ROOT/usr/share/bootloader/rocknix_abl" ]; then
   cp $SYSTEM_ROOT/usr/share/bootloader/rocknix_abl/* $BOOT_ROOT/rocknix_abl
 fi
 
+# AsgardOS: OpenABL's Boot Loader Spec layout next to KERNEL, so either bootloader starts this system.
+if [ -f "$SYSTEM_ROOT/usr/share/bootloader/Image.gz" ]; then
+  echo "Updating the Boot Loader Spec kernel, device trees and entry..."
+  cp -f $SYSTEM_ROOT/usr/share/bootloader/Image.gz $BOOT_ROOT/
+  mkdir -p $BOOT_ROOT/dtbs $BOOT_ROOT/loader/entries
+  cp -f $SYSTEM_ROOT/usr/share/bootloader/dtbs/* $BOOT_ROOT/dtbs/
+  cp -f $SYSTEM_ROOT/usr/share/bootloader/loader/entries/* $BOOT_ROOT/loader/entries/
+fi
+
 # AsgardOS: an update never flashes abl_a/abl_b. ROCKNIX ran updateabl here, which rewrites both slots whenever
 # they differ from the bundled ABL. Flash it by hand (updateabl) after checking the backup in thor/rocknix-abl/.
 

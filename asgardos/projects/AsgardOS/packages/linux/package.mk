@@ -412,6 +412,19 @@ makeinstall_target() {
 	  --os_version 12.0.0 --os_patch_level "$(date '+%Y-%m')" --header_version 0 \
 	  --cmdline "boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} ${EXTRA_CMDLINE}" \
 	  -o "${INSTALL}/.image/${KERNEL_TARGET}" || { exit 1; }
+
+    # AsgardOS: OpenABL's layout too (Boot Loader Spec), copied to /flash next to KERNEL so either bootloader
+    # starts the same system: the kernel for its EFI stub, the device trees, and an entry naming the Thor's (so
+    # OpenABL's Device model setting doesn't matter). The initramfs is built into the kernel.
+    mkdir -p ${INSTALL}/usr/share/bootloader/dtbs ${INSTALL}/usr/share/bootloader/loader/entries
+    gzip -9 -c "arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET}" > "${INSTALL}/usr/share/bootloader/Image.gz"
+    cp arch/${TARGET_KERNEL_ARCH}/boot/dts/qcom/*.dtb ${INSTALL}/usr/share/bootloader/dtbs/
+    cat > ${INSTALL}/usr/share/bootloader/loader/entries/asgardos.conf <<BLS
+title      ${DISTRONAME}
+linux      /Image.gz
+devicetree /dtbs/qcs8550-ayn-thor.dtb
+options    boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} ${EXTRA_CMDLINE}
+BLS
   fi
 
   kernel_make INSTALL_MOD_PATH=${INSTALL}/$(get_kernel_overlay_dir) modules_install

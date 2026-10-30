@@ -63,7 +63,7 @@
     FIRMWARE="extra-firmware"
 
   # Additional packages to install
-    ADDITIONAL_PACKAGES="gamepadcalibration rocknix-abl inputplumber asgard"
+    ADDITIONAL_PACKAGES="gamepadcalibration rocknix-abl openabl inputplumber asgard"
 
   # Debug tty path
     DEBUG_TTY="/dev/ttyMSM0"
