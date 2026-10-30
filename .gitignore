@@ -10,5 +10,7 @@ CLAUDE.local.md
 /.fakeroot.*
 /.libreelec
 /.work/
+/.cache/
+/.config/
 mkpkg-temp
 __pycache__/

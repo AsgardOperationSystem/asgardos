@@ -20,5 +20,14 @@ per-cluster `scaling_max_freq` and the GPU devfreq `max_freq` (today a fixed ~75
    Home's bottom window keeps drawing at 120 during a game (dual-screen games keep DSI-1 on), the panel shows 120,
    not the game's rate. Check: open the panel in a game with the bottom screen on and compare with the
    emulator's own counter. If it's wrong, skip `asgard-home` windows while a game runs (`/run/thor-playing.txt`).
-3. **AutoTDP itself** (not started): a loop that reads the game window's frame rate and steps the CPU/GPU caps down
-   while it holds the target, up when it drops. Needs items 1–2 settled first, so the input is the game's rate.
+3. **AutoTDP itself** (`d2ec2f0`, untested on the Thor): game options `cpu_cap_<type>` / `gpu_cap` = Auto run
+   `asgard-autotune.py`, which steps those ceilings down while the game holds its rate and up when it drops (log:
+   `/var/log/asgard-autotune.log`). Its FPS input has the same busiest-window caveat as item 2. To test: Auto on Big
+   cores, Prime core and GPU in a Switch and a PS2 game; watch `dmesg` for `a6xx_gmu` / `hangcheck` /
+   `dpu_encoder_frame_done_timeout`, compare `power_now` with stock.
+
+## Side note: Go writes its cache into the tree
+
+A Go package's build left `.cache/go-build` (~300 MB) and `.config/go` in the repo root (2026-10-30 19:32), so it
+ran with `HOME` = the tree. Now git-ignored. Better: find that package and point `GOCACHE` / `GOENV` (or `HOME`)
+into `build/`, so nothing is written outside it.
