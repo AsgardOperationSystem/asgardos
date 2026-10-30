@@ -19,10 +19,6 @@ elif [ "${OPENGLES_SUPPORT}" = yes ]; then
   PKG_MAKE_OPTS_TARGET+=" GLES=1 GL_LIB=\"-lGLESv2\""
 fi
 
-if [ "${VULKAN_SUPPORT}" = "yes" ] && [ ${DEVICE} = "AMD64" ]; then
-  PKG_DEPENDS_TARGET+=" vulkan-loader vulkan-headers"
-  PKG_MAKE_OPTS_TARGET+=" HAVE_PARALLEL=1"
-fi
 
 PKG_MAKE_OPTS_TARGET+=" platform=${DEVICE}"
 

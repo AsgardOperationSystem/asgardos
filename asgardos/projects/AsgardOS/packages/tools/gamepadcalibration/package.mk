@@ -16,23 +16,9 @@ makeinstall_target() {
     tar -xzf ${PKG_BUILD}/rocknix/gpcal-python-3.13.tgz -C ${INSTALL}/usr/local/share
     rm -rf ${INSTALL}/usr/local/share/gpcal/pyxel
 
-  case ${DEVICE} in
-    SM8250)
-      sed -i 's|^PARAMETERS_DIR_PATH=.*|import os\nPARAMETERS_DIR_PATH = "/sys/module/mangmi_pocket_max/parameters" if os.path.exists("/sys/module/mangmi_pocket_max/parameters") else "/sys/module/retroid/parameters"|' \
-        ${INSTALL}/usr/local/share/gpcal/Klib/RPocket.py
-      sed -i 's|^GAMEPAD_NAME=.*|from Klib.RPocket import PARAMETERS_DIR_PATH\nGAMEPAD_NAME = "MANGMI Pocket Max Joypad" if "mangmi" in PARAMETERS_DIR_PATH else "Retroid Pocket Gamepad"|' \
-        ${INSTALL}/usr/local/share/gpcal/Klib/PyxUI.py
-      ;;
-    SM8550|SM8750)
-      sed -i 's|/sys/module/retroid/parameters|/sys/module/rsinput/parameters|g' ${INSTALL}/usr/local/share/gpcal/Klib/RPocket.py
-      # AYN Thor (Asgard): rsinput names the pad after the Odin 2; GPcal can't read the sticks without the right name
-      sed -i 's|^GAMEPAD_NAME=.*|GAMEPAD_NAME="AYN Odin2 Gamepad"|' ${INSTALL}/usr/local/share/gpcal/Klib/PyxUI.py
-      ;;
-    SM6115)
-      sed -i 's|^PARAMETERS_DIR_PATH=.*|import os\nPARAMETERS_DIR_PATH = "/sys/module/mangmi/parameters" if os.path.exists("/sys/module/mangmi/parameters") else "/sys/module/rsinput/parameters"|' \
-        ${INSTALL}/usr/local/share/gpcal/Klib/RPocket.py
-      ;;
-  esac
+  sed -i 's|/sys/module/retroid/parameters|/sys/module/rsinput/parameters|g' ${INSTALL}/usr/local/share/gpcal/Klib/RPocket.py
+  # AYN Thor (Asgard): rsinput names the pad after the Odin 2; GPcal can't read the sticks without the right name
+  sed -i 's|^GAMEPAD_NAME=.*|GAMEPAD_NAME="AYN Odin2 Gamepad"|' ${INSTALL}/usr/local/share/gpcal/Klib/PyxUI.py
 
   # restart inputplumber after the driver re-reads the calibration
   sed -i '/echo 1 > .*update_params/a\

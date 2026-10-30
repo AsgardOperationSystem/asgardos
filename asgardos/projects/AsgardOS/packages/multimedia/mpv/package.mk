@@ -30,9 +30,6 @@ fi
 
 PKG_MESON_OPTS_TARGET+=" -Dsdl2-gamepad=enabled"
 
-# Vulkan has issues on S922X so disable
-[ "${DEVICE}" == "S922X" ] && PKG_MESON_OPTS_TARGET+=" -Dvulkan=disabled"
-
 post_makeinstall_target() {
   cp ${PKG_DIR}/scripts/* ${INSTALL}/usr/bin
   chmod 0755 ${INSTALL}/usr/bin/* 2>/dev/null ||:

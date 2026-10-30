@@ -17,11 +17,7 @@ PKG_PATCH_DIRS+=" v4l2-request v4l2-drmprime"
 
 post_unpack() {
   # Fix FFmpeg version
-  if [ "${DEVICE}" = "S922X" ]; then
-    echo "${PKG_FFMPEG_BRANCH}-${PKG_VERSION:0:7}" > ${PKG_BUILD}/VERSION
-  else
-    echo "${PKG_VERSION}" > ${PKG_BUILD}/RELEASE
-  fi
+  echo "${PKG_VERSION}" > ${PKG_BUILD}/RELEASE
 }
 
 # Dependencies
@@ -29,32 +25,13 @@ get_graphicdrivers
 
 PKG_FFMPEG_HWACCEL="--enable-hwaccels"
 
-case ${DEVICE} in
-  RK3588*)
-    V4L2_SUPPORT=no
-  ;;
-  *)
-    case ${DEVICE} in
-      RK*)
-        PKG_PATCH_DIRS+=" vf-deinterlace-v4l2m2m"
-      ;;
-    esac
-  ;;
-esac
 
 if [ "${V4L2_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" libdrm"
   PKG_NEED_UNPACK+=" $(get_pkg_directory libdrm)"
   PKG_FFMPEG_V4L2="--enable-v4l2_m2m --enable-libdrm"
 
-  case ${DEVICE} in
-    PC|RK*|S922X)
-      PKG_V4L2_REQUEST="yes"
-    ;;
-    *)
-      PKG_V4L2_REQUEST="no"
-    ;;
-  esac
+  PKG_V4L2_REQUEST="no"
 
   if [ "${PKG_V4L2_REQUEST}" = "yes" ]; then
     PKG_DEPENDS_TARGET+=" systemd"
@@ -105,11 +82,6 @@ if [ "${TARGET_ARCH}" = "x86_64" ]; then
   PKG_DEPENDS_TARGET+=" nasm:host"
 fi
 
-case ${DEVICE} in
-  RK*)
-    PKG_DEPENDS_TARGET+=" rkmpp"
-  ;;
-esac
 
 if target_has_feature "(neon|sse)"; then
   PKG_DEPENDS_TARGET+=" dav1d"

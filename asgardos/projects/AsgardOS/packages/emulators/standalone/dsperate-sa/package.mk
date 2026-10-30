@@ -17,10 +17,7 @@ makeinstall_target() {
     cp -a ${PKG_BUILD}/dsperate ${INSTALL}/usr/bin
     cp -a ${PKG_DIR}/scripts/* ${INSTALL}/usr/bin
 
-  case ${DEVICE} in
-    RK3566|RK3576|SM4450|SM6115|SM8250|SM8550|SM8650|SM8750) CONFIG="InputPlumber" ;;
-    *) CONFIG="${DEVICE}" ;;
-  esac
+  CONFIG="InputPlumber"
 
   mkdir -p ${INSTALL}/usr/config/dsperate
     cp -a ${PKG_DIR}/config/${CONFIG}/* ${INSTALL}/usr/config/dsperate

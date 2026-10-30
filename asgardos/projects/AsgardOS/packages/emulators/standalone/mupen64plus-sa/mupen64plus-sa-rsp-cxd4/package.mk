@@ -13,23 +13,11 @@ PKG_LONGDESC="Mupen64Plus Standalone RSP CXD4"
 PKG_TOOLCHAIN="manual"
 PKG_BUILD_FLAGS="-fpic"
 
-case ${DEVICE} in
-  RK3588|S922X|RK3399|RK3566*|SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
-    PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
+PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
 
-case ${DEVICE} in
-  SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
-    export USE_GLES=0
-    ;;
-  *)
-    PKG_DEPENDS_TARGET+=" ${OPENGLES}"
-    export USE_GLES=1
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
+export USE_GLES=0
 
 post_unpack() {
   sed -i 's/\-O[23]/-Ofast/' ${PKG_BUILD}/projects/unix/Makefile
@@ -60,14 +48,10 @@ make_target() {
   make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
   cp -a ${PKG_BUILD}/projects/unix/mupen64plus-rsp-cxd4${SUFFIX}.so ${PKG_BUILD}/projects/unix/mupen64plus-rsp-cxd4-base.so
 
-  case ${DEVICE} in
-    RK3588|S922X|RK3399|RK3566*|SM4450|SM8250|SM8550|SM8650|SM8750)
-      PKG_MAKE_OPTS_TARGET+=" cxd4VIDEO=1"
-      export APIDIR=$(get_build_dir mupen64plus-sa-simplecore)/src/api
-      make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
-      cp -a ${PKG_BUILD}/projects/unix/mupen64plus-rsp-cxd4${SUFFIX}.so ${PKG_BUILD}/projects/unix/mupen64plus-rsp-cxd4-simple.so
-      ;;
-  esac
+  PKG_MAKE_OPTS_TARGET+=" cxd4VIDEO=1"
+  export APIDIR=$(get_build_dir mupen64plus-sa-simplecore)/src/api
+  make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
+  cp -a ${PKG_BUILD}/projects/unix/mupen64plus-rsp-cxd4${SUFFIX}.so ${PKG_BUILD}/projects/unix/mupen64plus-rsp-cxd4-simple.so
 }
 
 makeinstall_target() {

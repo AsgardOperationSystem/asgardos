@@ -79,13 +79,6 @@ else
                            -DSDL_WAYLAND_SHARED=OFF"
 fi
 
-case ${DEVICE} in
-  RK*)
-    PKG_DEPENDS_TARGET+=" librga"
-    PKG_PATCH_DIRS_TARGET+="${DEVICE}"
-    PKG_CMAKE_OPTS_TARGET+=" -DSDL_ROCKCHIP=ON"
-  ;;
-esac
 
 pre_configure_target() {
   if [ -n "${PKG_PATCH_DIRS_TARGET}" ]; then

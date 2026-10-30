@@ -24,11 +24,7 @@ fi
 
 # Ship ARMSX2's own Turnip build on the Adreno 6xx/7xx families. SM8750
 # (Adreno 8xx) keeps the system driver.
-case ${DEVICE} in
-  SM4450|SM6115|SM8250|SM8550|SM8650)
-    PKG_DEPENDS_TARGET+=" armsx2-turnip"
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" armsx2-turnip"
 
 pre_configure_target() {
   PCSX2_CMAKE_BASE=(
@@ -113,10 +109,7 @@ makeinstall_target() {
 
   mkdir -p ${INSTALL}/usr/config
     cp -a ${PKG_DIR}/config/common/ARMSX2 ${INSTALL}/usr/config
-    case ${DEVICE} in
-      S922X) cp -a ${PKG_DIR}/config/S922X/ARMSX2 ${INSTALL}/usr/config ;;
-      *) cp -a ${PKG_DIR}/config/inputplumber/ARMSX2 ${INSTALL}/usr/config ;;
-    esac
+    cp -a ${PKG_DIR}/config/inputplumber/ARMSX2 ${INSTALL}/usr/config
 }
 
 post_install() {

@@ -18,16 +18,8 @@ else
   PKG_MAKE_OPTS_TARGET+=" VULKAN=0"
 fi
 
-case ${DEVICE} in
-  SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
-    export USE_GLES=0
-    ;;
-  *)
-    PKG_DEPENDS_TARGET+=" ${OPENGLES}"
-    export USE_GLES=1
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
+export USE_GLES=0
 
 post_unpack() {
   sed -i 's/\-O[23]/-Ofast/' ${PKG_BUILD}/projects/unix/Makefile

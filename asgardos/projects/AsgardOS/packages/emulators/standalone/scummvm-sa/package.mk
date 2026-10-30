@@ -20,14 +20,7 @@ PKG_CONFIGURE_OPTS_TARGET="--host=${TARGET_NAME} \
                            --enable-vkeybd \
                            --enable-optimizations"
 
-case ${DEVICE} in
-  SM8550|SM8650)
-    PKG_CONFIGURE_OPTS_TARGET+=" --disable-opengl-game --disable-opengl-game-classic --disable-opengl-game-shaders --opengl-mode=none"
-    ;;
-  *)
-    PKG_CONFIGURE_OPTS_TARGET+=" --opengl-mode=auto"
-    ;;
-esac
+PKG_CONFIGURE_OPTS_TARGET+=" --disable-opengl-game --disable-opengl-game-classic --disable-opengl-game-shaders --opengl-mode=none"
 
 post_unpack() {
   sed -i "s|sdl-config|sdl2-config|g" ${PKG_BUILD}/configure

@@ -11,23 +11,11 @@ PKG_DEPENDS_UNPACK="mupen64plus-sa-core"
 PKG_LONGDESC="Mupen64Plus Standalone GLide64 Video Driver"
 PKG_TOOLCHAIN="manual"
 
-case ${DEVICE} in
-  RK3588|S922X|RK3399|RK3566*|SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
-    PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
+PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
 
-case ${DEVICE} in
-  SM4450|SM8250|SM8550|SM8650|SM8750)
-    PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
-    export USE_GLES=0
-    ;;
-  *)
-    PKG_DEPENDS_TARGET+=" ${OPENGLES}"
-    export USE_GLES=1
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
+export USE_GLES=0
 
 post_unpack() {
   sed -i 's/\-O[23]/-Ofast/' ${PKG_BUILD}/src/CMakeLists.txt

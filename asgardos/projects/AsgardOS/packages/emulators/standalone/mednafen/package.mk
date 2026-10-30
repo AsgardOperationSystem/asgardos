@@ -10,9 +10,7 @@ PKG_SITE="https://mednafen.github.io/"
 PKG_DEPENDS_TARGET="toolchain SDL2 flac zstd zlib"
 PKG_LONGDESC="Mednafen standalone emulator"
 
-case ${DEVICE} in
-  H700|SM8*) PKG_PATCH_DIRS+=" sdl-input" ;;
-esac
+PKG_PATCH_DIRS+=" sdl-input"
 
 pre_configure_target() {
   export CFLAGS="${CFLAGS} -flto -fipa-pta"
@@ -24,20 +22,6 @@ pre_configure_target() {
                       --disable-sasplay \
                       --disable-ssfplay"
 
-  case ${DEVICE} in
-    RK3326|RK3566*|H700)
-      DISABLED_MODULES+=" --disable-snes \
-                          --disable-ss \
-                          --disable-psx"
-      ;;
-    RK3399)
-      DISABLED_MODULES+=" --disable-snes \
-                          --disable-ss"
-      ;;
-    RK3588)
-      DISABLED_MODULES+=" --disable-snes"
-      ;;
-  esac
 
   PKG_CONFIGURE_OPTS_TARGET="${DISABLED_MODULES}"
   # Need to update automake files

@@ -10,11 +10,7 @@ PKG_DEPENDS_TARGET="toolchain rclone commander"
 PKG_LONGDESC="OS Modules Package"
 PKG_TOOLCHAIN="manual"
 
-case ${DEVICE} in
-  RK3399|RK3588|SM8250|SM8550|SM8650|SM8750|SM4450|SM6115)
-    PKG_DEPENDS_TARGET+=" gamepadtester qterminal"
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" gamepadtester qterminal"
 
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/config/modules
@@ -22,9 +18,6 @@ makeinstall_target() {
 }
 
 post_makeinstall_target() {
-  case ${DEVICE} in
-    SM8650|SM8750) rm -f ${INSTALL}/usr/config/modules/*32bit* ;;
-  esac
 
   if [[ "${INSTALLER_SUPPORT}" != "yes" || "${DISPLAYSERVER}" != "wl" ]]; then
     rm -f ${INSTALL}/usr/config/modules/Install*

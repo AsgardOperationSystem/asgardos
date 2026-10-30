@@ -67,16 +67,9 @@ post_install() {
   [ "${GRAPHICS_DRIVER}" = "panfrost" ] && PANFROST="export MESA_GL_VERSION_OVERRIDE=3.3"
 
   HOTKEY=""
-  case "${DEVICE}" in
-    RK3588|S922X|SM*) hotkey='export HOTKEY="guide"' ;;
-  esac
+  hotkey='export HOTKEY="guide"'
 
   LIBMALI=""
-  case "${DEVICE}" in
-    RK3588|S922X|RK3566)
-      LIBMALI='if [[ -x "/usr/bin/gpudriver" ]] && [[ "$(/usr/bin/gpudriver)" = "libmali" ]]; then sed -i '\''/ScreenUseGL=/c\\ScreenUseGL=0'\'' /storage/.config/melonDS/melonDS.ini; fi'
-      ;;
-  esac
 
   sed -e "s|@PANFROST@|${PANFROST}|g" \
       -e "s|@HOTKEY@|${HOTKEY}|g" \

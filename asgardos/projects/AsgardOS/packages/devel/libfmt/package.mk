@@ -3,12 +3,3 @@
 
 . ${ROOT}/packages/devel/libfmt/package.mk
 
-case ${DEVICE} in
-  SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    ;;
-  *)
-    PKG_VERSION="9.1.0"
-    PKG_SHA256=""
-    PKG_URL="https://github.com/fmtlib/fmt/archive/${PKG_VERSION}.tar.gz"
-    ;;
-esac

@@ -31,10 +31,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  case ${DEVICE} in
-    RK3588) HOTKEY="export HOTKEY="guide"" ;;
-    *) HOTKEY="" ;;
-  esac
+  HOTKEY=""
 
   sed -e "s/@HOTKEY@/${HOTKEY}/g" -i ${INSTALL}/usr/bin/start_drastic.sh
 }

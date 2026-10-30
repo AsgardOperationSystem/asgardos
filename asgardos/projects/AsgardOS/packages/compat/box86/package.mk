@@ -30,29 +30,7 @@ case ${TARGET_ARCH} in
     ;;
 esac
 
-case ${DEVICE} in
-  RK3588)
-    PKG_CMAKE_OPTS_TARGET+=" -DRK3588=On"
-    ;;
-  SM4450)
-    PKG_CMAKE_OPTS_TARGET+=" -DSD888=On"
-    ;;
-  SM8250)
-    PKG_CMAKE_OPTS_TARGET+=" -DSD865=On"
-    ;;
-  SM8550)
-    PKG_CMAKE_OPTS_TARGET+=" -DSD8G2=On"
-    ;;
-  RK3399)
-    PKG_CMAKE_OPTS_TARGET+=" -DRK3399=On"
-    ;;
-  RK3326)
-    PKG_CMAKE_OPTS_TARGET+=" -DGOA_CLONE=On"
-    ;;
-  S922X|SM6115)
-    PKG_CMAKE_OPTS_TARGET+=" -DODROIDN2=On"
-    ;;
-esac
+PKG_CMAKE_OPTS_TARGET+=" -DSD8G2=On"
 
 makeinstall_target() {
   case ${TARGET_ARCH} in

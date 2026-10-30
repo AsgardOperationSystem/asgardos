@@ -89,17 +89,6 @@ EOF
     sed -i "s#system.loglevel=none#system.loglevel=verbose#g" ${INSTALL}/usr/config/system/configs/system.cfg
   fi
 
-  ### Disable automount on AMD64
-  if [ "${DEVICE}" = "AMD64" ]
-  then
-    sed -i "s#system.automount=1#system.automount=0#g" ${INSTALL}/usr/config/system/configs/system.cfg
-  fi
-
-  ### Enable HDMI hotplug service on H700
-  if [ "${DEVICE}" = "H700" ]
-  then
-    enable_service hdmi-hotplug.path
-  fi
 
   ### Remove different arch freq functions
   if [ "${TARGET_ARCH}" = "x86_64" ]; then

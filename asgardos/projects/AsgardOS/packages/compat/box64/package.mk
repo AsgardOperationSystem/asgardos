@@ -19,20 +19,7 @@ PKG_CMAKE_OPTS_TARGET="-DCMAKE_BUILD_TYPE=Release \
                        -DBOX32=On \
                        -DBOX32_BINFMT=On"
 
-case ${DEVICE} in
-  RK3588)
-    PKG_CMAKE_OPTS_TARGET+=" -DRK3588=On"
-    ;;
-  SM4450)
-    PKG_CMAKE_OPTS_TARGET+=" -DSD888=On"
-    ;;
-  SM8250)
-    PKG_CMAKE_OPTS_TARGET+=" -DSD865=On"
-    ;;
-  SM8550)
-    PKG_CMAKE_OPTS_TARGET+=" -DSD8G2=On"
-    ;;
-esac
+PKG_CMAKE_OPTS_TARGET+=" -DSD8G2=On"
 
 makeinstall_target() {
   mkdir -p ${INSTALL}/usr/share/box64/lib

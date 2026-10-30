@@ -12,19 +12,9 @@ PKG_DEPENDS_UNPACK="mupen64plus-sa-core"
 PKG_LONGDESC="Mupen64Plus Standalone RSP HLE"
 PKG_TOOLCHAIN="manual"
 
-case ${DEVICE} in
-  RK3588|S922X|RK3399|RK3566*)
-    PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
-    PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
-    ;;
-esac
 
-case ${DEVICE} in
-  *)
-    PKG_DEPENDS_TARGET+=" ${OPENGLES}"
-    export USE_GLES=1
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" ${OPENGLES}"
+export USE_GLES=1
 
 post_unpack() {
   sed -i 's/\-O[23]/-Ofast/' ${PKG_BUILD}/projects/unix/Makefile
@@ -50,13 +40,6 @@ make_target() {
   make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
   cp -a ${PKG_BUILD}/projects/unix/mupen64plus-rsp-hle.so ${PKG_BUILD}/projects/unix/mupen64plus-rsp-hle-base.so
 
-  case ${DEVICE} in
-    RK3588|S922X|RK3399|RK3566*)
-      export APIDIR=$(get_build_dir mupen64plus-sa-simplecore)/src/api
-      make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
-      cp -a ${PKG_BUILD}/projects/unix/mupen64plus-rsp-hle.so ${PKG_BUILD}/projects/unix/mupen64plus-rsp-hle-simple.so
-      ;;
-  esac
 }
 
 makeinstall_target() {

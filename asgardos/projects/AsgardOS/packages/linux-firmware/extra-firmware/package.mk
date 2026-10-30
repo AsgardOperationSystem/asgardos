@@ -13,13 +13,5 @@ PKG_TOOLCHAIN="manual"
 makeinstall_target() {
   mkdir -p ${INSTALL}/$(get_full_firmware_dir)
 
-  case "${DEVICE}" in
-    "SM4450") cp -a SM4450/* ${INSTALL}/$(get_full_firmware_dir) ;;
-    "SM6115") cp -a SM6115/* ${INSTALL}/$(get_full_firmware_dir) ;;
-    "SM8250") cp -a SM8250/* ${INSTALL}/$(get_full_firmware_dir) ;;
-    "SM8550") cp -a SM8550/* ${INSTALL}/$(get_full_firmware_dir) ;;
-    "SM8650") cp -a SM8650/* ${INSTALL}/$(get_full_firmware_dir) ;;
-    "SM8750") cp -a SM8750/* ${INSTALL}/$(get_full_firmware_dir) ;;
-    "RK3566") cp -a RK3566/* ${INSTALL}/$(get_full_firmware_dir) ;;
-  esac
+  cp -a SM8550/* ${INSTALL}/$(get_full_firmware_dir)
 }

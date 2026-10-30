@@ -22,15 +22,4 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/$(get_full_firmware_dir)/imx/sdma
   mkdir -p ${INSTALL}/$(get_full_firmware_dir)/vpu
 
-  case "${DEVICE}" in
-    "iMX6")
-      cp -P firmware/sdma/sdma-imx6q.bin ${INSTALL}/$(get_full_firmware_dir)/imx/sdma
-      cp -P firmware/vpu/vpu_fw_imx6d.bin ${INSTALL}/$(get_full_firmware_dir)/vpu
-      cp -P firmware/vpu/vpu_fw_imx6q.bin ${INSTALL}/$(get_full_firmware_dir)/vpu
-      ;;
-    "iMX8")
-      cp -P firmware/sdma/sdma-imx7d.bin ${INSTALL}/$(get_full_firmware_dir)/imx/sdma
-      cp -P firmware/vpu/vpu_fw_imx8_dec.bin ${INSTALL}/$(get_full_firmware_dir)/vpu
-      ;;
-  esac
 }

@@ -12,23 +12,11 @@ PKG_DEPENDS_UNPACK="mupen64plus-sa-core"
 PKG_LONGDESC="Mupen64Plus Standalone Rice Video Driver"
 PKG_TOOLCHAIN="manual"
 
-case ${DEVICE} in
-  RK3588|S922X|RK3399|RK3566*|SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
-    PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" mupen64plus-sa-simplecore"
+PKG_DEPENDS_UNPACK+=" mupen64plus-sa-simplecore"
 
-case ${DEVICE} in
-  SM4450|SM8250|SM8550|SM8650|SM8750|AMD64)
-    PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
-    export USE_GLES=0
-    ;;
-  *)
-    PKG_DEPENDS_TARGET+=" ${OPENGLES}"
-    export USE_GLES=1
-    ;;
-esac
+PKG_DEPENDS_TARGET+=" ${OPENGL} glu libglvnd"
+export USE_GLES=0
 
 post_unpack() {
   sed -i 's/\-O[23]/-Ofast/' ${PKG_BUILD}/projects/unix/Makefile
@@ -54,13 +42,9 @@ make_target() {
   make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
   cp -a ${PKG_BUILD}/projects/unix/mupen64plus-video-rice.so ${PKG_BUILD}/projects/unix/mupen64plus-video-rice-base.so
 
-  case ${DEVICE} in
-    RK3588|S922X|RK3399|RK3566*|SM4450|SM8250|SM8550|SM8650|SM8750)
-      export APIDIR=$(get_build_dir mupen64plus-sa-simplecore)/src/api
-      make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
-      cp -a ${PKG_BUILD}/projects/unix/mupen64plus-video-rice.so ${PKG_BUILD}/projects/unix/mupen64plus-video-rice-simple.so
-      ;;
-  esac
+  export APIDIR=$(get_build_dir mupen64plus-sa-simplecore)/src/api
+  make -C projects/unix all ${PKG_MAKE_OPTS_TARGET}
+  cp -a ${PKG_BUILD}/projects/unix/mupen64plus-video-rice.so ${PKG_BUILD}/projects/unix/mupen64plus-video-rice-simple.so
 }
 
 makeinstall_target() {
