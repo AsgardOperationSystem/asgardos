@@ -1,6 +1,8 @@
 # Shared by asgard-cpu-cap.sh (global), asgard-perf-profile.sh (per game) and asgard-screens-off.sh: the Thor's
-# three core types, their caps, taking them offline, and the launchers' core pinning.
+# three core types, their caps, taking them offline, the GPU's cap, autotune, and the launchers' core pinning.
 CPU=/sys/devices/system/cpu
+GPU=/sys/class/devfreq/3d00000.gpu   # Adreno 740, simple_ondemand, 220-680 MHz
+AUTOTUNE=/run/asgard-autotune.pid     # a game's asgard-autotune.py (cpu_cap_<type> / gpu_cap = autotune)
 TYPES="little mid prime"
 policy_of() { case $1 in little) echo 0 ;; mid) echo 3 ;; prime) echo 7 ;; esac; }
 cpus_of()   { case $1 in little) echo "1 2" ;; mid) echo "3 4 5 6" ;; prime) echo 7 ;; esac; }   # offlinable: CPU0 stays
@@ -17,6 +19,34 @@ set_cap() {
   want=$(( $(cat $P/cpuinfo_max_freq) * pct / 100 ))
   khz=$(tr ' ' '\n' < $P/scaling_available_frequencies | awk -v w="$want" '$1 && $1 <= w && $1 > b {b = $1} END {print b}')
   echo "${khz:-$(cat $P/cpuinfo_min_freq)}" > $P/scaling_max_freq
+}
+
+# set_gpu_cap <percent 25-100>: the highest GPU step at or under that share of its top clock, as max_freq (Hz)
+set_gpu_cap() {
+  local pct=$1 top hz
+  [ -d $GPU ] || return 0
+  [ "$pct" -ge 25 ] 2>/dev/null || pct=25
+  [ "$pct" -le 100 ] || pct=100
+  top=$(tr ' ' '\n' < $GPU/available_frequencies | sort -n | tail -1)
+  hz=$(tr ' ' '\n' < $GPU/available_frequencies | awk -v w=$(( top * pct / 100 )) '$1 && $1 <= w && $1 > b {b = $1} END {print b}')
+  echo "${hz:-$(cat $GPU/min_freq)}" > $GPU/max_freq
+}
+
+# autotune_start <domains>: asgard-autotune.py moves those ceilings from now on (asgard-perf-profile.sh, per game)
+autotune_start() {
+  setsid python3 /usr/share/asgard/asgard-autotune.py "$@" </dev/null >/dev/null 2>&1 &
+  echo $! > $AUTOTUNE
+}
+
+# autotune_stop: end it, and wait, so none of its writes lands after the caps set next
+autotune_stop() {
+  local p n
+  p=$(cat $AUTOTUNE 2>/dev/null) || return 0
+  if grep -q asgard-autotune /proc/$p/cmdline 2>/dev/null; then
+    kill "$p"
+    for n in 1 2 3 4 5 6 7 8 9 10; do [ -d /proc/$p ] || break; sleep 0.1; done
+  fi
+  rm -f $AUTOTUNE
 }
 
 # offline_types "<types>": take them offline, but never all three (the prime core is kept then). Caps first: a

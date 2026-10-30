@@ -21,6 +21,7 @@ off() {
   swaymsg -t get_inputs -r | python3 -c 'import json,sys; [print("touch="+i["identifier"]) for i in json.load(sys.stdin) if i.get("type")=="touch" and i.get("libinput",{}).get("send_events")=="enabled"]' >> $STATE
   for o in $(sed -n 's/^output=//p' $STATE); do swaymsg -q output "$o" power off; done
   for i in $(sed -n 's/^touch=//p' $STATE); do swaymsg -q input "$i" events disabled; done
+  autotune_stop   # "on" restarts it with the game's profile
   online_type mid 0; online_type prime 0; set_cap little $LITTLE_CAP; write_affinity
   echo "led=$(get_setting led.color)" >> $STATE
   ledcontrol off >/dev/null 2>&1

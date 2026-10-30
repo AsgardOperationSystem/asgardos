@@ -2,8 +2,11 @@
 # Per-system / per-game profile, from the emulator options (thor_settings.py adds them to every emulator). Games start
 # at stock (every core on, full clocks) whatever the Asgard menu's own profile is (Settings > Hardware > Performance,
 # asgard-cpu-cap.sh, only while in Home), then these override it:
-#   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100), or "off": that cluster's cores offline
-#                      (at least one type stays on; CPU0 always does)       type: little | mid | prime
+#   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100), "off": that cluster's cores offline
+#                      (at least one type stays on; CPU0 always does), or "autotune": asgard-autotune.py holds it at
+#                      the lowest clock that keeps the game's FPS          type: little | mid | prime
+#   gpu_cap            the GPU's clock cap, % of its top clock (25-100), or "autotune"; unset = uncapped. Home is
+#                      always uncapped.
 #   fan_mode           as Settings > Performance > Fan: quiet|moderate|aggressive, or a fixed 0-255 speed
 #   motion             "on": the gyro (asgard-motiond, a DSU server) while the game runs; unset/"off" = stopped.
 #                      Outside games the menu's asgard.motion=1 (Settings > Hardware > Performance > Gyro) decides.
@@ -25,16 +28,25 @@ KEEP=/run/asgard-keep-running   # "<platform>\t<rom>" while sleep_mode=screen; p
 # system.cfg key=value; an empty value removes the key (set_setting "" leaves the old line, which still wins).
 setkey() { local cfg=/storage/.config/system/configs/system.cfg; sed -i "/^${1//./\\.}=/d" $cfg; [ -n "$2" ] && echo "$1=$2" >> $cfg; }
 
-# Stock, then the game's caps and cores.
+# Stock, then the game's caps (CPU and GPU) and cores, and autotune for those set to it.
 cpu() {
-  local platform=$1 game=$2 t pct off=""
+  local platform=$1 game=$2 t pct off="" auto=""
+  autotune_stop
   for t in $TYPES; do online_type "$t" 1; done
   for t in $TYPES; do
     pct=$(get_setting "cpu_cap_$t" "$platform" "$game")
-    if [ "$pct" = off ]; then off="$off $t"; else set_cap "$t" "${pct:-100}"; fi
+    case "$pct" in
+      off) off="$off $t" ;;
+      autotune) auto="$auto $t"; set_cap "$t" 100 ;;
+      *) set_cap "$t" "${pct:-100}" ;;
+    esac
   done
+  pct=$(get_setting gpu_cap "$platform" "$game")
+  [ "$pct" = autotune ] && { auto="$auto gpu"; pct=100; }
+  set_gpu_cap "${pct:-100}"
   offline_types "$off"
   write_affinity
+  [ -n "$auto" ] && autotune_start $auto
 }
 
 # The gyro streams only when asked for: while asgard-motiond runs the ADSP wakes ~185 times a second (~10 without).
