@@ -45,7 +45,6 @@
 |id Software|Doom (doom)|1993|`doom`|.doom .iwad .pwad .wad|**gzdoom:** gzdoom-sa (default)<br>**retroarch:** prboom<br>|
 |id Software|iDtech (idtech)|1991|`idtech`|.sh|**retroarch:** idtech (default)<br>|
 |Infocom|Z-machine (zmachine)|1979|`zmachine`|.dat .z1 .z2 .z3 .z4 .z5 .z6 .zip|**retroarch:** mojozork (default)<br>|
-|Lexaloffle|PICO-8 (pico-8)|2015|`pico-8`|.p8 .png|**pico-8:** pico8 (default)<br>**retroarch:** fake08<br>|
 |Magnavox|Odyssey 2 (odyssey2)|1979|`odyssey`|.bin .zip .7z|**retroarch:** o2em (default)<br>|
 |Mattel|Intellivision (intellivision)|1979|`intellivision`|.int .bin .rom .zip .7z|**retroarch:** freeintv (default)<br>|
 |Microsoft|DOS (pc)|1981|`pc`|.com .bat .exe .dosz|**retroarch:** dosbox_pure (default)<br>**retroarch:** dosbox_core<br>|

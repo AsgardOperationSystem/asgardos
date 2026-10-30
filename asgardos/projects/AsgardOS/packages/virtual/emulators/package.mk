@@ -8,7 +8,7 @@ PKG_SECTION="emulation" # Do not change to virtual or makeinstall_target will no
 PKG_LONGDESC="Emulation metapackage."
 PKG_TOOLCHAIN="manual"
 
-PKG_EMUS="amiberry duckstation-sa flycast-sa gzdoom-sa hatarisa hypseus-singe moonlight mupen64plus-sa openbor pico-8   \
+PKG_EMUS="amiberry duckstation-sa flycast-sa gzdoom-sa hatarisa hypseus-singe moonlight mupen64plus-sa openbor   \
           ppsspp-sa scummvm-sa touchhle-sa vice-sa wine yabasanshiro-sa"
 
 EMUS_32BIT=""
@@ -19,7 +19,7 @@ LIBRETRO_CORES="81-lr a5200-lr arduous-lr atari800-lr b2-lr beetle-gba-lr beetle
                 beetle-pcfx-lr bk-lr bsnes2014-accuracy-lr bsnes2014-balanced-lr bsnes2014-performance-lr bsnes-mercury-accuracy-lr     \
                 bsnes-mercury-balanced-lr bsnes-mercury-performance-lr beetle-supafaust-lr beetle-supergrafx-lr beetle-vb-lr            \
                 beetle-wswan-lr bluemsx-lr cap32-lr crocods-lr daphne-lr doublecherrygb-lr dosbox-core-lr dosbox-pure-lr                \
-                easyrpg-lr emuscv-lr fake08-lr fbalpha2012-lr fbalpha2019-lr fbneo-lr fceumm-lr flycast-lr fmsx-lr                      \
+                easyrpg-lr emuscv-lr fbalpha2012-lr fbalpha2019-lr fbneo-lr fceumm-lr flycast-lr fmsx-lr                      \
                 freechaf-lr freeintv-lr freej2me-lr fuse-lr gambatte-lr gearboy-lr gearcoleco-lr geargrafx-lr gearlynx-lr gearsystem-lr \
                 geolith-lr genesis-plus-gx-lr genesis-plus-gx-wide-lr gw-lr handy-lr hatari-lr idtech-lr jaxe-lr mame-lr                \
                 mame2003-plus-lr mame2010-lr mame2015-lr melonds-lr melonds-ds-lr mesen-lr mesen-s-lr mgba-lr minivmac-lr mojozork-lr   \
@@ -1139,11 +1139,6 @@ makeinstall_target() {
       ;;
   esac
   add_es_system pcfx
-
-  ### Lexaloffle PICO-8
-  add_emu_core pico-8 pico-8 pico8 true
-  add_emu_core pico-8 retroarch fake08 false
-  add_es_system pico-8
 
   ### Sony Playstation
   case ${DEVICE} in
