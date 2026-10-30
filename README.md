@@ -120,7 +120,7 @@ in a game.
 asgardos/          the distribution tree: our fork of ROCKNIX (ROCKNIX history included)
 build.sh          build the image (./build.sh), or stage it on a Thor (./build.sh stage)
 inject-config.sh  put your asgard.yml on an image's boot partition
-frontend/         -> Asgard Home's source (asgardos/projects/ROCKNIX/packages/asgard-home/src)
+frontend/         -> Asgard Home's source (asgardos/projects/AsgardOS/packages/asgard-home/src)
 docs/             changes, sleep work, adding an emulator, screenshots
 thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace
 ```

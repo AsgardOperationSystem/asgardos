@@ -12,8 +12,8 @@ cd "$(dirname "$0")"
 V=$1; HOST=${2:-}
 # ./build.sh builds in ROCKNIX's container with asgardos/ at /work, so its toolchain and cross files name /work paths:
 # meson and ninja run in that container too, with turnip/ at /turnip.
-B=/work/build.ROCKNIX-SM8550.aarch64
-CROSS=$(cd asgardos && ls -d build.ROCKNIX-SM8550.aarch64/build/mesa-*/.aarch64-rocknix-linux-gnu 2>/dev/null | head -1)   # the image's Mesa build: its cross files
+B=/work/build.AsgardOS-SM8550.aarch64
+CROSS=$(cd asgardos && ls -d build.AsgardOS-SM8550.aarch64/build/mesa-*/.aarch64-asgardos-linux-gnu 2>/dev/null | head -1)   # the image's Mesa build: its cross files
 [ -f "asgardos/$CROSS/meson.conf" ] || { echo "no Mesa build in asgardos/: run ./build.sh first"; exit 1; }
 CROSS=/work/$CROSS
 NAME="mesa-$V"; [ "$V" = main ] && NAME="mesa-main-$(date +%Y%m%d)"

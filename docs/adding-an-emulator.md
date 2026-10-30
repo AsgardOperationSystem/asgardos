@@ -8,7 +8,7 @@ Use it as a checklist: a new emulator isn't done until every item is ticked or n
 
 ## 1. Package and registration
 
-- **Package:** `asgardos/projects/ROCKNIX/packages/emulators/standalone/<name>-sa/` (`package.mk`, `patches/`,
+- **Package:** `asgardos/projects/AsgardOS/packages/emulators/standalone/<name>-sa/` (`package.mk`, `patches/`,
   `scripts/start_<name>.sh`). Source patches go in its `patches/`, applied with `patch -p1` (fuzz allowed).
 - **Registration:** a commit in `asgardos/` that adds it to `PKG_EMUS` for SM8550 and calls
   `add_emu_core <system> <emulator> <core> <default true|false>` in `virtual/emulators/package.mk`

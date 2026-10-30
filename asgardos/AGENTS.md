@@ -15,8 +15,8 @@
 ### B. Directory Structure & Package Policy
 * **DO NOT** modify `package.mk` files directly under the top-level `packages/` directory.
 * **DO** place or modify `package.mk` files strictly within:
-  * `projects/ROCKNIX/devices/*/packages` (for device-specific package overrides)
-  * `projects/ROCKNIX/packages` (for project-wide package definitions)
+  * `projects/AsgardOS/devices/*/packages` (for device-specific package overrides)
+  * `projects/AsgardOS/packages` (for project-wide package definitions)
 
 ### C. Pull Request Scope & Architecture
 * **DO NOT** split related changes into parallel PRs. Group all changes sharing a single purpose into one PR.

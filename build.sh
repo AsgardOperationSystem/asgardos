@@ -27,7 +27,7 @@ fi
 # it starts from an empty one: no tokens or session vars go in, and none of LOCAL_WIFI_SSID / LOCAL_WIFI_KEY /
 # LOCAL_SSH_KEYS_FILE, which ROCKNIX would bake into the image. Personal settings go in asgard.yml (inject-config.sh).
 # The tree is mounted at /work with HOME=/tmp, so binaries carry /work/... paths, not this machine's home dir and
-# user name. Changing the work dir needs a clean build: rm -rf asgardos/build.ROCKNIX-SM8550.*
+# user name. Changing the work dir needs a clean build: rm -rf asgardos/build.AsgardOS-SM8550.*
 # docker mounts only asgardos/, which has no .git of its own: the build gets the version hash from here.
 if [ "$STEP" = build ]; then
   env -i PATH="$PATH" TERM="${TERM:-dumb}" LANG=C.UTF-8 HOME=/tmp DOCKER_WORK_DIR=/work CUSTOM_GIT_HASH="$(git rev-parse HEAD)" make -C asgardos docker-SM8550

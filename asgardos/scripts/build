@@ -265,18 +265,18 @@ fi
 # create wrapper scripts in build dir and use them for CC/CXX when
 # building for host and local-cc build flag is set
 if [ "${TARGET}" = "host" ] && flag_enabled "local-cc" "no"; then
-  cat >rocknix-local-cc <<EOF
+  cat >asgardos-local-cc <<EOF
 #!/bin/sh
 exec ${CC} "\$@"
 EOF
-  chmod +x rocknix-local-cc
-  export CC=$(pwd)/rocknix-local-cc
-  cat >rocknix-local-cxx <<EOF
+  chmod +x asgardos-local-cc
+  export CC=$(pwd)/asgardos-local-cc
+  cat >asgardos-local-cxx <<EOF
 #!/bin/sh
 exec ${CXX} "\$@"
 EOF
-  chmod +x rocknix-local-cxx
-  export CXX=$(pwd)/rocknix-local-cxx
+  chmod +x asgardos-local-cxx
+  export CXX=$(pwd)/asgardos-local-cxx
 fi
 
 # configure
@@ -602,7 +602,7 @@ if [ "${TARGET}" = "target" -o "${TARGET}" = "init" ]; then
 fi
 
 if [ -n "${INSTALL}" -a -d "${INSTALL}" ]; then
-  echo "INFO_PKG_NAME=\"${PKG_NAME}\"" >"${INSTALL}/.rocknix-package"
+  echo "INFO_PKG_NAME=\"${PKG_NAME}\"" >"${INSTALL}/.asgardos-package"
 fi
 
 cd ${ROOT}
