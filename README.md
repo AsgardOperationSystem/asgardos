@@ -120,7 +120,6 @@ in a game.
 asgardos/          the distribution tree: our fork of ROCKNIX (ROCKNIX history included)
 build.sh          build the image (./build.sh), or stage it on a Thor (./build.sh stage)
 inject-config.sh  put your asgard.yml on an image's boot partition
-frontend/         -> Asgard Home's source (asgardos/projects/AsgardOS/packages/asgard-home/src)
 docs/             changes, sleep work, adding an emulator, screenshots
 thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor workspace
 ```
@@ -128,10 +127,18 @@ thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor works
 ## Building
 
 ```
-git clone https://github.com/AsgardOperationSystem/asgardos.git
+git clone --recurse-submodules https://github.com/AsgardOperationSystem/asgardos.git
 cd asgardos && ./build.sh      # ROCKNIX's docker build of the SM8550 image -> asgardos/target/
 ```
 `./build.sh stage root@<thor>` copies the update to a running Thor; it's applied on the next reboot.
+
+## Kernel
+
+The kernel is its own repo, [asgardos/linux](https://github.com/AsgardOperationSystem/linux) (branch `asgard`): Linux
+stable plus every Asgard kernel patch and the SM8550 device trees as one commit each. It's a submodule here; the build
+copies it as is (no patch files, no tarball). To change the kernel, commit in the submodule, push, and commit the new
+submodule pointer here. To move to a new kernel, rebase `asgard` onto the new stable tag (`git rebase --onto v7.3.2
+v7.3.1`), fix the conflicts, force-push (allowed on `asgard`), set `PKG_VERSION` in `packages/linux/package.mk`.
 
 To take a fix from ROCKNIX: `git remote add rocknix https://github.com/ROCKNIX/distribution.git` once, then
 `git fetch rocknix next` and `git cherry-pick -Xsubtree=asgardos <sha>`. Until 2026-10-30 Asgard was patches/ +

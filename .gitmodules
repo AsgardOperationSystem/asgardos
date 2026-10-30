@@ -1,0 +1,4 @@
+[submodule "asgardos/projects/AsgardOS/packages/linux/src"]
+	path = asgardos/projects/AsgardOS/packages/linux/src
+	url = https://github.com/AsgardOperationSystem/linux.git
+	branch = asgard

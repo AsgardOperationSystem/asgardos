@@ -41,10 +41,10 @@ case ${DEVICE} in
     PKG_PATCH_DIRS+=" 7.2.6"
     ;;
   SM8550)
+    # Our kernel fork, the submodule src/ (gitlab asgardos/linux, branch asgard): Linux stable plus
+    # the Asgard patches and device trees as commits. Rebuilds when src/ changes (it's hashed with PKG_DIR).
     PKG_VERSION="7.3.1"
-    PKG_SHA256="fa595aad93734f829c963c2a90ef7c3673224fd7fdae7b49406e397cde2de231"
-    PKG_URL="https://www.kernel.org/pub/linux/kernel/v${PKG_VERSION/.*/}.x/${PKG_NAME}-${PKG_VERSION}.tar.xz"
-    PKG_PATCH_DIRS+=" 7.3"
+    PKG_PATCH_DIRS=""
     ;;
   H700|SM4450|SM6115|SM8250|SM8650|SM8750)
     PKG_VERSION="7.2"
@@ -108,6 +108,15 @@ fi
 # pre_make_target), so unpack wireless-regdb before the kernel is built.
 if grep -q '^CONFIG_CFG80211=y' ${PKG_KERNEL_CFG_FILE}; then
   PKG_DEPENDS_UNPACK+=" wireless-regdb"
+fi
+
+# SM8550: copy the kernel submodule (the build container has no access to its .git).
+if [ "${DEVICE}" = "SM8550" ]; then
+  unpack() {
+    [ -f "${PKG_DIR}/src/Makefile" ] || die "linux: src/ is empty, run: git submodule update --init"
+    mkdir -p ${PKG_BUILD}
+    rsync -a --exclude=.git ${PKG_DIR}/src/ ${PKG_BUILD}/
+  }
 fi
 
 post_patch() {
