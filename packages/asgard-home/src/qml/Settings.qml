@@ -180,23 +180,18 @@ Item {
         case "Performance": return [
             // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.
             // The Asgard menu's own profile per core type (asgard-cpu-cap.sh, only while in Home): clock cap, % of the
-            // cluster's top clock, and whether its cores are on. Games start at stock; their emulator options override.
-            [...[["little", "Little core (A510)", "3× Cortex-A510", "90"], ["mid", "Big cores (A715/A710)", "2× A715 + 2× A710", "75"],
-                ["prime", "Prime core (X3)", "1× Cortex-X3", "75"]].map(c => {
-                const page = () => {
-                    const apply = () => backend.shell("/usr/share/asgard/asgard-cpu-cap.sh")
-                    const clock = choice("chip", "Clock", c[2] + ", % of top clock", "asgard.cpu_cap." + c[0],
-                                         get("asgard.cpu_cap") === "0" ? "100" : c[3],
-                                         Array.from({ length: 16 }, (_, i) => 25 + 5 * i).map(v => [v + "%", "" + v]), apply)
-                    const on = get("asgard.cpu_cores." + c[0]) !== "off"
-                    const enabled = { kind: "choice", icon: "chip", title: "Enabled",
-                                      sub: c[0] === "little" ? "CPU0 always stays on" : "", value: on ? "On" : "Off",
-                                      step: d => { if (on && allCoresOff("asgard", "", c[0], "off")) return   // the last type on
-                                                   set("asgard.cpu_cores." + c[0], on ? "off" : ""); apply() } }
-                    return [[clock, enabled]]
-                }
-                const p = page()[0]
-                return link("chip", c[1] + " · menu", p[0].value + " · " + (p[1].value === "On" ? "on" : "off") + " · only in Asgard Home", page)
+            // cluster's top clock, or Off (its cores offline). Games start at stock; their emulator options override.
+            [...[["little", "Little core (A510)", "3× Cortex-A510, CPU0 always stays on", "90"],
+                 ["mid", "Big cores (A715/A710)", "2× A715 + 2× A710", "75"], ["prime", "Prime core (X3)", "1× Cortex-X3", "75"]].map(c => {
+                const key = "asgard.cpu_cap." + c[0]
+                const values = ["off"].concat(Array.from({ length: 16 }, (_, i) => "" + (25 + 5 * i)))
+                const cur = get(key, get("asgard.cpu_cap") === "0" ? "100" : c[3])
+                return { kind: "choice", icon: "chip", title: c[1] + " · menu", sub: c[2] + " · only in Asgard Home",
+                         value: cur === "off" ? "Off" : cur + "%",
+                         step: d => { let i = Math.max(0, values.indexOf(cur))
+                                      do { i = (i + d + values.length) % values.length }   // never the last type on to Off
+                                      while (values[i] === "off" && allCoresOff("asgard", "", c[0], "off"))
+                                      set(key, values[i]); backend.shell("/usr/share/asgard/asgard-cpu-cap.sh") } }
             }),
              { kind: "choice", icon: "fan", title: "Fan", sub: "Curve, or a fixed speed",
                value: (fanModes.find(m => m[1] === fanNow()) || fanModes[1])[0],
@@ -609,14 +604,15 @@ Item {
         return live[k]
     }
     // Core types switched off, as a game would get them: its own value, else the system's, else stock (on): games
-    // never inherit the Asgard menu's profile. The menu's own (prefix "asgard", keys asgard.cpu_cores.<type>) the same.
+    // never inherit the Asgard menu's profile. The menu's own (prefix "asgard", keys asgard.cpu_cap.<type>) the same.
+    // A core type is off when its clock is "off" (cpu_cap_<type>).
     // At least one type stays on (asgard-cpu-lib.sh keeps the prime core otherwise; the menus don't offer it).
     readonly property var coreTypes: ["little", "mid", "prime"]
     function allCoresOff(prefix, inherit, type, value) {
-        const key = t => prefix === "asgard" ? "asgard.cpu_cores." + t : prefix + ".cpu_cores_" + t
+        const key = t => prefix === "asgard" ? "asgard.cpu_cap." + t : prefix + ".cpu_cap_" + t
         return coreTypes.every(t => {
             const own = t === type ? value : get(key(t))
-            return (own || (inherit ? get(inherit + ".cpu_cores_" + t) : "")) === "off"
+            return (own || (inherit ? get(inherit + ".cpu_cap_" + t) : "")) === "off"
         })
     }
     function optionsPage(prefix, emu, core, inherit) {
@@ -629,11 +625,11 @@ Item {
             const label = v => (f.choices.find(c => c[1] === v) || [v])[0]
             const parent = inherit ? get(inherit + "." + f.key) : ""
             const values = [""].concat(f.choices.map(c => c[1]))
-            const type = f.key.startsWith("cpu_cores_") ? f.key.slice(10) : ""
-            const unset = f.key.startsWith("cpu_") ? "Stock" : "Default"   // games run cores at stock, not the menu's
-            const dflt = f.key === "motion" ? unset + " (Off)"              // asgard-perf-profile.sh: gyro off unless on
-                       : f.default ? unset + " (" + f.default + ")" : unset  // thor_settings.py: e.g. the image's Mesa
-            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : parent ? unset + " (" + label(parent) + ")" : dflt,
+            const type = f.key.startsWith("cpu_cap_") ? f.key.slice(8) : ""
+            // Unset takes the parent's setting: the emulator's, else the OS's (thor_settings.py "default": stock clocks,
+            // gyro off, the image's Mesa), else just "Default".
+            const unset = parent ? "Emulator settings (" + label(parent) + ")" : f.default ? "OS (" + f.default + ")" : "Default"
+            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : unset,
                      step: d => { let i = Math.max(0, values.indexOf(cur))
                                   for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off
                                       i = (i + d + values.length) % values.length

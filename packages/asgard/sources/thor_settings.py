@@ -116,7 +116,12 @@ def gpu_driver_choices():
 
 
 def default_label(name):
-    """What an unset feature means, where it isn't just "Default": the image's own Mesa for the GPU driver."""
+    """What an unset feature is when the emulator doesn't set it either, where the OS fixes it: games start at stock
+    clocks with every core on (asgard-perf-profile.sh), the gyro off, the image's own Mesa. "" = just "Default"."""
+    if name.startswith("cpu cap"):
+        return "100%"
+    if name == "motion":
+        return "Off"
     if name == "gpu driver":
         try:
             return open("/usr/share/mesa/version").read().strip()
@@ -125,15 +130,22 @@ def default_label(name):
     return ""
 
 
+def unset_label(name, parent_label):
+    """An unset option takes its parent's setting: "Emulator settings (80%)", else "OS (100%)", else "Default"."""
+    if parent_label:
+        return f"Emulator settings ({parent_label})"
+    dflt = default_label(name)
+    return f"OS ({dflt})" if dflt else "Default"
+
+
 # Per-system / per-game profile (asgard-perf-profile.sh, run by runemu.sh around the emulator): clock cap and cores
-# per core type, the fan, the gyro (asgard-motiond; unset = off), the sound EQ and what the lid / power key do. Unset ("Default") =
+# ("off" = its cores offline) per core type, the fan, the gyro (asgard-motiond; unset = off), the sound EQ and what the lid / power key do. Unset ("Default") =
 # the global Settings > Hardware values. Listed first, all under one "Hardware overrides" submenu.
 # Grouped (GROUPS): Asgard Home shows each group as a submenu; "A/B" is submenu B inside A.
 PCT = [(f"{v}%", str(v)) for v in range(25, 101, 5)]
+CPU = [("Off", "off")] + PCT
 ON_OFF = [("On", "on"), ("Off", "off")]
-PERF_FEATURES = [("cpu cap little", PCT), ("cpu cores little", ON_OFF),
-                 ("cpu cap mid", PCT), ("cpu cores mid", ON_OFF),
-                 ("cpu cap prime", PCT), ("cpu cores prime", ON_OFF),
+PERF_FEATURES = [("cpu cap little", CPU), ("cpu cap mid", CPU), ("cpu cap prime", CPU),
                  ("fan mode", [("Quiet", "quiet"), ("Smart", "moderate"), ("Sport", "aggressive"),
                                ("30%", "77"), ("50%", "128"), ("75%", "191"), ("100%", "255")]),
                  ("motion", ON_OFF),
@@ -142,10 +154,7 @@ PERF_FEATURES = [("cpu cap little", PCT), ("cpu cores little", ON_OFF),
                  ("sleep mode", [("Suspend", "suspend"), ("Screens off, keep running", "screen")]),
                  ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF)]
 HW = "Hardware overrides"
-GROUPS = {"cpu cap little": HW + "/Little core (A510)", "cpu cores little": HW + "/Little core (A510)",
-          "cpu cap mid": HW + "/Big cores (A715/A710)", "cpu cores mid": HW + "/Big cores (A715/A710)",
-          "cpu cap prime": HW + "/Prime core (X3)", "cpu cores prime": HW + "/Prime core (X3)",
-          "fan mode": HW, "motion": HW, "eq speaker": HW + "/Sound EQ", "eq headphones": HW + "/Sound EQ",
+GROUPS = {"cpu cap little": HW, "cpu cap mid": HW, "cpu cap prime": HW, "fan mode": HW, "motion": HW, "eq speaker": HW + "/Sound EQ", "eq headphones": HW + "/Sound EQ",
           "sleep mode": HW + "/Sleep", "sleep wifi": HW + "/Sleep", "sleep bt": HW + "/Sleep"}
 
 
@@ -204,8 +213,8 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "gpu accuracy": "GPU accuracy", "astc decoding": "ASTC texture decoding",
           "async gpu emulation": "Asynchronous GPU emulation", "flush gpu caches": "Flush GPU caches (stray pixels)",
           "force 60 hz": "Force 60 Hz (top screen)", "gpu driver": "GPU driver (Vulkan)",
-          "cpu cap little": "Clock", "cpu cap mid": "Clock", "cpu cap prime": "Clock",
-          "cpu cores little": "Enabled (CPU0 always stays on)", "cpu cores mid": "Enabled", "cpu cores prime": "Enabled",
+          "cpu cap little": "Little core (A510)", "cpu cap mid": "Big cores (A715/A710)",
+          "cpu cap prime": "Prime core (X3)",
           "fan mode": "Fan", "motion": "Gyro (motion sensors)", "eq speaker": "Speaker EQ", "eq headphones": "Headphone EQ", "sleep mode": "Lid / power button", "sleep wifi": "Wi-Fi while screens off",
           "sleep bt": "Bluetooth while screens off"}
 
@@ -242,9 +251,7 @@ def options_page(ui, title, prefix, features, inherit_prefix=None):
             label = next((lbl for lbl, v in choices if v == val), val)
             if not val:
                 parent = conf.get(f"{inherit_prefix}.{name.replace(' ', '_')}") if inherit_prefix else ""
-                plabel = next((lbl for lbl, v in choices if v == parent), parent)
-                dflt = default_label(name)
-                label = f"Default ({plabel})" if parent else f"Default ({dflt})" if dflt else "Default"
+                label = unset_label(name, next((lbl for lbl, v in choices if v == parent), parent))
             items.append((pretty(name), label))
         sel = ui.menu(title, items, sel, lr=True)
         if sel is None:
@@ -254,8 +261,9 @@ def options_page(ui, title, prefix, features, inherit_prefix=None):
         if ui.last_action in ("left", "right"):
             v = cycle([""] + [c for _, c in choices], conf.get(key), ui.last_action)
         else:
-            dflt = default_label(name)
-            v = pick(ui, pretty(name), [(f"Default ({dflt})" if dflt else "Default", "")] + choices, conf.get(key))
+            parent = conf.get(f"{inherit_prefix}.{name.replace(' ', '_')}") if inherit_prefix else ""
+            v = pick(ui, pretty(name), [(unset_label(name, next((lbl for lbl, v in choices if v == parent), parent)), "")]
+                     + choices, conf.get(key))
         if v is not None:
             conf.set(key, v or None)
 

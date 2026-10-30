@@ -25,7 +25,7 @@ ln -sfn /usr/bin/start_firefox.sh /storage/.config/gmu/playlists/Firefox.sh
 # It inherits the music system's profile (little cores only, capped): video stuttered. All cores, full clocks, per
 # game (asgard-perf-profile.sh); added once, so Thor Settings can still change them.
 CFG=/storage/.config/system/configs/system.cfg
-for kv in cpu_cap_little=100 cpu_cores_little=on cpu_cores_mid=on cpu_cores_prime=on; do
+for kv in cpu_cap_little=100 cpu_cap_mid=100 cpu_cap_prime=100; do
   grep -q "^music\[\"Firefox.sh\"\]\.${kv%%=*}=" "$CFG" || echo "music[\"Firefox.sh\"].$kv" >> "$CFG"
 done
 # Tools > Terminal (QTerminal, keyboard on the bottom screen), Moonlight (moonlight-qt) and Files (Asgard Files).
@@ -33,7 +33,7 @@ done
 ln -sfn /usr/share/asgard/start_terminal.sh /storage/.config/gmu/playlists/Terminal.sh
 ln -sfn /usr/bin/start_moonlight-qt.sh /storage/.config/gmu/playlists/Moonlight.sh
 ln -sfn /usr/bin/start_asgard-files.sh /storage/.config/gmu/playlists/Files.sh
-for kv in cpu_cap_little=100 cpu_cores_little=on cpu_cores_mid=on cpu_cores_prime=on; do
+for kv in cpu_cap_little=100 cpu_cap_mid=100 cpu_cap_prime=100; do
   grep -q "^music\[\"Moonlight.sh\"\]\.${kv%%=*}=" "$CFG" || echo "music[\"Moonlight.sh\"].$kv" >> "$CFG"
 done
 # Home starts before this script: the first boot with new entries, it had scanned without them.

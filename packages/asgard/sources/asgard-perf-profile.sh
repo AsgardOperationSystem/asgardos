@@ -2,8 +2,8 @@
 # Per-system / per-game profile, from the emulator options (thor_settings.py adds them to every emulator). Games start
 # at stock (every core on, full clocks) whatever the Asgard menu's own profile is (Settings > Hardware > Performance,
 # asgard-cpu-cap.sh, only while in Home), then these override it:
-#   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100)      type: little | mid | prime
-#   cpu_cores_<type>   "on" / "off": that cluster's cores (at least one type stays on; CPU0 always does)
+#   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100), or "off": that cluster's cores offline
+#                      (at least one type stays on; CPU0 always does)       type: little | mid | prime
 #   fan_mode           as Settings > Performance > Fan: quiet|moderate|aggressive, or a fixed 0-255 speed
 #   motion             "on": the gyro (asgard-motiond, a DSU server) while the game runs; unset/"off" = stopped.
 #                      Outside games the menu's asgard.motion=1 (Settings > Hardware > Performance > Gyro) decides.
@@ -31,8 +31,7 @@ cpu() {
   for t in $TYPES; do online_type "$t" 1; done
   for t in $TYPES; do
     pct=$(get_setting "cpu_cap_$t" "$platform" "$game")
-    set_cap "$t" "${pct:-100}"
-    [ "$(get_setting "cpu_cores_$t" "$platform" "$game")" = off ] && off="$off $t"
+    if [ "$pct" = off ]; then off="$off $t"; else set_cap "$t" "${pct:-100}"; fi
   done
   offline_types "$off"
   write_affinity

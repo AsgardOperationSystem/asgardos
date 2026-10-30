@@ -1,8 +1,8 @@
 #!/bin/bash
 # The Asgard menu's CPU profile per core type (Settings > Hardware > Performance), while in Home only: run at boot
 # (090-asgard-tuning), from Settings, and by asgard-perf-profile.sh after a game (games start at stock instead):
-#   asgard.cpu_cap.<type>     clock cap, % of the cluster's top clock (25-100)
-#   asgard.cpu_cores.<type>   "off" takes the cluster's cores offline (CPU0 stays: the kernel can't offline it)
+#   asgard.cpu_cap.<type>     clock cap, % of the cluster's top clock (25-100), or "off": the cluster's cores
+#                             offline (CPU0 stays: the kernel can't offline it)
 #     little  3x Cortex-A510 (policy0, CPU0-2)      cap default 90
 #     mid     2x A715 + 2x A710 (policy3, CPU3-6)   cap default 75
 #     prime   1x Cortex-X3 (policy7, CPU7)          cap default 75
@@ -14,10 +14,11 @@
 . /usr/share/asgard/asgard-cpu-lib.sh
 OLD=$(get_setting asgard.cpu_cap)
 for t in $TYPES; do online_type "$t" 1; done
+off=""
 for t in $TYPES; do
   dflt=$(default_cap "$t"); [ "$OLD" = "0" ] && dflt=100
   pct=$(get_setting "asgard.cpu_cap.$t")
-  set_cap "$t" "${pct:-$dflt}"
+  if [ "$pct" = off ]; then off="$off $t"; else set_cap "$t" "${pct:-$dflt}"; fi
 done
-offline_types "$(for t in $TYPES; do [ "$(get_setting "asgard.cpu_cores.$t")" = off ] && echo "$t"; done)"
+offline_types "$off"
 write_affinity
