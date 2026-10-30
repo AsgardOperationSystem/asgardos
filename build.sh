@@ -1,12 +1,9 @@
 #!/bin/bash
-# Asgard OS = ROCKNIX (submodule rocknix/, pinned) + patches/ (changes to ROCKNIX files) + overlay/ (new files).
-#   ./build.sh            prepare rocknix/ and build the SM8550 image (ROCKNIX's docker build)
-#   ./build.sh prepare    only prepare: reset rocknix/, apply patches, copy overlay
-#   ./build.sh upgrade    move the pin to ROCKNIX's latest next, then prepare. A failing patch means ROCKNIX
-#                         changed that file: fix it in rocknix/, regenerate the patch, commit patch + new pin.
+# Asgard OS: rocknix/ is our own fork of ROCKNIX (submodule, branch asgard); changes are commits there.
+#   ./build.sh            build the SM8550 image (ROCKNIX's docker build) from rocknix/ as it stands
 #   ./build.sh stage [user@host]   put the built .tar in the device's /storage/.update (installs on next boot);
 #                                  the host defaults to $THOR
-# rocknix/build.*, sources/ and target/ are git-ignored, so they survive the reset (incremental rebuilds).
+# rocknix/build.*, sources/ and target/ are git-ignored (incremental rebuilds).
 set -euo pipefail
 cd "$(dirname "$0")"
 STEP=${1:-build}
@@ -26,29 +23,14 @@ if [ "$STEP" = stage ]; then
   exit
 fi
 
-if [ "$STEP" = upgrade ]; then
-  git -C rocknix fetch -q --depth 1 origin next
-  git -C rocknix checkout -q -f --detach FETCH_HEAD  # -f: a prepared tree has patches applied
-  echo "rocknix -> $(git -C rocknix log -1 --format='%h %ci %s')"
-else
-  git submodule update -q --init --depth 1 rocknix
-fi
+# fresh clone only: afterwards rocknix/ is where the work happens, and an update would detach it from its branch
+[ -e rocknix/.git ] || git submodule update -q --init rocknix
 # ROCKNIX's build runs git inside docker, which only mounts rocknix/: keep the submodule's git dir in there
 # instead of the usual ../.git/modules/rocknix pointer.
 if [ -f rocknix/.git ]; then
   GD=$(git -C rocknix rev-parse --absolute-git-dir)
   rm rocknix/.git && mv "$GD" rocknix/.git && git -C rocknix config --unset core.worktree
 fi
-git -C rocknix reset -q --hard
-git -C rocknix clean -qfd
-
-shopt -s nullglob
-PATCHES=(patches/*.patch)
-for p in "${PATCHES[@]}"; do
-  git -C rocknix apply --whitespace=nowarn "$PWD/$p" || { echo "FAILED: $p no longer applies to rocknix/"; exit 1; }
-done
-[ -d overlay ] && cp -a overlay/. rocknix/
-echo "rocknix/ prepared: ${#PATCHES[@]} patches + overlay"
 
 # ROCKNIX's docker build copies the caller's whole environment into the container (scripts/get_env -> .env), so
 # it starts from an empty one: no tokens or session vars go in, and none of LOCAL_WIFI_SSID / LOCAL_WIFI_KEY /

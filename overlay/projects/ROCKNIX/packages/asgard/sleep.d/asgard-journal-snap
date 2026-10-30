@@ -1,4 +1,0 @@
-#!/bin/sh
-# systemd-sleep hook: a journal snapshot before sleep (asgard-journal-snap.sh), so a failed resume leaves a log.
-[ "$1" = pre ] && /usr/share/asgard/asgard-journal-snap.sh
-exit 0

@@ -1,2 +1,0 @@
-rcheevos v12.5.0 (https://github.com/RetroAchievements/rcheevos, MIT), only the ROM hashing (src/rhash) and what it
-needs: the same hash RetroAchievements uses to identify a game. Update by copying those files from a newer release.

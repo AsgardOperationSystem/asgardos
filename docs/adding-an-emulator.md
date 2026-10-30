@@ -8,11 +8,11 @@ Use it as a checklist: a new emulator isn't done until every item is ticked or n
 
 ## 1. Package and registration
 
-- **Package:** `overlay/projects/ROCKNIX/packages/emulators/standalone/<name>-sa/` (`package.mk`, `patches/`,
+- **Package:** `rocknix/projects/ROCKNIX/packages/emulators/standalone/<name>-sa/` (`package.mk`, `patches/`,
   `scripts/start_<name>.sh`). Source patches go in its `patches/`, applied with `patch -p1` (fuzz allowed).
-- **Registration:** a numbered patch in `patches/` that adds it to `PKG_EMUS` for SM8550 and calls
+- **Registration:** a commit in `rocknix/` that adds it to `PKG_EMUS` for SM8550 and calls
   `add_emu_core <system> <emulator> <core> <default true|false>` in `virtual/emulators/package.mk`
-  (example: `0038-eden-duo-switch-emulator.patch`). runemu.sh runs `/usr/bin/start_<core minus -sa>.sh`.
+  (example: the "Asgard patch 0038-eden-duo-switch-emulator" commit). runemu.sh runs `/usr/bin/start_<core minus -sa>.sh`.
 - **Options:** its per-game/per-system options go in ROCKNIX's `es_features.cfg` (same patch). Thor Settings shows them,
   plus the CPU/fan profile every emulator gets (`asgard-perf-profile.sh`), with no extra work.
 

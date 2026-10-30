@@ -1,3 +1,0 @@
-#!/bin/sh
-# Apply /flash/asgard.yml before network/ssh/ES start (above image defaults, below the user's own changes).
-python3 /usr/share/asgard/asgard_config.py

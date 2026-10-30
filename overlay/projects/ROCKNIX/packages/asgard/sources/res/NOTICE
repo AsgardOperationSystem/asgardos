@@ -1,3 +1,0 @@
-Vendored from ES-DE 3.5.0 (https://gitlab.com/es-de/emulationstation-de), used by sdlui.py's menu chrome:
-  graphics/*.svg, graphics/help/*.svg   ES-DE, MIT License
-  fonts/Akrobat-*.ttf                   Akrobat by Fontfabric, SIL Open Font License 1.1
