@@ -23,7 +23,9 @@ function do_mkimage() {
     ROOT="${ROOT}" \
     SCRIPTS="${SCRIPTS}" \
     TOOLCHAIN="${TOOLCHAIN}" \
-    PROJECT_DIR="${PROJECT_DIR}" \
+    DISTRO_PATH="${DISTRO_PATH}" \
+    PROJECT_PATH="${PROJECT_PATH}" \
+    DEVICE_PATH="${DEVICE_PATH}" \
     PROJECT="${PROJECT}" \
     DEVICE="${DEVICE}" \
     DISTRO="${DISTRO}" \

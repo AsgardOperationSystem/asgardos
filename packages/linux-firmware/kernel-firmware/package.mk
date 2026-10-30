@@ -7,7 +7,7 @@ PKG_SHA256="28fb1b57fa9531edbd001a2462068267f10622e613abd40f952344b3f1fc5a16"
 PKG_LICENSE="other"
 PKG_SITE="https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/"
 PKG_URL="https://cdn.kernel.org/pub/linux/kernel/firmware/linux-firmware-${PKG_VERSION}.tar.gz"
-PKG_NEED_UNPACK="${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/packages/${PKG_NAME}"
+PKG_NEED_UNPACK="${DEVICE_PATH}/packages/${PKG_NAME}"
 PKG_LONGDESC="kernel-firmware: kernel related firmware"
 PKG_TOOLCHAIN="manual"
 
@@ -42,9 +42,9 @@ makeinstall_target() {
     FW_LISTS="${PKG_DIR}/firmwares/any.dat ${PKG_DIR}/firmwares/${TARGET_ARCH}.dat"
   fi
 
-  FW_LISTS+=" ${PROJECT_DIR}/${PROJECT}/config/kernel-firmware-any.dat ${PROJECT_DIR}/${PROJECT}/config/kernel-firmware-${TARGET_ARCH}.dat"
+  FW_LISTS+=" ${PROJECT_PATH}/config/kernel-firmware-any.dat ${PROJECT_PATH}/config/kernel-firmware-${TARGET_ARCH}.dat"
 
-  FW_LISTS+=" ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/config/kernel-firmware-any.dat ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/config/kernel-firmware-${TARGET_ARCH}.dat"
+  FW_LISTS+=" ${DEVICE_PATH}/config/kernel-firmware-any.dat ${DEVICE_PATH}/config/kernel-firmware-${TARGET_ARCH}.dat"
 
   for fwlist in ${FW_LISTS}; do
     [ -f "${fwlist}" ] || continue

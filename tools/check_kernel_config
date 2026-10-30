@@ -7,7 +7,7 @@
 
 ${SCRIPTS}/unpack linux
 
-if [ -f "${DISTRO_DIR}/${DISTRO}/kernel_options" ]; then
+if [ -f "${DISTRO_PATH}/kernel_options" ]; then
   while read OPTION; do
     [ -z "$OPTION" -o -n "$(echo "$OPTION" | grep '^#')" ] && continue
 
@@ -32,7 +32,7 @@ if [ -f "${DISTRO_DIR}/${DISTRO}/kernel_options" ]; then
       $PKG_BUILD/scripts/config --file $PKG_KERNEL_CFG_FILE --set-str ${OPTION%%=*} $(echo ${OPTION##*=} | tr -d '"')
     fi
 
-  done <${DISTRO_DIR}/${DISTRO}/kernel_options
+  done <${DISTRO_PATH}/kernel_options
 else
-  echo "kernel options file doesn't exist: ${DISTRO_DIR}/${DISTRO}/kernel_options"
+  echo "kernel options file doesn't exist: ${DISTRO_PATH}/kernel_options"
 fi

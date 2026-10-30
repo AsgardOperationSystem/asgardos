@@ -16,7 +16,7 @@ if [ -z "${ARCH}" ]; then
 fi
 
 . config/options ""
-. projects/${PROJECT}/devices/${DEVICE}/options
+. ${DEVICE_PATH}/options
 
 echo "Building ${DISTRO} for ${DEVICE}"
 

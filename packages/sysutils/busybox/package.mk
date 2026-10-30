@@ -15,7 +15,7 @@ PKG_DEPENDS_INIT="toolchain libc:init glibc:init libtirpc"
 PKG_LONGDESC="BusyBox combines tiny versions of many common UNIX utilities into a single small executable."
 # busybox fails to build with GOLD support enabled with binutils-2.25
 PKG_BUILD_FLAGS="-parallel -gold"
-PKG_NEED_UNPACK="${PROJECT_DIR}/${PROJECT}/initramfs"
+PKG_NEED_UNPACK="${PROJECT_PATH}/initramfs"
 
 # nano text editor
 if [ "${NANO_EDITOR}" = "yes" ]; then
@@ -223,9 +223,9 @@ makeinstall_init() {
   cp ${PKG_DIR}/scripts/functions ${INSTALL}
   cp ${PKG_DIR}/scripts/init ${INSTALL}
 
-  if [ -e "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/device.init" ]
+  if [ -e "${DEVICE_PATH}/device.init" ]
   then
-    cp ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/device.init ${INSTALL}
+    cp ${DEVICE_PATH}/device.init ${INSTALL}
   else
     touch ${INSTALL}/device.init
   fi

@@ -12,7 +12,7 @@ PKG_LONGDESC="Open source input router and remapper daemon for Linux"
 PKG_TOOLCHAIN="manual"
 
 # Upstream composite device configs for the handhelds we support ourselves.
-# Our own configs (projects/AsgardOS/devices/*/filesystem/usr/share/inputplumber)
+# Our own configs (distribution/devices/*/filesystem/usr/share/inputplumber)
 # match the same hardware but map it to a DualSense target, so the upstream
 # files would compete for the same source devices. Drop them.
 PKG_DROP_DEVICE_CONFIGS="

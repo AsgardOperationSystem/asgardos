@@ -222,10 +222,10 @@ EOF
 elif [ "${BOOTLOADER}" = "u-boot" ]; then
   # create bootloader configuration
   echo "image: creating bootloader configuration... (u-boot)"
-  if [ -f "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage" ]; then
-    . "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage"
-  elif [ -f "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage" ]; then
-    . "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage"
+  if [ -f "${DEVICE_PATH}/bootloader/mkimage" ]; then
+    . "${DEVICE_PATH}/bootloader/mkimage"
+  elif [ -f "${PROJECT_PATH}/bootloader/mkimage" ]; then
+    . "${PROJECT_PATH}/bootloader/mkimage"
   else
     echo "image: skipping u-boot. no mkimage script found"
   fi
@@ -239,10 +239,10 @@ elif [ "${BOOTLOADER}" = "u-boot" ]; then
 elif [ "${BOOTLOADER}" = "arm-efi" ]; then
   # create bootloader configuration
   echo "image: creating bootloader configuration... (arm-efi)"
-  if [ -f "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage" ]; then
-    . "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage"
-  elif [ -f "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage" ]; then
-    . "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage"
+  if [ -f "${DEVICE_PATH}/bootloader/mkimage" ]; then
+    . "${DEVICE_PATH}/bootloader/mkimage"
+  elif [ -f "${PROJECT_PATH}/bootloader/mkimage" ]; then
+    . "${PROJECT_PATH}/bootloader/mkimage"
   else
     echo "image: skipping arm-efi. no mkimage script found"
   fi
@@ -257,10 +257,10 @@ elif [ "${BOOTLOADER}" = "arm-efi" ]; then
 elif [ "${BOOTLOADER}" = "qcom-abl" ]; then
   # create bootloader configuration
   echo "image: creating bootloader configuration... (qcom-abl)"
-  if [ -f "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage" ]; then
-    . "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader/mkimage"
-  elif [ -f "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage" ]; then
-    . "${PROJECT_DIR}/${PROJECT}/bootloader/mkimage"
+  if [ -f "${DEVICE_PATH}/bootloader/mkimage" ]; then
+    . "${DEVICE_PATH}/bootloader/mkimage"
+  elif [ -f "${PROJECT_PATH}/bootloader/mkimage" ]; then
+    . "${PROJECT_PATH}/bootloader/mkimage"
   else
     echo "image: skipping qcom-abl. no mkimage script found"
   fi
@@ -306,7 +306,7 @@ if [ "${PROJECT}" = "Generic" ]; then
     -e "s,@DISTRO_HOME_URL@,${DISTRO_HOME_URL},g" \
     -e "s,@DISK@,${IMAGE_NAME},g" \
     -e "s,@OVA_SIZE@,$((${OVA_SIZE} * 1024 * 1024)),g" \
-    "${PROJECT_DIR}/${PROJECT}/config/ovf.template" >"${DISK_BASENAME}.ovf"
+    "${PROJECT_PATH}/config/ovf.template" >"${DISK_BASENAME}.ovf"
   # combine ovf and vmdk into official ova
   tar -C "${TARGET_IMG}" -cf "${DISK_BASENAME}.ova" "${IMAGE_NAME}.ovf" "${IMAGE_NAME}.vmdk"
   # create sha256 checksum of ova image

@@ -91,8 +91,8 @@ if [ -n "${PKG_PATCH_DIRS}" ]; then
       [ -d ${patch_dir} ] && PATCH_DIRS_PKG+=" ${patch_dir}/*.patch"
     else
       [ -d ${PKG_DIR}/patches/${patch_dir} ] && PATCH_DIRS_PKG+=" ${PKG_DIR}/patches/${patch_dir}/*.patch"
-      [ -d ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${patch_dir}/*.patch"
-      [ -d ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}/${patch_dir}/*.patch"
+      [ -d ${PROJECT_PATH}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${PROJECT_PATH}/patches/${PKG_NAME}/${patch_dir}/*.patch"
+      [ -d ${DEVICE_PATH}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${DEVICE_PATH}/patches/${PKG_NAME}/${patch_dir}/*.patch"
     fi
   done
 fi
@@ -105,11 +105,11 @@ for i in ${PKG_DIR}/patches/*.patch \
   ${PATCH_DIRS_PKG} \
   ${PKG_DIR}/patches/${PKG_VERSION}/*.patch \
   ${PKG_DIR}/patches/${PKG_VERSION}/${PATCH_ARCH}/*.patch \
-  ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/*.patch \
-  ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${PATCH_ARCH}/*.patch \
+  ${PROJECT_PATH}/patches/${PKG_NAME}/*.patch \
+  ${PROJECT_PATH}/patches/${PKG_NAME}/${PATCH_ARCH}/*.patch \
   ${PATCH_DIRS_PRJ} \
-  ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${PKG_VERSION}/*.patch \
-  ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}/*.patch; do
+  ${PROJECT_PATH}/patches/${PKG_NAME}/${PKG_VERSION}/*.patch \
+  ${DEVICE_PATH}/patches/${PKG_NAME}/*.patch; do
   if [ -f "${i}" ]; then
     PATCH="${i#${ROOT}/}"
     mkdir -p "$(dirname ${PKG_BUILD}/patches/${PATCH})"

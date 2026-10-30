@@ -214,5 +214,48 @@
   BUILD_DATE=$(date)
 
 # Define supported systems documentation path
-  SYSDOCROOT="${ROOT}/documentation/PER_DEVICE_DOCUMENTATION/${DEVICE}"
-  SYSDOC="${SYSDOCROOT}/SUPPORTED_EMULATORS_AND_CORES"
+  SYSDOCROOT="${ROOT}/docs"
+  SYSDOC="${SYSDOCROOT}/supported-emulators"
+
+# --- was the project options (distribution/options), read after the distro options above ---
+################################################################################
+# setup build defaults
+################################################################################
+
+  # Project FLAGS
+    PROJECT_CFLAGS=""
+
+  # SquashFS compression method (gzip / lzo / xz)
+    SQUASHFS_COMPRESSION="zstd"
+
+################################################################################
+# setup project defaults
+################################################################################
+
+  # OpenGL(X) implementation to use (no / mesa)
+    OPENGL="mesa"
+
+  # OpenGL-ES implementation to use (no / mesa)
+    OPENGLES="mesa"
+
+  # Displayserver to use (no / wl)
+    DISPLAYSERVER="no"
+
+  # Windowmanager to use (none / weston)
+    WINDOWMANAGER="none"
+
+  # Xorg Graphic drivers to use (all / i915,i965,r200,r300,r600,nvidia)
+  # Space separated list is supported,
+  # e.g. GRAPHIC_DRIVERS="i915 i965 r300 r600 radeonsi nvidia"
+    GRAPHIC_DRIVERS=""
+
+  # Additional Firmware to use ( )
+  # Space separated list is supported,
+  # e.g. FIRMWARE=""
+    FIRMWARE=""
+
+  # Additional packages to install
+    ADDITIONAL_PACKAGES=""
+
+  # Satisfy legacy build dependencies
+    SWAP_SUPPORT="yes"

@@ -21,8 +21,8 @@ if [ -n "${UBOOT_FIRMWARE}" ]; then
   PKG_DEPENDS_UNPACK+=" ${UBOOT_FIRMWARE}"
 fi
 
-PKG_NEED_UNPACK="${PROJECT_DIR}/${PROJECT}/bootloader"
-[ -n "${DEVICE}" ] && PKG_NEED_UNPACK+=" ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader"
+PKG_NEED_UNPACK="${PROJECT_PATH}/bootloader"
+[ -n "${DEVICE}" ] && PKG_NEED_UNPACK+=" ${DEVICE_PATH}/bootloader"
 
 post_patch() {
   if [ -n "${UBOOT_SYSTEM}" ] && find_file_path bootloader/config; then

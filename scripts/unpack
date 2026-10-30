@@ -141,8 +141,8 @@ if { [ -d "${SOURCES}/${PKG_NAME}" ] || [ -d "${PKG_DIR}/sources" ]; } || pkg_ca
           [ -d ${patch_dir} ] && PATCH_DIRS_PKG+=" ${patch_dir}/*.patch"
         else
           [ -d ${PKG_DIR}/patches/${patch_dir} ] && PATCH_DIRS_PKG+=" ${PKG_DIR}/patches/${patch_dir}/*.patch"
-          [ -d ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${patch_dir}/*.patch"
-          [ -d ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}/${patch_dir}/*.patch"
+          [ -d ${PROJECT_PATH}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${PROJECT_PATH}/patches/${PKG_NAME}/${patch_dir}/*.patch"
+          [ -d ${DEVICE_PATH}/patches/${PKG_NAME}/${patch_dir} ] && PATCH_DIRS_PRJ+=" ${DEVICE_PATH}/patches/${PKG_NAME}/${patch_dir}/*.patch"
         fi
       done
     fi
@@ -152,11 +152,11 @@ if { [ -d "${SOURCES}/${PKG_NAME}" ] || [ -d "${PKG_DIR}/sources" ]; } || pkg_ca
       ${PATCH_DIRS_PKG} \
       ${PKG_DIR}/patches/${PKG_VERSION}/*.patch \
       ${PKG_DIR}/patches/${PKG_VERSION}/${PATCH_ARCH}/*.patch \
-      ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/*.patch \
-      ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${PATCH_ARCH}/*.patch \
+      ${PROJECT_PATH}/patches/${PKG_NAME}/*.patch \
+      ${PROJECT_PATH}/patches/${PKG_NAME}/${PATCH_ARCH}/*.patch \
       ${PATCH_DIRS_PRJ} \
-      ${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${PKG_VERSION}/*.patch \
-      ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}/*.patch; do
+      ${PROJECT_PATH}/patches/${PKG_NAME}/${PKG_VERSION}/*.patch \
+      ${DEVICE_PATH}/patches/${PKG_NAME}/*.patch; do
 
       thisdir="${i%/*}"
 
@@ -168,20 +168,20 @@ if { [ -d "${SOURCES}/${PKG_NAME}" ] || [ -d "${PKG_DIR}/sources" ]; } || pkg_ca
         PATCH_DESC="(common - ${PKG_VERSION})"
       elif [ "${thisdir}" = "${PKG_DIR}/patches/${PKG_VERSION}/${PATCH_ARCH}" ]; then
         PATCH_DESC="(${PKG_VERSION} - ${PATCH_ARCH})"
-      elif [ "${thisdir}" = "${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}" ]; then
+      elif [ "${thisdir}" = "${PROJECT_PATH}/patches/${PKG_NAME}" ]; then
         PATCH_DESC="(project)"
-      elif [ "${thisdir}" = "${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${PATCH_ARCH}" ]; then
+      elif [ "${thisdir}" = "${PROJECT_PATH}/patches/${PKG_NAME}/${PATCH_ARCH}" ]; then
         PATCH_DESC="(project - ${PATCH_ARCH})"
-      elif [ "${thisdir}" = "${PROJECT_DIR}/${PROJECT}/patches/${PKG_NAME}/${PKG_VERSION}" ]; then
+      elif [ "${thisdir}" = "${PROJECT_PATH}/patches/${PKG_NAME}/${PKG_VERSION}" ]; then
         PATCH_DESC="(project - ${PKG_VERSION})"
-      elif [ "${thisdir}" = "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/patches/${PKG_NAME}" ]; then
+      elif [ "${thisdir}" = "${DEVICE_PATH}/patches/${PKG_NAME}" ]; then
         PATCH_DESC="(device)"
       else
         if [[ "${thisdir}" =~ ^${PKG_DIR}/.* ]]; then
           PATCH_DESC="(common - ${thisdir##*/})"
-        elif [[ "${thisdir}" =~ ^${PROJECT_DIR}/.*/devices/.* ]]; then
+        elif [[ "${thisdir}" =~ ^${DEVICE_PATH}/.* ]]; then
           PATCH_DESC="(device - ${thisdir##*/})"
-        elif [[ "${thisdir}" =~ ^${PROJECT_DIR}/.* ]]; then
+        elif [[ "${thisdir}" =~ ^${PROJECT_PATH}/.* ]]; then
           PATCH_DESC="(project - ${thisdir##*/})"
         else
           PATCH_DESC="(absolute - ${i})"

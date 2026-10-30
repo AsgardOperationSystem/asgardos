@@ -43,7 +43,7 @@ fi
 
 WORK_DIR="${PKG_DIR}/icon"
 
-TEMPLATE_DIR="$DISTRO_DIR/$DISTRO/addons"
+TEMPLATE_DIR="${DISTRO_PATH}/addons"
 ADDON_INSTALL_DIR="${TARGET_IMG}/${ADDONS}/${ADDON_VERSION}/${DEVICE:-${PROJECT}}/${TARGET_ARCH}/${PKG_ADDON_ID}"
 
 # Determine the icon source up front (svg preferred over png) so we only

@@ -213,7 +213,7 @@ EOF
 }
 
 # config.xml parsing
-CONFIGXML="${PROJECT_DIR}/${PROJECT}/config.xml"
+CONFIGXML="${DEVICE_PATH}/config.xml"
 
 SUBDEVICES=$(xmlstarlet sel -t -m "//asgardos/${DEVICE}/*[@mkimage_options]" -v "name()" -n "${CONFIGXML}" 2>/dev/null | tr '\n' ' ')
 

@@ -73,7 +73,7 @@ mkdir -p ${INSTALL}
 if [ "${TARGET}" = "target" ]; then
   for PKG_TMP_DIR in ${PKG_DIR} \
     ${ROOT}/${PACKAGES}/${PKG_NAME} \
-    ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/packages/${PKG_NAME}; do
+    ${DEVICE_PATH}/packages/${PKG_NAME}; do
 
     [ -d ${PKG_TMP_DIR} ] || continue
 

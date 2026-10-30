@@ -8,9 +8,9 @@ PKG_SITE="http://www.kernel.org"
 PKG_DEPENDS_HOST="ccache:host openssl:host"
 PKG_DEPENDS_TARGET="linux:host kmod:host xz:host keyutils ncurses openssl:host ${KERNEL_EXTRA_DEPENDS_TARGET}"
 PKG_NEED_UNPACK="${LINUX_DEPENDS} $(get_pkg_directory initramfs) $(get_pkg_variable initramfs PKG_NEED_UNPACK)"
-PKG_NEED_UNPACK+=" ${PROJECT_DIR}/${PROJECT}/bootloader ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader"
+PKG_NEED_UNPACK+=" ${PROJECT_PATH}/bootloader ${DEVICE_PATH}/bootloader"
 # The boot entry carries DISTRO_BOOTLABEL/DISTRO_DISKLABEL (makeinstall_target): rebuild when the options change.
-PKG_NEED_UNPACK+=" ${DISTRO_DIR}/${DISTRO}/options"
+PKG_NEED_UNPACK+=" ${DISTRO_PATH}/options"
 PKG_LONGDESC="This package contains a precompiled kernel image and the modules."
 PKG_IS_KERNEL_PKG="yes"
 PKG_STAMP="${KERNEL_TARGET} ${KERNEL_MAKE_EXTRACMD}"
@@ -182,7 +182,7 @@ pre_make_target() {
     yes "" | kernel_make oldconfig > /dev/null
   fi
 
-  if [ -f "${DISTRO_DIR}/${DISTRO}/kernel_options" ]; then
+  if [ -f "${DISTRO_PATH}/kernel_options" ]; then
     while read OPTION; do
       [ -z "${OPTION}" -o -n "$(echo "${OPTION}" | grep '^#')" ] && continue
 
@@ -193,7 +193,7 @@ pre_make_target() {
       if [ "$(${PKG_BUILD}/scripts/config --state ${OPTION%%=*})" != "$(echo ${OPTION##*=} | tr -d '"')" ]; then
         MISSING_KERNEL_OPTIONS+="\t${OPTION}\n"
       fi
-    done < ${DISTRO_DIR}/${DISTRO}/kernel_options
+    done < ${DISTRO_PATH}/kernel_options
 
     if [ -n "${MISSING_KERNEL_OPTIONS}" ]; then
       print_color CLR_WARNING "LINUX: kernel options not correct: \n${MISSING_KERNEL_OPTIONS%%}\nPlease run ./tools/check_kernel_config\n"

@@ -789,7 +789,7 @@ init_package_cache() {
 
     # cache project/device folder for packages
     if [ -n "${DEVICE}" ]; then
-      find "${ROOT}/projects/${PROJECT}/devices/${DEVICE}/packages" -type f -name package.mk 2>/dev/null | sed "s#/package\.mk\$#${_ANCHOR}#" >> "${temp_local}"
+      find "${DEVICE_PATH}/packages" -type f -name package.mk 2>/dev/null | sed "s#/package\.mk\$#${_ANCHOR}#" >> "${temp_local}"
     fi
 
     # cache packages folder
@@ -849,64 +849,24 @@ check_path() {
 }
 
 check_distro() {
-  local dashes="===========================" distro_err_msg
-  if [ -z "${DISTRO}" -o ! -d "${DISTRO_DIR}/${DISTRO}" ]; then
-    distro_err_msg="\n ${dashes}${dashes}${dashes}"
-    distro_err_msg+="\n ERROR: Distro not found, use a valid distro or create a new config"
-    distro_err_msg+="\n ${dashes}${dashes}${dashes}"
-    distro_err_msg+="\n\n Valid distros:"
-
-    for distros in ${DISTRO_DIR}/*; do
-      distro_err_msg+="\n - ${distros##*/}"
-    done
-    die "${distro_err_msg}"
-  fi
+  [ -n "${DISTRO}" -a -d "${DISTRO_PATH}" ] || die "\n ERROR: distro ${DISTRO} not found: no ${DISTRO_PATH}"
 }
 
 check_project() {
-  local dashes="===========================" project_err_msg
-  if [ -z "${PROJECT}" -o ! -d "${PROJECT_DIR}/${PROJECT}" ]; then
-    project_err_msg="\n ${dashes}${dashes}${dashes}"
-    project_err_msg+="\n ERROR: Project not found. Use a valid project or create a new config"
-    project_err_msg+="\n ${dashes}${dashes}${dashes}"
-    project_err_msg+="\n\n Valid projects:"
-
-    for projects in ${PROJECT_DIR}/*; do
-      project_err_msg+="\n - ${projects##*/}"
-    done
-    die "${project_err_msg}"
-  fi
+  [ -n "${PROJECT}" -a -d "${PROJECT_PATH}" ] || die "\n ERROR: project ${PROJECT} not found: no ${PROJECT_PATH}"
 }
 
+# One device: device/. DEVICE (SM8550) names it in build dirs, images and config.xml.
 check_device() {
-  local dashes="===========================" device_err_msg
-  if [ -n "${DEVICE}" -a ! -d "${PROJECT_DIR}/${PROJECT}/devices" ]; then
-    device_err_msg="\n $dashes$dashes$dashes"
-    device_err_msg+="\n ERROR: You must not specify DEVICE for the $PROJECT project"
-    device_err_msg+="\n $dashes$dashes$dashes"
-    device_err_msg+="\n\n There are no devices for project: ${PROJECT}"
-
-    die "${device_err_msg}"
-  elif [ \( -z "${DEVICE}" -a -d "${PROJECT_DIR}/${PROJECT}/devices" \) -o \
-         \( -n "${DEVICE}" -a ! -d "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}" \) ]; then
-    device_err_msg="\n ${dashes}${dashes}${dashes}"
-    device_err_msg+="\n ERROR: Specify a valid device for the ${PROJECT} project"
-    device_err_msg+="\n ${dashes}${dashes}${dashes}"
-    device_err_msg+="\n\n Valid devices for project: ${PROJECT}"
-
-    for device in ${PROJECT_DIR}/${PROJECT}/devices/*; do
-      device_err_msg+="\n - ${device##*/}"
-    done
-    die "${device_err_msg}"
-  fi
+  [ -n "${DEVICE}" -a -d "${DEVICE_PATH}" ] || die "\n ERROR: device ${DEVICE} not found: no ${DEVICE_PATH}"
 }
 
 check_arch() {
   local dashes="===========================" arch_err_msg linux_config_dir
-  if [ -d "${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/linux" ]; then
-    linux_config_dir="${PROJECT_DIR}/${PROJECT}/devices/$DEVICE/linux"
+  if [ -d "${DEVICE_PATH}/linux" ]; then
+    linux_config_dir="${DEVICE_PATH}/linux"
   else
-    linux_config_dir="${PROJECT_DIR}/${PROJECT}/linux"
+    linux_config_dir="${PROJECT_PATH}/linux"
   fi
 
   if [ ! -e "${linux_config_dir}/linux.${TARGET_KERNEL_PATCH_ARCH:-$TARGET_ARCH}.conf" ] &&
@@ -1106,8 +1066,8 @@ get_global_pkg_directory() {
 calculate_stamp() {
   local stamp data global_dir
 
-  stamp="$PKG_DIR $PROJECT_DIR/$PROJECT/patches/$PKG_NAME $ROOT/$PACKAGES/$PKG_NAME"
-  [ -n "$DEVICE" ] && stamp+=" $PROJECT_DIR/$PROJECT/devices/$DEVICE/patches/$PKG_NAME"
+  stamp="$PKG_DIR ${PROJECT_PATH}/patches/$PKG_NAME $ROOT/$PACKAGES/$PKG_NAME"
+  [ -n "$DEVICE" ] && stamp+=" ${DEVICE_PATH}/patches/$PKG_NAME"
   [ -n "$PKG_NEED_UNPACK" ] && stamp+=" $PKG_NEED_UNPACK"
 
   # A project package.mk routinely sources the global one to inherit
@@ -1182,18 +1142,14 @@ find_path() {
 
   [ "$test_func" = "-f" ] && ftype="file" || ftype="dir"
 
-  for dir in $PROJECT_DIR/$PROJECT/devices/$DEVICE/packages/$PKG_NAME \
-             $PROJECT_DIR/$PROJECT/devices/$DEVICE \
+  for dir in ${DEVICE_PATH}/packages/$PKG_NAME \
+             ${DEVICE_PATH} \
              $ROOT/$PACKAGES/$PKG_NAME \
-             $PROJECT_DIR/$PROJECT \
-             $DISTRO_DIR/$DISTRO/packages/$PKG_NAME \
-             $DISTRO_DIR/$DISTRO \
+             ${DISTRO_PATH} \
              $PKG_DIR \
              ; do
     # ignore directories with missing DEVICE or PKG_NAME components
     [[ $dir =~ /packages/$ ]] && continue
-    [[ $dir =~ /devices/$ ]] && continue
-    [[ $dir =~ /devices//packages/$PKG_NAME$ ]] && continue
 
     if [ $wildcard -eq 1 ]; then
       ls $dir/$search 1>/dev/null 2>&1 && match="$dir/$search" && break
@@ -1451,17 +1407,16 @@ kernel_config_path() {
 
   config_name="linux.${TARGET_KERNEL_PATCH_ARCH:-$TARGET_ARCH}.conf"
 
-  for cfg in $PROJECT_DIR/$PROJECT/devices/$DEVICE/linux/$pkg_linux_version/$config_name \
-             $PROJECT_DIR/$PROJECT/devices/$DEVICE/linux/$LINUX/$config_name \
-             $PROJECT_DIR/$PROJECT/devices/$DEVICE/linux/$config_name \
-             $PROJECT_DIR/$PROJECT/linux/$pkg_linux_version/$config_name \
-             $PROJECT_DIR/$PROJECT/linux/$LINUX/$config_name \
-             $PROJECT_DIR/$PROJECT/linux/$config_name \
+  for cfg in ${DEVICE_PATH}/linux/$pkg_linux_version/$config_name \
+             ${DEVICE_PATH}/linux/$LINUX/$config_name \
+             ${DEVICE_PATH}/linux/$config_name \
+             ${PROJECT_PATH}/linux/$pkg_linux_version/$config_name \
+             ${PROJECT_PATH}/linux/$LINUX/$config_name \
+             ${PROJECT_PATH}/linux/$config_name \
              $pkg_linux_dir/config/$pkg_linux_version/$config_name \
              $pkg_linux_dir/config/$LINUX/$config_name \
              $pkg_linux_dir/config/$config_name \
              ; do
-    [[ $cfg =~ /devices//linux/ ]] && continue
     [ -f "$cfg" ] && echo "$cfg" && return
   done
 
@@ -1474,9 +1429,8 @@ kernel_initramfs_confs() {
   config_name="initramfs.${TARGET_KERNEL_PATCH_ARCH:-$TARGET_ARCH}.conf"
   confs="$(get_pkg_directory initramfs)/config/initramfs.conf"
 
-  for cfg in $PROJECT_DIR/$PROJECT/devices/$DEVICE/packages/initramfs/config/$config_name \
+  for cfg in ${DEVICE_PATH}/packages/initramfs/config/$config_name \
              ; do
-    [[ $cfg =~ /devices//packages/ ]] && continue
     [ -f "$cfg" ] && confs+=" $cfg"
   done
 
@@ -1559,9 +1513,9 @@ install_addon_images() {
     cp "$PKG_DIR/icon/icon.png" "$dest_dir/resources"
   fi
 
-  if [ -f "$DISTRO_DIR/$DISTRO/addons/fanart.png" ]; then
+  if [ -f "${DISTRO_PATH}/addons/fanart.png" ]; then
     mkdir -p "$dest_dir/resources"
-    cp "$DISTRO_DIR/$DISTRO/addons/fanart.png" "$dest_dir/resources"
+    cp "${DISTRO_PATH}/addons/fanart.png" "$dest_dir/resources"
   fi
 }
 
@@ -1927,6 +1881,6 @@ show_timestamp_diff() {
 }
 
 # Use distribution functions if any
-if [ -f "distributions/$DISTRO/config/functions" ]; then
-  . distributions/$DISTRO/config/functions
+if [ -f "${DISTRO_PATH}/config/functions" ]; then
+  . ${DISTRO_PATH}/config/functions
 fi
