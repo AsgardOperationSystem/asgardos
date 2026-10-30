@@ -178,7 +178,7 @@ RK_END_MB=$(( RK_START_MB + 2048 ))  # 2 GiB
 echo "Creating AsgardOS partition #$RK_NUM (${RK_START_MB}MiB–${RK_END_MB}MiB)..."
 parted -a optimal -s "$DEVICE" \
   mkpart primary fat32 "${RK_START_MB}MiB" "${RK_END_MB}MiB"
-parted -s "$DEVICE" name "$RK_NUM" ROCKNIX   # the GPT name ROCKNIX ABL v1.2 boots from: keep it until OpenABL
+parted -s "$DEVICE" name "$RK_NUM" ASGARDOS
 parted -s "$DEVICE" set "$RK_NUM" msftdata on
 parted -s "$DEVICE" set "$RK_NUM" boot on
 

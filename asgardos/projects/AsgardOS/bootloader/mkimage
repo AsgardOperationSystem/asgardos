@@ -106,13 +106,12 @@ mkimage_grub() {
 }
 
 mkimage_abl() {
-  echo "image: copying the ROCKNIX ABL files..."
-  mcopy "${RELEASE_DIR}/3rdparty/bootloader/rocknix_abl" ::
-  # AsgardOS: OpenABL's Boot Loader Spec layout next to KERNEL (see the linux package), when the build made one.
-  if [ -f "${RELEASE_DIR}/3rdparty/bootloader/Image.gz" ]; then
-    mcopy -o "${RELEASE_DIR}/3rdparty/bootloader/Image.gz" ::
-    mcopy -s -o "${RELEASE_DIR}/3rdparty/bootloader/dtbs" "${RELEASE_DIR}/3rdparty/bootloader/loader" ::
-  fi
+  # AsgardOS boots through OpenABL's Boot Loader Spec: the entry, the device trees and the power-on logo (KERNEL is
+  # the kernel the entry names).
+  echo "image: copying the Boot Loader Spec entry, device trees and logo..."
+  for d in dtbs loader logo; do
+    [ -d "${RELEASE_DIR}/3rdparty/bootloader/${d}" ] && mcopy -s -o "${RELEASE_DIR}/3rdparty/bootloader/${d}" ::
+  done
 }
 
 mkimage_all

@@ -9,7 +9,7 @@ PKG_DEPENDS_HOST="ccache:host openssl:host"
 PKG_DEPENDS_TARGET="linux:host kmod:host xz:host keyutils ncurses openssl:host ${KERNEL_EXTRA_DEPENDS_TARGET}"
 PKG_NEED_UNPACK="${LINUX_DEPENDS} $(get_pkg_directory initramfs) $(get_pkg_variable initramfs PKG_NEED_UNPACK)"
 PKG_NEED_UNPACK+=" ${PROJECT_DIR}/${PROJECT}/bootloader ${PROJECT_DIR}/${PROJECT}/devices/${DEVICE}/bootloader"
-# The kernel command line carries DISTRO_BOOTLABEL/DISTRO_DISKLABEL (mkbootimg below): rebuild when the options change.
+# The boot entry carries DISTRO_BOOTLABEL/DISTRO_DISKLABEL (makeinstall_target): rebuild when the options change.
 PKG_NEED_UNPACK+=" ${DISTRO_DIR}/${DISTRO}/options"
 PKG_LONGDESC="This package contains a precompiled kernel image and the modules."
 PKG_IS_KERNEL_PKG="yes"
@@ -19,7 +19,6 @@ PKG_PATCH_DIRS="${LINUX} mainline ${DEVICE} default"
 
 [[ "${DEVICE}" =~ "RK3326|RK3399|S922X|H700" ]] && PKG_PATCH_DIRS+=" rocknix-joypad"
 [[ "${DEVICE}" == RK* ]] && PKG_PATCH_DIRS+=" mainline-rockchip"
-[[ "${DEVICE}" == SM* ]] && PKG_DEPENDS_TARGET+=" mkbootimg:host"
 
 case ${DEVICE} in
   RK3588)
@@ -395,33 +394,17 @@ makeinstall_target() {
   mkdir -p ${INSTALL}/.image
   cp -p System.map .config Module.symvers ${INSTALL}/.image/
 
-  if [ "${BOOTLOADER}" != "qcom-abl" ]; then
-  	cp -p arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET} ${INSTALL}/.image/
-  else
+  cp -p arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET} ${INSTALL}/.image/
 
-    gzip -c "arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET}" > "${INSTALL}/.image/kernel.gz"
-    for dtb in "arch/${TARGET_KERNEL_ARCH}/boot/dts/"**/*.dtb; do
-      if [ -f ${dtb} ]; then
-        cat "$dtb" >> "${INSTALL}/.image/kernel.gz"
-      fi
-    done
-    echo -n "dummy" > "${INSTALL}/.image/ramdisk"
-    python3 "${TOOLCHAIN}/mkbootimg/mkbootimg.py" \
-      --kernel "${INSTALL}/.image/kernel.gz" --ramdisk "${INSTALL}/.image/ramdisk" \
-	  --kernel_offset 0x00000000 --ramdisk_offset 0x00000000 --tags_offset 0x00000000 \
-	  --os_version 12.0.0 --os_patch_level "$(date '+%Y-%m')" --header_version 0 \
-	  --cmdline "boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} ${EXTRA_CMDLINE}" \
-	  -o "${INSTALL}/.image/${KERNEL_TARGET}" || { exit 1; }
-
-    # AsgardOS: OpenABL's layout too (Boot Loader Spec), copied to /flash next to KERNEL so either bootloader
-    # starts the same system: the kernel for its EFI stub, the device trees, and an entry naming the Thor's (so
-    # OpenABL's Device model setting doesn't matter). The initramfs is built into the kernel.
+  if [ "${BOOTLOADER}" = "qcom-abl" ]; then
+    # AsgardOS boots through OpenABL (Boot Loader Spec): KERNEL is the plain kernel, started by its EFI stub (the
+    # initramfs is built in), with the device trees and an entry naming the Thor's, so OpenABL's Device model
+    # setting doesn't matter.
     mkdir -p ${INSTALL}/usr/share/bootloader/dtbs ${INSTALL}/usr/share/bootloader/loader/entries
-    gzip -9 -c "arch/${TARGET_KERNEL_ARCH}/boot/${KERNEL_TARGET}" > "${INSTALL}/usr/share/bootloader/Image.gz"
     cp arch/${TARGET_KERNEL_ARCH}/boot/dts/qcom/*.dtb ${INSTALL}/usr/share/bootloader/dtbs/
     cat > ${INSTALL}/usr/share/bootloader/loader/entries/asgardos.conf <<BLS
 title      ${DISTRONAME}
-linux      /Image.gz
+linux      /KERNEL
 devicetree /dtbs/qcs8550-ayn-thor.dtb
 options    boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} ${EXTRA_CMDLINE}
 BLS

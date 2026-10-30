@@ -16,23 +16,19 @@ fi
 # mount $BOOT_ROOT rw
 mount -o remount,rw $BOOT_ROOT
 
-if [ -d "$SYSTEM_ROOT/usr/share/bootloader/rocknix_abl" ]; then
-  mkdir -p $BOOT_ROOT/rocknix_abl
-  echo "Copying the ROCKNIX ABL files to $BOOT_ROOT/rocknix_abl..."
-  cp $SYSTEM_ROOT/usr/share/bootloader/rocknix_abl/* $BOOT_ROOT/rocknix_abl
-fi
+# AsgardOS boots through OpenABL's Boot Loader Spec: the entry, the device trees and the power-on logo (init has
+# already written KERNEL, the kernel the entry names).
+for d in dtbs loader logo; do
+  if [ -d "$SYSTEM_ROOT/usr/share/bootloader/$d" ]; then
+    mkdir -p $BOOT_ROOT/$d
+    cp -rf $SYSTEM_ROOT/usr/share/bootloader/$d/. $BOOT_ROOT/$d/
+  fi
+done
+# Left from ROCKNIX's ABL (KERNEL was its Android boot image) and from the first OpenABL layout.
+rm -rf $BOOT_ROOT/rocknix_abl $BOOT_ROOT/Image.gz
 
-# AsgardOS: OpenABL's Boot Loader Spec layout next to KERNEL, so either bootloader starts this system.
-if [ -f "$SYSTEM_ROOT/usr/share/bootloader/Image.gz" ]; then
-  echo "Updating the Boot Loader Spec kernel, device trees and entry..."
-  cp -f $SYSTEM_ROOT/usr/share/bootloader/Image.gz $BOOT_ROOT/
-  mkdir -p $BOOT_ROOT/dtbs $BOOT_ROOT/loader/entries
-  cp -f $SYSTEM_ROOT/usr/share/bootloader/dtbs/* $BOOT_ROOT/dtbs/
-  cp -f $SYSTEM_ROOT/usr/share/bootloader/loader/entries/* $BOOT_ROOT/loader/entries/
-fi
-
-# AsgardOS: an update never flashes abl_a/abl_b. ROCKNIX ran updateabl here, which rewrites both slots whenever
-# they differ from the bundled ABL. Flash it by hand (updateabl) after checking the backup in thor/rocknix-abl/.
+# AsgardOS: an update never flashes abl_a/abl_b (ROCKNIX ran updateabl here). Flash OpenABL by hand with
+# updateabl, after checking the backup in thor/rocknix-abl/.
 
 ### REMOVE IN THE FUTURE ###
 # cleanup old boot files
