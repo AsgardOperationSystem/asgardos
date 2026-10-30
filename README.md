@@ -128,7 +128,7 @@ thor/             git-ignored: device notes (ayn_thor_pro.md) and the Thor works
 
 ```
 git clone --recurse-submodules https://github.com/AsgardOperationSystem/asgardos.git
-cd asgardos && ./build.sh      # ROCKNIX's docker build of the SM8550 image -> asgardos/target/
+cd asgardos && ./build.sh      # docker build of the SM8550 image -> build/target/ (all output in build/)
 ```
 `./build.sh stage root@<thor>` copies the update to a running Thor; it's applied on the next reboot.
 
@@ -141,7 +141,8 @@ submodule pointer here. To move to a new kernel, rebase `asgard` onto the new st
 v7.3.1`), fix the conflicts, force-push (allowed on `asgard`), set `PKG_VERSION` in `packages/linux/package.mk`.
 
 To take a fix from ROCKNIX: `git remote add rocknix https://github.com/ROCKNIX/distribution.git` once, then
-`git fetch rocknix next` and `git cherry-pick -Xsubtree=asgardos <sha>`. Until 2026-10-30 Asgard was patches/ +
+`git fetch rocknix next` and `git cherry-pick <sha>` (git maps ROCKNIX's `projects/ROCKNIX/...` paths to ours by
+rename detection; a conflict means the file moved too far). Until 2026-10-30 Asgard was patches/ +
 overlay/ on a pinned ROCKNIX; each old patch is now one commit ("Asgard patch NNNN" in its message).
 
 ## Personal config: asgard.yml
@@ -195,3 +196,10 @@ Which patch came from where, and why: [docs/changes.md](docs/changes.md). What w
 - [Changes on top of ROCKNIX](docs/changes.md): every patch, what was broken and why.
 - [Sleep](docs/sleep.md): the deep sleep work, and what we took from Kettle Linux and Armada.
 - [Adding an emulator](docs/adding-an-emulator.md): what every new emulator has to support, with a test for each.
+
+## License
+
+Asgard OS is a fork of [ROCKNIX](https://github.com/ROCKNIX/distribution) (forked 2026-10-30 at `7cffc96`), which
+is itself a fork of [JELOS](https://github.com/JustEnoughLinuxOS/distribution/); ROCKNIX's history up to the fork
+is kept in this repository. Licenses: [LICENSE.md](LICENSE.md) and each component's own license; original ROCKNIX
+and JELOS code keeps its copyright notices.

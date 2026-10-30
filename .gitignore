@@ -1,9 +1,14 @@
-*.log
-*.img
-*.img.gz
-__pycache__/
+# everything the build makes: build dirs, downloads, images, logs (./build.sh)
+/build/
+
+# personal / local
 asgard.yml
-frontend-dev
-turnip/
-thor/
 CLAUDE.local.md
+/thor/
+
+# build system scratch (written next to the tree)
+/.fakeroot.*
+/.libreelec
+/.work/
+mkpkg-temp
+__pycache__/

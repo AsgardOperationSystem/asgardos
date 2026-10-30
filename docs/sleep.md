@@ -26,8 +26,8 @@ keeps a small DDR vote in sleep; without it the first wake from DDR low power re
   not a power fault (PMIC PON registers match a normal reboot). DDR is re-initialised, so pstore stays empty.
 - It hits the first wake event after DDR enters low power (alarm +60: kernel 117 s after suspend; +300: 163 s).
 - Android's apps_rsc sleep/wake sets (RPMh trace, cmd-db names) match Linux's with the floor dropped, except
-  LDO E1 and E3, which Android switches off in SLEEP and on in WAKE. Copying that alone (`0028`, disabled in
-  `patches-disabled/`) hung a normal sleep: their consumers (PCIe PHY, USB PHY, DSI/UFS PLL) aren't ready.
+  LDO E1 and E3, which Android switches off in SLEEP and on in WAKE. Copying that alone (`0028`, since dropped)
+  hung a normal sleep: their consumers (PCIe PHY, USB PHY, DSI/UFS PLL) aren't ready.
 - Ruled out: ADSP/CDSP (stopped), UFS (already `spm_lvl=5`), MC4/SH5 (`9042`), Wi-Fi PDC table (`9038`),
   AOSD block (`9037`), GPU stale votes (fixed by `9039`), display RSC (empty TCSs, `9044` disabled).
 
