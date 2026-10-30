@@ -22,14 +22,14 @@ clean_package() {
       . "${i}/.asgardos-unpack"
       if [ "${STAMP_PKG_NAME}" = "${1}" ]; then
         build_msg "CLR_WARNING" "*" "$(print_color "CLR_WARNING_DIM" "Removing ${i} ...")"
-        rm -rf "${i}"
+        chmod -R u+w "${i}"; rm -rf "${i}"  # Go keeps its module cache read-only
       fi
     elif [ -d "${i}" -a -f "${i}/.asgardos-package" ]; then
       # force clean if no stamp found (previous unpack failed)
       . "${i}/.asgardos-package"
       if [ "${INFO_PKG_NAME}" = "${1}" ]; then
         build_msg "CLR_WARNING" "*" "$(print_color "CLR_WARNING_DIM" "Removing ${i} ...")"
-        rm -rf "${i}"
+        chmod -R u+w "${i}"; rm -rf "${i}"  # Go keeps its module cache read-only
       fi
     fi
   done
