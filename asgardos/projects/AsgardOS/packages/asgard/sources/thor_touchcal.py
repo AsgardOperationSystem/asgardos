@@ -71,7 +71,7 @@ def current(ident):
 
 
 def apply(ident, m):
-    sway("input", ident, "calibration_matrix", *fmt(m).split())
+    sway("--", "input", ident, "calibration_matrix", *fmt(m).split())  # "--": a matrix can start with a minus
 
 
 def save(screen, m):
