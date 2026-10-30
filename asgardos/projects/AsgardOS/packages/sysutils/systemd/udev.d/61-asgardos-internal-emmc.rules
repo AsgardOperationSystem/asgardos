@@ -1,2 +1,2 @@
 # Android eMMC partitions keep their /dev/disk links but get no systemd device units
-SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTRS{type}=="MMC", ENV{ID_FS_LABEL}!="AsgardOS|STORAGE", ENV{ASGARDOS_INTERNAL_EMMC}="1"
+SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ATTRS{type}=="MMC", ENV{ID_FS_LABEL}!="ROCKNIX|ASGARDOS|STORAGE", ENV{ASGARDOS_INTERNAL_EMMC}="1"
