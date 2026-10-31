@@ -101,3 +101,31 @@ shared with Armada. These apply cleanly to our 7.2 tree (dry run) and aren't in 
   - **battmgr wakeups:** Kettle `1170` drops battmgr's wakeup source; while charging, its notifications otherwise end s2idle within minutes. Unplugged sleeps here last hours, but sleep *while charging* is unmeasured. Needs a hand port (conflicts with `9003`).
   - **Unplug while asleep:** Armada `0519` clears the USB role for charger-only partners (otherwise a hang on unplug while asleep). Our `9005` fixed our reset differently (freezable wq).
   - **`95-thor-charge-fix`** logs "stuck" and rebinds UCSI after *every* unplugged wake (no partner looks the same as unplugged). With `9005` it may be obsolete.
+
+## Sleep drain on 7.3 (2026-10-31)
+
+**No 7.3 regression: the floor is ~21–25 mA on both kernels.** Every sleep of 30 min or more since 10-29
+(fan-sleep fix), by battery voltage at sleep entry:
+
+| Sleeps | Kernel | Voltage at entry | Drain |
+|---|---|---|---|
+| 10-29 21:28 | 7.2 | 4.00 V | 23 mA |
+| 10-30 07:55, 08:49 | 7.2 | 4.31–4.32 V, right after a charge | 7 mA |
+| 6 sleeps, 10-30 18:12 – 10-31 12:09 (incl. a 10.6 h overnight) | 7.3.1 | 3.80–4.13 V | 21–25 mA |
+
+- `charge_counter` is the gauge's SoC estimate in 666 µAh steps (0.01 % of ~6.66 Ah), not a raw coulomb count.
+  Near full after a charge it under-reads, so compare sleeps only at similar mid-range voltage, and only sleeps of
+  45 min or more.
+- The 7.3 suspend matches the 7 mA one on 7.2 event for event: the same rails switched, the same RPMh sleep/wake sets
+  (598 vs 599 messages), CX/AOSS/DDR collapsed the whole sleep, `vdd_fan_5v0` off.
+- 7.3 sometimes leaves s2idle and re-enters it (118 times in the overnight sleep, every ~5 min). A sleep with no re-entries
+  still drew 22 mA, so they aren't the drain. Their source is unknown; `ipcc_0` (`IRQF_NO_SUSPEND` on the Thor, `9005`)
+  is a guess. The sleep audit now writes `<start>.irq` (per-IRQ and wakeup-source deltas) to catch it.
+- Rails still on in suspend: `vph_pwr`, `s6g_1p8`, `l15b_1p8` (WCD codec buck/io/rxtx, WCN vddio), `bob1` (codec
+  mic-bias). Everything else switchable is off: SD, touch, pad MCU, WCN, UFS.
+- **Unattended test sleeps:** `echo +900 > /sys/class/rtc/rtc0/wakealarm; systemd-run --on-active=3 systemctl suspend`.
+  The RTC wakes it on time. `pm_debug_messages` isn't writable.
+
+**Next (parked):** A/B the suspects one per sleep with the audit's `asgard.sleep_experiment`, with RTC-woken sleeps of
+45 min or more at mid charge. Start with the audio codec (unbind it so `l15b`/`bob1` drop), then devices on `vph_pwr`
+(speaker amps, LED controller, panels, USB-C chips).

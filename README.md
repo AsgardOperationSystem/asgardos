@@ -68,7 +68,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Gyro for Steam and SDL games | 🧪 | On InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
 | **Power** | | |
 | Sleep (s2idle) | ✅ | Full SoC sleep (CX, AOSS, DDR), 20–30 mA (~0.3 %/h). Pad, Wi-Fi, audio and storage resume. Emulators don't replay the time asleep. |
-| Sleep drain below ~23 mA | ⏸️ | The rest is board-level (panels, touch, pad MCU, LEDs, Wi-Fi chip, PMIC). |
+| Sleep drain below ~23 mA | ⏸️ | Same ~22 mA floor on 7.2 and 7.3. Suspects: audio codec rails, devices on vph_pwr. See [docs/sleep.md](docs/sleep.md). |
 | Charge limit | ✅ | Stops at the limit, starts again 5 % below. Bypass charging. |
 | Battery report | ✅ | What used the battery since the last unplug (sleep, Home, each emulator), time left. |
 | CPU cap, performance profiles | ✅ | Per core type, 25–100 %; per-game profiles. |
