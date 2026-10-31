@@ -16,15 +16,20 @@ state() {  # charge_uah apss_count apss_acc s1_s2idle_count [ddr ticks at 547 15
   printf 'Count: %s\nLast Entered At: 0\nLast Exited At: 0\nAccumulated Duration: %s\n' $2 $3 > $Q/apss
   printf 'State Time(ms) Usage Rejected Above Below S2idle\nS0 0 0 0 0 0 0\nS1 513 2 0 0 0 %s\n' $4 > $C/idle_states
 }
-run() { TR=$T/tr SYS=$T OUT=$T/out.csv CFG=$T/cfg SNAP=$T/snap DUMPS=$T/dumps PLAYING=$T/playing sh "$H" $1; }
+mkdir -p $T/proc; P=$T/proc/interrupts
+irqs() {  # ipcc count, uart count
+  printf '           CPU0       CPU1\n 13:  %s  1  GICv3  261 Level  ipcc_0\n186:  %s  0  GICv3  494 Level  qcom_geni_serial_uart2\nIPI0:  7  7  Rescheduling interrupts\n' $1 $2 > $P
+  printf 'name\t\tactive_count\tevent_count\twakeup_count\nalarmtimer\t\t3\t\t%s\t\t0\n' $1 > $T/kernel/debug/wakeup_sources
+}
+run() { PROC=$T/proc TR=$T/tr SYS=$T OUT=$T/out.csv CFG=$T/cfg SNAP=$T/snap DUMPS=$T/dumps PLAYING=$T/playing sh "$H" $1; }
 printf 'asgard.sleep_audit=0\n' > $T/cfg
 state 5000000 10 100 99; run pre; run post
 [ ! -e $T/out.csv ] || { echo "FAIL: logged while off"; exit 1; }
 printf 'asgard.sleep_audit=0\nasgard.sleep_audit=1\nasgard.sleep_experiment=wifi\n' > $T/cfg
 echo 'start,old,header' > $T/out.csv                                         # an old-format log is rotated
 printf '3ds|azahar||100|Zelda "OoT" | 3D\n' > $T/playing
-state 5000000 10 100 99 0 1000 0; run pre
-state 4900000 12 400 100 50 1100 900; run post
+state 5000000 10 100 99 0 1000 0; irqs 100 50; run pre
+state 4900000 12 400 100 50 1100 900; irqs 218 50; run post
 [ "$(wc -l < $T/out.csv)" = 2 ] || { echo "FAIL: lines"; cat $T/out.csv; exit 1; }
 L=$(tail -1 $T/out.csv)
 echo "$L" | grep -q ',100,' || { echo "FAIL: mah"; echo "$L"; exit 1; }       # 100 mAh used
@@ -33,6 +38,10 @@ echo "$L" | grep -q ',1,wifi,4224,85,azahar,"Zelda ""OoT"" | 3D"$' || { echo "FA
 [ "$(cat $T/out.csv.1)" = start,old,header ] || { echo "FAIL: rotate"; exit 1; }
 ls $T/dumps/*.txt >/dev/null || { echo "FAIL: dump"; exit 1; }
 ls $T/dumps/*.trace >/dev/null || { echo "FAIL: trace"; exit 1; }
+I=$(ls $T/dumps/*.irq)
+grep -qx "$(printf "118\tirq 13: GICv3 261 Level ipcc_0")" $I || { echo "FAIL: irq delta"; cat $I; exit 1; }
+grep -q "$(printf '^118\tws alarmtimer$')" $I || { echo "FAIL: ws delta"; cat $I; exit 1; }
+! grep -q uart2 $I || { echo "FAIL: unchanged irq listed"; cat $I; exit 1; }
 [ "$(cat $T/tr/tracing_on)" = 0 ] || { echo "FAIL: trace left on"; exit 1; }
 # alt:wifi: on every other sleep
 printf 'asgard.sleep_audit=1\nasgard.sleep_experiment=alt:wifi\n' > $T/cfg; rm $T/playing

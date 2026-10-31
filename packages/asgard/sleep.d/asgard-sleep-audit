@@ -16,6 +16,8 @@
 # <start>.trace: what the drivers switch in the suspend itself, after this hook (regulator enable/disable, GPIO
 # writes, RPMh sleep/wake-set votes, suspend/resume markers), from a private ftrace instance, so a rail or pin
 # left on across the sleep shows up by name.
+# <start>.irq: per-IRQ and per-wakeup-source count deltas across the sleep (largest first), for what wakes the s2idle
+# loop (s1_s2idle > 1). Includes the resume itself, so a handful of counts on most lines is normal.
 # Off unless Settings > Debug > Sleep audit (asgard.sleep_audit=1).
 S=${SYS:-/sys}
 OUT=${OUT:-/storage/sleep-audit.csv}
@@ -27,6 +29,7 @@ TR=${TR:-$S/kernel/tracing/instances/asgard-sleep}
 TRACE_EVENTS="regulator/regulator_enable regulator/regulator_disable_complete regulator/regulator_set_voltage
   gpio/gpio_value rpmh/rpmh_send_msg power/suspend_resume"
 SUBS="apss adsp cdsp aosd cxsd ddr"
+PROC=${PROC:-/proc}
 
 snap() {
   echo "t=$(date +%s)"
@@ -41,6 +44,12 @@ snap() {
   # "DDR Freq 1555Mhz:	CP IDX:4	count:1	Duration (ticks):1139593601024" -> ddr1555=1139593601024
   awk '/^DDR Freq/ { f = $3; sub(/Mhz:/, "", f); d = $NF; sub(/.*:/, "", d); print "ddr" f "=" d }' \
     $S/kernel/debug/qcom_stats/ddr_stats 2>/dev/null
+}
+# "irq <n>|<name> <count>" and "ws <name> <event_count>" lines, for the .irq delta
+counts() {
+  awk 'NR > 1 { n = 0; for (i = 2; i <= NF && $i ~ /^[0-9]+$/; i++) n += $i
+    name = ""; for (j = i; j <= NF; j++) name = name " " $j; print "irq " $1 name "\t" n }' $PROC/interrupts 2>/dev/null
+  awk -F'\t+' 'NR > 1 { print "ws " $1 "\t" $3 }' $S/kernel/debug/wakeup_sources 2>/dev/null
 }
 HDR="start,secs,mah,avg_ma,uv_start,uv_end$(for s in $SUBS; do printf ",${s}_cnt,${s}_acc"; done),s1_s2idle,exp,ddr_mhz,ddr_pct,emu,game"
 
@@ -57,6 +66,7 @@ case "$1" in
   pre)
     [ "$(cfg asgard.sleep_audit)" = 1 ] || exit 0
     snap > $SNAP
+    counts > $SNAP.irq
     exp=$(cfg asgard.sleep_experiment)
     case $exp in alt:*) [ $(( $(wc -l < $OUT 2>/dev/null || echo 0) % 2 )) = 0 ] && exp=${exp#alt:} || exp= ;; esac
     # Only radios that are on now: the post step unblocks what's in $SNAP.exp, and unblocking a radio that airplane
@@ -72,6 +82,7 @@ case "$1" in
     done > $D/$(sed -n 's/^t=//p' $SNAP).txt 2>/dev/null
     ls -t $D/*.txt 2>/dev/null | tail -n +41 | xargs rm -f
     ls -t $D/*.trace 2>/dev/null | tail -n +41 | xargs rm -f
+    ls -t $D/*.irq 2>/dev/null | tail -n +41 | xargs rm -f
     { mkdir -p $TR && echo 0 > $TR/tracing_on && echo > $TR/trace && echo 1024 > $TR/buffer_size_kb
       for e in $TRACE_EVENTS; do echo 1 > $TR/events/$e/enable; done
       echo 1 > $TR/tracing_on; } 2>/dev/null
@@ -80,6 +91,8 @@ case "$1" in
     [ -r $SNAP ] || exit 0
     radios unblock
     snap > $SNAP.post
+    counts | awk -F'\t' 'FNR == NR { a[$1] = $2; next } $2 - a[$1] > 0 { print $2 - a[$1] "\t" $1 }' $SNAP.irq - \
+      | sort -rn > $DUMPS/$(sed -n 's/^t=//p' $SNAP).irq 2>/dev/null
     [ -r $TR/trace ] && { echo 0 > $TR/tracing_on; cat $TR/trace > $DUMPS/$(sed -n 's/^t=//p' $SNAP).trace; } 2>/dev/null
     [ "$(head -1 $OUT 2>/dev/null)" = "$HDR" ] || { [ -s $OUT ] && mv $OUT $OUT.1; echo "$HDR" > $OUT; }
     emu= game=
@@ -97,7 +110,7 @@ case "$1" in
         gsub(/"/, "\"\"", game)
         print l "," (b["s1"] - a["s1"]) "," ex "," mhz "," (tot > 0 ? int(100 * top / tot) : "") "," emu ",\"" game "\"" >> out
       }' $SNAP $SNAP.post
-    rm -f $SNAP $SNAP.post $SNAP.exp
+    rm -f $SNAP $SNAP.post $SNAP.exp $SNAP.irq
     ;;
 esac
 exit 0
