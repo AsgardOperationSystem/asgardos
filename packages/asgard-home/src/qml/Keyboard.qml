@@ -2,6 +2,7 @@ import QtQuick
 
 // On-screen keyboard (Wi-Fi passwords, hostname). D-pad moves, A types, B deletes, Y space, X shift, + done.
 // Touch works too. ask(title, text, secret, done) opens it; done(text) runs on Done, nothing on cancel.
+// Limits for a game's prompt: maxLength, minLength (0 = none), allowed (the only characters taken, "" = all), canCancel.
 Item {
     id: kb
     property bool open: false
@@ -13,6 +14,11 @@ Item {
     property int mode: 0                      // 0 lower, 1 upper, 2 symbols
     property int kr: 0
     property int kc: 0
+    property int maxLength: 0
+    property int minLength: 0
+    property string allowed: ""
+    property bool canCancel: true
+    property int bottomGap: 36                // the card's distance from the bottom edge
 
     readonly property var layouts: [
         ["1234567890", "qwertyuiop", "asdfghjkl-", "zxcvbnm_.@"],
@@ -26,13 +32,16 @@ Item {
         title = t; text = value || ""; secret = !!isSecret; reveal = false; done = cb
         mode = 0; kr = 1; kc = 0; open = true
     }
+    function takes(c) {
+        return (!maxLength || text.length < maxLength) && (!allowed || allowed.indexOf(c) >= 0)
+    }
     function press(k) {
         if (k === "shift") mode = mode === 1 ? 0 : 1
         else if (k === "sym") mode = mode === 2 ? 0 : 2
-        else if (k === "space") text += " "
+        else if (k === "space") { if (takes(" ")) text += " " }
         else if (k === "del") text = text.slice(0, -1)
-        else if (k === "ok") { open = false; if (done) done(text) }
-        else { text += k; if (mode === 1) mode = 0 }
+        else if (k === "ok") { if (text.length >= minLength) { open = false; if (done) done(text) } }
+        else { if (takes(k)) text += k; if (mode === 1) mode = 0 }
     }
     function nav(b) {
         if (!open) return false
@@ -47,7 +56,7 @@ Item {
         else if (b === "left") kc = (kc + row.length - 1) % row.length
         else if (b === "right") kc = (kc + 1) % row.length
         else if (b === "a") press(kr === rows.length - 1 ? row[kc][1] : row[kc])
-        else if (b === "b") { if (text.length) press("del"); else open = false }
+        else if (b === "b") { if (text.length) press("del"); else if (canCancel) open = false }
         else if (b === "y") press("space")
         else if (b === "x") press("shift")
         else if (b === "start") press("ok")
@@ -59,12 +68,19 @@ Item {
     Rectangle { anchors.fill: parent; color: "#99000000"; MouseArea { anchors.fill: parent } }
 
     Rectangle {
-        anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 36
+        anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: kb.bottomGap
         width: parent.width - 72; height: 770; radius: 44; color: "#ebedf2"; border.color: "white"; border.width: 2
 
         Text {
             x: 40; y: 28; text: kb.title
+            width: parent.width - (kb.maxLength ? 220 : 80); elide: Text.ElideRight
             font.family: Theme.font; font.pixelSize: 36; font.weight: Font.Black; color: "#2a2b3d"
+        }
+        Text {  // the room left, for a limited field
+            visible: kb.maxLength > 0; anchors.right: parent.right; anchors.rightMargin: 40; y: 34
+            text: kb.text.length + " / " + kb.maxLength
+            font.family: Theme.font; font.pixelSize: 28; font.weight: Font.Bold
+            color: kb.text.length >= kb.maxLength ? Theme.selB : "#6f7186"
         }
         Rectangle {  // the field
             x: 32; y: 88; width: parent.width - 64; height: 92; radius: 24; color: "white"
@@ -116,7 +132,8 @@ Item {
         }
         Text {
             anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 22
-            text: "A type   ·   B delete   ·   Y space   ·   X shift   ·   + done"
+            text: "A type   ·   B " + (kb.text.length ? "delete" : kb.canCancel ? "cancel" : "delete")
+                  + "   ·   Y space   ·   X shift   ·   + done"
             font.family: Theme.font; font.pixelSize: 24; font.weight: Font.Bold; color: "#6f7186"
         }
     }

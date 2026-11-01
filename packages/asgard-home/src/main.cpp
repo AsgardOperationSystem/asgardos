@@ -9,7 +9,10 @@
 #include <QQuickWindow>
 #include <QPointerEvent>
 #include <QTimer>
+#include <csignal>
+#include <cstdio>
 #include <memory>
+#include <sys/prctl.h>
 
 #ifdef HAVE_LAYERSHELL
 #include <LayerShellQt/window.h>
@@ -98,27 +101,44 @@ int main(int argc, char *argv[])
     }
     // Asgard Files (asgard-home --files, Tools > Files) the same way: its own QML, a Files backend and the pad.
     // Thor Panel (asgard-home --panel, the AYN button) too, with the pad grabbed: the game paused under it never sees it.
+    // A game's text prompt (asgard-text-input --text-input, by thor_text_input.py) too, grabbed as well: the text goes to
+    // stdout, exit 0; backed out, exit 1; failed, exit 2. It ends with its parent: left behind it would keep the grab.
     const int musicArg = app.arguments().indexOf("--music");
     const bool filesMode = app.arguments().contains("--files");
     const bool panelMode = app.arguments().contains("--panel");
-    if (musicArg >= 0 || filesMode || panelMode) {
+    const bool textMode = app.arguments().contains("--text-input");
+    if (textMode)
+        prctl(PR_SET_PDEATHSIG, SIGTERM);
+    if (musicArg >= 0 || filesMode || panelMode || textMode) {
         const bool musicMode = musicArg >= 0;
         std::unique_ptr<Music> music(musicMode ? new Music : nullptr);   // Music starts mpv: only for Asgard Music
         std::unique_ptr<Files> files(filesMode ? new Files : nullptr);
         std::unique_ptr<Panel> panel(panelMode ? new Panel : nullptr);
-        Gamepad pad(!shot.isEmpty(), panelMode);
+        Gamepad pad(!shot.isEmpty(), panelMode || textMode);
+        const auto option = [&app](const QString &name) {
+            for (const QString &a : app.arguments())
+                if (a.startsWith("--" + name + "="))
+                    return a.mid(name.size() + 3);
+            return QString();
+        };
         QQmlApplicationEngine engine;
         engine.rootContext()->setContextProperty("music", music.get());
         engine.rootContext()->setContextProperty("files", files.get());
         engine.rootContext()->setContextProperty("panel", panel.get());
+        engine.rootContext()->setContextProperty("textInput", QVariantMap{
+            {"title", option("title")}, {"initial", option("initial")}, {"accent", option("accent")},
+            {"maxLength", option("max").toInt()}, {"minLength", option("min").toInt()},
+            {"digits", app.arguments().contains("--digits")}, {"secret", app.arguments().contains("--secret")},
+            {"noCancel", app.arguments().contains("--no-cancel")}});
         engine.rootContext()->setContextProperty("pad", &pad);
         engine.rootContext()->setContextProperty("shotMode", !shot.isEmpty());
         if (music && musicArg + 1 < app.arguments().size())
             music->load(app.arguments().at(musicArg + 1));
         engine.load(QDir(qEnvironmentVariable("ASGARD_HOME_QML", "/usr/share/asgard-home/qml"))
-                        .filePath(musicMode ? "Music.qml" : filesMode ? "Files.qml" : "Panel.qml"));
+                        .filePath(musicMode ? "Music.qml" : filesMode ? "Files.qml"
+                                  : textMode ? "TextInput.qml" : "Panel.qml"));
         if (engine.rootObjects().isEmpty())
-            return 1;
+            return textMode ? 2 : 1;
         if (!shot.isEmpty()) {   // as Home's screenshot mode below: replay ASGARD_KEYS, then save each window
             const QStringList keys = qEnvironmentVariable("ASGARD_KEYS").split(' ', Qt::SkipEmptyParts);
             for (int i = 0; i < keys.size(); i++)
@@ -132,7 +152,13 @@ int main(int argc, char *argv[])
                 QGuiApplication::quit();
             });
         }
-        return app.exec();
+        const int code = app.exec();
+        if (textMode && code == 0 && shot.isEmpty()) {
+            const QByteArray text = engine.rootObjects().first()->property("result").toString().toUtf8();
+            fwrite(text.constData(), 1, size_t(text.size()), stdout);
+            fflush(stdout);
+        }
+        return code;
     }
     Backend backend(gameEnv);
     Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)

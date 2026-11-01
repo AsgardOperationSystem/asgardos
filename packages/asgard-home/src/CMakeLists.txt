@@ -27,6 +27,8 @@ install(PROGRAMS start_asgard-files.sh DESTINATION bin)
 install(CODE "file(CREATE_LINK asgard-home \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/asgard-osk SYMBOLIC)")
 # Thor Panel (the AYN button, thor_ayn_button.py): asgard-home --panel, under its own name too.
 install(CODE "file(CREATE_LINK asgard-home \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/asgard-panel SYMBOLIC)")
+# A game's text prompt (thor_text_input.py): asgard-home --text-input, under its own name too.
+install(CODE "file(CREATE_LINK asgard-home \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/bin/asgard-text-input SYMBOLIC)")
 install(DIRECTORY qml/ DESTINATION share/asgard-home/qml)
 # Built-in art and gamelist entries (media/<system>/, ES-DE layout) for entries Asgard ships, like Tools > Firefox.
 install(DIRECTORY media/ DESTINATION share/asgard-home/media PATTERN "*.py" EXCLUDE)   # not make_tools_art.py

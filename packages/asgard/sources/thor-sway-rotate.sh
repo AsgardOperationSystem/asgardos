@@ -68,11 +68,11 @@ grep -q '^# thor-azahar-homebrew' "$C" || printf '%s\n' '# thor-azahar-homebrew'
 # power it on and enable touch; fill it and give focus back to the game (2026-10-17).
 grep -q '^# thor-eden-duo' "$C" || printf '%s\n' '# thor-eden-duo' \
   'for_window [title="^Eden - Screen 2"] fullscreen enable, focus output DSI-2' >> "$C"
-# A game's text prompt (thor_text_input.py): assigned, as the fullscreen request would otherwise take fullscreen from
-# the game; focus stays on the game, the keyboard has the pad by an evdev grab.
-grep -q '^# thor-keyboard' "$C" || printf '%s\n' '# thor-keyboard' \
-  'assign [title="^Asgard Keyboard"] output DSI-1' \
-  'for_window [title="^Asgard Keyboard"] fullscreen enable, focus output DSI-2' >> "$C"
+# A game's text prompt (thor_text_input.py): on the bottom screen, filling it, with focus left on the game; the
+# keyboard has the pad by an evdev grab.
+grep -q '^# thor-text-input' "$C" || printf '%s\n' '# thor-text-input' \
+  'assign [title="^Asgard Text Input"] output DSI-1' \
+  'for_window [title="^Asgard Text Input"] fullscreen enable, focus output DSI-2' >> "$C"
 # Dusklight (Twilight Princess port, igawa6's dual-screen fork) puts its companion (map, HUD) in a second window,
 # "Dusklight — Second Screen": on the bottom screen like Lumi-Dex, focus back to the game (2026-10-17).
 grep -q '^# thor-dusklight' "$C" || printf '%s\n' '# thor-dusklight' \
