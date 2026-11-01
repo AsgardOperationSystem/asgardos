@@ -76,22 +76,6 @@ merge_new_keys /usr/config/retroarch/retroarch-core-options.cfg /storage/.config
 rsync -a --ignore-existing /usr/config/melonDS /storage/.config/
 merge_new_keys /usr/config/melonDS/melonDS.ini /storage/.config/melonDS/melonDS.ini
 
-### Apply developer ssh keys if they exist
-echo "Apply dev keys if available..." >>${LOG}
-if [ -e /usr/config/ssh/authorized_keys ]
-then
-  tocon "Update developer keys..."
-  cp /usr/config/ssh/authorized_keys /storage/.ssh
-fi
-
-### Apply developer wifi config if they exist
-echo "Apply dev wifi config if available..." >>${LOG}
-if [ -d /usr/config/iwd ]
-then
-  tocon "Update developer wifi config..."
-  cp /usr/config/iwd/* /storage/.cache/iwd/
-fi
-
 ### Add cloud sync-related files if missing
 echo "Update cloud sync files..." >>${LOG}
 if [ -x "/usr/bin/cloud_sync_helper" ]; then

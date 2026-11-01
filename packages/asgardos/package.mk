@@ -26,22 +26,6 @@ makeinstall_target() {
   ### Compatibility links for ports
   ln -s /storage/roms ${INSTALL}/roms
 
-  ### Add some quality of life customizations for hardworking devs.
-  if [ -n "${LOCAL_SSH_KEYS_FILE}" ]
-  then
-    mkdir -p ${INSTALL}/usr/config/ssh
-    cp ${LOCAL_SSH_KEYS_FILE} ${INSTALL}/usr/config/ssh/authorized_keys
-  fi
-
-  if [ -n "${LOCAL_WIFI_SSID}" ]
-  then
-    sed -i "s#wifi.enabled=0#wifi.enabled=1#g" ${INSTALL}/usr/config/system/configs/system.cfg
-    mkdir -p ${INSTALL}/usr/config/iwd
-    cat <<EOF >> ${INSTALL}/usr/config/iwd/${LOCAL_WIFI_SSID}.psk
-[Security]
-Passphrase=${LOCAL_WIFI_KEY}
-EOF
-  fi
   # Always install the update script
   mkdir -p $INSTALL/usr/share/bootloader
   find_file_path bootloader/update.sh && cp -av ${FOUND_PATH} ${INSTALL}/usr/share/bootloader

@@ -63,9 +63,6 @@ docker-%: DOCKER_WORK_DIR := $(shell if [ -n "${DOCKER_WORK_DIR}" ]; then echo $
 # ${HOME}/.asgardos/options is a global options file containing developer and build settings.
 docker-%: GLOBAL_SETTINGS := $(shell if [ -f "${HOME}/.asgardos/options" ]; then echo "-v \"${HOME}/.asgardos/options:${HOME}/.asgardos/options\""; else echo ""; fi)
 
-# LOCAL_SSH_KEYS_FILE is a variable that contains the location of the authorized keys file for development build use.  It will be mounted into the container if it exists.
-docker-%: LOCAL_SSH_KEYS_FILE := $(shell if [ -n "${LOCAL_SSH_KEYS_FILE}" ]; then echo "-v \"${LOCAL_SSH_KEYS_FILE}:${LOCAL_SSH_KEYS_FILE}\""; else echo ""; fi)
-
 # EMULATIONSTATION_SRC is a variable that contains the location of local emulationstation source code. It will be mounted into the container if it exists.
 docker-%: EMULATIONSTATION_SRC := $(shell if [ -n "${EMULATIONSTATION_SRC}" ]; then echo "-v \"${EMULATIONSTATION_SRC}:${EMULATIONSTATION_SRC}\""; else echo ""; fi)
 
@@ -109,4 +106,4 @@ docker-image-pull:
 
 # Wire up docker to call equivalent make files using % to match and $* to pass the value matched by %
 docker-%:
-	$(DOCKER_CMD) run $(PODMAN_ARGS) $(INTERACTIVE) --init --env-file build/.env --rm --user $(UID):$(GID) $(GLOBAL_SETTINGS) $(LOCAL_SSH_KEYS_FILE) $(EMULATIONSTATION_SRC) -v $(PWD):$(DOCKER_WORK_DIR) -w $(DOCKER_WORK_DIR) $(DOCKER_EXTRA_OPTS) $(DOCKER_IMAGE) $(COMMAND)
+	$(DOCKER_CMD) run $(PODMAN_ARGS) $(INTERACTIVE) --init --env-file build/.env --rm --user $(UID):$(GID) $(GLOBAL_SETTINGS) $(EMULATIONSTATION_SRC) -v $(PWD):$(DOCKER_WORK_DIR) -w $(DOCKER_WORK_DIR) $(DOCKER_EXTRA_OPTS) $(DOCKER_IMAGE) $(COMMAND)

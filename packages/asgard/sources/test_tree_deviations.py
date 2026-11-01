@@ -56,12 +56,12 @@ ROOT_BUILD_LEFTOVERS = {
 # SPEC 16: the emulators package regenerates this tracked file.
 WRITES_ROOT = {"distribution/options": r'SYSDOCROOT|SYSDOC='}
 
-# DEV-16, in SPEC 16: test_gap_local_wifi.sh holds the rule. test_build_env.py checks build.sh's guard.
+# DEV-16: test_local_secrets.sh holds the rule. test_build_env.py checks build.sh's guard.
 LOCAL_SECRETS = r"LOCAL_WIFI_|LOCAL_SSH_KEYS_FILE|usr/config/iwd|usr/config/ssh/authorized_keys"
 LOCAL_SECRETS_ALLOWED = {
-    "packages/asgardos/package.mk", "Makefile", "build.sh",
+    "build.sh",
     # These copy what an image holds there onto /storage at boot.
-    "packages/asgardos/sources/post-update", "packages/network/openssh/daemons/001-ssh",
+    "packages/network/openssh/daemons/001-ssh",
     "packages/sysutils/systemd/scripts/userconfig-setup",
 }
 KEY_FILES = r"(^|/)(authorized_keys|id_(rsa|dsa|ecdsa|ed25519)(\.pub)?|asgard\.yml|[^/]*\.psk|[^/]*\.keystore)$"

@@ -160,9 +160,8 @@ Nothing personal is built into the image. Wi-Fi, logins and SSH keys live in `as
 `asgard.yml.example`; `asgard.yml` is git-ignored) on the boot partition (`/flash/asgard.yml`, or
 `/storage/.config/asgard/asgard.yml` after `installtointernal`). `./inject-config.sh <image> asgard.yml` puts it
 on a local copy of an image. At every boot each key is applied unless the setting was changed on the device:
-**image defaults < asgard.yml < the user's own changes**. Never build with ROCKNIX's `LOCAL_WIFI_SSID` /
-`LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` runs the build with an empty
-environment, so nothing from your shell reaches it).
+**image defaults < asgard.yml < the user's own changes**. Nothing personal is built into an image: ROCKNIX's `LOCAL_WIFI_SSID`, `LOCAL_WIFI_KEY` and `LOCAL_SSH_KEYS_FILE` are gone
+from the recipes, and `build.sh` runs the build with an empty environment.
 
 ### Default login
 
