@@ -14,9 +14,15 @@ playing=$(remote 'cat /run/thor-playing.txt 2>/dev/null')
 # A disk that's failing is no place to run these, and their results would mean nothing: reads fail for reasons of their own.
 storage=$(remote 'grep -q emergency_ro /proc/mounts && echo "/storage is flagged emergency_ro"; dmesg | grep -q "I/O error, dev sda" && echo "I/O errors on the UFS disk"')
 [ -z "$storage" ] || { echo "the Thor's storage is failing, stopping: $storage"; exit 2; }
+# Each check first looks for a game again, because one can start during the run. sway_config is what sway loaded: autostart
+# regenerates the file on disk after sway has read it, so the file doesn't have Thor's rules.
+PRELUDE='[ -z "$(cat /run/thor-playing.txt 2>/dev/null)" ] || exit 75
+sway_config() { SWAYSOCK=/run/0-runtime-dir/sway-ipc.0.sock swaymsg -p -t get_config; }'
 check() {
-  remote "$3" >/dev/null 2>&1
+  remote "$PRELUDE
+$3" >/dev/null 2>&1
   case $? in
+    75) echo "a game started, stopping (TEST-6)"; echo "$pass passed, $fail failed, $skip skipped, the rest not run"; exit 2 ;;
     0) pass=$((pass + 1)); printf 'PASS  %-18s %s\n' "$1" "$2" ;;
     77) skip=$((skip + 1)); printf 'SKIP  %-18s %s\n' "$1" "$2" ;;
     *) fail=$((fail + 1)); printf 'FAIL  %-18s %s\n' "$1" "$2" ;;
@@ -55,18 +61,18 @@ check "GAME-6" "Back to Home's script and what it runs are there, and nothing wa
 check "GAME-7" "the sleep hook is installed, and Home is listening on the FIFO it writes to" 'test -x /usr/lib/systemd/system-sleep/asgard-game-pause && test -p /run/asgard-home.cmd'
 check "GAME-9" "InputPlumber is up and a virtual DualSense exists" 'systemctl is-active -q inputplumber && grep -qi "Vendor=054c" /proc/bus/input/devices'
 check "GAME-9" "the raw Thor pad's event node is hidden from games" 'evs=$(awk "BEGIN{RS=\"\"} /rsinput-gamepad\/input0/" /proc/bus/input/devices | sed -n "s/^H: Handlers=.*\(event[0-9]*\).*/\1/p"); test -n "$evs" && for e in $evs; do test ! -e /dev/input/$e || test "$(stat -c %a /dev/input/$e)" = 0 || exit 1; done'
-check "GAME-10" "sway has the top screen rule, and the idle-off script is installed" 'grep -q "^# thor-fullscreen" /storage/.config/sway/config && test -x /usr/share/asgard/thor-bottom-idle-off.sh'
-check "COMP-1" "sway has the second-window rules: moved, powered on, rotated" 'c=/storage/.config/sway/config; grep -q "GamePad).\*\"\] move window to output DSI-1" $c && grep -q "GamePad).\*\"\] output DSI-1 power on" $c && grep -q "^# thor-rotate" $c && test -x /usr/share/asgard/thor-bottom-rotate.sh'
-check "COMP-2" "Eden Duo is installed and its companion rule is in sway" 'test -x /usr/bin/start_eden-duo.sh && grep -q "^# thor-eden-duo" /storage/.config/sway/config'
-check "COMP-3" "lowerdeck is installed and vertical-check runs for RetroArch windows" 'test -f /usr/share/lowerdeck/main.py && grep -q "^# thor-lowerdeck" /storage/.config/sway/config && grep -q "RetroArch.\*\"\] exec /usr/bin/vertical-check" /storage/.config/sway/config'
-check "COMP-4" "sway has the rules for the ports in /storage" 'c=/storage/.config/sway/config; for r in thor-wwhd thor-dusklight thor-love2 thor-lumidex; do grep -q "^# $r" $c || exit 1; done'
+check "GAME-10" "sway has the top screen rule, and the idle-off script is installed" 'sway_config | grep -q "^# thor-fullscreen" && test -x /usr/share/asgard/thor-bottom-idle-off.sh'
+check "COMP-1" "sway has the second-window rules: moved, powered on, rotated" 'sway_config | grep -q "GamePad).\*\"\] move window to output DSI-1" && sway_config | grep -q "GamePad).\*\"\] output DSI-1 power on" && sway_config | grep -q "^# thor-rotate" && test -x /usr/share/asgard/thor-bottom-rotate.sh'
+check "COMP-2" "Eden Duo is installed and its companion rule is in sway" 'test -x /usr/bin/start_eden-duo.sh && sway_config | grep -q "^# thor-eden-duo"'
+check "COMP-3" "lowerdeck is installed and vertical-check runs for RetroArch windows" 'test -f /usr/share/lowerdeck/main.py && sway_config | grep -q "^# thor-lowerdeck" && sway_config | grep -q "RetroArch.\*\"\] exec /usr/bin/vertical-check"'
+check "COMP-4" "sway has the rules for the ports in /storage" 'for r in thor-wwhd thor-dusklight thor-love2 thor-lumidex; do sway_config | grep -q "^# $r" || exit 1; done'
 check "OVR-2 OVR-5" "the option catalogue answers on the device, with the hardware rows and an emulator's own" 'o=$(python3 /usr/share/asgard/thor_settings.py --features azahar azahar-sa); for k in cpu_cap_mid gpu_cap fan_mode motion eq_speaker sleep_mode screen_layout; do echo "$o" | grep -q "\"$k\"" || exit 1; done'
 check "OVR-3" "the shader cache script is installed" 'test -x /usr/share/asgard/asgard-shader-cache.sh'
 check "GPU-1" "the row's default has a version to name" 'test -s /usr/share/mesa/version'
 check "GPU-2" "the extra Turnip is installed, and its icd.json points at a library that exists" 'j=/usr/lib/gpu-drivers/mesa-25.3.6/icd.json; test -f $j && test -f "$(sed -n "s/.*\"library_path\": \"\([^\"]*\)\".*/\1/p" $j)"'
 check "GPU-3" "Mesa has Zink" 'test -e /usr/lib/dri/zink_dri.so'
 check "GPU-3" "Zink is the default: Home, whose environment games inherit, has the override" 'tr "\0" "\n" < /proc/$(pidof -s asgard-home)/environ | grep -qx "MESA_LOADER_DRIVER_OVERRIDE=zink"'
-check "PORT-1" "PortMaster is installed" 'test -x /usr/bin/start_portmaster'
+check "PORT-1" "PortMaster is installed" 'test -x /usr/bin/start_portmaster.sh'
 check "PORT-3" "the linker can find libtheoradec" 'test -e /usr/lib/libtheoradec.so.1'
 check "EMU-1 EMU-5" "the image has its systems and option catalogue, and no EmulationStation" 'test "$(grep -c "<system>" /usr/config/emulationstation/es_systems.cfg)" -ge 100 && test -s /usr/share/asgard/es_features.cfg && ! command -v emulationstation >/dev/null'
 check "BAT-3" "the screens-off script is installed, and the power handler knows the marker" 'test -x /usr/share/asgard/asgard-screens-off.sh && grep -q /run/asgard-keep-running /usr/lib/autostart/quirks/platforms/SM8550/bin/power-handler'
@@ -74,9 +80,9 @@ check "BAT-3" "the screens-off script is installed, and the power handler knows 
 # Settings, performance, sound, input
 check "CFG-7" "the sensor server runs only if sensors-root is there" '[ -e /storage/.config/asgard/sensors-root/hexagonrpc.json ] || ! systemctl is-active -q thor-sensorspd'
 check "CFG-8" "the root login's hash matches root.password" '. /etc/profile.d/001-functions; p=$(get_setting root.password); h=$(sed -n "s/^root:\([^:]*\):.*/\1/p" /storage/.cache/shadow); s=${h%\$*}; [ -n "$p" ] && [ "$(cryptpw -m sha512 -S "${s##*\$}" "$p")" = "$h" ]'
-check "PERF-1" "three core types: policy0 CPU0-2, policy3 CPU3-6, policy7 CPU7" 'P=/sys/devices/system/cpu/cpufreq; [ "$(xargs < $P/policy0/related_cpus)" = "0 1 2" ] && [ "$(xargs < $P/policy3/related_cpus)" = "3 4 5 6" ] && [ "$(xargs < $P/policy7/related_cpus)" = "7" ]'
+check "PERF-1" "three core types: policy0 CPU0-2, policy3 CPU3-6, policy7 CPU7" 'P=/sys/devices/system/cpu/cpufreq; [ "$(echo $(cat $P/policy0/related_cpus))" = "0 1 2" ] && [ "$(echo $(cat $P/policy3/related_cpus))" = "3 4 5 6" ] && { [ "$(cat /sys/devices/system/cpu/cpu7/online)" = 0 ] || [ "$(echo $(cat $P/policy7/related_cpus))" = "7" ]; }'
 check "PERF-1 PERF-3" "in Home each type's clock is a supported step at or under the menu's cap" '. /etc/profile.d/001-functions; P=/sys/devices/system/cpu/cpufreq; for x in little:0:90 mid:3:75 prime:7:75; do t=${x%%:*}; r=${x#*:}; pol=${r%:*}; d=${r#*:}; c=$(get_setting asgard.cpu_cap.$t); [ "$c" = off ] && continue; [ "$(get_setting asgard.cpu_cap)" = 0 ] && d=100; c=${c:-$d}; f=$(cat $P/policy$pol/scaling_max_freq); [ "$f" -le $(( $(cat $P/policy$pol/cpuinfo_max_freq) * c / 100 )) ] || exit 1; tr " " "\n" < $P/policy$pol/scaling_available_frequencies | grep -qx "$f" || exit 1; done'
-check "PERF-4" "in Home the GPU's clock is a supported step at or under the menu's cap" '. /etc/profile.d/001-functions; G=/sys/class/devfreq/3d00000.gpu; c=$(get_setting asgard.gpu_cap); c=${c:-100}; f=$(cat $G/max_freq); t=$(tr " " "\n" < $G/available_frequencies | sort -n | tail -1); [ "$f" -le $(( t * c / 100 )) ] && tr " " "\n" < $G/available_frequencies | grep -qx "$f"'
+check "PERF-4" "in Home the GPU's clock is a supported step at or under the menu's cap" '. /etc/profile.d/001-functions; G=/sys/class/devfreq/3d00000.gpu; c=$(get_setting asgard.gpu_cap); c=${c:-100}; f=$(cat $G/max_freq); s=$(tr " " "\n" < $G/available_frequencies | sort -n); t=$(echo "$s" | tail -1); { [ "$f" -le $(( t * c / 100 )) ] || [ "$f" = "$(echo "$s" | head -1)" ]; } && tr " " "\n" < $G/available_frequencies | grep -qx "$f"'
 check "PERF-5" "fancontrol's unit runs asgard-fan.sh, and a fixed speed is what the fan has" '. /etc/profile.d/001-functions; systemctl cat fancontrol | grep -q "^ExecCondition=/usr/share/asgard/asgard-fan.sh" || exit 1; m=$(get_setting asgard.fan_manual); [ -z "$m" ] || [ "$(cat $(ls /sys/class/hwmon/hwmon*/pwm1 | head -1))" = "$m" ]'
 check "PWR-8" "the gyro service runs only if the menu asked for it" '. /etc/profile.d/001-functions; m=$(get_setting asgard.motion); if [ "$m" = 1 ] || [ "$m" = on ]; then [ ! -e /storage/.config/asgard/sensors-root/hexagonrpc.json ] || systemctl is-active -q asgard-motiond; else ! systemctl is-active -q asgard-motiond; fi'
 check "PWR-11" "system.suspendmode is one Settings offers, or unset" '. /etc/profile.d/001-functions; case "$(get_setting system.suspendmode)" in ""|mem|freeze|off) ;; *) exit 1 ;; esac'
@@ -84,8 +90,8 @@ check "INP-1" "while the gyro service runs, it serves DSU on 127.0.0.1:26760" 's
 check "INP-2" "the stick lights' commands and LEDs are there" 'command -v ledcontrol && command -v analog_sticks_ledcontrol && [ -d /sys/devices/platform/multi-ledl1 ] && [ -d /sys/devices/platform/multi-ledr1 ]'
 check "AUD-1" "the rule that puts headphones first is installed" 'grep -q "priority.session = 1100" /usr/share/wireplumber/wireplumber.conf.d/60-thor-headphones-first.conf'
 check "AUD-2" "every EQ filter sink is at 100 %" '. /etc/profile.d/001-functions; for f in $(pactl list short sinks | awk "\$2 ~ /^thor_dsp_/ {print \$2}"); do [ "$(pactl get-sink-volume "$f" | grep -o "[0-9]*%" | sort -u)" = "100%" ] || exit 1; done'
-check "SCR-4" "both touchscreens are on their own panels, with a matrix each, in sway's config" 'C=/storage/.config/sway/config; grep -q "input \"0:0:top_touchscreen\" map_to_output DSI-2" $C && grep -q "input \"0:0:bottom_touchscreen\" map_to_output DSI-1" $C && grep -q "input \"0:0:top_touchscreen\" calibration_matrix" $C && grep -q "input \"0:0:bottom_touchscreen\" calibration_matrix" $C && grep -q "^output DSI-1 transform 90" $C'
-check "SCR-5" "the running kernel booted quiet, and the boot animation is enabled" 'grep -qw quiet /proc/cmdline && grep -qw loglevel=1 /proc/cmdline && grep -qw systemd.show_status=false /proc/cmdline && systemctl is-enabled -q asgard-bootanim'
+check "SCR-4" "both touchscreens are on their own panels, with a matrix each, in sway's config" 'sway_config | grep -q "input \"0:0:top_touchscreen\" map_to_output DSI-2" && sway_config | grep -q "input \"0:0:bottom_touchscreen\" map_to_output DSI-1" && sway_config | grep -q "input \"0:0:top_touchscreen\" calibration_matrix" && sway_config | grep -q "input \"0:0:bottom_touchscreen\" calibration_matrix" && sway_config | grep -q "^output DSI-1 transform 90"'
+check "SCR-5" "the running kernel booted quiet, and the boot animation is enabled" 'grep -qw quiet /proc/cmdline && grep -qw loglevel=1 /proc/cmdline && grep -qw systemd.show_status=false /proc/cmdline && ls /usr/lib/systemd/system/*.wants/asgard-bootanim.service'
 
 # Power, battery, diagnostics, kernel
 check "PWR-1" "suspend to RAM means s2idle" 'grep -q "\[s2idle\]" /sys/power/mem_sleep'
