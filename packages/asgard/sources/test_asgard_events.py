@@ -1,3 +1,4 @@
+# spec: LOG-1
 """asgard-events.py: lines reach the log, a burst is one fsync, a quiet tick syncs its tail, the log rotates."""
 import importlib.util
 import os

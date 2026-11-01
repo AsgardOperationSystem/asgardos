@@ -1,4 +1,5 @@
 #!/bin/sh
+# spec: PWR-6
 # Fake-sysfs check for sleep.d/asgard-fan-sleep: mode 1 becomes 3 for the sleep and comes back; other modes untouched.
 set -e
 T=$(mktemp -d); trap 'rm -rf $T' EXIT

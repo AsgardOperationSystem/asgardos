@@ -1,3 +1,5 @@
+# spec: CFG-4
+# requires: lib:libSDL2-2.0.so.0 lib:libSDL2_ttf-2.0.so.0 lib:libSDL2_image-2.0.so.0
 """Run: python -I test_thor_settings.py  (no Thor needed; SDL is never initialised)."""
 import os
 import sys

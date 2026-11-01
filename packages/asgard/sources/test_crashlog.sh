@@ -1,4 +1,5 @@
 #!/bin/sh
+# spec: GAME-3
 # asgard-crashlog.sh: the log is kept with its exit code and signal, the name is safe, only the newest 20 stay.
 set -e
 T=$(mktemp -d)

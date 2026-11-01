@@ -1,4 +1,5 @@
 #!/bin/sh
+# spec: LOG-4
 # Fake-sysfs check for sleep.d/asgard-sleep-audit: one CSV line per sleep with the right deltas.
 set -e
 T=$(mktemp -d); trap 'rm -rf $T' EXIT

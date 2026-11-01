@@ -1,4 +1,6 @@
 #!/bin/sh
+# spec: SCR-1
+# requires: cmd:wayland-scanner cmd:cc lib:libwayland-client.so
 # asgard-gamma's warmth/tint -> channel gains and contrast -> exponent (built for the host from ../gamma).
 set -e
 G=$(dirname "$0")/../gamma; T=$(mktemp -d); trap 'rm -rf $T' EXIT

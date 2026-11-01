@@ -1,4 +1,5 @@
 #!/bin/sh
+# spec: PWR-4
 # Stub check for sleep.d/asgard-charge-fix's game freeze: the game's process tree is stopped before sleep,
 # continued on a normal wake, and kept stopped (re-suspend timer armed) on a cable wake with the lid shut.
 set -e

@@ -1,4 +1,5 @@
 #!/bin/sh
+# spec: CAL-2
 # ./test_gpcal_apply.sh: GPcal's autostart file is moved out of autostart, only its rsinput lines are applied.
 set -e
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT

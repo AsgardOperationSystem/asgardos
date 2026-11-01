@@ -1,3 +1,5 @@
+# spec: PANEL-3
+# requires: lib:libSDL2-2.0.so.0 lib:libSDL2_ttf-2.0.so.0 lib:libSDL2_image-2.0.so.0
 """Run: python -I test_thor_panel.py  (no Thor needed): thor_panel.py --serve's line protocol, with fake hardware."""
 import io
 import os

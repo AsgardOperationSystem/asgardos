@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# spec: BAT-1
 # python3 test_battery_report.py: battery-report.py on a synthetic log (asleep = a gap, then a charge).
 import importlib.util, os, tempfile
 

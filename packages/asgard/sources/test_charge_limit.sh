@@ -1,4 +1,5 @@
 #!/bin/sh
+# spec: PWR-5
 # Fake-sysfs check for asgard-charge-limit.sh: holds at the limit, resumes 5 % below it, off at 100, held at 100 with "full".
 T=$(mktemp -d); trap 'kill $P 2>/dev/null; rm -rf $T' EXIT
 echo 4680000 > $T/constant_charge_current_max; echo 4680000 > $T/constant_charge_current

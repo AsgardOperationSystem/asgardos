@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# spec: CAL-1
 """python3 test_thor_touchcal.py: the touch calibration maths (fit + compose), no SDL needed."""
 from thor_touchcal import DEFAULT, TARGETS, compose, fit_affine
 

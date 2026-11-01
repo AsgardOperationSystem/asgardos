@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# spec: SND-2 SND-3
 # python3 test_asgard_eq.py: ParametricEQ parsing, the generated filter-chain, the index search, game overrides (offline).
 import importlib.util, os
 

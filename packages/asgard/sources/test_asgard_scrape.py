@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# spec: SCRAPE-1
 # python3 test_asgard_scrape.py: ROM name -> libretro thumbnail name matching, and the gamelist.xml writer (offline).
 import importlib.util, os, tempfile
 

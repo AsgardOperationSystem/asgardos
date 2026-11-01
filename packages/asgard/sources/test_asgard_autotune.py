@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# spec: PWR-7
 # python3 test_asgard_autotune.py: the autotune controller against simulated games, trans_stat parsing (offline).
 import importlib.util, os
 
