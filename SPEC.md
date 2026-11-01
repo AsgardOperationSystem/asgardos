@@ -49,6 +49,8 @@ The versions above are as of 2026-11-01. Each package's `package.mk` has the cur
 
 ## 2. Asgard Home
 
+Where the user browses their library and starts games. It's built for the Thor's two screens and feels like a console's home screen, which is why it replaced EmulationStation.
+
 Two windows: the top screen shows the grid and dock, the bottom shows the detail card and hints. L+R swaps them, and
 the swap is saved. It's the only frontend: it's what boots and where games start.
 
@@ -64,12 +66,16 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 
 ### Look and feel
 
+One consistent look across everything on the device, so Home, Settings, the panel and the tools feel like one product.
+
 - **LOOK-1** `Theme.qml` is the single source of the look: dark translucent pills with a light rim, lavender glass panels, a selection glow, and one rounded heavy typeface (Nunito). New UI takes its colours, font and timing from it.
 - **LOOK-2** Accents are aurora (default), sunset, mint and gold.
 - **LOOK-3** Selection moves take 180 ms and art crossfades 320 ms. The Animations setting turns both off.
 - **LOOK-4** New on-device UI is built in Asgard Home's style and works with the pad. `docs/screenshots/` shows the intended look.
 
 ## 3. Running games
+
+A game behaves the same whichever emulator runs it: the same launch, quit, crash handling and sleep. The user shouldn't need to know how each emulator differs.
 
 - **GAME-1** Home starts every game as `runemu.sh <rom> -P<system> --core=<core> --emulator=<emulator>`, which gives it per-game options, its CPU and fan profile, display pre-rotation, crash logs and play time. Only `.desktop` apps skip it, and those still get play time, crash logs, overrides and the in-game menu.
 - **GAME-2** A launcher declares its process with `set_kill set "<signal> <name>"`, so Home can find and stop the game.
@@ -82,6 +88,8 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 
 ### Home button and in-game menu
 
+Controls the running game without leaving it, with the same button in every emulator, so nobody has to learn each emulator's hotkeys. The AYN button's panel (section 5) controls the device instead.
+
 - **MENU-1** Home tapped alone opens the in-game menu on the bottom screen. Held with other buttons, it stays the hotkey modifier.
 - **GAME-5** Every game gets Resume and Quit game, and a game with kill data also gets Back to Home and Quit and save log. The game pauses while the menu is open if the emulator can pause.
 - **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access) and Wind Waker HD (its settings).
@@ -89,6 +97,8 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 - **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
 
 ### Per-game and per-emulator overrides
+
+Some games need different settings. These let a user tune one game or system without affecting the others, and always see where a value comes from.
 
 - **OVR-1** An option's value comes from the game, then the system, then the OS default, as section 4 explains. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
 - **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ and sleep mode.
@@ -98,12 +108,16 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 
 ### Companion windows on the bottom screen
 
+Puts the second screen to use during a game: for a second display, controls or a companion app, while the game keeps focus.
+
 - **COMP-1** A second window goes to the bottom screen if its title matches `Secondary|[w2]|Sub|Bottom|Screen 2|GamePad`. That powers the panel on and rotates it, and focus stays on the game. melonDS's second window uses this rule.
 - **COMP-2** Eden Duo shows live companion windows on the bottom screen.
 - **COMP-3** RetroArch games can have save-state and brightness controls on the bottom screen (ROCKNIX's lowerdeck), with focus kept on the top. The setting `asgardos.bottomscreen.type` turns them on (`vc`, the default) or off.
 - **COMP-4** Asgard has window rules for ports the user installs in `/storage`, which aren't in the image: the Wind Waker HD GamePad window, Dusklight's second screen, Gen1 Recomp's secondary display, and Lumi-Dex, a Pokédex companion that opens with Brilliant Diamond.
 
 ### Text prompts
+
+Lets a game ask for text, such as a character name, on a device with no keyboard.
 
 - **TXT-1** A game's text prompt uses Asgard Home's keyboard on the bottom screen, for emulator frontends that have none. Eden Duo's software keyboard goes through it.
 - **TXT-2** The result is the text on stdout with exit 0, exit 1 if cancelled, or exit 2 if it failed.
@@ -122,6 +136,8 @@ are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files a
 - **NET-2** VPN offers Tailscale (sign-in link on screen), ZeroTier (join by network ID) and WireGuard (`.conf` files).
 
 ### Personal configuration: asgard.yml
+
+Sets up a Thor once from a PC, such as Wi-Fi, logins and SSH keys, without building anything personal into the image. A fresh install picks it up with no re-entry.
 
 - **CFG-1** Precedence, at every boot: image defaults < `asgard.yml` < the user's own changes. A value changed on the device is never overwritten by the yml.
 - **CFG-2** The yml is read from `/flash/asgard.yml`, then `/storage/.config/asgard/asgard.yml`. First found wins, and they aren't merged.
@@ -172,12 +188,18 @@ on other systems run at stock, and their row reads `OS (100%)`. None of this aff
 
 ## 5. AYN button: Thor Panel
 
+The device's quick menu, opened with the AYN button at any time, including mid-game. It shows how the Thor is doing and
+changes common settings without leaving the game. The Home button's menu controls the game; this one controls the
+device. Its layout follows AYN's Android panel, so it's familiar on this hardware.
+
 - **PANEL-1** The AYN button toggles Thor Panel on the bottom screen. A running game is frozen (SIGSTOP) while it's open and continues (SIGCONT) when it closes.
 - **PANEL-2** It shows status, FPS, temperature and CPU, GPU, power and RAM gauges, and it has fan control. A second page has volume and per-screen brightness, with a lock that moves both screens together.
 - **PANEL-3** Its hardware side answers one request per line and ends when its input closes.
 - **PANEL-4** Its quick toggles are Wi-Fi, Airplane mode, Vibration, Ambient LED, Screenshot, Clean memory, Quit game, and the top screen's refresh rate.
 
 ## 6. Screens and input
+
+The Thor has two different panels mounted rotated. This makes them work and look like one device, with games on the right screen and touch where the picture is.
 
 - **SCR-1** Each screen has its own white balance in the display hardware: warmth, tint and contrast, set from Settings, with warmth and tint from -10 to 10 and 0 being the panel's own. Unset, the bottom screen uses tint +3 and contrast +3, chosen by eye to sit close to the top while keeping shadow detail. That's deliberately not an exact match, which measured at tint +10. Gains only lower a channel, so nothing clips.
 - **SCR-2** Each screen's refresh rate is set separately, at 60 or 120 Hz. The bottom defaults to 60, because at 120 Hz its colours wash out (about 1.8× brighter, roughly half the saturation) until the panel's 120 Hz commands are known. Settings says so on the row.
@@ -188,21 +210,29 @@ on other systems run at stock, and their row reads `OS (100%)`. None of this aff
 
 ### OLED protection
 
+Both screens are OLED, so static menus can burn in. This turns them off when they aren't needed and makes that one button away.
+
 - **OLED-1** In Home, X turns both screens off. Any button then only wakes them and does nothing else.
 - **OLED-2** Ultra Black on the top panel can be switched in Settings. It's sent at each panel power-on, so a change applies after the screen cycles.
 - **OLED-3** Screens turn off after `asgard.idle_blank` seconds without input (default 300, 0 = never), and any input turns them back on.
 
 ### Calibration
 
+Touch and sticks vary between units, so a user can correct their own on the device, with no PC.
+
 - **CAL-1** Touch is calibrated per panel with 5 targets and then a test screen: A keeps it, Y redoes it, B puts the old one back. The pad drives every step, so a bad calibration can't lock out touch. It's kept in `asgard.touch.<screen>`, re-applied at boot, and can be reset.
 - **CAL-2** Stick calibration applies before InputPlumber starts, so the pad never drops after boot. Only the rsinput parameter lines of GPcal's file are run.
 
 ### Other input
 
+Motion aiming for the games that use it, and stick lights as a personal touch or a battery indicator.
+
 - **INP-1** The gyro serves both as the DualSense's motion and as a DSU server on `127.0.0.1:26760`. It needs a HexagonFS root copied to `/storage/.config/asgard/sensors-root/`, because Android's blobs and the unit's calibration can't ship.
 - **INP-2** Stick lights offer colour, brightness or battery level.
 
 ## 7. Sound
+
+The speakers sound thin and harsh without tuning, and headphones differ widely. This makes both sound good with no setup, and gives the interface audible feedback.
 
 - **AUD-1** The default output follows the headphone jack.
 - **AUD-2** EQ filter nodes stay at 100 %, and volume is set on the real sink. A preset with positive gain goes through the limiter.
@@ -213,7 +243,11 @@ on other systems run at stock, and their row reads `OS (100%)`. None of this aff
 
 ## 8. Power and performance
 
+A handheld gets picked up and put down all day, and its battery and heat limit how it's used. This keeps a game ready to resume and lets the user trade speed for battery.
+
 ### Sleep
+
+Close the lid and come back later to the same moment in the game, having lost as little battery as possible.
 
 - **PWR-1** Sleep is s2idle with the game still loaded. CX, AOSS and DDR collapse for the sleep (`/sys/kernel/debug/qcom_stats/`).
 - **PWR-2** Sleep drain stays at or under the 30 mA baseline, and lower is always better. It's measured over an unplugged sleep of an hour or more, starting at 4.13 V or lower, because readings just after a charge are gauge artifacts.
@@ -227,13 +261,16 @@ on other systems run at stock, and their row reads `OS (100%)`. None of this aff
 - **PWR-12** After every wake, `asgard-pad-fix` re-probes the pad if its stream stalled, and restarts InputPlumber. `asgard.pad_fix` (on by default) controls it, with a log in `/storage/pad-fix.log`.
 - **BAT-3** A game with sleep mode `screen` keeps running with the screens off, for music on the headphone jack, instead of suspending.
 
-### Charging and battery
+### Charging
+
+Lets a battery that's often plugged in last longer, by not holding it at full charge.
 
 - **PWR-5** Charging stops at the limit and resumes 5 % below it. `100` = off, `full` = hold at 100 and resume at 95. The default is 80.
 - **BAT-2** Bypass charging runs the Thor from the cable and leaves the battery alone, charging only below 20 %.
-- **BAT-1** The battery report shows what used the battery since the last unplug, including sleep, Home and each emulator, with time left.
 
 ### CPU clusters, GPU and fan
+
+Lets the user trade speed against heat, noise and battery. Home doesn't need full clocks, and games differ in what they need.
 
 - **PERF-1** There are three core types: little (3× A510, CPU0-2), mid (2× A715 + 2× A710, CPU3-6), prime (1× X3, CPU7). Each takes a clock cap of 25–100 % of its top clock, or off. A cap sets the highest supported frequency at or under it as `scaling_max_freq`.
 - **PERF-2** At least one core type stays on, and CPU0 is never taken offline. Settings doesn't offer a choice that turns every type off.
@@ -242,29 +279,50 @@ on other systems run at stock, and their row reads `OS (100%)`. None of this aff
 - **PWR-7** Auto (autotune) only moves maximum clocks, and doesn't take the GPU ceiling below 348 MHz until lower is tested against GMU hangs.
 - **PERF-5** The fan offers curve modes (quiet, moderate, aggressive) and fixed speeds. A fixed speed survives game launches.
 
-## 9. Tools, ports and PC apps
+## 9. Battery tracking
+
+Lets a user find out what's draining the battery, on the device, with no PC. A handheld's battery life depends on what
+ran and how it slept, so the answer has to name the game, not just give a percentage.
+
+- **BAT-1** Settings → Hardware → Battery breaks usage down since the last unplug by game, app, Home and sleep, each with its time, % used and average current. It also shows the current draw, the time left at this rate, and the charging session.
+- **BAT-4** Each sample records what was running, including the game, emulator and core Home launched, so a native port or PC app isn't counted as Home.
+- **BAT-5** The gauge updates in coarse, delayed steps, so per-activity figures only mean something over minutes. The report shouldn't imply more precision than that.
+- **LOG-6** `battery-log.sh` writes one CSV line every 30 s to `/storage/battery-log.csv`, rotating at 5 MB and keeping one old file. A gap in the timestamps means asleep. The battery report reads it, and the logger's cost stays small because it runs all the time.
+
+### Finding what drains the battery in sleep
+
+Sleep drain is what's left when nothing appears to be running, so these tools show what stayed on and what woke the
+device. They're on the Debug page, for investigating rather than everyday use.
+
+- **LOG-4** `asgard.sleep_audit=1` writes one line per sleep with its deltas to `/storage/sleep-audit.csv`, including drain, what collapsed and what was running. For each sleep it also saves what stayed on and what woke the device in `/storage/sleep-audit/`, so a good sleep can be compared with a bad one.
+- **LOG-5** The sleep experiment (`asgard.sleep_experiment`) switches radios off during sleep, to test one suspect at a time.
+
+## 10. Tools, ports and PC apps
+
+Makes the Thor useful beyond emulators: music, files, a browser, a terminal, game streaming and native games, with no PC.
 
 - **TOOL-1** Asgard Music (playlists, screens-off playback), Asgard Files (copy, move, rename, delete across internal storage, ROMs and SD), Firefox, Terminal and Moonlight open from Home, full screen on the right screens. Firefox and Terminal have Asgard Keyboard on the bottom screen.
 - **PORT-1** PortMaster is the Ports system's launcher.
 - **PORT-2** A `.desktop` file in the PC system runs its own `Exec=` command. `X-Asgard-Kill=` names the process Quit stops, if it isn't the command's own name.
 - **PORT-3** LÖVE ports run outside PortMaster, such as Gen1 Recomp, find the `libtheoradec` they need. Gen1 Recomp runs under XWayland, because it gets no input on native Wayland.
 
-## 10. Graphics
+## 11. Graphics
+
+Some games only run correctly on a particular driver, so a user can pick one per game instead of the whole system changing.
 
 - **GPU-1** The Turnip driver can be chosen per game, and an unset row names the default, the image's Mesa. `runemu.sh` selects it through `VK_DRIVER_FILES`.
 - **GPU-2** The image ships an extra, older Turnip (`turnip-extra`, 25.3.6) in `/usr/lib/gpu-drivers`, because the 3DS Zeldas run on it. Users can add builds in `/storage/.config/gpu-drivers`, made with `tools/turnip/turnip.sh`.
 - **GPU-3** A game's OpenGL can run on Vulkan through Zink (`gl_driver=zink`). Unset is freedreno.
 
-## 11. Diagnostics
+## 12. Diagnostics
+
+A handheld has no terminal in front of it when something goes wrong. These leave a record on the device, so a freeze or crash can be understood afterwards.
 
 - **LOG-1** Warnings, errors, oopses, Wi-Fi and sleep events reach `/storage/.config/thor/logs/events.log`, which rotates.
 - **LOG-2** A boot that never shut down leaves a report in `/storage/.config/thor/freezes/` (newest 10).
 - **LOG-3** Crashes leave a core dump (`coredumpctl`, `/storage/.cache/cores`).
-- **LOG-4** `asgard.sleep_audit=1` writes one line per sleep with its deltas.
-- **LOG-5** The Debug page's sleep experiment (`asgard.sleep_experiment`) switches radios off during sleep, to find what drains the battery.
-- **LOG-6** `battery-log.sh` writes one CSV line every 30 s to `/storage/battery-log.csv`, rotating at 5 MB and keeping one old file. A gap in the timestamps means asleep. The battery report reads it.
 
-## 12. Kernel and hardware support
+## 13. Kernel and hardware support
 
 The kernel carries about 140 patches, from ROCKNIX, Kettle Linux, Armada and Asgard itself. `docs/changes.md` says which
 is which and why. A patch is there to deliver one of these outcomes, and a rebase has to keep them:
@@ -278,7 +336,9 @@ is which and why. A patch is there to deliver one of these outcomes, and a rebas
 - **KERN-7** The audio block (LPASS) is released in sleep, so CX can collapse, and audio resumes afterwards.
 - **KERN-8** The fan's tach and RPM timer don't wake s2idle. Charge current is controllable, which is what the charge limit relies on.
 
-## 13. Emulators and packages
+## 14. Emulators and packages
+
+Asgard's reason to exist is playing games, so the image ships every ROCKNIX system. This section covers how an emulator is packaged and which ones ship.
 
 ### How an emulator is packaged
 
@@ -354,7 +414,9 @@ virtualjaguar, wasm4, xmil, yabasanshiro.
 
 - **EMU-1** Every ROCKNIX system stays in the image. Changing a system's default emulator is a deliberate change, recorded in the README's emulator table.
 
-## 14. Development constraints
+## 15. Development constraints
+
+These keep one person able to maintain a fork of a large distribution and keep upgrading its kernel. Each says why it exists.
 
 ### The fork
 
@@ -397,7 +459,7 @@ virtualjaguar, wasm4, xmil, yabasanshiro.
 - **DEV-20** Each kind of fact has one home: this file for what must be true, the README for what works today, `docs/changes.md` and commit messages for why, `docs/plans/` for what's planned, and `docs/testing.md` for how it's tested.
 - **DEV-21** Original ROCKNIX and JELOS code keeps its copyright notices. Asgard's own packages are GPL-2.0.
 
-## 15. Known gaps
+## 16. Known gaps
 
 Where the tree doesn't meet this spec today. These aren't precedents. When one is fixed, delete its row.
 
