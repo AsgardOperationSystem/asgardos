@@ -9,6 +9,13 @@ FREEZES="${FREEZES:-/storage/.config/thor/freezes}"
 MARK="${BASE}/asgard-running" SNAP="${BASE}/asgard-journal"
 case "$1" in
   start)
+    if [ -e "${MARK}" ] && [ ! -d "${SNAP}" ]; then
+      # It froze before its first sleep, game launch or shutdown, so it left no journal, but it still gets a report.
+      mkdir -p "${FREEZES}"
+      { echo "The boot before $(date '+%Y-%m-%d %H:%M') never shut down, and froze before its first journal snapshot."
+        echo "Its warnings are in /storage/.config/thor/logs/events.log."; } >"${FREEZES}/$(date +%Y%m%d-%H%M%S).log"
+      ls -1t "${FREEZES}"/*.log | tail -n +11 | while read -r f; do rm -f "${f}"; done
+    fi
     if [ -e "${MARK}" ] && [ -d "${SNAP}" ]; then
       mkdir -p "${FREEZES}"
       out="${FREEZES}/$(date -r "${SNAP}" +%Y%m%d-%H%M%S).log"

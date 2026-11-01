@@ -1,6 +1,5 @@
 #!/bin/sh
 # spec: LOG-2
-# gap: asgard-lastboot.sh needs a snapshot to report: a boot that froze before its first sleep, game launch or shutdown leaves no report.
 # The marker says the last boot never shut down, and there is no snapshot of it (start moved the one before it to .prev).
 set -e
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT
