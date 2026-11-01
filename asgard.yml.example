@@ -26,6 +26,9 @@ screenscraper:            # Select on a game > Scrape this game; off (libretro t
   username: me            # your account: optional, raises the daily quota
   password: "screenscraper password"
 
+root:
+  password: asgardos    # root login, Samba and the Syncthing GUI; asgardos is the public default, so change it
+
 ssh:
   enabled: 1
   authorized_keys:        # appended to /storage/.ssh/authorized_keys (existing lines are kept)

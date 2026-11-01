@@ -32,7 +32,7 @@
   BUG_REPORT_URL="https://github.com/AsgardOperationSystem/asgardos/issues"
 
 # Root password to integrate in the target system
-  ROOT_PASSWORD="rocknix"
+  ROOT_PASSWORD="asgardos"
 
 # Install glibc locales to the build (yes / no)
   GLIBC_LOCALES="yes"

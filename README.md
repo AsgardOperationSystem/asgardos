@@ -161,6 +161,16 @@ on a local copy of an image. At every boot each key is applied unless the settin
 `LOCAL_WIFI_KEY` / `LOCAL_SSH_KEYS_FILE`; they bake secrets into the image (`build.sh` runs the build with an empty
 environment, so nothing from your shell reaches it).
 
+### Default login
+
+Out of the box the root password is **`asgardos`**. It's public, so change it if SSH, Samba or Syncthing can be reached
+from a network you don't trust. The password is the `root.password` setting, and every boot applies it to the root
+login, Samba and the Syncthing GUI, so `passwd` alone doesn't last. To change it, either:
+- run `setrootpass <new password>` over SSH, or
+- set it in `asgard.yml` (`root:` / `password:`), which applies on the next boot.
+
+Asgard Home's Settings has no row for it yet.
+
 ## Gyro: ADSP sensors root
 
 The gyro and accelerometer (SH5001) live in the ADSP's sensor core. `thor-sensorspd.service` (hexagonrpcd) serves
