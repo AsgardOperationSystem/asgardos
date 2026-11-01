@@ -9,6 +9,9 @@ Item {
     property bool open: backend.gameMenu
     property int sel: 0
     property var game: []                    // running emulator process names, read when the menu opens
+    property var settings: null              // the Settings panel: its option rows are the Performance page's
+    property var launched: ({})              // the running game (backend.launchedGame), read when the menu opens
+    property bool perfChanged: false         // a Performance row changed: apply it on leaving the page or the menu
     readonly property bool azahar: game.indexOf("azahar") >= 0
     readonly property bool eden: game.indexOf("eden") >= 0
     readonly property bool retroarch: game.indexOf("retroarch") >= 0
@@ -16,7 +19,37 @@ Item {
     readonly property bool wwhd: game.indexOf("wwhd") >= 0
 
     property real openedAt: 0
-    onOpenChanged: if (open) { game = backend.runningGame(); group = null; sel = 0; openedAt = Date.now() }
+    onOpenChanged: {
+        if (open) {
+            game = backend.runningGame(); launched = backend.launchedGame(); group = null; sel = 0; openedAt = Date.now()
+            if (hasPerf()) settings.features(perfEmu(), perfCore())   // loaded here: not from the page's binding
+        } else applyPerf()
+    }
+
+    // Performance: the game's CPU and GPU caps, saved to its own keys as in its Settings page, so the next launch
+    // loads them. Games only: a tool has no keys to save to.
+    function hasPerf() { return game.length > 0 && !!launched.path }
+    function perfFile() { return launched.path.split("/").pop() }
+    function perfPrefix() { return launched.sys + '["' + perfFile() + '"]' }
+    function perfEmu() { return settings.get(perfPrefix() + ".emulator", settings.get(launched.sys + ".emulator", launched.emulator)) }
+    function perfCore() { return settings.get(perfPrefix() + ".core", settings.get(launched.sys + ".core", launched.core)) }
+    function perfPage() {
+        settings.rev                         // re-evaluate after changes
+        const rows = settings.perfRows(perfPrefix(), perfEmu(), perfCore(), launched.sys)
+        if (!rows) return [{ icon: "refresh", title: "Loading…", sub: "", run: () => {} }]
+        return rows.map(r => {
+            const step = d => { r.step(d); perfChanged = true }
+            return { icon: "chip", title: r.title, sub: "‹  " + r.value + "  ›", step: step, run: () => step(1) }
+        })
+    }
+    // Applied once, on the way out: the game is paused meanwhile, and each apply stops autotune and cycles the cores.
+    // Guarded by the profile's marker: a game that ended with the menu open has had its restore already.
+    function applyPerf() {
+        if (!perfChanged) return
+        perfChanged = false
+        backend.shell("[ -f /run/asgard-perf.saved ] && /usr/share/asgard/asgard-perf-profile.sh cpu " +
+                      settings.q(launched.sys) + " " + settings.q(perfFile()))
+    }
 
     function resume(keys) {                  // close, run the hotkeys, unpause
         backend.gameMenu = false
@@ -33,6 +66,9 @@ Item {
     // only for games (tools have no kill data to freeze); Back to Home resumes first so the menu's own pause
     // (RetroArch, Azahar, Eden) is undone. "Quit and save log" is for a hung game: keeps its log and a core dump.
     function withExit(list, restart, quit) {
+        if (hasPerf())
+            list = list.concat([{ icon: "gauge", title: "Performance", sub: "CPU and GPU clocks for this game", page: perfPage,
+                                  note: "Applies when you leave · A core type turned back on needs a game restart" }])
         const exit = (game.length ? [{ icon: "home", title: "Back to Home", sub: "The game waits in the background",
                                        run: () => { resume(); backend.toBackground() } }] : [])
             .concat(restart ? [restart] : [])
@@ -90,19 +126,29 @@ Item {
 
     property var group: null                 // the open sub-grid's tile, or null for the top level
     property int groupSel: 0                 // its index, to come back to it
-    readonly property var shown: group ? [{ icon: "list", title: "Back", sub: group.title, run: () => back() }]
-                                         .concat(group.items) : items
+    readonly property bool onPage: !!group && !!group.page   // one column: left / right step the values
+    readonly property var shown: group ? [{ icon: "list", title: "Back", sub: group.note || group.title, run: () => back() }]
+                                         .concat(group.page ? group.page() : group.items) : items
     function activate(i) {
         const it = shown[i]
-        if (it.items) { group = it; groupSel = i; sel = 1 } else it.run()
+        if (it.items || it.page) { group = it; groupSel = i; sel = 1 } else it.run()
     }
-    function back() { sel = groupSel; group = null }
+    function back() {
+        sel = groupSel; group = null
+        applyPerf()
+    }
 
     function nav(b) {
         if (!open) return false
         // A short tap of Home comes with an extra event (a long press doesn't) that reached the menu as it opened
         // and resumed the game at once: input in the first 400 ms is ignored.
         if (Date.now() - openedAt < 400) return true
+        if (onPage && (b === "up" || b === "down" || b === "left" || b === "right")) {
+            if (b === "up" && sel > 0) sel--
+            else if (b === "down" && sel + 1 < shown.length) sel++
+            else if ((b === "left" || b === "right") && shown[sel].step) shown[sel].step(b === "left" ? -1 : 1)
+            return true
+        }
         if (b === "up" && sel >= 2) sel -= 2
         else if (b === "down" && sel + 2 < shown.length) sel += 2
         else if (b === "left" && sel % 2) sel--
@@ -136,12 +182,12 @@ Item {
         }
         // two columns of big touch targets
         Grid {
-            x: 32; y: 120; columns: 2; columnSpacing: 20; rowSpacing: 18
+            x: 32; y: 120; columns: menu.onPage ? 1 : 2; columnSpacing: 20; rowSpacing: 18
             Repeater {
                 model: menu.shown
                 Rectangle {
                     readonly property bool on: index === menu.sel
-                    width: (menu.width - 72 - 64 - 20) / 2; height: 150; radius: 30
+                    width: menu.onPage ? menu.width - 72 - 64 : (menu.width - 72 - 64 - 20) / 2; height: 150; radius: 30
                     color: on ? "#e6ecff" : "#fbfbfd"
                     border.color: on ? Theme.selA : "transparent"; border.width: 3
                     Image {

@@ -95,6 +95,7 @@ Controls the running game without leaving it, with the same button in every emul
 - **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access) and Wind Waker HD (its settings).
 - **MENU-3** PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus instead.
 - **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
+- **MENU-5** A game's menu has a Performance tile with its CPU cap per core type and its GPU cap, the same values as its Settings page. D-pad left and right step a value, and A steps forward. A change is saved to the game's own keys, so the next launch loads it, and applies to the running game on leaving the page or the menu. A core type turned back on may need a game restart, because launchers pin emulators to the cores online at launch.
 
 ### Per-game and per-emulator overrides
 
@@ -103,7 +104,7 @@ Some games need different settings. These let a user tune one game or system wit
 - **OVR-1** An option's value comes from the game, then the system, then the OS default, as section 4 explains. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
 - **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ and sleep mode.
 - **OVR-3** The emulator and core can be chosen per system and per game. A game's shader cache can be deleted from its settings.
-- **OVR-4** Overrides last only as long as the game: they apply at launch, and the menu's profile, fan and EQ come back when it exits.
+- **OVR-4** Overrides last only as long as the game: they apply at launch, and when changed from its in-game menu (MENU-5), and the menu's profile, fan and EQ come back when it exits.
 - **OVR-5** Each emulator's own options, such as shaders, aspect ratio and Azahar's resolution and layouts, come from `es_features.cfg` and appear as settings rows with no extra work per emulator.
 
 ### Companion windows on the bottom screen
@@ -470,4 +471,5 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | DEV-11 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
 | DEV-15 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
+| MENU-5 | PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus (MENU-3), so they have no Performance tile. | Decide how Home's menu reaches them, then change MENU-3 |
 | DEV-11 | The emulators package regenerates the tracked `docs/supported-emulators.md` during a build, so a build can change a file outside `build/`. | Decide whether it stays tracked |

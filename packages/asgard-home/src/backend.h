@@ -53,6 +53,7 @@ public:
     Q_INVOKABLE void exec(const QString &command, const QJSValue &done);  // done(output) when it exits
     Q_INVOKABLE void rescan();
     Q_INVOKABLE QStringList runningGame() const;          // the running emulator's process names
+    Q_INVOKABLE QVariantMap launchedGame() const { return m_launched; }   // the game launch() started ({} for tools)
     Q_INVOKABLE void gameKeys(const QString &combo);      // focus the game and press e.g. "F4", "Alt+S"
     Q_INVOKABLE void quitGame(bool saveLog = false);   // saveLog: a hang, kept for debugging
     Q_INVOKABLE void toBackground();   // "Back to Home": the game freezes, its windows hide, we show

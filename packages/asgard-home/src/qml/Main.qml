@@ -309,7 +309,7 @@ QtObject {
                                                          Math.round(point.position.x), Math.round(point.position.y))
             }
             // The in-game menu belongs on the physical bottom screen: here when the screens are swapped.
-            GameMenu { id: topGameMenu; anchors.fill: parent; z: 200; visible: open && app.swapped }
+            GameMenu { id: topGameMenu; anchors.fill: parent; z: 200; visible: open && app.swapped; settings: app.bottom.settingsPanel }
             HeroCard {
                 x: (parent.width - width) / 2; y: 232; width: 1150; height: 650
                 item: app.current
@@ -470,7 +470,7 @@ QtObject {
             }
             Settings { id: settingsPanel; anchors.fill: parent; z: 100 }
             Confirm { id: confirmPanel; anchors.fill: parent; z: 150 }
-            GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200; visible: open && !app.swapped }
+            GameMenu { id: gameMenuPanel; anchors.fill: parent; z: 200; visible: open && !app.swapped; settings: settingsPanel }
             PowerMenu { id: powerMenuPanel; anchors.fill: parent; z: 150 }
             PowerMenu {
                 id: gameActionsPanel; anchors.fill: parent; z: 150; anchorRight: parent.width - 24

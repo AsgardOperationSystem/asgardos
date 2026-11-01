@@ -634,28 +634,34 @@ Item {
             return (own || (inherit ? get(inherit + ".cpu_cap_" + t) : "")) === "off"
         })
     }
+    function optionRow(f, prefix, inherit) {
+        const key = prefix + "." + f.key
+        const cur = get(key)
+        const label = v => (f.choices.find(c => c[1] === v) || [v])[0]
+        const parent = inherit ? get(inherit + "." + f.key) : ""
+        const values = [""].concat(f.choices.map(c => c[1]))
+        const type = f.key.startsWith("cpu_cap_") ? f.key.slice(8) : ""
+        // Unset takes the parent's setting: the emulator's, else the OS's (thor_settings.py "default": stock clocks,
+        // gyro off, the image's Mesa), else just "Default".
+        const unset = parent ? "Emulator settings (" + label(parent) + ")" : f.default ? "OS (" + f.default + ")" : "Default"
+        return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : unset,
+                 step: d => { let i = Math.max(0, values.indexOf(cur))
+                              for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off
+                                  i = (i + d + values.length) % values.length
+                                  if (!type || !allCoresOff(prefix, inherit, type, values[i])) break
+                              }
+                              set(key, values[i]) } }
+    }
+    // The game's CPU and GPU cap rows, the same ones as its Emulator options (the in-game menu's Performance page).
+    function perfRows(prefix, emu, core, inherit) {
+        const feats = features(emu, core)
+        return feats && feats.filter(f => f.key.startsWith("cpu_cap_") || f.key === "gpu_cap").map(f => optionRow(f, prefix, inherit))
+    }
     function optionsPage(prefix, emu, core, inherit) {
         const feats = features(emu, core)
         if (feats === null) return [[info("refresh", "Loading options…", emu + " / " + core)]]
         if (!feats.length) return [[info("info", "No extra options", emu + " / " + core + " has none")]]
-        const row = f => {
-            const key = prefix + "." + f.key
-            const cur = get(key)
-            const label = v => (f.choices.find(c => c[1] === v) || [v])[0]
-            const parent = inherit ? get(inherit + "." + f.key) : ""
-            const values = [""].concat(f.choices.map(c => c[1]))
-            const type = f.key.startsWith("cpu_cap_") ? f.key.slice(8) : ""
-            // Unset takes the parent's setting: the emulator's, else the OS's (thor_settings.py "default": stock clocks,
-            // gyro off, the image's Mesa), else just "Default".
-            const unset = parent ? "Emulator settings (" + label(parent) + ")" : f.default ? "OS (" + f.default + ")" : "Default"
-            return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : unset,
-                     step: d => { let i = Math.max(0, values.indexOf(cur))
-                                  for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off
-                                      i = (i + d + values.length) % values.length
-                                      if (!type || !allCoresOff(prefix, inherit, type, values[i])) break
-                                  }
-                                  set(key, values[i]) } }
-        }
+        const row = f => optionRow(f, prefix, inherit)
         // Grouped features (thor_settings.py GROUPS: Hardware overrides, its core types and Sleep) are submenus, in
         // the order they first appear; a group "A/B" is submenu B inside A.
         const icons = { "Hardware overrides": "gauge", "Sleep": "moon", "Sound EQ": "speaker" }
