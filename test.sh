@@ -6,17 +6,21 @@
 #
 # A test is packages/asgard/sources/test_*. Its first lines say what it checks and what it needs:
 #   # spec: PWR-5                  the SPEC.md rules it checks
-#   # requires: cmd:cc lib:libX.so a program on PATH, or a library ldconfig knows; without them it's skipped
+#   # requires: cmd:cc lib:libX.so a program on PATH, a library ldconfig knows, or file:<path from the repo root>;
+#                                  without them it's skipped
+#   # gap: <why>                   it fails today because of a row in SPEC.md's known gaps: reported, doesn't fail the
+#                                  run, and fails the run once it passes, so the header and the row get removed
+# It ends by counting the spec's rules against test_*, test-device.sh and docs/human-checks.md; a rule in none is a failure.
 set -uo pipefail
 cd "$(dirname "$0")"
 SOURCES=packages/asgard/sources
 FILTER=${1:-}
-TIMEOUT=120
+TIMEOUT=300  # the first Asgard Home test builds it
 OUT=$(mktemp); trap 'rm -f "$OUT"' EXIT
 export PYTHONDONTWRITEBYTECODE=1
 
-pass=0 fail=0 skip=0
-failed=() skipped=() uncited=() badlinks=()
+pass=0 fail=0 skip=0 gaps=0
+failed=() skipped=() uncited=() badlinks=() gapped=()
 
 known_id() { command grep -qE "^- \*\*$1\*\* " SPEC.md; }
 
@@ -31,15 +35,23 @@ missing_needs() {  # missing_needs <needs...>: prints the ones this machine lack
     case $need in
       cmd:*) command -v "${need#cmd:}" >/dev/null || printf '%s ' "$need" ;;
       lib:*) case $libs in *"${need#lib:} "*) ;; *) printf '%s ' "$need" ;; esac ;;
+      file:*) [ -e "${need#file:}" ] || printf '%s ' "$need" ;;
       *) printf '%s ' "$need" ;;
     esac
   done
 }
 
 run() {  # run <name> <spec ids> <command...>
-  local name=$1 ids=$2 rc; shift 2
+  local name=$1 ids=$2 gap rc; shift 2
+  gap=$(header "$SOURCES/$name" gap 2>/dev/null)
   (cd "$SOURCES" && timeout "$TIMEOUT" "$@") >"$OUT" 2>&1; rc=$?
-  if [ $rc = 0 ]; then
+  if [ -n "$gap" ] && [ $rc != 0 ]; then
+    gaps=$((gaps + 1)); gapped+=("$name: $gap")
+    printf 'GAP   %-28s %s\n' "$name" "$ids"
+  elif [ -n "$gap" ]; then
+    fail=$((fail + 1)); failed+=("$name")
+    printf 'FAIL  %-28s %s (passes now: remove its gap header and the row in SPEC.md)\n' "$name" "$ids"
+  elif [ $rc = 0 ]; then
     pass=$((pass + 1)); printf 'PASS  %-28s %s\n' "$name" "$ids"
   else
     fail=$((fail + 1)); failed+=("$name")
@@ -78,7 +90,28 @@ fi
 
 echo
 [ ${#skipped[@]} = 0 ] || { echo "Skipped, not tested:"; printf '  %s\n' "${skipped[@]}"; }
+[ ${#gapped[@]} = 0 ] || { echo "Known gaps, failing as expected:"; printf '  %s\n' "${gapped[@]}"; }
 [ ${#uncited[@]} = 0 ] || { echo "No spec rule cited:"; printf '  %s\n' "${uncited[@]}"; }
 [ ${#badlinks[@]} = 0 ] || { echo "Broken links to the spec:"; printf '  %s\n' "${badlinks[@]}"; }
-echo "$pass passed, $fail failed, $skip skipped"
-[ "$fail" = 0 ] && [ ${#badlinks[@]} = 0 ]
+echo "$pass passed, $fail failed, $gaps known gaps, $skip skipped"
+
+# Which rules have a check, and at what level. A device or human check is only written down here: it counts as run only
+# when someone has run it on a Thor (docs/testing.md).
+uncovered=0
+if [ -z "$FILTER" ]; then
+  rules=$(command grep -oE '^- \*\*[A-Z]+-[0-9]+\*\*' SPEC.md | command grep -oE '[A-Z]+-[0-9]+' | sort -u)
+  in_host=$( { for file in "$SOURCES"/test_*; do header "$file" spec; done; echo CFG-1 CFG-3; } | tr ' ' '\n' | sort -u)
+  in_device=$(sed -n 's/^check "\([^"]*\)".*/\1/p' test-device.sh 2>/dev/null | tr ' ' '\n' | sort -u)
+  in_human=$(sed -n 's/^| \([A-Z][-A-Z0-9 ]*[0-9]\) |.*/\1/p' docs/human-checks.md 2>/dev/null | tr ' ' '\n' | sort -u)
+  host_only=0 device_only=0 human_only=0 none=()
+  for rule in $rules; do
+    if command grep -qx "$rule" <<<"$in_host"; then host_only=$((host_only + 1))
+    elif command grep -qx "$rule" <<<"$in_device"; then device_only=$((device_only + 1))
+    elif command grep -qx "$rule" <<<"$in_human"; then human_only=$((human_only + 1))
+    else none+=("$rule"); fi
+  done
+  uncovered=${#none[@]}
+  echo "Spec: $(wc -w <<<"$rules") rules: $host_only with a host test, $device_only with only a device check, $human_only with only a human check, $uncovered with none"
+  [ "$uncovered" = 0 ] || echo "  no check: ${none[*]}"
+fi
+[ "$fail" = 0 ] && [ ${#badlinks[@]} = 0 ] && [ "$uncovered" = 0 ]

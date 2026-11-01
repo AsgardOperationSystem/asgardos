@@ -1,4 +1,7 @@
 #include <QDir>
+#include <QFile>
+#include <QMetaProperty>
+#include <QTextStream>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QNetworkAccessManager>
@@ -63,6 +66,40 @@ class InputLog : public QObject
     }
 };
 
+// ASGARD_DUMP=<file> (with ASGARD_SHOT, for tests): what each window shows as text, and its root's plain properties, so a
+// test can read the state after ASGARD_KEYS without comparing pictures. One "<window>\t<kind>\t<text>" line each.
+static void dumpItem(QQuickItem *item, const QString &window, QTextStream &out)
+{
+    if (!item->isVisible() || item->opacity() <= 0)
+        return;
+    const QVariant text = item->property("text");
+    if (text.isValid() && !text.toString().isEmpty())
+        out << window << "\ttext\t" << text.toString().replace('\n', ' ') << "\n";
+    for (QQuickItem *child : item->childItems())
+        dumpItem(child, window, out);
+}
+
+static void dumpState(const QQmlApplicationEngine &engine)
+{
+    const QString path = qEnvironmentVariable("ASGARD_DUMP");
+    QFile file(path);
+    if (path.isEmpty() || !file.open(QIODevice::WriteOnly))
+        return;
+    QTextStream out(&file);
+    for (QWindow *win : QGuiApplication::topLevelWindows())
+        if (auto *w = qobject_cast<QQuickWindow *>(win))
+            dumpItem(w->contentItem(), w->title(), out);
+    for (QObject *root : engine.rootObjects()) {
+        const QMetaObject *meta = root->metaObject();
+        for (int i = meta->propertyOffset(); i < meta->propertyCount(); i++) {
+            const QVariant value = meta->property(i).read(root);
+            const int type = value.metaType().id();
+            if (type == QMetaType::Bool || type == QMetaType::Int || type == QMetaType::Double || type == QMetaType::QString)
+                out << root->objectName() << "\tprop\t" << meta->property(i).name() << "=" << value.toString() << "\n";
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     // Screenshot mode (development): windows stay hidden, are rendered offscreen and saved as <prefix><title>.png.
@@ -95,6 +132,7 @@ int main(int argc, char *argv[])
                         w->contentItem()->setSize(w->size());
                         w->grabWindow().save(shot + w->title() + ".png");
                     }
+                dumpState(engine);
                 QGuiApplication::quit();
             });
         return app.exec();
@@ -149,6 +187,7 @@ int main(int argc, char *argv[])
                         w->contentItem()->setSize(w->size());
                         w->grabWindow().save(shot + w->title() + ".png");
                     }
+                dumpState(engine);
                 QGuiApplication::quit();
             });
         }
@@ -213,6 +252,7 @@ int main(int argc, char *argv[])
                     w->grabWindow().scaled(w->size(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
                         .save(shot + w->title().replace(' ', '_') + ".png");
                 }
+            dumpState(engine);
             app.quit();
         });
     }

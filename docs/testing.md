@@ -18,8 +18,22 @@ A check belongs at the lowest level that can catch the problem.
 **Build order:** the tree checks; image checks; read-only device checks; the fake emulator; the launch test. A full
 virtual boot comes last, if at all.
 
-Levels 1 and 2 have tests today, and level 5 is informal. Level 2 so far is UPD-5 (`test_update_abl.py`). Tests have no CI: `./test.sh` is run by hand. QEMU isn't installed
-on the build node. The emulator sleep test is still to do for most emulators (`docs/adding-an-emulator.md` §4).
+Where each level lives:
+
+- Levels 1 to 3 are `packages/asgard/sources/test_*`, run by `./test.sh`. An image check needs a build in `build/` and reads
+  whichever one is there, which may be older than the source. Asgard Home runs offscreen on the Qt in the build's toolchain,
+  through `tools/test/home_harness.py`, with system commands stubbed. `test_fake_emulator.py` has the fake emulator.
+- Level 4 is `./test-device.sh root@<thor>`. A check that has no evidence yet, such as one needing a sleep this boot, reports
+  SKIP.
+- Level 5 is `docs/human-checks.md`.
+
+A test with a `# gap:` header fails today because of a row in `SPEC.md`'s known gaps. `./test.sh` reports it as GAP, and
+fails if it starts passing, so the header and the row get removed together. `./test.sh` also fails if a spec rule has no check
+at any level. A rule counted there may have only part of it checked: a test's header says which part, and the rest sits at a
+higher level. A device or human check counts as written, not as passed, until someone runs it.
+
+Tests have no CI: `./test.sh` is run by hand. QEMU isn't installed on the build node. The emulator sleep test is still to do
+for most emulators (`docs/adding-an-emulator.md` §4).
 
 ## Rules
 

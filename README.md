@@ -120,6 +120,7 @@ in a game.
 ```
 build.sh          build the image (./build.sh), or stage it on a Thor (./build.sh stage)
 test.sh           run the host tests: no Thor, no build, no root
+test-device.sh    run the read-only device checks on a Thor over SSH
 inject-config.sh  put your asgard.yml on an image's boot partition
 distribution/     Asgard OS itself: options, kernel_options, logos, image tools, extra package patches
 device/           the board (SM8550): options, config.xml (DTB list), bootloader, rootfs overlay, kernel .config

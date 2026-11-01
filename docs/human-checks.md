@@ -1,0 +1,86 @@
+# Human checks
+
+Rules only a person holding a Thor can judge, or that are about how we work rather than what the tree holds
+(`docs/testing.md`, level 5). Record the date and image when one is checked. `./test.sh` counts this table towards
+coverage, but a row here is a check waiting to be done, not a pass.
+
+| Rule | How to check | Last checked |
+|---|---|---|
+| DEV-1 | Before a ROCKNIX fix goes in: it's one `git cherry-pick <sha>` per fix (the commit message names the sha), and no `rocknix` remote branch was merged. test_repo_history.py catches a merge afterwards, not a batch of picks. | |
+| DEV-6 | After a kernel rebase, read `git log --oneline vNEW..asgard` in `packages/linux/src`: each patch is one commit with its own subject, nothing squashed together. | |
+| DEV-7 | In GitLab, Settings > Repository > Protected branches for `asgardos/asgardos` and `asgardos/linux`: force-push is allowed on `asgard` only. | |
+| DEV-9 | From a machine on the LAN, in a fresh `git clone --recurse-submodules` with an empty `build/`: `./build.sh` finishes with no other setup. Before a release, and whenever a known gap in SPEC 16 for DEV-9 changes. | |
+| DEV-12 | The same clean build, read for failures that a retry or a different `CONCURRENCY_MAKE_LEVEL` makes go away: that's a package using something it doesn't declare. Check optional dependencies in review of a recipe change. | |
+| DEV-14 | While `./build.sh` runs, nobody edits the tree: agree it before starting a long build. test_build_window.py sees only a file's last change. | |
+| DEV-16 | Before a release: `git ls-files` and the image hold no unit's calibration (`/storage/.config/thor` values) and no Android dump from `thor/`. Read new files under `packages/*/config`, `device/` and `usr/lib/firmware` in the file list diff. | |
+| DEV-18 | In review of a commit adding logic that runs without hardware: it adds a `test_*`, and its paths can be overridden through the environment. | |
+| DEV-19 | In review of a commit that renames a path or a setting: it converts what installed systems already hold (UPD-4), or the rename is dropped. test_tree_layout.py only covers paths SPEC names. | |
+| DEV-20 | Per release, read the README, SPEC, `docs/changes.md` and `docs/testing.md`: why is in changes, not SPEC; plans are in `docs/plans/`. test_tree_layout.py only covers status marks and rule definitions. | |
+| DEV-21 | In review of a new file copied from ROCKNIX or JELOS: its notice came with it. test_tree_layout.py covers files that existed at the fork. | |
+| UPD-3 | On an idle Thor, stage a build and confirm nothing changes until the next reboot; then reboot and confirm it installs. Needs the owner's go for that reboot (TEST-6). During a game, staging only needs SSH: the game keeps running. | |
+| HOME-1 | Hold L and R together and let go: the two screens swap once and no tab changes. Press A and B: A is the east button, B the south one, as printed. | |
+| LOOK-1 | In Home, Settings, the panel and the tools, compare with `docs/screenshots/`: dark translucent pills with a light rim, lavender glass panels, a selection glow, Nunito throughout. New UI's colours should come from `Theme.qml`, which is read in review. | |
+| LOOK-4 | When a change adds on-device UI: open it, compare with `docs/screenshots/`, and use all of it with the pad alone. | |
+| SET-4 | Walk through Settings and change each row: it should apply at once, or its row should say it needs a restart. | |
+| NET-1 | Scan and join a Wi-Fi network with the on-screen keyboard; pair a Bluetooth pad, then forget it; switch USB mode with a PC attached; connect over SSH, Samba and Syncthing after turning each on. | |
+| NET-2 | Tailscale: follow the on-screen link and see Connected. ZeroTier: join by network ID and approve it. WireGuard: put a `.conf` in `/storage/.config/wireguard`, turn it on and see an address. | |
+| TRO-1 | Sign in with a real account and web API key: games with sets show the right progress in Trophies, and opening one lists its achievements. | |
+| GAME-5 | In a RetroArch game and in an Azahar game, tap Home: the picture stops while the menu is open and carries on from there after Resume. | |
+| MENU-1 | In a game, tap Home: the menu opens on the bottom screen, with the screens swapped too. Hold Home and press a hotkey: no menu opens and the hotkey works. | |
+| MENU-3 | Tap Home in PPSSPP, ARMSX2, AetherSX2 and Flycast: each opens its own menu, on top of the game. | |
+| PANEL-1 | In a game, press AYN: the panel fills the bottom screen and the game stops. Press AYN again: the game carries on. | |
+| PANEL-2 | Open the panel on a Thor: the readings change with the load, and the page 2 sliders change the volume and each screen's brightness, together when locked. | |
+| PANEL-4 | Press each quick toggle: Wi-Fi, Airplane mode, Vibration, Ambient LED, Screenshot and Clean memory do what they say, Quit game ends the game, and the rate tile switches the top screen. | |
+| OLED-1 | Press X in Home: both panels and the stick lights go dark. Press A: they light up and no tile opened. | |
+| OLED-2 | Switch Ultra Black in Settings: the top screen cycles once and blacks visibly change. Restart and it stays as set. | |
+| OLED-3 | Set Screens off after to 2 min, leave the Thor idle in a game: both screens go dark. Touch a button: they come back. Set it to Never: they stay on. | |
+| TXT-1 | In Eden Duo, reach a game's name prompt: the keyboard fills the bottom screen, and what's typed reaches the game. Cancel it once too. | |
+| TXT-3 | With the bottom screen off, open that prompt: the screen lights, and goes dark again after it. Quit the game from Home with the keyboard open: it's gone and the pad works in Home. | |
+| SND-4 | Switch menu sounds off and on, and change their volume: moving in Home is silent, then audible at the new level. Plug the charger in with chimes on and off. | |
+| SND-5 | In a fullscreen game, change the volume and brightness with the buttons: the slider shows over the game, on the top screen, in Home's style. | |
+| TOOL-1 | From Tools, open each: Asgard Music (play a playlist, turn the screens off, it keeps playing), Asgard Files (copy between SD, ROMs and internal), Firefox, Terminal and Moonlight. Each is full screen on the right screen; Firefox and Terminal have the keyboard on the bottom. | |
+| GAME-1 | Launch test (TEST-7), with a homebrew ROM and no game in `/run/thor-playing.txt`: start it from Home and quit it from the in-game menu. Home comes back, a session shows in play time, and the exit was clean: no new log in `/storage/.config/thor/crashes/`. | |
+| GAME-2 | With an emulator, tap Home and pick Quit game: it closes within seconds, with no confirmation dialog left open (Azahar's on SIGTERM is why it gets -9). Do it once for RetroArch and once for a standalone. | |
+| GAME-6 | In a game with sound, tap Home, then Exit, then Back to Home. Home shows Return to game, and the game's sound stops. Wait a minute, press A on the tile: the picture carries on from that moment, sound and all buttons work. | |
+| GAME-7 | The emulator sleep test (`docs/adding-an-emulator.md` §4), on an idle Thor with the owner's go: play a minute, sleep two or more, wake. The game answers within a couple of seconds and `top` shows no emulator pinned at 100 % per thread. Per emulator: see that file's status table. | |
+| GAME-8 | When an emulator is added or bumped: its commit message ticks or notes each item in `docs/adding-an-emulator.md`, and its row in §4's status table is updated. | |
+| GAME-9 | In a game, press every button, both sticks and the triggers: each does what it's mapped to, the sticks rest centred, and no input arrives twice. Then check the gyro in a game that uses it. | |
+| GAME-10 | Start a one-screen game (PSP) and an XWayland one (Azahar, Eden): the picture fills the top screen, the right way up. The bottom screen goes dark within about 5 s for the first. | |
+| COMP-1 | Start a melonDS game: the top screen shows the main window and the bottom the second, landscape, with touch where the picture is. The pad still goes to the game, without touching anything. | |
+| COMP-2 | Start a game in Eden Duo with companion windows: they show live on the bottom screen and the pad stays with the game. | |
+| COMP-3 | Start a RetroArch GBA game: save-state and brightness controls are on the bottom screen and work by touch, and the pad stays with the game. Set Settings' RetroArch games row to Off and start it again: nothing on the bottom screen. | |
+| COMP-4 | With each port installed in `/storage`: Wind Waker HD's GamePad window, Dusklight's second screen, Gen1 Recomp's secondary display, and Lumi-Dex opening with Brilliant Diamond. Each fills the bottom screen, and the pad stays with the game. | |
+| OVR-1 | On a game's Emulator options, with a value set for its system: the row reads `Emulator settings (…)`. Set a game value, start the game and see it apply; unset it and see the row read `Emulator settings (…)` again. | |
+| OVR-3 | Pick another emulator for one game, start it: that emulator runs, others on the system don't change. In a 3DS game with a big shader cache, Delete shader cache reports what it deleted and the game starts without the black screen. | |
+| GPU-1 | Set a game's GPU driver to the extra Turnip and start it: its log names that Mesa version. Unset it: the row reads `OS (mesa-…)`, and the log names the image's. | |
+| GPU-2 | Start a 3DS Zelda on `mesa-25.3.6`: it runs. Build one with `tools/turnip/turnip.sh`, copy it to `/storage/.config/gpu-drivers/`: it shows up on the row. | |
+| GPU-3 | Set an OpenGL game's OpenGL driver to Zink and start it: it runs, and its log or `MESA_LOADER_DRIVER_OVERRIDE` in `/proc/<pid>/environ` shows Zink. Unset: the row reads `OS (freedreno)`. | |
+| PORT-1 | Open Ports in Home: PortMaster starts, and a port it installed starts and quits from Home. | |
+| PORT-2 | Add a `.desktop` file with `X-Asgard-Kill=` naming its real process, start it from the PC system: the in-game menu's Quit game stops it. Then one with no `X-Asgard-Kill=`. | |
+| PORT-3 | Start Gen1 Recomp: it opens, takes the pad (as an XWayland window: `swaymsg -t get_tree` shows a `class`, no `app_id`), and no `libtheoradec` error is in `/var/log/exec.log`. | |
+| EMU-1 | When a system's default emulator changes: its row in the README's emulator table says so, and the commit gives the reason. | |
+| BAT-3 | On a music game with Lid / power button set to Screens off, headphones in: close the lid. Screens go off, music keeps playing, and it doesn't suspend. Open it: both screens back, and the game's still where it was. | |
+| CFG-7 | After a fresh install or factory reset, with no `asgard.yml` and no `sensors-root/`: Thor boots to Home; open every Settings page, each row shows a value with no error; turn Gyro on in Settings and nothing hangs or complains; a game launches. | |
+| PERF-3 | Start a game with the menu's caps left at their defaults, and read over SSH (read-only) while it plays: `cat /sys/devices/system/cpu/cpufreq/policy{0,3,7}/scaling_max_freq` are each `cpuinfo_max_freq`, and `/sys/devices/system/cpu/online` is `0-7`. Quit: they're back at about 90, 75 and 75 %. | |
+| PERF-5 | Settings > Hardware > Performance > Fan at 100 %: the fan is audibly at full. Launch a game: it stays at full. Quit: still full. Set Quiet: it follows the curve again. | |
+| PWR-11 | With an idle Thor, pick each Sleep mode in Settings and press power. Sleep: suspends, and resumes on power. Light sleep: over SSH before and after, `/storage/.config/sleep.conf.d/` says freeze and the journal shows the freeze state being entered. Screen off only: the screens go off and it doesn't suspend (SSH stays up). Reboot: the mode you picked is still the one in Settings. | |
+| SCR-4 | In Home and in a dual-screen game, tap each corner and the centre of each screen, with the Thor held normally and using the test screen in Settings > Hardware > Calibration: the dot lands under the finger on both panels, not on the other one. | |
+| SCR-5 | Reboot an idle Thor (needs its owner's go): no kernel or systemd text on either screen; the Asgard logo and running dots show on the top screen only, the bottom stays dark, up to Home. | |
+| AUD-1 | With sound playing from Home or a game, plug in headphones: the sound moves to them. Unplug: back on the speaker. Do it again after a reboot with headphones already plugged in. | |
+| AUD-2 | With Joey's speaker preset, play loud music at 100 %: louder and no crackle. With each preset, the volume keys change the level smoothly, and after a restart of PipeWire or a reboot the level is the one you left, not squared (much quieter). | |
+| SND-1 | In Settings > Hardware > Audio, step Speaker EQ through Thor tuning, Joey and Off, and Headphone EQ through Thor tuning, a saved AutoEQ profile and Off, with music playing: each is audibly different, and each comes back after about 2 s. | |
+| INP-1 | With `sensors-root/` in place: in Azahar with a gyro game (Ocarina of Time 3D aiming, gyro option on), turning the Thor moves the aim the right way on all axes. In a Steam or SDL game with gyro input, the same through the virtual DualSense. | |
+| INP-2 | Settings > Hardware > Display > Stick lights: Colour lights both sticks in each chosen colour, per stick; Brightness Low, Medium and High are visibly different; Battery level shows the charge colour; Off turns them off; the choice is back after a reboot. | |
+| PWR-1 | With a game running and `asgard.sleep_audit=1`, close the lid for 10 minutes and open it. The game is at the same moment, not reloaded. The last line of `/storage/sleep-audit.csv` has `cxsd_cnt`, `aosd_cnt` and `ddr_cnt` above 0. | |
+| PWR-2 | Unplug at 4.13 V or lower (`/sys/class/power_supply/battery/voltage_now`), with `asgard.sleep_audit=1`, and sleep the Thor for an hour or more. In the last line of `/storage/sleep-audit.csv`, `avg_ma` is 30 or less, `uv_start` at most 4130000 and `secs` at least 3600. | |
+| PWR-3 KERN-5 KERN-7 | Sleep it, wake with the power button, and again with an RTC alarm: with a go for that run, `rtcwake -m no -s 120`, then close the lid. After each: buttons and sticks work, Wi-Fi reaches the LAN, a sound plays on speaker and headphones, a game loads from storage, and `/proc/uptime` shows no reboot. | |
+| PWR-9 | With `asgard.sleep_audit=1`, sleep idle in Home for an hour, unplugged. In `/storage/sleep-audit.csv`, `s1_s2idle` is a few dozen at most. The sleep's `/storage/sleep-audit/<start>.irq` and the last hour's `.trace` name nothing waking it repeatedly except what has a stated reason. | |
+| PWR-10 | Close the lid: it sleeps, unless it's within 10 s of a boot or a wake, when it sleeps only after those 10 s. Press the power button: it sleeps. Let the screens blank from idle and press it: the screens come back and it doesn't sleep. Attach an external display and press it: the internal panel blanks, the display stays up, and it doesn't suspend; another press brings the panel back. | |
+| PWR-12 | With a go for that run, on an idle Thor, `MIN=1000 /usr/lib/systemd/system-sleep/asgard-pad-fix check`. `/storage/pad-fix.log` gets a "re-probing" line, then the pad and Home's navigation work, with no second line saying it stalled. | |
+| BAT-2 | On the cable above 20 %, turn on bypass charging. Over 10 minutes under load, `capacity` holds steady and `current_now` stays near 0 (allow gauge noise). Run it down below 20 % with bypass on: it charges. Check it stops at the floor both awake and through a sleep on the cable. | |
+| LOG-3 | On an idle Thor, with a go for that run, `sh -c 'kill -SEGV $$'` over SSH, then `coredumpctl list` shows it, and its file is in `/storage/.cache/cores`. | |
+| KERN-1 | Both panels show a stable picture at 60 and at 120 Hz (Settings > Display). Turning Ultra Black off and on changes the top panel's shadows at low brightness. Touch both screens at all four corners. Brightness covers its range on both panels. | |
+| KERN-2 | After a sleep of an hour: the pad works with no reboot and no entry in `/storage/pad-fix.log`, rumble fires, and the stick lights come back in their colours. With `asgard.sleep_audit=1`, that sleep's `/storage/sleep-audit/<start>.trace` shows `vdd_mcu_3v3` disabled and enabled again. | |
+| KERN-3 | After a sleep, `dmesg` has no `Failed to calibrate PHY`, and a direct read of 1 GB from UFS runs well over the G4 rate of 1.5 GB/s. With a UHS-I card, a 1 GB direct read runs at SDR104's speed, above 50 MB/s, with no mmc errors. | |
+| KERN-4 | With `asgard.sleep_audit=1` and the lid open, sleep it and plug in a charger: it wakes. Sleep it on the charger for 30 minutes with the charge level changing: `/storage/charge-fix.log` shows no wake that wasn't an attach or the charge-limit alarm, and the `.irq` file names no charger wake source. Unplug: USB still works after, with no `dwc3_qcom_pm_resume returns` in `dmesg`. | |
+| KERN-8 | With the fan spinning, sleep it for 10 minutes with `asgard.sleep_audit=1`: the sleep's `.irq` file has no `pwm-fan` line above a handful, and `s1_s2idle` is no higher than a sleep with the fan off. Charge to the limit on the cable: the level stops there and `current_now` falls to about 0. | |

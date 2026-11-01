@@ -30,6 +30,9 @@
 static const char *PLAYLOG = "/storage/.config/thor/playtime.jsonl";  // shared with Thor Panel (playlog.py)
 static const QStringList IMAGE_EXT = {"png", "jpg", "jpeg", "webp"};
 
+// For the host tests' fake emulator (docs/testing.md, TEST-8): the launcher, the kill data and the command FIFO elsewhere.
+static QString killDataPath() { return qEnvironmentVariable("ASGARD_KILL_DATA", "/tmp/.process-kill-data"); }
+
 Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     : QObject(parent), m_root(qEnvironmentVariable("ASGARD_ROOT")), m_gameEnv(gameEnv)
 {
@@ -53,9 +56,13 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
                 m_keys = -1;
             }
         }
+    }
+    const QString fifo = qEnvironmentVariable("ASGARD_CMD_FIFO",
+        QFile::exists("/usr/bin/runemu.sh") && !qEnvironmentVariableIsSet("ASGARD_SHOT") ? "/run/asgard-home.cmd" : "");
+    if (!fifo.isEmpty()) {
         // Command FIFO. Opened read-write so it never reads EOF when a writer closes.
-        mkfifo("/run/asgard-home.cmd", 0600);
-        m_cmd = ::open("/run/asgard-home.cmd", O_RDWR | O_NONBLOCK | O_CLOEXEC);
+        mkfifo(fifo.toUtf8().constData(), 0600);
+        m_cmd = ::open(fifo.toUtf8().constData(), O_RDWR | O_NONBLOCK | O_CLOEXEC);
         if (m_cmd >= 0) {
             auto *n = new QSocketNotifier(m_cmd, QSocketNotifier::Read, this);
             connect(n, &QSocketNotifier::activated, this, [this] {
@@ -393,13 +400,14 @@ void Backend::launch(const QVariantMap &game)
     const QString file = QFileInfo(rom).fileName();
     const QString emulator = setting(sys, file, "emulator", game["emulator"].toString());
     const QString core = setting(sys, file, "core", game["core"].toString());
-    if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop
+    const QString runemu = qEnvironmentVariable("ASGARD_RUNEMU", "/usr/bin/runemu.sh");
+    if (!QFile::exists(runemu)) {  // desktop
         qInfo("launch %s (%s) with %s/%s", qPrintable(rom), qPrintable(sys), qPrintable(emulator), qPrintable(core));
         return;
     }
     // A .desktop entry that isn't a Steam link (a PC app in the PC system): its own command, not Steam.
     if (rom.endsWith(".desktop")) {
-        QFile desk(rom);
+        QFile desk(path(rom));
         QString exec, kill;   // X-Asgard-Kill: the process Home's Quit stops (default: the command's own name)
         if (desk.open(QIODevice::ReadOnly))
             for (const QString &line : QString::fromUtf8(desk.readAll()).split('\n')) {
@@ -417,7 +425,7 @@ void Backend::launch(const QVariantMap &game)
             // fan, EQ, sleep mode) around it, as runemu.sh does for emulators: else the menu's profile stays on.
             run(". /etc/profile; set_kill set \"$3\"; python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" 2>/dev/null; " SNAP_JOURNAL
                 "/usr/share/asgard/asgard-perf-profile.sh apply \"$2\" \"${1##*/}\" >/dev/null 2>&1; "
-                "echo \"Run log - $(date): $1\" >/var/log/exec.log; { " + exec + "; } >>/var/log/exec.log 2>&1; rc=$?; "
+                "L=${EXEC_LOG:-/var/log/exec.log}; echo \"Run log - $(date): $1\" >\"$L\"; { " + exec + "; } >>\"$L\" 2>&1; rc=$?; "
                 "/usr/share/asgard/asgard-perf-profile.sh restore >/dev/null 2>&1; "
                 "set_kill stop; python3 /usr/share/asgard/playlog.py stop 2>/dev/null; " SNAP_JOURNAL "case $rc in 0|137|143) [ -e /tmp/asgard-save-log ] || exit $rc ;; esac; "
                 "/usr/share/asgard/asgard-crashlog.sh \"$1\" \"$2\" $rc; exit $rc",
@@ -428,9 +436,9 @@ void Backend::launch(const QVariantMap &game)
     }
     // playlog.py around ROCKNIX's runemu.sh (per-game options, governors, hotkeys).
     run("python3 /usr/share/asgard/playlog.py start \"$1\" \"$2\" \"$4\" \"$3\" 2>/dev/null; " SNAP_JOURNAL
-        "/usr/bin/runemu.sh \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
+        "\"$5\" \"$1\" -P\"$2\" --core=\"$3\" --emulator=\"$4\" --controllers=\"\"; rc=$?; "
         "python3 /usr/share/asgard/playlog.py stop 2>/dev/null; " SNAP_JOURNAL "exit $rc",
-        {rom, sys, core, emulator}, m_gameEnv);
+        {rom, sys, core, emulator, runemu}, m_gameEnv);
 }
 
 void Backend::openSettings(const QVariantMap &game, const QString &page)
@@ -557,7 +565,7 @@ bool Backend::togglePause()
 QStringList Backend::runningGame() const
 {
     // ROCKNIX's kill-hotkey target, written by runemu.sh for every emulator it starts.
-    QFile f("/tmp/.process-kill-data");
+    QFile f(killDataPath());
     QStringList names;
     if (f.open(QIODevice::ReadOnly))
         for (const QString &w : QString::fromUtf8(f.readAll()).split(QRegularExpression("\\s+"), Qt::SkipEmptyParts))
@@ -649,7 +657,7 @@ void Backend::quitGame(bool saveLog)
         return;
     // The signal ROCKNIX's quit hotkey uses for this emulator (runemu.sh writes it, e.g. "-9 azahar": Azahar asks to
     // confirm on SIGTERM, so a polite quit sat there until the fallback). Otherwise ask nicely, then insist.
-    QFile f("/tmp/.process-kill-data");
+    QFile f(killDataPath());
     QString sig = "-TERM";
     if (f.open(QIODevice::ReadOnly))
         for (const QString &w : QString::fromUtf8(f.readAll()).split(QRegularExpression("\\s+"), Qt::SkipEmptyParts))
