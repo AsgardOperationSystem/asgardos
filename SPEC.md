@@ -17,6 +17,7 @@ change the spec in the same commit as the code. Never edit the spec only to make
 | What must an emulator do? | `docs/adding-an-emulator.md`, part of this spec by reference (GAME-8) |
 | What did we find while investigating? | `docs/sleep.md`, `thor/ayn_thor_pro.md` (local, not in git) |
 | What is planned? | `docs/plans/` |
+| How is it tested? | this file, section 12 |
 
 If a plan or doc disagrees with this file, this file wins. If the code disagrees, the code is either a bug or a listed
 deviation (section 11). An unlisted disagreement is a bug in the code or in the spec: raise it, don't pick one silently.
@@ -62,7 +63,7 @@ Each of these needs the owner's explicit go **for that specific action**. Approv
 | SAFE-1 | Nothing writes `abl_a`/`abl_b` without the owner's go, and an update MUST NOT flash them, directly or through a script it calls. `updateabl` stays a manual command. A bad ABL can only be recovered through EDL. | `[review]` `device/bootloader/update.sh` |
 | SAFE-2 | Changes to the boot chain need the owner's go first: the Boot Loader Spec entry, `/flash` layout, kernel or DTB names, partition labels, GPT. | `[review]` |
 | SAFE-3 | Never reboot a Thor, restart its session or stop a game while `/run/thor-playing.txt` shows a game is running, unless the owner says to. | `[review]` |
-| SAFE-4 | Never start an emulator binary on a Thor to inspect it (`--version` opens a window over the game). Read logs or compare against `build/.../install_pkg/`. | `[review]` |
+| SAFE-4 | Never start an emulator binary on a Thor to inspect it (`--version` opens a window over the game). Read logs or compare against `build/.../install_pkg/`. The one exception is the launch test (TEST-7), which the owner has approved under the rules there. | `[review]` |
 | SAFE-5 | No secret or personal data in git or in an image: Wi-Fi keys, logins, SSH keys, this unit's Android blobs and calibration. Never set `LOCAL_WIFI_SSID`, `LOCAL_WIFI_KEY` or `LOCAL_SSH_KEYS_FILE`. `build.sh` MUST keep running the build from an empty environment. | `[review]` `build.sh` |
 | SAFE-6 | Nothing leaves the private GitLab without the owner's go: no public repos, no pushes to GitHub, no sending device or user data to outside services. | `[review]` |
 | SAFE-7 | Don't delete or overwrite ABL backups, the EDL kit, or anything else in `thor/`. `thor/` is not backed up and can't be rebuilt. | `[review]` |
@@ -164,7 +165,7 @@ Each of these needs the owner's explicit go **for that specific action**. Approv
 |---|---|
 | DONE-1 | **Status is earned on the device.** A feature is ✅ in the README only after it was checked on a real Thor. Built or tested on a host only is 🧪. Tested against a fake is 🧪, and says so. |
 | DONE-2 | **Say what was and wasn't checked.** A commit or handover states what ran and where. Never report something as working from a build alone. |
-| DONE-3 | **Logic gets a host test.** New or changed logic that runs without hardware (parsing, state machines, calculations) gets a `test_*` next to its source, using fake sysfs or stubs through environment overrides. A bug fix adds the check that would have caught it. |
+| DONE-3 | **Logic gets a host test.** New or changed logic that runs without hardware (parsing, state machines, calculations) gets a `test_*` next to its source, using fake sysfs or stubs through environment overrides. A bug fix adds the check that would have caught it. Section 12 has the rules for tests. |
 | DONE-4 | **Investigate before changing.** Search `docs/` and `thor/ayn_thor_pro.md` first, then the projects listed in the README's credits. Don't re-test what is recorded as ruled out. |
 | DONE-5 | **Commit messages explain.** What was broken, why, and what changed, with the requirement ID if one applies. One change per commit. |
 | DONE-6 | **Docs move with the code**, in the same commit: the README's status, `docs/changes.md` for a change on top of ROCKNIX, this file if a requirement changes. |
@@ -181,5 +182,39 @@ Where the tree breaks this spec today. Don't copy these or treat them as precede
 | REPO-6 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
 | REPO-10 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
 | GAME-7 | The sleep test on the device is still to do for most emulators. Home can't pause Steam or PC games. | `docs/adding-an-emulator.md` §4 |
-| DONE-3 | Tests have no runner or CI, and `packages/asgard/package.mk` installs `test_*` into the image. `test_thor_settings.py` and `test_thor_panel.py` need host `libSDL2`, `test_gamma.sh` needs `wayland-scanner`. | Next: the test plan |
+| DONE-3 | Tests have no runner or CI. `test_thor_settings.py` and `test_thor_panel.py` need host `libSDL2`, `test_gamma.sh` needs `wayland-scanner`. | Single runner first; see section 12 |
+| TEST-1 | Existing tests don't cite requirement IDs yet. | Add when each test is next touched, or with the runner |
+| TEST-9 | `packages/asgard/package.mk` installs `test_*` into the image. | With the runner |
+| Section 12 | Only level 1 has tests, and they're run by hand. Level 5 is informal. Levels 2 to 4, the fake emulator, the launch test and the QEMU checks aren't built. QEMU isn't installed on the build node. | Build in the order in section 12 |
 | Docs | `docs/adding-an-emulator.md` §10 cites a README changes table now in `docs/changes.md`; `docs/sleep.md` has old `~/Projects/asgard` paths; `docs/changes.md` still lists "No Steam (`0006`)". | Fix when next touched |
+
+## 12. Testing
+
+A test is an automated or recorded check that a requirement in this file still holds, and that fails when the
+requirement is broken.
+
+**Levels, cheapest first.** A check belongs at the lowest level that can catch the problem.
+
+| Level | Runs | Catches | Examples |
+|---|---|---|---|
+| 1. Host logic | This machine, every commit | Parsing, state machines, calculations, how Home handles a game | `test_*`, Asgard Home offscreen, the fake emulator (TEST-8) |
+| 2. Tree checks | This machine, every commit | Rules visible in the source | No update path calls `updateabl` (SAFE-1), no new LAN hosts (REPO-9), no `LOCAL_WIFI_*` (SAFE-5) |
+| 3. Image checks | After a build, before staging | A bad image, before it reaches a Thor | The boot entry names a kernel and DTB that exist, no test files or personal paths, a file list diff against the last image, the image's programs under QEMU user mode (TEST-8) |
+| 4. Device checks | A Thor over SSH, after an update | Hardware and integration problems | Services up, both screens and the pad present, the launch test (TEST-7), an RTC-timed sleep that checks collapse and resume |
+| 5. Human checks | On a Thor, recorded per release or feature | What a script can't judge | Touch feel, picture quality, the emulator sleep test, drain under PWR-2's method |
+
+**Build order:** a single runner for levels 1 and 2 with proper skips; the SAFE and REPO tree checks; image checks;
+read-only device checks; the fake emulator; the launch test. A full virtual boot (TEST-8) comes last, if at all.
+
+| ID | Rule |
+|---|---|
+| TEST-1 | Every test cites the requirement ID it checks. A test with no requirement points to a gap in this file, or isn't needed. |
+| TEST-2 | A new test MUST be seen failing once: break the code, watch it go red, restore the code. |
+| TEST-3 | A test changes only if it missed the code being wrong, or if this file changes in the same commit. MUST NOT change a test just to get a pass. |
+| TEST-4 | No silent skips. A test that can't run, such as for a missing tool, reports as skipped with the reason. It doesn't crash or count as a pass. |
+| TEST-5 | Status follows the level (DONE-1). Levels 1 to 3 earn at most 🧪. ✅ needs level 4 or 5. |
+| TEST-6 | Device checks are read-only and stop if `/run/thor-playing.txt` shows a game. Anything that sleeps, restarts or changes the device needs an idle Thor and the owner's go for that run. |
+| TEST-7 | **Launch test, the exception to SAFE-4.** It may start a game on a Thor only if all of these hold: no game shows in `/run/thor-playing.txt`, including one held by Back to Home; it goes through `runemu.sh`; it uses a homebrew ROM we may redistribute; it doesn't change the user's saves or settings; and it quits what it started and confirms a clean exit. A sleep step in this test also falls under TEST-6. Nothing else may start an emulator binary on a Thor. |
+| TEST-8 | **Emulation.** QEMU user mode runs the image's ARM programs at level 3. A fake emulator, a small script that follows the launcher contract and can exit with any code, crash or hang on demand, tests Home in a virtual display at level 1. A full virtual boot may cover boot order, `asgard.yml` precedence and updates keeping user data. A pass in emulation earns at most 🧪, and MUST NOT be taken as proof that an image boots on a Thor. |
+| TEST-9 | Test files and test ROMs MUST NOT ship in the image. |
+| TEST-10 | Not tested here: emulator internals (only how each integrates, per GAME-8), exact screenshots, and exact current draw in automation (gauge noise is about ±20 mA). Emulation can't cover sleep, Adreno and Turnip, the panels, touch, the pad MCU, the ADSP gyro, audio, charging, storage or OpenABL: those stay at levels 4 and 5. |
