@@ -79,8 +79,38 @@ Item {
     }
     // dflt: asgard-gamma's own default for an unset key (bottom tint and contrast +3, chosen by eye)
     function wbRow(screen, which, title, neg, pos, dflt) {
-        return choice("display", screen + " screen " + title, "Match the two screens", "asgard." + which + "." + screen.toLowerCase(),
+        return choice("display", title, "Match the two screens", "asgard." + which + "." + screen,
                       dflt || "0", wbSteps(neg, pos), () => backend.shell("kill -HUP $(pidof asgard-gamma)"))
+    }
+    // Hardware > Display > Top screen / Bottom screen. Submenus only: the keys stay flat (CFG-14).
+    function brightnessRows(key, screen) {   // ROCKNIX's brightness script: screen 1 = DSI-1 (bottom), 2 = DSI-2 (top); restored per screen at boot
+        return get("asgard.brightness_split") === "1"
+            ? [choice("display", "Brightness", "", key, "50", percents, v => backend.shell("brightness set " + screen + " " + v))] : []
+    }
+    function topScreenPage() {
+        return [[...brightnessRows("display.brightness2", 2),
+                 choice("display", "Refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh", "120",
+                        [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-2 mode 1080x1920@" + v + "Hz"))],
+                [wbRow("top", "warmth", "Warmth", "cooler", "warmer"), wbRow("top", "tint", "Tint", "greener", "pinker"),
+                 wbRow("top", "contrast", "Contrast", "softer", "punchier")],
+                // AYN's Ultra Black on the top panel (9061): sent at every panel power-on, so cycle the screen to apply it.
+                [toggle("display", "OLED Ultra Black", "Deeper blacks; off shows more shadow detail", "asgard.ultra_black", "1",
+                        () => backend.shell("echo " + (get("asgard.ultra_black", "1") === "1" ? "Y" : "N") +
+                                            " > /sys/module/panel_chipone_icna35xx/parameters/ultra_black;" +
+                                            " swaymsg output DSI-2 power off; sleep 0.5; swaymsg output DSI-2 power on; kill -HUP $(pidof asgard-gamma)"))]]
+    }
+    function bottomScreenPage() {
+        return [[...brightnessRows("display.brightness", 1),
+                 // 120 Hz (9059) drives the bottom panel ~1.8x brighter with roughly half the colour saturation (webcam,
+                 // 2026-10-29): its DDIC keeps the 60 Hz settings. Off by default until the panel's 120 Hz commands are known.
+                 choice("display", "Refresh rate", "120 Hz is washed out for now (fix pending)", "asgard.refresh_bottom",
+                        "60", [["120 Hz (washed out)", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-1 mode 1080x1240@" + v + "Hz"))],
+                [wbRow("bottom", "warmth", "Warmth", "cooler", "warmer"), wbRow("bottom", "tint", "Tint", "greener", "pinker", "3"),
+                 wbRow("bottom", "contrast", "Contrast", "softer", "punchier", "3")],
+                // ROCKNIX's own switch (vertical-check): "vc" starts the save-state / brightness controls on the bottom
+                // screen with RetroArch games; anything else leaves that screen off.
+                [choice("gamepad", "RetroArch games", "Save-state and brightness controls in games",
+                        "asgardos.bottomscreen.type", "vc", [["Controls", "vc"], ["Off", "off"]])]]
     }
     readonly property var fanModes: [["Quiet", "quiet"], ["Smart", "moderate"], ["Sport", "aggressive"],
                                      ["30%", "77"], ["50%", "128"], ["75%", "191"], ["100%", "255"]]
@@ -150,32 +180,14 @@ Item {
             [toggle("display", "Separate screen brightness", "Set the top and bottom screens on their own",
                     "asgard.brightness_split", "0",
                     () => { if (get("asgard.brightness_split") !== "1") backend.shell("brightness set " + get("display.brightness2", "50")) }),
-             ...(get("asgard.brightness_split") === "1"
-                 // ROCKNIX's brightness script: screen 1 = DSI-1 (bottom), 2 = DSI-2 (top); restored per screen at boot
-                 ? [choice("display", "Top screen brightness", "", "display.brightness2", "50", percents, v => backend.shell("brightness set 2 " + v)),
-                    choice("display", "Bottom screen brightness", "", "display.brightness", "50", percents, v => backend.shell("brightness set 1 " + v))]
+             // Separate, each screen's brightness is on its own page.
+             ...(get("asgard.brightness_split") === "1" ? []
                  : [choice("display", "Brightness", "Both screens", "display.brightness2", "50", percents, v => backend.shell("brightness set " + v))]),
              choice("moon", "Screens off after", "Without input (OLED care)", "asgard.idle_blank", "300",
                     [["2 min", "120"], ["5 min", "300"], ["10 min", "600"], ["Never", "0"]],
                     () => backend.shell("systemctl restart thor-idle-blank"))],
-            [choice("display", "Top screen refresh rate", "120 Hz is smoother, 60 Hz saves battery", "asgard.refresh", "120",
-                    [["120 Hz", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-2 mode 1080x1920@" + v + "Hz")),
-             // 120 Hz (9059) drives the bottom panel ~1.8x brighter with roughly half the colour saturation (webcam,
-             // 2026-10-29): its DDIC keeps the 60 Hz settings. Off by default until the panel's 120 Hz commands are known.
-             choice("display", "Bottom screen refresh rate", "120 Hz is washed out for now (fix pending)", "asgard.refresh_bottom",
-                    "60", [["120 Hz (washed out)", "120"], ["60 Hz", "60"]], v => backend.shell("swaymsg output DSI-1 mode 1080x1240@" + v + "Hz"))],
-            [wbRow("Top", "warmth", "warmth", "cooler", "warmer"), wbRow("Top", "tint", "tint", "greener", "pinker"),
-             wbRow("Bottom", "warmth", "warmth", "cooler", "warmer"), wbRow("Bottom", "tint", "tint", "greener", "pinker", "3"),
-             wbRow("Top", "contrast", "contrast", "softer", "punchier"), wbRow("Bottom", "contrast", "contrast", "softer", "punchier", "3")],
-            // AYN's Ultra Black on the top panel (9061): sent at every panel power-on, so cycle the screen to apply it.
-            [toggle("display", "OLED Ultra Black", "Top screen: deeper blacks; off shows more shadow detail", "asgard.ultra_black", "1",
-                    () => backend.shell("echo " + (get("asgard.ultra_black", "1") === "1" ? "Y" : "N") +
-                                        " > /sys/module/panel_chipone_icna35xx/parameters/ultra_black;" +
-                                        " swaymsg output DSI-2 power off; sleep 0.5; swaymsg output DSI-2 power on; kill -HUP $(pidof asgard-gamma)"))],
-            // ROCKNIX's own switch (vertical-check): "vc" starts the save-state / brightness controls on the bottom
-            // screen with RetroArch games; anything else leaves that screen off.
-            [choice("gamepad", "RetroArch bottom screen", "Save-state and brightness controls in games",
-                    "asgardos.bottomscreen.type", "vc", [["Controls", "vc"], ["Off", "off"]])],
+            [link("display", "Top screen", "Refresh rate, colour and Ultra Black", topScreenPage),
+             link("display", "Bottom screen", "Refresh rate, colour and RetroArch controls", bottomScreenPage)],
             [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
         case "Performance": return [
             // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.

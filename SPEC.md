@@ -115,7 +115,7 @@ Everything is reachable with the pad, and a user-facing feature ships with a way
 are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files and the sensors root.
 
 - **SET-1** Settings offers: device name; date, time and time zone; emulator options per console; accent and animations; library rescan; RetroAchievements sign-in and hardcore mode; about, updates and debug; sleep, restart and power off.
-- **SET-2** Under Hardware it offers: audio, display, performance, network, battery report and calibration.
+- **SET-2** Under Hardware it offers: audio, display, performance, network, battery report and calibration. Display has a page for each screen, with that screen's refresh rate, white balance and, when separate, brightness.
 - **SET-3** Restart, power off and installing an update ask for confirmation first. An update is offered only when a `.tar` is in `/storage/.update`.
 - **SET-4** A change takes effect without a restart where it can. A setting that needs one says so on its row.
 - **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting; USB mode; and SSH, Samba and Syncthing.
