@@ -42,8 +42,9 @@ working Thor hardware support, and native settings and tools.
 1. **Don't lose the device or the user's data.** No change may risk an unbootable Thor or lost saves, ROMs or settings.
 2. **A game in progress is safe.** Sleep, Back to Home and overlays must not lose or corrupt it.
 3. **Works on the device, with no PC.** Everything a user does, they can do on the Thor itself.
-4. **Battery and heat.** Sleep drain and idle power are product features, not afterthoughts.
-5. **Stays maintainable by one owner.** Fewer mechanisms, each understandable, each with its reason written down.
+4. **Games run well.** While a game plays, its speed and compatibility come before saving power, unless the user chose a cap or profile.
+5. **Battery and heat.** Sleep drain and idle power are product features, not afterthoughts.
+6. **Stays maintainable by one owner.** Fewer mechanisms, each understandable, each with its reason written down.
 
 **Non-goals.** Don't work towards these without the owner asking:
 
