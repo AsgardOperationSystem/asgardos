@@ -54,7 +54,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 | OVR-3 | Pick another emulator for one game, start it: that emulator runs, others on the system don't change. In a 3DS game with a big shader cache, Delete shader cache reports what it deleted and the game starts without the black screen. | |
 | GPU-1 | Set a game's GPU driver to the extra Turnip and start it: its log names that Mesa version. Unset it: the row reads `OS (mesa-…)`, and the log names the image's. | |
 | GPU-2 | Start a 3DS Zelda on `mesa-25.3.6`: it runs. Build one with `tools/turnip/turnip.sh`, copy it to `/storage/.config/gpu-drivers/`: it shows up on the row. | |
-| GPU-3 | Set an OpenGL game's OpenGL driver to Zink and start it: it runs, and its log or `MESA_LOADER_DRIVER_OVERRIDE` in `/proc/<pid>/environ` shows Zink. Unset: the row reads `OS (freedreno)`. | |
+| GPU-3 | Start an OpenGL game with the row unset: it reads `OS (Zink)`, and `MESA_LOADER_DRIVER_OVERRIDE` in `/proc/<pid>/environ` is `zink`. Set it to freedreno and start it again: it runs, and that variable is `msm`. Compare a few games on both before changing the default. | |
 | PORT-1 | Open Ports in Home: PortMaster starts, and a port it installed starts and quits from Home. | |
 | PORT-2 | Add a `.desktop` file with `X-Asgard-Kill=` naming its real process, start it from the PC system: the in-game menu's Quit game stops it. Then one with no `X-Asgard-Kill=`. | |
 | PORT-3 | Start Gen1 Recomp: it opens, takes the pad (as an XWayland window: `swaymsg -t get_tree` shows a `class`, no `app_id`), and no `libtheoradec` error is in `/var/log/exec.log`. | |

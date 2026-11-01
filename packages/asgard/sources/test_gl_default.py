@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
 # spec: GPU-3
-# gap: the SM8550 quirk 095-force_zink exports MESA_LOADER_DRIVER_OVERRIDE=zink for everything, so an unset game may run on Zink while its row says freedreno.
-# Tree check: nothing in the Thor's quirks sets a system-wide OpenGL driver, so unset really is freedreno. test_runemu.py: the per-game choice.
-import glob
+# Tree check: the Thor's default OpenGL really is Zink, as its row says: the quirk writes the override and the profile
+# exports it. test_runemu.py: the per-game choice over it.
 import os
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../hardware/quirks"))
-files = glob.glob(f"{ROOT}/platforms/SM8550/*") + glob.glob(f"{ROOT}/devices/AYN Thor/*")
-assert files
-forced = []
-for path in files:
-    if os.path.isfile(path):
-        with open(path, errors="replace") as f:
-            if any("MESA_LOADER_DRIVER_OVERRIDE=" in line and not line.lstrip().startswith("#") for line in f):
-                forced.append(os.path.relpath(path, ROOT))
-assert not forced, forced
+HERE = os.path.dirname(os.path.abspath(__file__))
+QUIRK = os.path.join(HERE, "../../hardware/quirks/platforms/SM8550/095-force_zink")
+EXPORT = os.path.join(HERE, "../../hardware/quirks/profile.d/999-export")
+lines = [line.strip() for line in open(QUIRK) if not line.lstrip().startswith("#")]
+assert 'MESA_LOADER_DRIVER_OVERRIDE="zink"' in lines, lines
+assert any(line.strip() == "MESA_LOADER_DRIVER_OVERRIDE" for line in open(EXPORT)), "the profile doesn't export it"
+print("ok")

@@ -65,7 +65,7 @@ check "OVR-3" "the shader cache script is installed" 'test -x /usr/share/asgard/
 check "GPU-1" "the row's default has a version to name" 'test -s /usr/share/mesa/version'
 check "GPU-2" "the extra Turnip is installed, and its icd.json points at a library that exists" 'j=/usr/lib/gpu-drivers/mesa-25.3.6/icd.json; test -f $j && test -f "$(sed -n "s/.*\"library_path\": \"\([^\"]*\)\".*/\1/p" $j)"'
 check "GPU-3" "Mesa has Zink" 'test -e /usr/lib/dri/zink_dri.so'
-check "GPU-3" "nothing forces Zink on every game: unset has to be freedreno" '! grep -qs "MESA_LOADER_DRIVER_OVERRIDE=.*zink" /storage/.config/profile.d/095-force_zink'
+check "GPU-3" "Zink is the default: Home, whose environment games inherit, has the override" 'tr "\0" "\n" < /proc/$(pidof -s asgard-home)/environ | grep -qx "MESA_LOADER_DRIVER_OVERRIDE=zink"'
 check "PORT-1" "PortMaster is installed" 'test -x /usr/bin/start_portmaster'
 check "PORT-3" "the linker can find libtheoradec" 'test -e /usr/lib/libtheoradec.so.1'
 check "EMU-1 EMU-5" "the image has its systems and option catalogue, and no EmulationStation" 'test "$(grep -c "<system>" /usr/config/emulationstation/es_systems.cfg)" -ge 100 && test -s /usr/share/asgard/es_features.cfg && ! command -v emulationstation >/dev/null'

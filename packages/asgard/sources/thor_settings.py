@@ -123,7 +123,7 @@ def default_label(name):
     if name == "motion":
         return "Off"
     if name == "gl driver":
-        return "freedreno"
+        return "Zink"
     if name == "gpu driver":
         try:
             return open("/usr/share/mesa/version").read().strip()
@@ -156,9 +156,9 @@ PERF_FEATURES = [("cpu cap little", CPU), ("cpu cap mid", CPU), ("cpu cap prime"
                  ("eq headphones", [("Thor's own", "thor"), ("AutoEQ profile", "autoeq"), ("Off", "off")]),
                  ("sleep mode", [("Suspend", "suspend"), ("Screens off, keep running", "screen")]),
                  ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF)]
-# OpenGL through Zink (Mesa's GL on top of the Vulkan driver, the GPU driver option's if set) instead of freedreno:
-# runemu.sh exports MESA_LOADER_DRIVER_OVERRIDE=zink.
-GL_DRIVER = ("gl driver", [("Zink (OpenGL on Vulkan)", "zink")])
+# OpenGL: the image's default is Zink (Mesa's GL on top of the Vulkan driver, the GPU driver option's if set), from the
+# SM8550 quirk. freedreno is Mesa's native driver; Zink is here so a game can go back to it from a system's freedreno.
+GL_DRIVER = ("gl driver", [("freedreno (native OpenGL)", "freedreno"), ("Zink (OpenGL on Vulkan)", "zink")])
 HW = "Hardware overrides"
 GROUPS = {"cpu cap little": HW, "cpu cap mid": HW, "cpu cap prime": HW, "gpu cap": HW, "fan mode": HW, "motion": HW, "eq speaker": HW + "/Sound EQ", "eq headphones": HW + "/Sound EQ",
           "sleep mode": HW + "/Sleep", "sleep wifi": HW + "/Sleep", "sleep bt": HW + "/Sleep"}

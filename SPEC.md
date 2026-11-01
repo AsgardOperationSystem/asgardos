@@ -313,7 +313,7 @@ Some games only run correctly on a particular driver, so a user can pick one per
 
 - **GPU-1** The Turnip driver can be chosen per game, and an unset row names the default, the image's Mesa. `runemu.sh` selects it through `VK_DRIVER_FILES`.
 - **GPU-2** The image ships an extra, older Turnip (`turnip-extra`, 25.3.6) in `/usr/lib/gpu-drivers`, because the 3DS Zeldas run on it. Users can add builds in `/storage/.config/gpu-drivers`, made with `tools/turnip/turnip.sh`.
-- **GPU-3** A game's OpenGL can run on Vulkan through Zink (`gl_driver=zink`). Unset is freedreno.
+- **GPU-3** A game's OpenGL runs on Vulkan through Zink by default, as ROCKNIX's SM8550 quirk sets for the whole image, because native OpenGL showed flicker and tiling on this GPU family. It can be set to Mesa's native driver per game or system (`gl_driver=freedreno`), and back to Zink (`gl_driver=zink`). Unset is Zink.
 
 ## 12. Diagnostics
 
@@ -473,7 +473,6 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
 | MENU-5 | PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus (MENU-3), so they have no Performance tile. | Decide how Home's menu reaches them, then change MENU-3 |
 | DEV-11 | The emulators package regenerates the tracked `docs/supported-emulators.md` during a build, so a build can change a file outside `build/`. | Decide whether it stays tracked |
-| GPU-3 | The SM8550 quirk `095-force_zink` exports `MESA_LOADER_DRIVER_OVERRIDE=zink`, so an unset game may run on Zink while its row says freedreno. Not confirmed on a Thor. | Decide: fix, or change the rule |
 | HOME-2 | No Recently played: `backend.recent` exists, but no QML reads it. | Decide: fix, or change the rule |
 | SET-3 | `PowerMenu.qml` restarts and powers off with no confirmation. | Decide: fix, or change the rule |
 | CFG-9 | `optionRow` in `Settings.qml` does its own lookup: it says `Default` when `get_setting` would find `global.X`. | Decide: fix, or change the rule |

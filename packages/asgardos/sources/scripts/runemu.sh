@@ -439,12 +439,14 @@ do
         break
     fi
 done
-### OpenGL driver (Asgard): Zink (GL on the Vulkan driver above) instead of freedreno, per system or game
-if [ "$(get_setting "gl_driver" "${PLATFORM}" "${ROMNAME##*/}")" = "zink" ]
-then
-    ${VERBOSE} && log $0 "OpenGL driver zink"
-    export MESA_LOADER_DRIVER_OVERRIDE=zink
-fi
+### OpenGL driver (Asgard): the image's default is Zink (GL on the Vulkan driver above, from the SM8550 quirk); freedreno
+### is Mesa's native driver, msm to its loader. Per system or game
+GL_DRIVER=$(get_setting "gl_driver" "${PLATFORM}" "${ROMNAME##*/}")
+case "${GL_DRIVER}" in
+    zink) export MESA_LOADER_DRIVER_OVERRIDE=zink ;;
+    freedreno) export MESA_LOADER_DRIVER_OVERRIDE=msm ;;
+esac
+${VERBOSE} && [ -n "${GL_DRIVER}" ] && log $0 "OpenGL driver ${GL_DRIVER}"
 
 ### Offline all but the number of threads we need for this game if configured.
 NUMTHREADS=$(get_setting "threads" "${PLATFORM}" "${ROMNAME##*/}")

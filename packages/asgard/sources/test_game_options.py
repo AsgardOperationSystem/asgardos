@@ -172,7 +172,7 @@ with tempfile.TemporaryDirectory() as d:
 assert ("/storage/.config/gpu-drivers", "/usr/lib/gpu-drivers") == tuple(
     re.search(r'^GPU_DRIVERS = \("(.*?)", "(.*?)"\)', open(f"{HERE}/thor_settings.py").read(), re.M).groups())
 
-# GPU-3: OpenGL's row offers Zink, stored as gl_driver=zink, and unset names freedreno.
+# GPU-3: OpenGL's row offers the native driver, with Zink for a system's game to go back to, and unset names Zink.
 row = next(f for f in features("azahar", "azahar-sa") if f["key"] == "gl_driver")
-assert ["zink"] == [c[1] for c in row["choices"]] and row["default"] == "freedreno", row
+assert ["freedreno", "zink"] == [c[1] for c in row["choices"]] and row["default"] == "Zink", row
 print("ok")

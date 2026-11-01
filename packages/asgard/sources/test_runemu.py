@@ -177,10 +177,12 @@ with Fixture() as f:
         _, seen = f.launch()
         assert seen.get("VK_DRIVER_FILES") == want, (cfg, seen)
 
-# GPU-3: zink only when asked for, per game or system.
+# GPU-3: unset leaves the image's default (Zink, from the quirk, in the environment). freedreno replaces it, per game or
+# system, under the name Mesa's loader knows it by, which works here (sdlui.py).
 with Fixture() as f:
-    for cfg, want in (("", None), ("gba.gl_driver=zink\n", "zink"), ('gba["Metroid.gba"].gl_driver=zink\n', "zink"),
-                      ('nds.gl_driver=zink\n', None)):
+    for cfg, want in (("", None), ("gba.gl_driver=freedreno\n", "msm"), ('gba["Metroid.gba"].gl_driver=freedreno\n', "msm"),
+                      ('gba.gl_driver=freedreno\ngba["Metroid.gba"].gl_driver=zink\n', "zink"),
+                      ('nds.gl_driver=freedreno\n', None)):
         f.cfg(cfg)
         _, seen = f.launch()
         assert seen.get("MESA_LOADER_DRIVER_OVERRIDE") == want, (cfg, seen)
