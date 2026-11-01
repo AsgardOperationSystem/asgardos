@@ -773,7 +773,7 @@ void Backend::exec(const QString &command, const QJSValue &done)
     p->start("/bin/sh", {"-c", command});
 }
 
-// ROCKNIX's get_setting lookup: <sys>["<file>"].<key>, then <sys>.<key>, then global.<key>, else fallback.
+// The chosen emulator or core (CFG-11): <sys>["<file>"].<key>, then <sys>.<key>, else the fallback, es_systems.cfg's default.
 QString Backend::setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const
 {
     QFile f(path("/storage/.config/system/configs/system.cfg"));
@@ -784,7 +784,7 @@ QString Backend::setting(const QString &sys, const QString &file, const QString 
             if (eq > 0)
                 cfg.insert(QString::fromUtf8(line.left(eq)), QString::fromUtf8(line.mid(eq + 1)));
         }
-    for (const QString &k : {sys + "[\"" + file + "\"]." + key, sys + "." + key, "global." + key})
+    for (const QString &k : {sys + "[\"" + file + "\"]." + key, sys + "." + key})
         if (!cfg.value(k).isEmpty())
             return cfg.value(k);
     return fallback;

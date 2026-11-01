@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # spec: CFG-11
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
-# gap: Backend::setting also reads global.emulator and global.core, between the system and es_systems.cfg's default
 """CFG-11's order has three steps. The rest of it is test_emulator_choice.py."""
 import os
 import re
