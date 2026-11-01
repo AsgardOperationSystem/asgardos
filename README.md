@@ -38,7 +38,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Scraping | ⚠️ | Select → Scrape this game (libretro thumbnails). ScreenScraper is off until a developer ID is set; our own scraper is planned. |
 | Back to Home | ✅ | Leave a game without quitting it (frozen, hidden); the first tile returns to it. |
 | In-game menu (Home) | ✅ | On the bottom screen: quick save/load, screenshot, restart, quit, plus each emulator's own items (see the emulator table). |
-| In-game Performance tile | 🧪 | A game's CPU cap per core type and GPU cap from its in-game menu, saved to the game and applied on leaving the page. Checked on the host and offscreen, not on a Thor. PPSSPP, ARMSX2, AetherSX2 and Flycast use their own menus, so they don't have it yet. |
+| In-game Performance tile | ✅ | A game's CPU cap per core type and GPU cap from its in-game menu, saved to the game and applied on leaving the page. Checked on a Thor with the GPU cap in Brilliant Diamond (Eden): raised in game, applied without a restart, and kept in the game's overrides. The CPU rows use the same path but weren't tried there. PPSSPP, ARMSX2, AetherSX2 and Flycast use their own menus, so they don't have it yet. |
 | Start on Recently played → Settings | 🧪 | |
 | Language | ❌ | English only: Asgard Home has no translations. Since 2026-10-28 Home and everything it starts run in a UTF-8 locale (C.UTF-8). |
 | **Settings** | | |
