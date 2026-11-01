@@ -448,7 +448,7 @@ These keep one person able to maintain a fork of a large distribution and keep u
 - **UPD-1** The root filesystem is read-only. What must survive a reboot or update lives in `/storage`, or `/flash` for boot files.
 - **UPD-2** A partial copy never looks like an update: staging copies to a temporary name, checks the checksum on the device, then renames to `*.tar`.
 - **UPD-3** Staging doesn't reboot or disturb a running game. The update installs on the next boot.
-- **UPD-4** An update keeps user data: saves, ROMs, `system.cfg`, `/storage/.config/asgard`, `/storage/.config/thor`, and SSH keys. A change to a key or file format converts existing values.
+- **UPD-4** An update keeps user data: saves, ROMs, `system.cfg`, `/storage/.config/asgard`, `/storage/.config/thor`, SSH keys, and emulators' own settings. New shipped keys are added to those settings, and the user's values stay. A change to a key or file format converts existing values.
 - **UPD-5** An update never writes `abl_a`/`abl_b`, directly or through a script it calls, because a bad ABL can only be recovered through EDL. `updateabl` stays a manual command. Updates don't change the boot entry's layout without a migration.
 - **DEV-16** Nothing personal goes in git or an image: Wi-Fi keys, logins, SSH keys, Android blobs or a unit's calibration. Those come from `asgard.yml` or from `/storage`.
 

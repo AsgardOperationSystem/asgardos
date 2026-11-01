@@ -58,7 +58,23 @@ tocon "Update tool modules..."
 rsync -a /usr/config/modules/* /storage/.config/modules/
 # AsgardOS: rsync keeps files the image no longer has; drop the tool entry that ROCKNIX named.
 rm -f "/storage/.config/modules/Install ROCKNIX.sh" /storage/.config/modules/images/install-rocknix.svg
-cp -f /usr/config/retroarch/retroarch-core-options.cfg /storage/.config/retroarch/retroarch-core-options.cfg
+
+### Emulators' settings are the user's (UPD-4): a key the image adds reaches them, a value they have stays. A shipped
+### value that has to change for existing users needs its own conversion below.
+merge_new_keys() {  # merge_new_keys <shipped> <user>, for key=value and key = "value" files
+  [ -f "${1}" ] || return 0
+  if [ ! -s "${2}" ]; then
+    cp -f "${1}" "${2}"
+    return
+  fi
+  [ -z "$(tail -c1 "${2}")" ] || echo >>"${2}"
+  awk -F= 'function key(s) { gsub(/[ \t]/, "", s); return s }
+           NR == FNR { have[key($1)] = 1; next }
+           { k = key($1) } k != "" && !(k in have) { print }' "${2}" "${1}" >>"${2}"
+}
+merge_new_keys /usr/config/retroarch/retroarch-core-options.cfg /storage/.config/retroarch/retroarch-core-options.cfg
+rsync -a --ignore-existing /usr/config/melonDS /storage/.config/
+merge_new_keys /usr/config/melonDS/melonDS.ini /storage/.config/melonDS/melonDS.ini
 
 ### Apply developer ssh keys if they exist
 echo "Apply dev keys if available..." >>${LOG}
@@ -173,10 +189,6 @@ rm -f "${DOLPHIN_CFG}/GamecubeControllerProfiles/GCPadNew.ini.east" \
 # some platforms, so delete the setting. It is disabled by default, but can
 # be used on an opt-in basis
 sed -i "/system.suspend.dpms/d" /storage/.config/system/configs/system.cfg
-
-# MelonDS has added some new hotkey variables to the ini. Eventually swithing to toml and dropping ini.
-rm -rf /storage/.config/melonDS
-cp -r /usr/config/melonDS /storage/.config/
 
 # The distro sysctls moved from /storage/.config/sysctl.d into /usr/lib/sysctl.d/60-asgardos.conf, drop untouched copies.
 for conf in rocknix.conf:0c0d12bea1678cb7a60de7f33f874641 99-rocknix-networking.conf:6f1576b68b29e85517a34b87bb222282
