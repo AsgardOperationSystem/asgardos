@@ -21,6 +21,8 @@ makeinstall_target() {
   cp -r ${PKG_DIR}/sources/* ${INSTALL}/usr/share/asgard/
   # Bytecode from running the scripts on the build machine: its paths (home dir), and the Thor compiles its own.
   rm -rf ${INSTALL}/usr/share/asgard/__pycache__
+  # Host tests (./test.sh) don't ship.
+  rm -f ${INSTALL}/usr/share/asgard/test_*
   chmod 0755 ${INSTALL}/usr/share/asgard/*.sh ${INSTALL}/usr/share/asgard/*.py
 
   # ROCKNIX's emulator option catalogue (Thor Settings → Game/System Options), without installing ROCKNIX ES.
