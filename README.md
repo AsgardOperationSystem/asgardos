@@ -209,6 +209,7 @@ Which patch came from where, and why: [docs/changes.md](docs/changes.md). What w
 
 ## More docs
 
+- [Specification](SPEC.md): what Asgard must keep doing; read it before changing anything.
 - [Changes on top of ROCKNIX](docs/changes.md): every patch, what was broken and why.
 - [Sleep](docs/sleep.md): the deep sleep work, and what we took from Kettle Linux and Armada.
 - [Adding an emulator](docs/adding-an-emulator.md): what every new emulator has to support, with a test for each.
