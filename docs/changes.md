@@ -4,10 +4,12 @@
 
 Until 2026-10-10 each change was a merge request; their write-ups (what was broken, why, what changed) are in [merge-requests.md](merge-requests.md). Later changes are plain commits whose messages say the same.
 
+The numbers below, such as `0001` or `9018`, are the old patch files. Each is now one commit: search this repo's log for "Asgard patch NNNN", and the `asgardos/linux` log for the kernel's, whose subjects keep the patch's file name.
+
 | Change | Why |
 |---|---|
-| Kernel 7.3.1 (2026-10-30) | Rebased from 7.2 as commits (workbench: `thor/linux-rebase`, pushed to `asgardos/linux`). Dropped, already in 7.3: `9007`, `9039`, the QCE runtime-PM series, 7.2 `0011` (adc-tm5) and `0016` (DP audio_prepare). ICNA35XX, CH13726A and SY7758 are upstream now in their own forms; ours are kept (60/120 Hz, Ultra Black, compatibles). Watch: 7.3 sets the DSP's MI2S mclk/bclk on sm8550 (speakers); suspend now uses 7.3's own geni UART and LPASS macro power-down. |
-| ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. Delete `0000` once it merges. |
+| Kernel 7.3.1 (2026-10-30) | Rebased from 7.2 as commits (pushed to `asgardos/linux`). Dropped, already in 7.3: `9007`, `9039`, the QCE runtime-PM series, 7.2 `0011` (adc-tm5) and `0016` (DP audio_prepare). ICNA35XX, CH13726A and SY7758 are upstream now in their own forms; ours are kept (60/120 Hz, Ultra Black, compatibles). Watch: 7.3 sets the DSP's MI2S mclk/bclk on sm8550 (speakers); suspend now uses 7.3's own geni UART and LPASS macro power-down. |
+| ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. |
 | s2idle + `fw_devlink` cmdline (`0001`) | CPUs never reached cluster sleep; GPU power domains stayed on because `sync_state()` waited forever. |
 | CPU0 idle quirk (`097-cpu0-idle`) | ROCKNIX disables CPU0's deep idle, so the CPU cluster could never power down. |
 | Regulator suspend states in s2idle (`0219`, `0002`) | DT `regulator-state-mem` only applied to s2ram; the Thor sleeps with s2idle. |
@@ -19,8 +21,8 @@ Until 2026-10-10 each change was a merge request; their write-ups (what was brok
 | UFS HS-G5 (`1024`) | Internal storage ran at HS-G4: 1.5 GB/s instead of 2.6–2.8. |
 | OLED Ultra Black (`9001`) | Android's Ultra Black fixes colour shift/mura at low brightness; Linux never sent it. |
 | Charge limit (Kettle `1121` `1170` `1190` `1388` = `9018`–`9021`, `asgard-charge-limit`) | The firmware ignores the end threshold (our old `9003`); it takes a charge current. `1170`: charger updates no longer wake s2idle. |
-| Azahar 2126.2 (`0005`) | Newer Azahar, kept by choice; it does **not** fix the Alpha Sapphire freeze (see Status). |
-| No Steam (`0006`) | FEX-Emu's 32-bit thunks fail to build with GCC 16.2, breaking the image build. |
+| Azahar 2126.2 (`0005`) | Newer Azahar, kept by choice; it does **not** fix the Alpha Sapphire freeze (see the README's emulator table). |
+| ~~No Steam (`0006`)~~ | FEX-Emu's 32-bit thunks failed to build with GCC 16.2, breaking the image build. Dropped 2026-10-10: Steam is back in the image. |
 | melonDS menu bar (`0007`) | In two-window mode melonDS showed its Qt menu bar on one screen. |
 | asgard package + boot tuning (`0008`) | Hostname, USB autosuspend, charge limit, CPU clock cap at every boot. |
 | asgard.yml | ROCKNIX preconfigures Wi-Fi and keys by baking them into the image; Asgard keeps them in a file next to it. |

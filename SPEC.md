@@ -408,4 +408,4 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | DEV-11 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
 | DEV-15 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
-| Docs | `docs/adding-an-emulator.md` §10 cites a README changes table now in `docs/changes.md`; `docs/sleep.md` has old `~/Projects/asgard` paths; `docs/changes.md` still lists "No Steam (`0006`)". | Fix when next touched |
+| DEV-11 | The emulators package regenerates the tracked `docs/supported-emulators.md` during a build, so a build can change a file outside `build/`. | Decide whether it stays tracked |
