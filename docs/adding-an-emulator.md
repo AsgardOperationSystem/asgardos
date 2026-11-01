@@ -13,7 +13,7 @@ Use it as a checklist: a new emulator isn't done until every item is ticked or n
 - **Registration:** a commit that adds it to `PKG_EMUS` for SM8550 and calls
   `add_emu_core <system> <emulator> <core> <default true|false>` in `virtual/emulators/package.mk`
   (example: the "Asgard patch 0038-eden-duo-switch-emulator" commit). runemu.sh runs `/usr/bin/start_<core minus -sa>.sh`.
-- **Options:** its per-game/per-system options go in ROCKNIX's `es_features.cfg` (same patch). Thor Settings shows them,
+- **Options:** its per-game/per-system options go in ROCKNIX's `es_features.cfg` (same patch). Settings shows them,
   plus the CPU/fan profile every emulator gets (`asgard-perf-profile.sh`), with no extra work.
 
 ## 2. Launching through runemu.sh
@@ -21,7 +21,7 @@ Use it as a checklist: a new emulator isn't done until every item is ticked or n
 Home starts every game as `runemu.sh <rom> -P<system> --core=<core> --emulator=<emulator>`. Going through runemu is what
 gives the emulator its per-game options, CPU/fan profile, display pre-rotation, crash logs and playtime. Don't add a
 launch path that skips it. Apps in the PC/Steam list (`.desktop` files) are the one exception: Home runs those itself
-(see 8).
+(see 9).
 
 - **Kill target:** `start_<name>.sh` calls `set_kill set "<signal> <process name>"`, e.g. `set_kill set "-9 azahar"`.
   Home's in-game menu and Quit read it from `/tmp/.process-kill-data` to know which process is the game and how to stop
@@ -139,4 +139,4 @@ name.
 - Every checklist item above checked, or noted as not applicable, in the emulator's commit message.
 - Sleep test (4) passed.
 - A crash test: `kill -SEGV` its process while a game runs. A log should appear in `crashes/` and a core in `coredumpctl`.
-- README's changes table updated, and the status line in 4 updated.
+- `docs/changes.md` and the README's emulator table updated, and the status table in 4 updated.

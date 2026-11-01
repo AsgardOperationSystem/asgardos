@@ -18,7 +18,7 @@ active with `LPASS_HW_MACRO`/`DCODEC` enabled; read `/sys/kernel/debug/clk/<name
 Goal: full SoC sleep (`cxsd`/`ddr`, ideally `aosd`, counting in `/sys/kernel/debug/qcom_stats/`), as Android does
 on this Thor (750+ CX/DDR collapses in 10 min, each one resumed). Today the PCIe suspend OPP (`0220`/`0221`)
 keeps a small DDR vote in sleep; without it the first wake from DDR low power resets the SoC. Full notes:
-`~/Projects/asgard/thor/ayn_thor_pro.md`, sections from "CXSD-only sleep experiment" on.
+`thor/ayn_thor_pro.md` (git-ignored), sections from "CXSD-only sleep experiment" on.
 
 **Known (2026-10-14):**
 - The reset is the SoC dropping PS_HOLD: XBL log (`9043`, `/sys/kernel/debug/xbl_log`) shows `Reset by PSHOLD`,
@@ -54,14 +54,10 @@ sends that Linux doesn't. Stopping ADSP/CDSP isn't a valid test: DDR LPM stopped
 3. ~~USB.~~ Not the CX blocker (see above). "HS-PHY not in L2" is noise: device mode, no cable. The combo PHY
    stays runtime-active (DP aux bridge), keeping `usb3_phy_gdsc` on while awake.
 4. ~~Retry `0028`.~~ Done as `0032`: works, but CX still doesn't collapse.
-5. Floor-dropped overnight sleep: `echo 0 > /sys/module/pcie_qcom/parameters/suspend_floor` (runtime, resets at
-   boot), lid closed, unplugged, then compare drain with the ~100 mA baseline. If it holds, make 0 the default.
-   Short tests: `~/Projects/asgard/thor/asgardos/aosd-test.sh c` (`a` = floor kept, safe).
-6. CX: list the AOP QMP messages the downstream drivers send (`qmp_send`/`aop_msg` in the OnePlus tree) and replay
-   them at runtime through `qcom_aoss.send` (`9038`). Then the display RSC.
-7. If still blocked: write the findings up for linux-arm-msm (Qualcomm's engineers work on this state for
-   X1E/SC8280XP), and ask AYN for its kernel source under the GPL.
-8. Clean up whatever is no longer needed: test switches (`9037`/`9038`/`9042`), ftrace (`0027`), ramoops
+5. ~~Floor-dropped overnight sleep.~~ Done 2026-10-16: `suspend_floor` defaults to off (`9037`).
+6. ~~CX: replay the downstream drivers' AOP QMP messages.~~ Not needed: `9047` got CX to collapse.
+7. ~~If still blocked, go to linux-arm-msm and AYN.~~ Not needed, for the same reason.
+8. Still open: clean up whatever is no longer needed: test switches (`9037`/`9038`/`9042`), ftrace (`0027`), ramoops
    (`0029`/`0030`).
 
 ## Projects to learn from
@@ -71,11 +67,11 @@ Other ARM64 handheld distros that cover the Thor or SM8550. Check them before so
 - **[Kettle Linux](https://github.com/kettlelinux/kettlelinux)** (BSD-3-Clause, early, single developer). SteamOS "deckard" aarch64 userspace + mainline **7.2** with a pinned patch stack. **Targets the AYN Thor and Odin 2 Portal** (SM8550) and the RP5. Worth reading:
   - kernel patches for panels, gamepad, LEDs, haptics, microSD, Wi-Fi and **s2idle suspend**. Compare with ours for sleep drain (DDR stuck at 1555 MHz asleep) and the rsinput resume stall.
   - Thor bottom screen: a Performance app (stats, trackpad, keyboard) plus a Plasma Mobile touch shell in Game Mode.
-  - power controls: TDP, per-game fan curves, Auto TDP, **charge limit** (our `9003` doesn't work yet), refresh rate.
+  - power controls: TDP, per-game fan curves, Auto TDP, **charge limit** (the basis of ours, `9018`–`9021`), refresh rate.
   - InputPlumber presents the pad as a Steam Deck controller; A/B atomic updates (RAUC).
 - **[Armada](https://github.com/armada-os/armada)** (GPL-2.0+, ~1.9k stars, very active). Fedora bootc + device support derived from ROCKNIX; Steam Gaming Mode + KDE, FEX + Proton, OTA updates, Armada Control (power, fan, controller, calibration). Its SM8550 sleep work is [armada-packages #1](https://github.com/gh123man/armada-packages/pull/1) (RP6: #2954 ported to 7.0.11, UFS gate-race fix, charger-wake classifier, PCIe D3cold). Worth checking:
   - its sleep patches against ours.
-  - how it sets up Steam + FEX + Proton and per-game compatibility settings (our Steam installs, but no game has been tested yet).
+  - how it sets up Steam + FEX + Proton and per-game compatibility settings.
 
 ### Findings from Kettle/Armada (2026-10-11)
 

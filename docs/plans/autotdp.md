@@ -1,7 +1,7 @@
 # AutoTDP plan (2026-10-29)
 
 Goal: hold a game's target FPS at the lowest CPU/GPU clocks. The Snapdragon has no TDP knob, so "TDP" here means
-per-cluster `scaling_max_freq` and the GPU devfreq `max_freq` (today a fixed ~75 % CPU cap, `40-thor-cpu-cap.sh`).
+per-cluster `scaling_max_freq` and the GPU devfreq `max_freq` (caps per core type: `asgard-cpu-cap.sh` in Home, `asgard-perf-profile.sh` per game).
 
 ## Done
 
