@@ -476,7 +476,7 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | GPU-3 | The SM8550 quirk `095-force_zink` exports `MESA_LOADER_DRIVER_OVERRIDE=zink`, so an unset game may run on Zink while its row says freedreno. Not confirmed on a Thor. | Decide: fix, or change the rule |
 | LOG-2 | A boot that freezes before its first sleep, game launch or shutdown leaves no report: `asgard-lastboot.sh` needs a snapshot. | Decide: fix, or change the rule |
 | HOME-2 | No Recently played: `backend.recent` exists, but no QML reads it. | Decide: fix, or change the rule |
-| SET-3 | `Settings.qml` also offers a `.img.gz` as an update. `PowerMenu.qml` restarts and powers off with no confirmation. | Decide: fix, or change the rule |
+| SET-3 | `PowerMenu.qml` restarts and powers off with no confirmation. | Decide: fix, or change the rule |
 | DEV-16 | `packages/asgardos/package.mk` writes `LOCAL_WIFI_*` and `LOCAL_SSH_KEYS_FILE` into an image built other than through `build.sh`, and `post-update` copies them to `/storage`. | Decide: fix, or change the rule |
 | CFG-9, CFG-11 | Home has its own lookups: `Backend::setting` also reads `global.emulator` and `global.core`, and `optionRow` says `Default` when `get_setting` would find `global.X`. | Decide: fix, or change the rule |
 | CFG-13 | `parse_yaml` doesn't take the inline form `wifi: {ssid: x}`, only the block form. | Decide: fix, or change the rule |

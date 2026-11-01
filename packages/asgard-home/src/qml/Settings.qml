@@ -59,7 +59,7 @@ Item {
         sh("ssid", "nmcli -t -f DEVICE,STATE,CONNECTION dev | grep ^wlan", wifiNow)
         sh("ip", "ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1")
         sh("usb", "usbgadget")
-        sh("update", "ls /storage/.update/*.tar /storage/.update/*.img.gz 2>/dev/null | head -1")
+        sh("update", "ls /storage/.update/*.tar 2>/dev/null | head -1")
         sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
         if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt)
     }

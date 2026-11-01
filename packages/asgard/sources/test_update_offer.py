@@ -1,6 +1,5 @@
 # spec: SET-3
 # requires: cmd:node
-# gap: Settings > About also offers a .img.gz in /storage/.update as an update; SET-3 says only a .tar
 """Run: python -I test_update_offer.py  (no Thor, no Qt): SET-3's "only when a .tar is in /storage/.update": the listing
 Settings runs to decide (Settings.qml's refresh), on a temp folder. The offer itself is in test_home_settings.py."""
 import os
