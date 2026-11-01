@@ -31,6 +31,14 @@ verbose) DEBUG=true ;;
 esac
 
 BLANK_FLAG="/run/power-blank-active.flag"
+IDLE_BLANK_FLAG="/run/asgard-idle-blanked"
+HOME_FIFO="/run/asgard-home.cmd"
+
+# The screens were idle-blanked: thor-idle-blank.py wakes them on this same press, and may already have, so sway can't tell us.
+if [ "$1" = "power" ] && [ -e "${IDLE_BLANK_FLAG}" ]; then
+  rm -f "${IDLE_BLANK_FLAG}"
+  exit 0
+fi
 
 # Asgard: a game set to keep running with the screens off (emulator option Sleep, asgard-perf-profile.sh) owns the
 # power key and the lid while it runs: asgard-screens-off.sh turns the screens off/on instead of suspending.
@@ -82,6 +90,14 @@ external_display() {
 # and the post hooks restore as usual.
 POWER_LED="/sys/class/leds/power-led"
 
+# Every output off, as Home's X leaves them. No answer from sway isn't an answer: the key then suspends as usual.
+screens_all_off() {
+  local outputs
+  outputs=$(SWAYSOCK=/run/0-runtime-dir/sway-ipc.0.sock swaymsg -t get_outputs -r 2>/dev/null) || return 1
+  case "${outputs}" in *'"power":'*) ;; *) return 1 ;; esac
+  ! printf '%s' "${outputs}" | grep -Eq '"power": *true'
+}
+
 case "$1" in
   power)
     # The blank is ours, so a press always ends it first. This also covers the
@@ -92,6 +108,14 @@ case "$1" in
       ${DEBUG} && log $0 "Waking from blank."
       rm -f "${BLANK_FLAG}"
       external_display unblank
+      exit 0
+    fi
+
+    # PWR-10: the key wakes screens that are off. Home keeps its own X state, so it's told; it may not be there to hear.
+    if screens_all_off; then
+      ${DEBUG} && log $0 "Waking screens that are off."
+      SWAYSOCK=/run/0-runtime-dir/sway-ipc.0.sock swaymsg "output * power on" >/dev/null 2>&1
+      [ -p "${HOME_FIFO}" ] && timeout 1 sh -c "echo screens-on > '${HOME_FIFO}'"
       exit 0
     fi
 

@@ -1,4 +1,4 @@
-# spec: OLED-3
+# spec: OLED-3 PWR-10
 # requires: cmd:python3
 """Run: python -I test_idle_blank.py  (no Thor): thor-idle-blank.py's setting and loop, from a temp copy reading a temp
 system.cfg, on a fake clock with input events and sway calls faked. That it runs and darkens real panels: device and human checks."""
@@ -23,7 +23,9 @@ def load(cfg):
             open(conf, "w").write(cfg)
         text = open(os.path.join(HERE, "thor-idle-blank.py")).read()
         assert "/storage/.config/system/configs/system.cfg" in text
-        open(f"{d}/blank.py", "w").write(text.replace("/storage/.config/system/configs/system.cfg", conf))
+        assert "/run/asgard-idle-blanked" in text
+        text = text.replace("/storage/.config/system/configs/system.cfg", conf).replace("/run/asgard-idle-blanked", os.devnull)
+        open(f"{d}/blank.py", "w").write(text)
         spec = importlib.util.spec_from_file_location("blank", f"{d}/blank.py")
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
@@ -77,6 +79,23 @@ assert sent == [(100, "output DSI-2 dpms off"), (150, "output DSI-2 dpms on"), (
 # A stick moved far enough counts as input, and turns the screens on; its jitter doesn't
 sent = simulate(load("asgard.idle_blank=100\n"), {150: (EV_ABS, 0, 500), 250: (EV_ABS, 0, 501)}, 300)
 assert sent == [(100, "output DSI-2 dpms off"), (150, "output DSI-2 dpms on"), (250, "output DSI-2 dpms off")]
+
+# PWR-10: blanking leaves a marker for the power handler. The power key wakes the screens too, and leaves the marker for the
+# handler to read, however soon this wakes them; any other input clears it.
+def marker_after(events, until):
+    mod = load("asgard.idle_blank=100\n")
+    with tempfile.TemporaryDirectory() as d:
+        mod.IDLE_FLAG = f"{d}/blanked"
+        sent = simulate(mod, events, until)
+        return sent, os.path.exists(mod.IDLE_FLAG)
+
+
+sent, marked = marker_after({}, 130)
+assert sent == [(100, "output DSI-2 dpms off")] and marked
+sent, marked = marker_after({150: (EV_KEY, 116, 1)}, 180)
+assert sent[-1] == (150, "output DSI-2 dpms on") and marked, sent
+sent, marked = marker_after({150: (EV_KEY, 304, 1)}, 180)
+assert sent[-1] == (150, "output DSI-2 dpms on") and not marked, sent
 
 # 0 = never
 assert simulate(load("asgard.idle_blank=0\n"), {}, 3000) == []

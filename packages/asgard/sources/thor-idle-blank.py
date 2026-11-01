@@ -25,6 +25,10 @@ SKIP = ("Motion Sensors", "Jack", "lid", "haptics")
 SWAY = {"SWAYSOCK": "/var/run/0-runtime-dir/sway-ipc.0.sock"}
 EV_KEY, EV_ABS = 0x01, 0x03
 EVENT = struct.Struct("llHHi")
+KEY_POWER = 116
+# Exists while the screens are blanked, and until power-handler has seen the press that woke them. This daemon wakes them on
+# that press too, so the handler can't tell from sway whether the press was meant to wake or to sleep (PWR-10).
+IDLE_FLAG = "/run/asgard-idle-blanked"
 
 
 def name_of(path):
@@ -97,7 +101,7 @@ def main():
         if now - last_scan > 30:                 # pick up recreated virtual devices (e.g. after resume)
             devs, last_scan = open_devices(devs), now
         ready, _, _ = select.select([d["fd"] for d in devs.values()], [], [], 5)
-        active = False
+        active = other = False
         for d in devs.values():
             if d["fd"] not in ready:
                 continue
@@ -110,7 +114,9 @@ def main():
                 continue
             for off in range(0, len(data) - EVENT.size + 1, EVENT.size):
                 _, _, typ, code, val = EVENT.unpack_from(data, off)
-                active |= is_activity(d, typ, code, val)
+                hit = is_activity(d, typ, code, val)
+                active |= hit
+                other |= hit and not (typ == EV_KEY and code == KEY_POWER)
         now = time.monotonic()
         if active:
             last_input = now
@@ -118,8 +124,18 @@ def main():
                 for o in blanked:
                     sway(f"output {o} dpms on")
                 blanked = []
+                if other:
+                    try:
+                        os.remove(IDLE_FLAG)
+                    except OSError:
+                        pass
         elif not blanked and IDLE > 0 and now - last_input >= IDLE:
             blanked = lit_outputs()
+            if blanked:
+                try:
+                    open(IDLE_FLAG, "w").close()
+                except OSError:       # only the power key's wake depends on it; the screens must still go off
+                    pass
             for o in blanked:
                 sway(f"output {o} dpms off")
 

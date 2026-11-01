@@ -521,6 +521,10 @@ void Backend::command(const QString &cmd)
         return;
     }
     qInfo("command: %s", qPrintable(cmd));
+    if (cmd == "screens-on") {   // power-handler: the power key woke the screens X turned off
+        setScreensOff(false);
+        return;
+    }
     if (cmd == "rescan") {   // 090-asgard-tuning, after it adds Tools entries: Home may have scanned before them
         rescan();
         return;
