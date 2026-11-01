@@ -442,19 +442,22 @@ class UI:
         return self.menu(f"{title}: {line}" if line else title, [("No", ""), ("Yes", "")],
                          hints=[hint("a", "Choose"), hint("b", "Cancel")]) == 1
 
-    def keyboard(self, title, initial="", secret=False):
-        """On-screen keyboard. Returns the string, or None if cancelled. Start = done, (logical) y = backspace, x = shift."""
+    def keyboard(self, title, initial="", secret=False, max_len=None, min_len=0, allowed=None, cancel=True):
+        """On-screen keyboard. Returns the string, or None if cancelled. Start = done, (logical) y = backspace, x = shift.
+        max_len, min_len: limits on the text; allowed: the only characters it takes; cancel=False: b doesn't cancel."""
         rows_lower = ["1234567890-=", "qwertyuiop[]", "asdfghjkl;'\\", "zxcvbnm,./`@", "     "]
         rows_upper = ["!@#$%^&*()_+", "QWERTYUIOP{}", "ASDFGHJKL:\"|", "ZXCVBNM<>?~#", "     "]
         s, shift, r, c = initial, False, 0, 0
-        hints = [hint("a", "Type"), hint("y", "Delete"), hint("x", "Shift"), hint("start", "Done"), hint("b", "Cancel")]
+        hints = [hint("a", "Type"), hint("y", "Delete"), hint("x", "Shift"), hint("start", "Done")]
+        if cancel:
+            hints.append(hint("b", "Cancel"))
         while True:
             rows = rows_upper if shift else rows_lower
             r = max(0, min(r, len(rows) - 1))
             c = max(0, min(c, len(rows[r]) - 1))
 
             def draw():
-                x0, y0, pw, rh = self.panel(title, 6)
+                x0, y0, pw, rh = self.panel(f"{title} ({len(s)}/{max_len})" if max_len else title, 6)
                 pad = int(14 * self.s)
                 self.rect(x0 + pad, y0 + pad // 2, pw - 2 * pad, rh - pad, (38, 38, 38))
                 shown = ("•" * len(s)) if secret else s
@@ -481,14 +484,17 @@ class UI:
             elif a == "right":
                 c = (c + 1) % (1 if r == 4 else 12)
             elif a == "a":
-                s += " " if r == 4 else rows[r][c]
+                ch = " " if r == 4 else rows[r][c]
+                if (max_len is None or len(s) < max_len) and (allowed is None or ch in allowed):
+                    s += ch
             elif a == "y":
                 s = s[:-1]
             elif a == "x":
                 shift = not shift
             elif a == "start":
-                return s
-            elif a in ("b", "quit"):
+                if len(s) >= min_len:
+                    return s
+            elif a == "quit" or (a == "b" and cancel):
                 return None
 
 

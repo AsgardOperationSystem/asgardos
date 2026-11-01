@@ -1,0 +1,333 @@
+eden-cli has no software keyboard, so core's default applet answered every text prompt with "Eden" without showing
+anything (a nickname prompt in Pokemon BD named the Pokemon that). Register one that runs Asgard's on-screen keyboard
+(/usr/share/asgard/thor_text_input.py) and returns what was typed, a real cancel, and the game's own text check.
+The inline keyboard still goes to the default applet.
+
+--- a/src/yuzu_cmd/asgard_software_keyboard.cpp	1970-01-01 02:00:00.000000000 +0200
++++ b/src/yuzu_cmd/asgard_software_keyboard.cpp	2026-11-01 19:29:12.040182884 +0200
+@@ -0,0 +1,233 @@
++// SPDX-FileCopyrightText: Copyright 2026 Asgard OS
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++#include <cerrno>
++#include <csignal>
++#include <cstdint>
++#include <mutex>
++#include <optional>
++#include <string>
++#include <thread>
++#include <utility>
++#include <vector>
++
++#include <fcntl.h>
++#include <spawn.h>
++#include <sys/wait.h>
++#include <unistd.h>
++
++#include "common/logging.h"
++#include "common/string_util.h"
++#include "yuzu_cmd/asgard_software_keyboard.h"
++
++extern char** environ;
++
++namespace {
++
++constexpr const char* HELPER = "/usr/share/asgard/thor_text_input.py";
++
++using Service::AM::Frontend::SwkbdPasswordMode;
++using Service::AM::Frontend::SwkbdResult;
++using Service::AM::Frontend::SwkbdTextCheckResult;
++using Service::AM::Frontend::SwkbdType;
++
++std::vector<std::string> HelperArgs(const Core::Frontend::KeyboardInitializeParameters& p,
++                                    const std::u16string& initial, const std::u16string& message) {
++    const std::u16string& title = !message.empty()         ? message
++                                  : !p.header_text.empty() ? p.header_text
++                                                           : p.guide_text;
++    std::vector<std::string> args{
++        HELPER,
++        "--title=" + Common::UTF16ToUTF8(title),
++        "--initial=" + Common::UTF16ToUTF8(initial),
++        "--max=" + std::to_string(p.max_text_length),
++        "--min=" + std::to_string(p.min_text_length),
++    };
++    if (p.type == SwkbdType::NumberPad) {
++        args.emplace_back("--digits");
++    }
++    if (p.password_mode == SwkbdPasswordMode::Enabled) {
++        args.emplace_back("--secret");
++    }
++    if (p.disable_cancel_button) {
++        args.emplace_back("--no-cancel");
++    }
++    return args;
++}
++
++} // namespace
++
++struct AsgardSoftwareKeyboard::Session {
++    std::mutex mutex;
++    pid_t helper{-1};
++    std::uint64_t generation{}; // A prompt only answers while it's the current one.
++    std::u16string last_text;   // What the game's text check gets to retry.
++
++    // Ends any prompt still open.
++    std::uint64_t NextGeneration() {
++        std::scoped_lock lock{mutex};
++        if (helper > 0) {
++            kill(helper, SIGTERM);
++        }
++        return ++generation;
++    }
++
++    // The helper's stdout if it exited with 0; nothing if cancelled or if it failed.
++    std::optional<std::string> Run(const std::vector<std::string>& args, std::uint64_t prompt) {
++        int out[2];
++        if (pipe2(out, O_CLOEXEC) != 0) {
++            LOG_ERROR(Service_AM, "Software keyboard: pipe failed");
++            return std::nullopt;
++        }
++        std::vector<char*> argv;
++        for (const auto& arg : args) {
++            argv.push_back(const_cast<char*>(arg.c_str()));
++        }
++        argv.push_back(nullptr);
++
++        posix_spawn_file_actions_t actions;
++        posix_spawn_file_actions_init(&actions);
++        posix_spawn_file_actions_adddup2(&actions, out[1], STDOUT_FILENO);
++        // The emulator's threads block and handle signals of their own: the helper starts clean.
++        posix_spawnattr_t attr;
++        posix_spawnattr_init(&attr);
++        sigset_t none, all;
++        sigemptyset(&none);
++        sigfillset(&all);
++        posix_spawnattr_setsigmask(&attr, &none);
++        posix_spawnattr_setsigdefault(&attr, &all);
++        posix_spawnattr_setflags(&attr, POSIX_SPAWN_SETSIGMASK | POSIX_SPAWN_SETSIGDEF);
++
++        pid_t pid = -1;
++        int spawned = 0;
++        {
++            std::scoped_lock lock{mutex};
++            if (generation == prompt) {
++                spawned = posix_spawn(&pid, HELPER, &actions, &attr, argv.data(), environ);
++                if (spawned == 0) {
++                    helper = pid;
++                }
++            } else {
++                spawned = ECANCELED;
++            }
++        }
++        posix_spawn_file_actions_destroy(&actions);
++        posix_spawnattr_destroy(&attr);
++        close(out[1]);
++        if (spawned != 0) {
++            close(out[0]);
++            if (spawned != ECANCELED) {
++                LOG_ERROR(Service_AM, "Software keyboard: can't run {}: {}", HELPER, spawned);
++            }
++            return std::nullopt;
++        }
++
++        std::string text;
++        char buffer[256];
++        for (;;) {
++            const ssize_t n = read(out[0], buffer, sizeof(buffer));
++            if (n > 0) {
++                text.append(buffer, static_cast<std::size_t>(n));
++            } else if (n == 0 || errno != EINTR) {
++                break;
++            }
++        }
++        close(out[0]);
++
++        int status = 0;
++        while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
++        }
++        {
++            std::scoped_lock lock{mutex};
++            if (helper == pid) {
++                helper = -1;
++            }
++        }
++        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
++            return text;
++        }
++        if (!WIFEXITED(status) || WEXITSTATUS(status) != 1) {
++            LOG_ERROR(Service_AM, "Software keyboard: {} failed, status {}", HELPER, status);
++        }
++        return std::nullopt;
++    }
++};
++
++AsgardSoftwareKeyboard::AsgardSoftwareKeyboard()
++    : session{std::make_shared<Session>()},
++      inline_fallback{std::make_unique<Core::Frontend::DefaultSoftwareKeyboardApplet>()} {}
++
++AsgardSoftwareKeyboard::~AsgardSoftwareKeyboard() {
++    Close();
++}
++
++void AsgardSoftwareKeyboard::Close() const {
++    session->NextGeneration();
++}
++
++void AsgardSoftwareKeyboard::InitializeKeyboard(
++    bool is_inline, Core::Frontend::KeyboardInitializeParameters initialize_parameters,
++    SubmitNormalCallback submit_normal_callback_, SubmitInlineCallback submit_inline_callback_) {
++    if (is_inline) {
++        inline_fallback->InitializeKeyboard(true, std::move(initialize_parameters),
++                                            std::move(submit_normal_callback_),
++                                            std::move(submit_inline_callback_));
++        return;
++    }
++    parameters = std::move(initialize_parameters);
++    submit_normal_callback = std::move(submit_normal_callback_);
++}
++
++void AsgardSoftwareKeyboard::ShowNormalKeyboard() const {
++    Prompt(parameters.initial_text, {}, false);
++}
++
++void AsgardSoftwareKeyboard::ShowTextCheckDialog(SwkbdTextCheckResult text_check_result,
++                                                 std::u16string text_check_message) const {
++    // Refused: the game's reason, and try again. To confirm: the same, and what's submitted then needs no more checks.
++    std::u16string text;
++    {
++        std::scoped_lock lock{session->mutex};
++        text = session->last_text;
++    }
++    Prompt(std::move(text), std::move(text_check_message),
++           text_check_result == SwkbdTextCheckResult::Confirm);
++}
++
++void AsgardSoftwareKeyboard::Prompt(std::u16string initial, std::u16string message,
++                                    bool confirmed) const {
++    const std::uint64_t prompt = session->NextGeneration();
++    // Not on this thread: the game's HLE service waits for us to return, and the prompt takes as long as the player.
++    std::thread([session = session, callback = submit_normal_callback,
++                 args = HelperArgs(parameters, initial, message), initial, confirmed, prompt] {
++        std::optional<std::string> text = session->Run(args, prompt);
++        std::u16string submitted = text ? Common::UTF8ToUTF16(*text) : initial;
++        {
++            std::scoped_lock lock{session->mutex};
++            if (session->generation != prompt) {
++                return;
++            }
++            session->last_text = submitted;
++        }
++        // Outside the lock: submitting can end the applet, which comes back to Close().
++        callback(text ? SwkbdResult::Ok : SwkbdResult::Cancel, std::move(submitted), confirmed);
++    }).detach();
++}
++
++void AsgardSoftwareKeyboard::ShowInlineKeyboard(
++    Core::Frontend::InlineAppearParameters appear_parameters) const {
++    inline_fallback->ShowInlineKeyboard(std::move(appear_parameters));
++}
++
++void AsgardSoftwareKeyboard::HideInlineKeyboard() const {
++    inline_fallback->HideInlineKeyboard();
++}
++
++void AsgardSoftwareKeyboard::InlineTextChanged(
++    Core::Frontend::InlineTextParameters text_parameters) const {
++    inline_fallback->InlineTextChanged(std::move(text_parameters));
++}
++
++void AsgardSoftwareKeyboard::ExitKeyboard() const {
++    inline_fallback->ExitKeyboard();
++}
+--- a/src/yuzu_cmd/asgard_software_keyboard.h	1970-01-01 02:00:00.000000000 +0200
++++ b/src/yuzu_cmd/asgard_software_keyboard.h	2026-11-01 19:29:12.020754094 +0200
+@@ -0,0 +1,48 @@
++// SPDX-FileCopyrightText: Copyright 2026 Asgard OS
++// SPDX-License-Identifier: GPL-3.0-or-later
++
++#pragma once
++
++#include <memory>
++#include <string>
++
++#include "core/frontend/applets/software_keyboard.h"
++
++// The Switch's software keyboard for eden-cli, which has none: core's default applet just submits the text "Eden"
++// (a nickname prompt named every Pokemon that). This one runs an external helper (Asgard's thor_text_input.py) and
++// passes on what was typed. Only the normal keyboard: the inline one still goes to the default applet.
++class AsgardSoftwareKeyboard final : public Core::Frontend::SoftwareKeyboardApplet {
++public:
++    AsgardSoftwareKeyboard();
++    ~AsgardSoftwareKeyboard() override;
++
++    void Close() const override;
++
++    void InitializeKeyboard(bool is_inline,
++                            Core::Frontend::KeyboardInitializeParameters initialize_parameters,
++                            SubmitNormalCallback submit_normal_callback_,
++                            SubmitInlineCallback submit_inline_callback_) override;
++
++    void ShowNormalKeyboard() const override;
++
++    void ShowTextCheckDialog(Service::AM::Frontend::SwkbdTextCheckResult text_check_result,
++                             std::u16string text_check_message) const override;
++
++    void ShowInlineKeyboard(Core::Frontend::InlineAppearParameters appear_parameters) const override;
++
++    void HideInlineKeyboard() const override;
++
++    void InlineTextChanged(Core::Frontend::InlineTextParameters text_parameters) const override;
++
++    void ExitKeyboard() const override;
++
++private:
++    struct Session;
++
++    void Prompt(std::u16string initial, std::u16string message, bool confirmed) const;
++
++    Core::Frontend::KeyboardInitializeParameters parameters{};
++    SubmitNormalCallback submit_normal_callback;
++    std::shared_ptr<Session> session;
++    std::unique_ptr<Core::Frontend::DefaultSoftwareKeyboardApplet> inline_fallback;
++};
+--- a/src/yuzu_cmd/duo_cmd.cmake	2026-11-01 19:29:12.018532574 +0200
++++ b/src/yuzu_cmd/duo_cmd.cmake	2026-11-01 19:29:12.035870167 +0200
+@@ -6,6 +6,8 @@
+ # below resolve against src/yuzu_cmd.
+ 
+ target_sources(yuzu-cmd PRIVATE
++    asgard_software_keyboard.cpp
++    asgard_software_keyboard.h
+     emu_window/emu_window_sdl3_aux.cpp
+     emu_window/emu_window_sdl3_aux.h
+     dsmod_harness.cpp
+--- a/src/yuzu_cmd/yuzu.cpp	2026-11-01 19:29:12.018452042 +0200
++++ b/src/yuzu_cmd/yuzu.cpp	2026-11-01 19:29:12.035718190 +0200
+@@ -30,6 +30,7 @@
+ #include "core/file_sys/registered_cache.h"
+ #include "core/file_sys/vfs/vfs_real.h"
+ #include "core/hle/service/am/applet_manager.h"
++#include "core/hle/service/am/frontend/applets.h"
+ #include "core/hle/service/filesystem/filesystem.h"
+ #include "core/loader/loader.h"
+ #include "frontend_common/config.h"
+@@ -39,6 +40,7 @@
+ #include "video_core/gpu.h"
+ #include "video_core/rasterizer_interface.h"
+ #include "video_core/renderer_base.h"
++#include "yuzu_cmd/asgard_software_keyboard.h"
+ #include "yuzu_cmd/dsmod_harness.h"
+ #include "yuzu_cmd/emu_window/emu_window_sdl3.h"
+ #ifdef HAS_OPENGL
+@@ -246,6 +248,11 @@
+     state->system.GetFileSystemController().CreateFactories(*state->system.GetFilesystem());
+     state->system.GetUserChannel().clear();
+ 
++    // Asgard: a real software keyboard, not core's default that submits "Eden" without asking.
++    Service::AM::Frontend::FrontendAppletSet applets;
++    applets.software_keyboard = std::make_unique<AsgardSoftwareKeyboard>();
++    state->system.SetFrontendAppletSet(std::move(applets));
++
+     Service::AM::FrontendAppletParameters load_parameters{
+         .applet_id = Service::AM::AppletId::Application,
+     };
