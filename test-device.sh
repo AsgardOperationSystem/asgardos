@@ -11,6 +11,9 @@ remote() { ssh -o ConnectTimeout=5 -o BatchMode=yes "$HOST" "$1"; }
 remote true || { echo "can't reach $HOST"; exit 2; }
 playing=$(remote 'cat /run/thor-playing.txt 2>/dev/null')
 [ -z "$playing" ] || { echo "a game is playing, stopping (TEST-6): $playing"; exit 2; }
+# A disk that's failing is no place to run these, and their results would mean nothing: reads fail for reasons of their own.
+storage=$(remote 'grep -q emergency_ro /proc/mounts && echo "/storage is flagged emergency_ro"; dmesg | grep -q "I/O error, dev sda" && echo "I/O errors on the UFS disk"')
+[ -z "$storage" ] || { echo "the Thor's storage is failing, stopping: $storage"; exit 2; }
 check() {
   remote "$3" >/dev/null 2>&1
   case $? in
