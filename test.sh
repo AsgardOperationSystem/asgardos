@@ -1,5 +1,5 @@
 #!/bin/bash
-# Asgard OS: run the host tests (docs/testing.md, level 1). No Thor, no build, no root.
+# Asgard OS: run the host tests (docs/testing.md, levels 1 and 2). No Thor, no build, no root.
 #   ./test.sh            run them all
 #   ./test.sh <text>     run only the tests whose name contains <text>
 # Exit code: 1 if anything failed, else 0. A skipped test isn't a pass: it's listed with the reason.

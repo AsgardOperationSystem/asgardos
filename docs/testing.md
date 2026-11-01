@@ -18,7 +18,7 @@ A check belongs at the lowest level that can catch the problem.
 **Build order:** the tree checks; image checks; read-only device checks; the fake emulator; the launch test. A full
 virtual boot comes last, if at all.
 
-Only level 1 has tests today, and level 5 is informal. Tests have no CI: `./test.sh` is run by hand. QEMU isn't installed
+Levels 1 and 2 have tests today, and level 5 is informal. Level 2 so far is UPD-5 (`test_update_abl.py`). Tests have no CI: `./test.sh` is run by hand. QEMU isn't installed
 on the build node. The emulator sleep test is still to do for most emulators (`docs/adding-an-emulator.md` §4).
 
 ## Rules
