@@ -1,6 +1,8 @@
 #include "backend.h"
+#include "settings_file.h"
 
 #include <QDateTime>
+#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -686,23 +688,10 @@ QString Backend::getSetting(const QString &key, const QString &fallback) const
 // Like ROCKNIX's set_setting: drop the key's lines, append key=value ("" or "default" just removes it).
 void Backend::setSetting(const QString &key, const QString &value)
 {
-    QFile f(path("/storage/.config/system/configs/system.cfg"));
-    QByteArrayList keep;
-    if (f.open(QIODevice::ReadOnly)) {
-        for (const QByteArray &line : f.readAll().split('\n'))
-            if (!line.isEmpty() && !line.startsWith(key.toUtf8() + "="))
-                keep << line;
-        f.close();
-    }
-    if (!value.isEmpty() && value != "default")
-        keep << (key + "=" + value).toUtf8();
-    QFile tmp(f.fileName() + ".asgard-tmp");
-    if (tmp.open(QIODevice::WriteOnly)) {
-        tmp.write(keep.join('\n') + '\n');
-        tmp.close();
-        QFile::remove(f.fileName());
-        tmp.rename(f.fileName());
-    }
+    const QString v = value == "default" ? QString() : value;
+    if (!writeSetting(path("/storage/.config/system/configs/system.cfg").toStdString(), "/tmp/.system.cfg.lock",
+                      key.toStdString(), v.toStdString()))
+        qWarning() << "couldn't write setting" << key;
     emit settingsChanged();
 }
 
