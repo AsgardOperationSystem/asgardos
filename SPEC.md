@@ -90,7 +90,7 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 
 ### Per-game and per-emulator overrides
 
-- **OVR-1** An option resolves in this order: the game's value, the emulator's or system's value, the OS default. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
+- **OVR-1** An option's value comes from the game, then the system, then the OS default, as section 4 explains. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
 - **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ and sleep mode.
 - **OVR-3** The emulator and core can be chosen per system and per game. A game's shader cache can be deleted from its settings.
 - **OVR-4** Overrides last only as long as the game: they apply at launch, and the menu's profile, fan and EQ come back when it exits.
@@ -126,6 +126,41 @@ are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files a
 - **CFG-1** Precedence, at every boot: image defaults < `asgard.yml` < the user's own changes. A value changed on the device is never overwritten by the yml.
 - **CFG-2** The yml is read from `/flash/asgard.yml`, then `/storage/.config/asgard/asgard.yml`. First found wins, and they aren't merged.
 - **CFG-3** `ssh.authorized_keys` lines are appended, and existing lines are kept.
+
+### How configuration nests
+
+There's one flat file, `system.cfg`. The nesting is in the key names, and it has two separate parts: **scope** decides
+which key is read, and **source** (CFG-1) decides what value a key holds.
+
+When something asks for an option, `get_setting <key> [system] [game]` tries these keys in order, here for `ratio` on
+the 3DS. The first one with a value wins:
+
+| Order | Scope | Key |
+|---|---|---|
+| 1 | This game | `3ds["Pokemon X.3ds"].ratio` |
+| 2 | This system | `3ds.ratio` |
+| 3 | Named system-wide | `system.ratio` |
+| 4 | Bare | `ratio` |
+| 5 | Global | `global.ratio` |
+| 6 | Nothing set | Whatever the reader falls back to: the emulator's own default, or stock clocks, gyro off and the image's Mesa |
+
+For example, with these two lines in `system.cfg`:
+
+```
+3ds.cpu_cap_mid=80
+3ds["Pokemon X.3ds"].cpu_cap_mid=60
+```
+
+Pokémon X runs its big cores at 60 %. Other 3DS games run at 80 %, and their row reads `Emulator settings (80%)`. Games
+on other systems run at stock, and their row reads `OS (100%)`. None of this affects Home, which uses
+`asgard.cpu_cap.mid`.
+
+- **CFG-9** Code that reads a game option uses `get_setting`'s order, not a lookup of its own. An empty value counts as unset, so unsetting a key means it inherits again.
+- **CFG-10** "Per-emulator" settings are stored per system. The Settings level called `Emulator settings` is `<system>.<key>`. The chosen emulator and core only decide which option rows appear, so a value stays in place if the system's emulator changes.
+- **CFG-11** The emulator and core resolve as the game's `<system>["<rom>"].emulator` and `.core`, then the system's `<system>.emulator` and `.core`, then the default in `es_systems.cfg`. Picking another emulator also resets the core to that emulator's first.
+- **CFG-12** The menu's `asgard.*` keys aren't a scope. A game reads `cpu_cap_<type>`, `gpu_cap` and `motion` and doesn't inherit `asgard.cpu_cap.<type>`, `asgard.gpu_cap` or `asgard.motion`, so unset means stock. Sound EQ is the exception: an unset game EQ uses the saved setting from Settings.
+- **CFG-13** Nesting in `asgard.yml` flattens with dots: `wifi: {ssid: x}` becomes `wifi.ssid=x`. A key that holds a value and also has children is written dotted and quoted, such as `"global.retroachievements": 1`.
+- **CFG-14** Submenus in Settings, such as Hardware overrides, are display only. Their keys stay flat.
 
 ### How settings are stored
 
