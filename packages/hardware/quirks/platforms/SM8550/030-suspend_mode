@@ -10,13 +10,8 @@
 # their remaining issues are resolved.
 case "${QUIRK_DEVICE}" in
   "Retroid Pocket 6"*|"AYN Odin 2"*|"AYN-Odin2"|"AYN Thor"|"AYN-Thor")
-    # Default to mem suspend and keep systemd on that state.
-    mkdir -p /storage/.config/sleep.conf.d
-    cat <<EOF >/storage/.config/sleep.conf.d/zz-sm8550-deeponly.conf
-[Sleep]
-SuspendState=
-SuspendState=mem
-EOF
+    # The sleep mode setting decides (PWR-11), through sleep.conf. An older image's file would override it from here on.
+    rm -f /storage/.config/sleep.conf.d/zz-sm8550-deeponly.conf
 
     # bin/power-handler owns the power key here: it has to see the press
     # before anything suspends, so that a device driving an external display
@@ -33,7 +28,7 @@ HandleLidSwitchDocked=ignore
 EOF
 
     MYSLEEPMODE=$(get_setting system.suspendmode)
-    if [ -z "${MYSLEEPMODE}" ] || [ "${MYSLEEPMODE}" = "off" ]
+    if [ -z "${MYSLEEPMODE}" ]
     then
       /usr/bin/suspendmode mem
     fi

@@ -473,7 +473,6 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
 | MENU-5 | PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus (MENU-3), so they have no Performance tile. | Decide how Home's menu reaches them, then change MENU-3 |
 | DEV-11 | The emulators package regenerates the tracked `docs/supported-emulators.md` during a build, so a build can change a file outside `build/`. | Decide whether it stays tracked |
-| PWR-11 | Light sleep and Screen off probably do nothing: Settings saves `system.suspendmode`, then `suspendmode` sees no change and returns, and the SM8550 quirk `030-suspend_mode` overrides `sleep.conf`. | Decide: fix, or change the rule |
 | PWR-10 | A power key press with the screens off from `thor-idle-blank.py` suspends instead of waking them: `power-handler` only knows its own blank flag. | Decide: fix, or change the rule |
 | GPU-3 | The SM8550 quirk `095-force_zink` exports `MESA_LOADER_DRIVER_OVERRIDE=zink`, so an unset game may run on Zink while its row says freedreno. Not confirmed on a Thor. | Decide: fix, or change the rule |
 | BAT-2 | Bypass arms no RTC wake, so a Thor asleep on the cable below 20 % charges on to full. It also charges at exactly 20 % (`-gt 20`). | Decide: fix, or change the rule |

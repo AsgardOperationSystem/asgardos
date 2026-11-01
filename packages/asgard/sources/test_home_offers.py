@@ -4,7 +4,7 @@
 """What Settings offers for the menu's profile, the fan, sleep mode, stick lights and the EQ, by pressing through it on
 the host: the rows' values, what they save, the commands they would run. Commands are logged, not run: that the lights,
 the fan and the sound change is a device or human check. Also CFG-7's part for Home: it starts with no system.cfg.
-Sleep mode: from another mode, suspendmode writes the right sleep.conf; through Settings it doesn't, test_sleep_mode_applies.py."""
+Sleep mode: from another mode, suspendmode writes the right sleep.conf; through Settings and at boot, test_sleep_mode_applies.py."""
 import json
 import os
 import re
