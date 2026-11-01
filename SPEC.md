@@ -473,21 +473,21 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
 | MENU-5 | PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus (MENU-3), so they have no Performance tile. | Decide how Home's menu reaches them, then change MENU-3 |
 | DEV-11 | The emulators package regenerates the tracked `docs/supported-emulators.md` during a build, so a build can change a file outside `build/`. | Decide whether it stays tracked |
-| HOME-2 | No Recently played: `backend.recent` exists, but no QML reads it. | Decide: fix, or change the rule |
-| SET-3 | `PowerMenu.qml` restarts and powers off with no confirmation. | Decide: fix, or change the rule |
-| CFG-9 | `optionRow` in `Settings.qml` does its own lookup: it says `Default` when `get_setting` would find `global.X`. | Decide: fix, or change the rule |
-| CFG-13 | `parse_yaml` doesn't take the inline form `wifi: {ssid: x}`, only the block form. | Decide: fix, or change the rule |
-| CFG-5 | `asgardos.bottomscreen.type`, `screenscraper.*` and `global.retroachievements.webapikey` are new or renamed keys without `asgard.`. | Decide: fix, or change the rule |
-| LOOK-3 | The grid's scroll and the card's settle run 260 ms and 200 ms, and still move with Animations off. | Decide: fix, or change the rule |
-| AUD-2 | The Thor headphone preset's +4 dB shelf outruns its mixer by about 1.3 dB, with no limiter. This is the strictest reading of the rule. | Decide: fix, or change the rule |
-| BAT-5 | The report gives every activity an average current, even one a single sample long. | Decide: fix, or change the rule |
-| EMU-1 | `pico-8` was dropped from the metapackage, and no doc records it. | Decide: fix, or change the rule |
-| EMU-3 | `dolphin-sa`, `heroic`, `hypseus-singe`, `mupen64plus-sa` and `openbor` name or place their start script differently, and `neocd_lr` isn't `neocd-lr`. | Decide: fix, or change the rule |
-| EMU-4 | `cps1`, `cps2` and `cps3` register `AdvanceMame`, which has no package. The image also ships `desmume` and `gpsp`, which section 14's core list omits. | Decide: fix, or change the rule |
-| EMU-6 | `docs/plans/emulator-versions.md` tracks 18 standalone packages, and 16 aren't tracked. | Decide: fix, or change the rule |
-| KERN-1 | No Thor device tree has an SY7758 node, only the Ayaneo Pocket trees, so nothing on a Thor binds that driver. The rule may be what's wrong. | Decide: fix, or change the rule |
-| DEV-2 | 87 other devices' quirks in `packages/hardware/quirks/devices`, and about 45 files naming other SoCs. | Decide: fix, or change the rule |
-| DEV-3 | The kernel repo has `origin/debug/disp-rsc-dump`, as of the last fetch. | Decide: fix, or change the rule |
-| DEV-7 | `packages/linux/patches/mainline` holds four patch files, not applied because `PKG_PATCH_DIRS` is empty. | Decide: fix, or change the rule |
-| DEV-11 | `scripts/image` leaves an empty `target/` at the tree root. | Decide: fix, or change the rule |
-| DEV-17 | `asgard-motiond.py` imports `dbussy`, a recipe's package, and `asgard-gamma` is C. | Decide: fix, or change the rule |
+| HOME-2 | No Recently played: `backend.recent` exists, but no QML reads it. | `docs/plans/open-gaps.md` |
+| SET-3 | `PowerMenu.qml` restarts and powers off with no confirmation. | `docs/plans/open-gaps.md` |
+| CFG-9 | `optionRow` in `Settings.qml` does its own lookup: it says `Default` when `get_setting` would find `global.X`. | `docs/plans/open-gaps.md` |
+| CFG-13 | `parse_yaml` doesn't take the inline form `wifi: {ssid: x}`, only the block form. | `docs/plans/open-gaps.md` |
+| CFG-5 | `asgardos.bottomscreen.type`, `screenscraper.*` and `global.retroachievements.webapikey` are new or renamed keys without `asgard.`. | `docs/plans/open-gaps.md` |
+| LOOK-3 | The grid's scroll and the card's settle run 260 ms and 200 ms, and still move with Animations off. | `docs/plans/open-gaps.md` |
+| AUD-2 | The Thor headphone preset's +4 dB shelf outruns its mixer by about 1.3 dB, with no limiter. This is the strictest reading of the rule. | `docs/plans/open-gaps.md` |
+| BAT-5 | The report gives every activity an average current, even one a single sample long. | `docs/plans/open-gaps.md` |
+| EMU-1 | `pico-8` was dropped from the metapackage, and no doc records it. | `docs/plans/open-gaps.md` |
+| EMU-3 | `dolphin-sa`, `heroic`, `hypseus-singe`, `mupen64plus-sa` and `openbor` name or place their start script differently, and `neocd_lr` isn't `neocd-lr`. | `docs/plans/open-gaps.md` |
+| EMU-4 | `cps1`, `cps2` and `cps3` register `AdvanceMame`, which has no package. The image also ships `desmume` and `gpsp`, which section 14's core list omits. | `docs/plans/open-gaps.md` |
+| EMU-6 | `docs/plans/emulator-versions.md` tracks 18 standalone packages, and 16 aren't tracked. | `docs/plans/open-gaps.md` |
+| KERN-1 | No Thor device tree has an SY7758 node, only the Ayaneo Pocket trees, so nothing on a Thor binds that driver. The rule may be what's wrong. | `docs/plans/open-gaps.md` |
+| DEV-2 | 87 other devices' quirks in `packages/hardware/quirks/devices`, and about 45 files naming other SoCs. | `docs/plans/open-gaps.md` |
+| DEV-3 | The kernel repo has `origin/debug/disp-rsc-dump`, as of the last fetch. | `docs/plans/open-gaps.md` |
+| DEV-7 | `packages/linux/patches/mainline` holds four patch files, not applied because `PKG_PATCH_DIRS` is empty. | `docs/plans/open-gaps.md` |
+| DEV-11 | `scripts/image` leaves an empty `target/` at the tree root. | `docs/plans/open-gaps.md` |
+| DEV-17 | `asgard-motiond.py` imports `dbussy`, a recipe's package, and `asgard-gamma` is C. | `docs/plans/open-gaps.md` |
