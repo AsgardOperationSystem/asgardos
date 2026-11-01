@@ -1,6 +1,5 @@
 #!/bin/sh
 # spec: BAT-2
-# gap: asgard-charge-fix arms no RTC wake with bypass on, so a Thor that sleeps on the cable below 20 % charges on past the floor, to full.
 # The charge loop is frozen asleep, and below the floor it left the charge current on. Nothing else can stop it: it needs the wake.
 set -e
 T=$(mktemp -d); trap 'rm -rf "$T"' EXIT

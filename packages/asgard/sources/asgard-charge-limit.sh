@@ -22,7 +22,7 @@ while :; do
   elif [ "$level" -ge "$limit" ]; then held=1
   elif [ "$level" -le $((limit - 5)) ]; then held=0
   fi
-  if [ $held = 1 ] || { [ "$bypass" = 1 ] && [ "$level" -gt "${BYPASS_FLOOR:-20}" ]; }; then want=0; else want=$(cat ${C}_max); fi
+  if [ $held = 1 ] || { [ "$bypass" = 1 ] && [ "$level" -ge "${BYPASS_FLOOR:-20}" ]; }; then want=0; else want=$(cat ${C}_max); fi
   # read back rather than trust the last write: a firmware restart resets it
   [ "$(cat $C)" = "$want" ] || echo "$want" > $C
   sleep ${INTERVAL:-10}

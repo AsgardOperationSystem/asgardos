@@ -12,7 +12,8 @@
 # reached; that wake, with the lid shut, lets the loop hold the charge (current 0) and goes back to sleep like a
 # cable wake. Rate: the last charging sleep's charge_counter delta, never below 2000 mA. The alarm aims at half the
 # way, so a rate read low can't carry it far past the limit (2026-10-30: learnt 989 mA, charged at ~1900, 65 -> 94 %
-# on one alarm); each wake arms the next, shorter alarm, at least 5 min apart.
+# on one alarm); each wake arms the next, shorter alarm, at least 5 min apart. Bypass charging aims the same alarm at
+# its 20 % floor: above it the current is already 0, below it the frozen loop would charge on to full.
 # Installed as /usr/lib/systemd/system-sleep/asgard-charge-fix (log: /storage/charge-fix.log).
 S=${SYS:-/sys}
 LOG=${LOG:-/storage/charge-fix.log}
@@ -42,8 +43,9 @@ case "$1" in
     cat $WC > $RUN/.thor-ucsi-wakeups 2>/dev/null
     rm -f $ALARM
     limit=$(cfg asgard.charge_limit); limit=${limit:-80}
+    [ "$(cfg asgard.bypass_charging)" = 1 ] && limit=20
     lvl=$(cat $B/capacity 2>/dev/null)
-    if [ "$(cat $S/class/power_supply/qcom-battmgr-usb/online 2>/dev/null)" = 1 ] && [ "$(cfg asgard.bypass_charging)" != 1 ] &&
+    if [ "$(cat $S/class/power_supply/qcom-battmgr-usb/online 2>/dev/null)" = 1 ] &&
        [ "$limit" != full ] && [ "$limit" -lt 100 ] && [ -n "$lvl" ] && [ "$lvl" -lt "$limit" ]; then
       ma=$(cat $RATE 2>/dev/null); [ "${ma:-0}" -ge 2000 ] || ma=2000
       # uAh / mA * 3.6 = s, halved
