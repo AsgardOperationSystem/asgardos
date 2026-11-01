@@ -4,6 +4,10 @@
 # Copyright (C) 2021-present 351ELEC (https://github.com/351ELEC)
 # Copyright (C) 2023 JELOS (https://github.com/JustEnoughLinuxOS)
 
+. /etc/profile
+
+set_kill set "-9 OpenBOR"
+
 # OpenBOR only works with Pak files, if you have an extracted game you will need to create a pak first.
 
 pakname=$(basename "$1")
