@@ -2,12 +2,20 @@
 
 Linux gaming OS for the AYN Thor, a fork of ROCKNIX. Read these before changing anything:
 
-- **`SPEC.md`: what must stay true.** Work inside it. If a task would break a requirement, stop and ask; if the spec
-  changes, it changes in the same commit as the code. Section 2 (safety boundaries) needs explicit approval every time.
+- **`SPEC.md`: what Asgard OS is.** Work inside it. If a task would break a rule there, stop and ask. If the spec
+  changes, it changes in the same commit as the code; never edit it just to make a change fit.
 - `README.md`: layout, build, and what works today.
+- `docs/testing.md`: how it's tested. Run the host tests with `./test.sh`, and say so if one was skipped.
 
-Before calling work done, go through `SPEC.md` section 10. In particular, never mark something as working unless it
-was checked on a real Thor, and say what was and wasn't checked.
+## Before calling work done
 
-Host tests live next to their sources in `packages/asgard/sources/` (`test_*`); each one's header says how to run it.
-Machine-specific notes belong in `CLAUDE.local.md` (git-ignored), not here.
+- **Status is earned on the device.** A feature is ✅ in the README only after it was checked on a real Thor. Built, or
+  tested on a host or against a fake, is 🧪.
+- **Say what was and wasn't checked.** Never report something as working from a build alone.
+- **Logic gets a host test.** A bug fix adds the check that would have caught it.
+- **Investigate first.** Search `docs/`, then the projects in the README's credits. Don't re-test what's recorded as ruled out.
+- **Commit messages explain** what was broken, why, and what changed, with the spec rule if one applies. One change per commit.
+- **Docs move with the code**, in the same commit: the README's status, `docs/changes.md`, `SPEC.md`.
+- **Stay in scope.** No unrequested refactors, renames, new daemons or dependencies.
+
+Machine-specific notes, and the rules for handling a specific device, belong in `CLAUDE.local.md` (git-ignored).

@@ -36,4 +36,8 @@ ssh:
 
 asgard:
   charge_limit: 80        # battery charge limit in %, full = hold at 100 %, 100 = off
-  cpu_cap: 1              # ~75 % CPU clock cap for battery/heat, 0 = off
+  cpu_cap:                # clock cap in Asgard Home per core type, 25-100 %, or off; games start at stock
+    little: 90
+    mid: 75
+    prime: 75
+  gpu_cap: 100            # the GPU's clock cap in Asgard Home, 25-100 %

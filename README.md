@@ -56,10 +56,10 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
 | **Screens and input** | | |
 | Dual screens | ✅ | Landscape bottom screen, games placed on the right screen, quiet boot, "ASGARD OS" splash on the top screen. |
-| 120 Hz on both screens | ✅ | Settings > Display, per screen (bottom defaults to 60). |
+| 120 Hz on both screens | ⚠️ | Settings > Display, per screen. The top is fine. The bottom's colours wash out at 120 Hz (about 1.8× brighter, roughly half the saturation) until its panel commands are known, so it defaults to 60. |
 | Full top brightness range | ✅ | The top panel goes to its 12-bit maximum (ROCKNIX stopped ~40 % short). |
-| Matched screen colours | ✅ | Per-screen white balance in the display hardware (`asgard-gamma`); the bottom is corrected to the top's white and contrast by default. |
-| OLED Ultra Black, idle blank | ✅ | Burn-in protection; X turns both screens off. |
+| Matched screen colours | ✅ | Per-screen white balance in the display hardware (`asgard-gamma`); the bottom defaults to tint +3, contrast +3, chosen by eye to sit close to the top while keeping shadow detail. It isn't an exact match: matching the top's white measured at tint +10. Adjustable per screen in Settings > Display. |
+| OLED Ultra Black, idle blank | ✅ | Ultra Black is on the top panel only and applies after the screen cycles. Burn-in protection: screens off after a timeout, and X turns both off. |
 | Touch on both screens | ✅ | Calibrated for the rotated panels. |
 | Top screen hang at game launch | ⚠️ | Intermittent. Fewer modesets at launch make it rarer, not proven gone. |
 | Bottom screen flicker | ⚠️ | Android's panel timings (`9046`) didn't cure it. |
@@ -118,6 +118,7 @@ in a game.
 
 ```
 build.sh          build the image (./build.sh), or stage it on a Thor (./build.sh stage)
+test.sh           run the host tests: no Thor, no build, no root
 inject-config.sh  put your asgard.yml on an image's boot partition
 distribution/     Asgard OS itself: options, kernel_options, logos, image tools, extra package patches
 device/           the board (SM8550): options, config.xml (DTB list), bootloader, rootfs overlay, kernel .config
@@ -209,7 +210,8 @@ Which patch came from where, and why: [docs/changes.md](docs/changes.md). What w
 
 ## More docs
 
-- [Specification](SPEC.md): what Asgard must keep doing; read it before changing anything.
+- [Specification](SPEC.md): what Asgard is, its features and emulators, and its development constraints.
+- [Testing](docs/testing.md): how we check it, and `./test.sh`.
 - [Changes on top of ROCKNIX](docs/changes.md): every patch, what was broken and why.
 - [Sleep](docs/sleep.md): the deep sleep work, and what we took from Kettle Linux and Armada.
 - [Adding an emulator](docs/adding-an-emulator.md): what every new emulator has to support, with a test for each.

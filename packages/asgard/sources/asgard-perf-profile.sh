@@ -5,8 +5,8 @@
 #   cpu_cap_<type>     clock cap, % of the cluster's top clock (25-100), "off": that cluster's cores offline
 #                      (at least one type stays on; CPU0 always does), or "autotune": asgard-autotune.py holds it at
 #                      the lowest clock that keeps the game's FPS          type: little | mid | prime
-#   gpu_cap            the GPU's clock cap, % of its top clock (25-100), or "autotune"; unset = uncapped. Home is
-#                      always uncapped.
+#   gpu_cap            the GPU's clock cap, % of its top clock (25-100), or "autotune"; unset = uncapped. Home has
+#                      its own, asgard.gpu_cap (asgard-cpu-cap.sh).
 #   fan_mode           as Settings > Performance > Fan: quiet|moderate|aggressive, or a fixed 0-255 speed
 #   motion             "on": the gyro (asgard-motiond, a DSU server) while the game runs; unset/"off" = stopped.
 #                      Outside games the menu's asgard.motion=1 (Settings > Hardware > Performance > Gyro) decides.

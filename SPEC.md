@@ -1,220 +1,376 @@
 # Asgard OS specification
 
-What Asgard OS must be and must keep doing. Anyone changing this repo, human or AI, works inside it.
+What Asgard OS is, what it does, what it ships, and the constraints it's developed under. What works today is in the
+`README.md`, and the reason behind each past change is in `docs/changes.md`. Rule IDs are stable, so tests and commits
+can cite them.
 
-## 0. How to use this document
+## 1. What Asgard OS is
 
-**Authority.** A change that would break a requirement here is out of spec. Stop and ask the owner. If the owner agrees,
-change the spec in the same commit as the code. Never edit the spec only to make a change fit.
+Asgard OS is a Linux gaming OS for one device, the **AYN Thor**, a dual-screen handheld. It's a fork of
+[ROCKNIX](https://rocknix.org), forked at `7cffc96` with its full history, and it ships as a single image for the Thor.
 
-**What lives where.** Each kind of fact has one home, so this file doesn't go stale by repeating them:
+It adds three things to ROCKNIX:
 
-| Question | Home |
-|---|---|
-| What must be true? | this file |
-| What works today? | `README.md`, feature tables |
-| Why was it changed? | `docs/changes.md`, `docs/merge-requests.md`, commit messages |
-| What must an emulator do? | `docs/adding-an-emulator.md`, part of this spec by reference (GAME-8) |
-| What did we find while investigating? | `docs/sleep.md`, `thor/ayn_thor_pro.md` (local, not in git) |
-| What is planned? | `docs/plans/` |
-| How is it tested? | this file, section 12 |
+- **Asgard Home**, its own dual-screen frontend, in place of EmulationStation.
+- **Thor hardware support** that ROCKNIX lacks: deep sleep, both screens, touch, gyro, charge limit and audio tuning.
+- **Native settings, an in-game menu and tools**, so the whole device can be used with no keyboard, SSH or PC.
 
-If a plan or doc disagrees with this file, this file wins. If the code disagrees, the code is either a bug or a listed
-deviation (section 11). An unlisted disagreement is a bug in the code or in the spec: raise it, don't pick one silently.
+### Goals, in priority order when they conflict
 
-**Wording.** MUST / MUST NOT are hard rules. SHOULD can be broken with a reason given in the commit message. IDs are
-stable: don't reuse or renumber them, so tests and commits can cite them.
-
-**Verified by.** The tag after each requirement says how it's checked today:
-
-- `[host: file]`: a test in `packages/asgard/sources/`, runs without a Thor.
-- `[build]`: a build of the image shows it.
-- `[device]`: only a check on a real Thor shows it.
-- `[review]`: checked by reading the change.
-
-## 1. Product
-
-Asgard OS is a Linux gaming OS for one device, the **AYN Thor** (SM8550, two OLED touch screens). It is a fork of
-ROCKNIX, forked 2026-10-30 at `7cffc96`. It exists to make the Thor a complete handheld: its own dual-screen frontend,
-working Thor hardware support, and native settings and tools.
-
-**Goals, in priority order when they conflict:**
-
-1. **Don't lose the device or the user's data.** No change may risk an unbootable Thor or lost saves, ROMs or settings.
+1. **Don't lose the device or the user's data.** Nothing may risk an unbootable Thor or lost saves, ROMs or settings.
 2. **A game in progress is safe.** Sleep, Back to Home and overlays must not lose or corrupt it.
 3. **Works on the device, with no PC.** Everything a user does, they can do on the Thor itself.
 4. **Games run well.** While a game plays, its speed and compatibility come before saving power, unless the user chose a cap or profile.
 5. **Battery and heat.** Sleep drain and idle power are product features, not afterthoughts.
 6. **Stays maintainable by one owner.** Fewer mechanisms, each understandable, each with its reason written down.
 
-**Non-goals.** Don't work towards these without the owner asking:
+### Non-goals
 
-- Other devices or SoCs, including handhelds on the same SoC such as the Odin 2 family. Recipes don't grow branches for them.
+- Other devices or SoCs, including handhelds on the same SoC such as the Odin 2 family.
 - EmulationStation or another frontend, or a dual-boot setup.
 - Staying in sync with ROCKNIX `next`.
-- A public release. See SAFE-6.
 
-## 2. Safety boundaries
+### The system
 
-Each of these needs the owner's explicit go **for that specific action**. Approval doesn't carry over to the next one.
-
-| ID | Rule | Verified by |
-|---|---|---|
-| SAFE-1 | Nothing writes `abl_a`/`abl_b` without the owner's go, and an update MUST NOT flash them, directly or through a script it calls. `updateabl` stays a manual command. A bad ABL can only be recovered through EDL. | `[review]` `device/bootloader/update.sh` |
-| SAFE-2 | Changes to the boot chain need the owner's go first: the Boot Loader Spec entry, `/flash` layout, kernel or DTB names, partition labels, GPT. | `[review]` |
-| SAFE-3 | Never reboot a Thor, restart its session or stop a game while `/run/thor-playing.txt` shows a game is running, unless the owner says to. | `[review]` |
-| SAFE-4 | Never start an emulator binary on a Thor to inspect it (`--version` opens a window over the game). Read logs or compare against `build/.../install_pkg/`. The one exception is the launch test (TEST-7), which the owner has approved under the rules there. | `[review]` |
-| SAFE-5 | No secret or personal data in git or in an image: Wi-Fi keys, logins, SSH keys, this unit's Android blobs and calibration. Never set `LOCAL_WIFI_SSID`, `LOCAL_WIFI_KEY` or `LOCAL_SSH_KEYS_FILE`. `build.sh` MUST keep running the build from an empty environment. | `[review]` `build.sh` |
-| SAFE-6 | Nothing leaves the private GitLab without the owner's go: no public repos, no pushes to GitHub, no sending device or user data to outside services. | `[review]` |
-| SAFE-7 | Don't delete or overwrite ABL backups, the EDL kit, or anything else in `thor/`. `thor/` is not backed up and can't be rebuilt. | `[review]` |
-
-## 3. Repository and build
-
-| ID | Rule | Verified by |
-|---|---|---|
-| REPO-1 | Files go in the layer they belong to: `distribution/` the distro and image tools; `device/` the SM8550 board; `packages/` all recipes (ours: `asgard/`, `asgard-home/`, `asgardos/`); `config/`, `scripts/` the build system; `tools/` build helpers; `docs/` the docs. | `[review]` |
-| REPO-2 | `main` is the only long-lived branch here, `asgard` the only one in the kernel repo. Feature branches are short and merge back quickly. | `[review]` |
-| REPO-3 | Kernel changes are commits in `asgardos/linux` (the submodule `packages/linux/src`), followed by a pointer bump here. No kernel patch files in this repo. The submodule keeps its own objects: no alternates, no `--reference`. Force-push is allowed on `asgard` only. | `[build]` |
-| REPO-4 | ROCKNIX fixes come in by `git cherry-pick <sha>`. MUST NOT merge ROCKNIX `next`: newer `next` flashes OpenABL to the ABL slots (SAFE-1). | `[review]` |
-| REPO-5 | `./build.sh` builds the SM8550 image in the digest-pinned container. A clean checkout with submodules MUST build with no other setup. | `[build]` |
-| REPO-6 | All build output goes under `build/`. Nothing is written to the tree outside it. | `[build]` |
-| REPO-7 | A package declares every dependency it uses, optional ones too. A build MUST NOT depend on package build order. | `[build]` |
-| REPO-8 | Package patches are checked with `patch -p1 --dry-run`, which is how they're applied. `git apply` gives wrong answers here. | `[build]` |
-| REPO-9 | New build inputs MUST NOT depend on LAN hosts or on personal paths. The existing ones listed in section 11 stay until the public move. | `[review]` |
-| REPO-10 | Personal paths and LAN addresses don't appear in code, configs or shipped binaries, apart from the GitLab URLs listed in section 11. Binaries carry `/work/...` paths. | `[review]` |
-| REPO-11 | Don't edit tree files while `./build.sh` runs: re-hashed stamps clean install dirs mid-build. | `[review]` |
-
-## 4. Updates and persistence
-
-| ID | Rule | Verified by |
-|---|---|---|
-| UPD-1 | The root filesystem is read-only. Everything that must survive a reboot or update lives in `/storage`, or `/flash` for boot files. | `[device]` |
-| UPD-2 | A partial copy MUST NOT look like an update: staging copies to a temporary name, checks the checksum on the device, then renames to `*.tar`. | `[review]` `build.sh` |
-| UPD-3 | Staging an update MUST NOT reboot the device or disturb a running game. The update installs on the next boot. | `[review]` `build.sh` |
-| UPD-4 | An update keeps user data: saves, ROMs, `system.cfg`, `/storage/.config/asgard`, `/storage/.config/thor`, and SSH keys. A change to a key or file format MUST convert existing values. | `[device]` |
-| UPD-5 | A setting that exists on a running device keeps working across an update, or its removal is called out in the commit message. | `[review]` |
-
-## 5. Configuration
-
-| ID | Rule | Verified by |
-|---|---|---|
-| CFG-1 | Precedence, at every boot: **image defaults < `asgard.yml` < the user's own changes**. A value changed on the device is never overwritten by the yml. | `[host: asgard_config.py --test]` |
-| CFG-2 | The yml is read from `/flash/asgard.yml`, then `/storage/.config/asgard/asgard.yml`. First found wins; they aren't merged. | `[review]` `asgard_config.py` |
-| CFG-3 | `ssh.authorized_keys` lines are appended. Existing lines are kept. | `[host: asgard_config.py --test]` |
-| CFG-4 | Settings live in `system.cfg`. Writes are atomic, keep comments, and replace in place. A per-game key (`<system>["<rom>"].<key>`) doesn't affect the system key. | `[host: test_thor_settings.py]` |
-| CFG-5 | New Asgard settings use the `asgard.` prefix. Keep ROCKNIX's existing key names. | `[review]` |
-| CFG-6 | New Asgard state goes in `/storage/.config/asgard/`; logs and reports go in `/storage/.config/thor/`. | `[review]` |
-| CFG-7 | Every setting has a safe default, and the system boots and runs when the setting or its file is missing. Hardware data that can't ship (`sensors-root/`) MUST leave its feature off, not fail: a unit's service starts only when the data is there. | `[review]` `thor-sensorspd.service` |
-| CFG-8 | The default root password is `asgardos`, in both `distribution/options` (`ROOT_PASSWORD`) and `system.cfg` (`root.password`), and is documented in the README. `root.password` is the source of truth: every boot applies it to the root login, Samba and the Syncthing GUI. It's a public default, not a secret; a personal password goes in `asgard.yml` or on the device, never in the image (SAFE-5). | `[review]` `007-rootpw` |
-
-## 6. Frontend and on-device use
-
-| ID | Rule | Verified by |
-|---|---|---|
-| UI-1 | Asgard Home is the only frontend. It is what boots, and it's where games start. | `[build]` |
-| UI-2 | Two windows: top screen (`DSI-2`, 1920×1080) for the grid and dock, bottom screen (`DSI-1`, 1240×1080, touch) for the detail card and hints. L+R swaps them. | `[device]` |
-| UI-3 | A user-facing feature ships with a way to use it on the Thor. It MUST NOT need SSH, a keyboard or a PC, except for what `asgard.yml`, WireGuard `.conf` files and the sensors root are defined to need. | `[review]` `[device]` |
-| UI-4 | The pad uses the Thor's Nintendo layout: A east, B south. | `[device]` |
-| UI-5 | Text entry from Home, tools or a game's prompt uses Asgard's own on-screen keyboard. | `[device]` |
-| UI-6 | Screens turn off after `asgard.idle_blank` seconds without input (default 300, 0 = never); any input turns them back on. | `[device]` |
-| UI-7 | Home and everything it starts run in a UTF-8 locale. | `[device]` |
-
-## 7. Running games
-
-| ID | Rule | Verified by |
-|---|---|---|
-| GAME-1 | Home starts every game as `runemu.sh <rom> -P<system> --core=<core> --emulator=<emulator>`. Only `.desktop` apps in the PC and Steam lists may skip it, and those still get playtime, crash logs and the in-game menu. | `[review]` |
-| GAME-2 | A launcher declares its process with `set_kill set "<signal> <name>"`, so Home can find and stop the game. | `[review]` |
-| GAME-3 | Exit codes 0, 137 and 143 are a clean quit. Anything else keeps that launch's log in `/storage/.config/thor/crashes/` (newest 20). | `[review]` `runemu.sh` (exit codes), `[host: test_crashlog.sh]` (log kept) |
-| GAME-4 | While a game runs, `/run/thor-playing.txt` names the game, emulator and core. | `[device]` |
-| GAME-5 | Pressing Home in a game opens the in-game menu on the bottom screen. Every game gets Resume and Quit game; a game with kill data also gets Back to Home and Quit and save log. The game pauses while it's open if the emulator can pause. | `[device]` |
-| GAME-6 | Back to Home freezes the game (SIGSTOP, windows in the scratchpad); returning continues it (SIGCONT, windows restored). Audio and input MUST come back. | `[device]` |
-| GAME-7 | After a sleep the game carries on from where it was within a couple of seconds and MUST NOT replay the time asleep. Home only unpauses what it paused itself. | `[device]` |
-| GAME-8 | A new emulator, or a new version of one, meets `docs/adding-an-emulator.md`. Its commit message records each checklist item as passed or not applicable. | `[review]` `[device]` |
-| GAME-9 | Games see InputPlumber's virtual DualSense; the raw Thor pad is hidden from them. | `[device]` |
-| GAME-10 | The main window is full screen on the top screen. A second window goes to the bottom screen by the rules in `thor-sway-rotate.sh`. With nothing to show there, the bottom screen goes off shortly after launch. | `[device]` |
-
-## 8. Power
-
-| ID | Rule | Verified by |
-|---|---|---|
-| PWR-1 | Sleep is s2idle with the game still loaded. CX, AOSS and DDR MUST collapse for the sleep (`/sys/kernel/debug/qcom_stats/`). | `[device]` |
-| PWR-2 | Sleep drain stays at or under the 30 mA baseline; lower is always better, so 30 mA is a ceiling and not a target. **How to measure:** an unplugged sleep of an hour or more, starting at 4.13 V or lower. Readings just after a charge are gauge artifacts: MUST NOT be used as a baseline or to credit a fix. | `[device]` |
-| PWR-3 | After a wake the pad, Wi-Fi, audio and storage work, with no reboot. The power button and the RTC both wake it. | `[device]` |
-| PWR-4 | A lid-closed cable wake keeps the game stopped and goes back to sleep. | `[host: test_charge_fix.sh]` |
-| PWR-5 | Charge limit: charging stops at the limit and resumes 5 % below it. `100` = off. `full` = hold at 100, resume at 95. | `[host: test_charge_limit.sh]` |
-| PWR-6 | The fan's rail is off in sleep: fan mode 1 becomes 3 for the sleep and comes back after it. | `[host: test_fan_sleep.sh]` |
-| PWR-7 | Autotune only moves maximum clocks and MUST NOT take the GPU ceiling below 348 MHz until lower is tested against GMU hangs. | `[host: test_asgard_autotune.py]` |
-| PWR-8 | The gyro service runs only while asked for (per game or by `asgard.motion`): it keeps the ADSP awake. | `[device]` |
-| PWR-9 | Background work SHOULD NOT wake the SoC in sleep or redraw when nothing changed. A periodic wake needs a reason in the commit message. | `[review]` |
-
-## 9. Audio and logs
-
-| ID | Rule | Verified by |
-|---|---|---|
-| AUD-1 | The default output follows the headphone jack. | `[device]` |
-| AUD-2 | EQ filter nodes stay at 100 %: volume is set on the real sink. A preset with positive gain goes through the limiter. | `[device]` |
-| LOG-1 | Warnings, errors, oopses, Wi-Fi and sleep events reach `/storage/.config/thor/logs/events.log`, which rotates. | `[host: test_asgard_events.py]` |
-| LOG-2 | A boot that never shut down leaves a report in `/storage/.config/thor/freezes/` (newest 10). | `[device]` |
-| LOG-3 | Crashes leave a core dump (`coredumpctl`, `/storage/.cache/cores`). Emulator handlers MUST NOT swallow fatal signals. | `[device]` |
-| LOG-4 | `asgard.sleep_audit=1` writes one line per sleep with its deltas. | `[host: test_sleep_audit.sh]` |
-
-## 10. Definition of done
-
-| ID | Rule |
+| Layer | What it is |
 |---|---|
-| DONE-1 | **Status is earned on the device.** A feature is ✅ in the README only after it was checked on a real Thor. Built or tested on a host only is 🧪. Tested against a fake is 🧪, and says so. |
-| DONE-2 | **Say what was and wasn't checked.** A commit or handover states what ran and where. Never report something as working from a build alone. |
-| DONE-3 | **Logic gets a host test.** New or changed logic that runs without hardware (parsing, state machines, calculations) gets a `test_*` next to its source, using fake sysfs or stubs through environment overrides. A bug fix adds the check that would have caught it. Section 12 has the rules for tests. |
-| DONE-4 | **Investigate before changing.** Search `docs/` and `thor/ayn_thor_pro.md` first, then the projects listed in the README's credits. Don't re-test what is recorded as ruled out. |
-| DONE-5 | **Commit messages explain.** What was broken, why, and what changed, with the requirement ID if one applies. One change per commit. |
-| DONE-6 | **Docs move with the code**, in the same commit: the README's status, `docs/changes.md` for a change on top of ROCKNIX, this file if a requirement changes. |
-| DONE-7 | **Stay in scope.** No unrequested refactors or renames, new daemons or dependencies. Paths and key names are interfaces: scripts, configs and existing devices use them (UPD-4). |
+| Hardware | AYN Thor: Snapdragon 8 Gen 2 (SM8550), Adreno 740, top screen 1920×1080 (`DSI-2`), bottom touch screen 1240×1080 (`DSI-1`), UFS 4.0, microSD |
+| Boot | OpenABL through Boot Loader Spec: `/flash/loader/entries/asgardos.conf` boots `/flash/KERNEL`, an EFI kernel with a built-in initramfs, and the device tree |
+| Kernel | Linux stable plus Asgard's patches and device trees, 7.3.1 as of 2026-11-01 |
+| Root filesystem | Read-only. User state lives in `/storage`, boot files in `/flash` |
+| Display | sway 1.11, patched to count frames per window, with Mesa 26.2.6 (Turnip and freedreno) |
+| Input | InputPlumber presents the pad to games as a virtual DualSense |
+| Audio | PipeWire 1.2.6 and WirePlumber |
+| Frontend | Asgard Home: Qt 6.10 Quick, one process with two windows |
+| Asgard's services | Python and shell in `/usr/share/asgard`, as systemd units and sleep hooks |
+| Games | Standalone emulators and RetroArch cores, started through `runemu.sh` |
 
-## 11. Known deviations
+The versions above are as of 2026-11-01. Each package's `package.mk` has the current one.
 
-Where the tree breaks this spec today. Don't copy these or treat them as precedent. When one is fixed, delete its row.
+## 2. Asgard Home
 
-| Rule | Deviation | Plan |
+Two windows: the top screen shows the grid and dock, the bottom shows the detail card and hints. L+R swaps them, and
+the swap is saved. It's the only frontend: it's what boots and where games start.
+
+- **HOME-1** Buttons: A selects, B goes back, X turns the screens off, Y reorders, Start opens settings (the game's in a game list), Select opens the game's actions, LB/RB change tab, L+R swaps the screens. The pad uses the Thor's Nintendo layout: A east, B south.
+- **HOME-2** Tabs are home (with the return tile and Recently played), consoles and trophies. Only systems with games are listed.
+- **HOME-3** The library comes from `es_systems.cfg`, the ROM directories and ES-DE-format media. Tiles show art, and game cards show details and play time.
+- **HOME-4** Tile order can be changed, for consoles and per console for games, and it's saved. B cancels a reorder.
+- **HOME-5** Starting another game while one waits in the background asks first and warns that unsaved progress is lost.
+- **HOME-6** The on-screen power button opens a menu with Sleep, Restart and Power off.
+- **HOME-7** Home and everything it starts run in a UTF-8 locale. The interface is English only.
+- **TRO-1** Trophies show RetroAchievements progress per game, with ROMs hashed as RetroAchievements does.
+- **SCRAPE-1** Select → Scrape this game uses ScreenScraper when a developer ID is set, and otherwise libretro thumbnails with no account. Results go in ES-DE's layout.
+
+### Look and feel
+
+- **LOOK-1** `Theme.qml` is the single source of the look: dark translucent pills with a light rim, lavender glass panels, a selection glow, and one rounded heavy typeface (Nunito). New UI takes its colours, font and timing from it.
+- **LOOK-2** Accents are aurora (default), sunset, mint and gold.
+- **LOOK-3** Selection moves take 180 ms and art crossfades 320 ms. The Animations setting turns both off.
+- **LOOK-4** New on-device UI is built in Asgard Home's style and works with the pad. `docs/screenshots/` shows the intended look.
+
+## 3. Running games
+
+- **GAME-1** Home starts every game as `runemu.sh <rom> -P<system> --core=<core> --emulator=<emulator>`, which gives it per-game options, its CPU and fan profile, display pre-rotation, crash logs and play time. Only `.desktop` apps skip it, and those still get play time, crash logs, overrides and the in-game menu.
+- **GAME-2** A launcher declares its process with `set_kill set "<signal> <name>"`, so Home can find and stop the game.
+- **GAME-3** Exit codes 0, 137 and 143 are a clean quit. Anything else keeps that launch's log in `/storage/.config/thor/crashes/` (newest 20).
+- **GAME-4** While a game runs, `/run/thor-playing.txt` names the game, emulator and core.
+- **GAME-6** Back to Home freezes the game (SIGSTOP, windows in sway's scratchpad). Returning continues it (SIGCONT, windows restored), and audio and input come back.
+- **GAME-7** After a sleep the game carries on from where it was within a couple of seconds and doesn't replay the time asleep. Home only unpauses what it paused itself.
+- **GAME-9** Games see InputPlumber's virtual DualSense. The raw Thor pad is hidden from them.
+- **GAME-10** The main window is full screen on the top screen. With nothing to show on the bottom screen, it goes off shortly after launch.
+
+### Home button and in-game menu
+
+- **MENU-1** Home tapped alone opens the in-game menu on the bottom screen. Held with other buttons, it stays the hotkey modifier.
+- **GAME-5** Every game gets Resume and Quit game, and a game with kill data also gets Back to Home and Quit and save log. The game pauses while the menu is open if the emulator can pause.
+- **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access) and Wind Waker HD (its settings).
+- **MENU-3** PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus instead.
+- **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
+
+### Per-game and per-emulator overrides
+
+- **OVR-1** An option resolves in this order: the game's value, the emulator's or system's value, the OS default. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
+- **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ and sleep mode.
+- **OVR-3** The emulator and core can be chosen per system and per game. A game's shader cache can be deleted from its settings.
+- **OVR-4** Overrides last only as long as the game: they apply at launch, and the menu's profile, fan and EQ come back when it exits.
+- **OVR-5** Each emulator's own options, such as shaders, aspect ratio and Azahar's resolution and layouts, come from `es_features.cfg` and appear as settings rows with no extra work per emulator.
+
+### Companion windows on the bottom screen
+
+- **COMP-1** A second window goes to the bottom screen if its title matches `Secondary|[w2]|Sub|Bottom|Screen 2|GamePad`. That powers the panel on and rotates it, and focus stays on the game. melonDS's second window uses this rule.
+- **COMP-2** Eden Duo shows live companion windows on the bottom screen.
+- **COMP-3** RetroArch games can have save-state and brightness controls on the bottom screen (ROCKNIX's lowerdeck), with focus kept on the top. The setting `asgardos.bottomscreen.type` turns them on (`vc`, the default) or off.
+- **COMP-4** Asgard has window rules for ports the user installs in `/storage`, which aren't in the image: the Wind Waker HD GamePad window, Dusklight's second screen, Gen1 Recomp's secondary display, and Lumi-Dex, a Pokédex companion that opens with Brilliant Diamond.
+
+### Text prompts
+
+- **TXT-1** A game's text prompt uses Asgard Home's keyboard on the bottom screen, for emulator frontends that have none. Eden Duo's software keyboard goes through it.
+- **TXT-2** The result is the text on stdout with exit 0, exit 1 if cancelled, or exit 2 if it failed.
+- **TXT-3** The keyboard takes over the bottom screen and powers it on, and the screen goes back to its previous state afterwards. If the game is killed while it's open, the keyboard goes with it and nothing is left behind.
+
+## 4. Settings
+
+Everything is reachable with the pad, and a user-facing feature ships with a way to use it on the Thor. The exceptions
+are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files and the sensors root.
+
+- **SET-1** Settings offers: device name; date, time and time zone; emulator options per console; accent and animations; library rescan; RetroAchievements sign-in and hardcore mode; about, updates and debug; sleep, restart and power off.
+- **SET-2** Under Hardware it offers: audio, display, performance, network, battery report and calibration.
+- **SET-3** Restart, power off and installing an update ask for confirmation first. An update is offered only when a `.tar` is in `/storage/.update`.
+- **SET-4** A change takes effect without a restart where it can. A setting that needs one says so on its row.
+- **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting; USB mode; and SSH, Samba and Syncthing.
+- **NET-2** VPN offers Tailscale (sign-in link on screen), ZeroTier (join by network ID) and WireGuard (`.conf` files).
+
+### Personal configuration: asgard.yml
+
+- **CFG-1** Precedence, at every boot: image defaults < `asgard.yml` < the user's own changes. A value changed on the device is never overwritten by the yml.
+- **CFG-2** The yml is read from `/flash/asgard.yml`, then `/storage/.config/asgard/asgard.yml`. First found wins, and they aren't merged.
+- **CFG-3** `ssh.authorized_keys` lines are appended, and existing lines are kept.
+
+### How settings are stored
+
+- **CFG-4** Settings live in `system.cfg`. Writes are atomic, keep comments, and replace in place. A per-game key (`<system>["<rom>"].<key>`) doesn't affect the system key.
+- **CFG-5** New Asgard settings use the `asgard.` prefix. ROCKNIX's existing key names stay.
+- **CFG-6** New Asgard state goes in `/storage/.config/asgard/`. Logs and reports go in `/storage/.config/thor/`.
+- **CFG-7** Every setting has a safe default, and the system runs when the setting or its file is missing. A feature whose data can't ship stays off rather than failing: the gyro's service starts only when `sensors-root/` is there.
+- **CFG-8** The default root password is `asgardos`, in both `distribution/options` (`ROOT_PASSWORD`) and `system.cfg` (`root.password`), and it's documented in the README. `root.password` is the source of truth: every boot applies it to the root login, Samba and the Syncthing GUI. It's a public default, not a secret.
+
+## 5. AYN button: Thor Panel
+
+- **PANEL-1** The AYN button toggles Thor Panel on the bottom screen. A running game is frozen (SIGSTOP) while it's open and continues (SIGCONT) when it closes.
+- **PANEL-2** It shows status, FPS, temperature and CPU, GPU, power and RAM gauges, and it has fan control. A second page has volume and per-screen brightness, with a lock that moves both screens together.
+- **PANEL-3** Its hardware side answers one request per line and ends when its input closes.
+- **PANEL-4** Its quick toggles are Wi-Fi, Airplane mode, Vibration, Ambient LED, Screenshot, Clean memory, Quit game, and the top screen's refresh rate.
+
+## 6. Screens and input
+
+- **SCR-1** Each screen has its own white balance in the display hardware: warmth, tint and contrast, set from Settings, with warmth and tint from -10 to 10 and 0 being the panel's own. Unset, the bottom screen uses tint +3 and contrast +3, chosen by eye to sit close to the top while keeping shadow detail. That's deliberately not an exact match, which measured at tint +10. Gains only lower a channel, so nothing clips.
+- **SCR-2** Each screen's refresh rate is set separately, at 60 or 120 Hz. The bottom defaults to 60, because at 120 Hz its colours wash out (about 1.8× brighter, roughly half the saturation) until the panel's 120 Hz commands are known. Settings says so on the row.
+- **SCR-3** The top screen reaches its full 12-bit brightness. Brightness can be linked or separate per screen.
+- **SCR-4** Touch lines up with the picture on both rotated panels.
+- **SCR-5** Boot is quiet, with the Asgard splash and boot animation on the top screen.
+- **SND-5** Volume and brightness changes show an overlay above games, in Asgard Home's style.
+
+### OLED protection
+
+- **OLED-1** In Home, X turns both screens off. Any button then only wakes them and does nothing else.
+- **OLED-2** Ultra Black on the top panel can be switched in Settings. It's sent at each panel power-on, so a change applies after the screen cycles.
+- **OLED-3** Screens turn off after `asgard.idle_blank` seconds without input (default 300, 0 = never), and any input turns them back on.
+
+### Calibration
+
+- **CAL-1** Touch is calibrated per panel with 5 targets and then a test screen: A keeps it, Y redoes it, B puts the old one back. The pad drives every step, so a bad calibration can't lock out touch. It's kept in `asgard.touch.<screen>`, re-applied at boot, and can be reset.
+- **CAL-2** Stick calibration applies before InputPlumber starts, so the pad never drops after boot. Only the rsinput parameter lines of GPcal's file are run.
+
+### Other input
+
+- **INP-1** The gyro serves both as the DualSense's motion and as a DSU server on `127.0.0.1:26760`. It needs a HexagonFS root copied to `/storage/.config/asgard/sensors-root/`, because Android's blobs and the unit's calibration can't ship.
+- **INP-2** Stick lights offer colour, brightness or battery level.
+
+## 7. Sound
+
+- **AUD-1** The default output follows the headphone jack.
+- **AUD-2** EQ filter nodes stay at 100 %, and volume is set on the real sink. A preset with positive gain goes through the limiter.
+- **SND-1** Speaker EQ offers Thor tuning, Joey's preset and off. Headphone EQ offers Thor tuning, AutoEQ and off.
+- **SND-2** AutoEQ finds a profile by headphone model, which needs internet. A downloaded profile stays usable offline.
+- **SND-3** A game's EQ override lasts until the game ends and leaves the saved setting alone. PipeWire restarts only if the override changes something.
+- **SND-4** Menu sounds and charger chimes can be switched off, and menu sounds have a volume. They play through `pw-play`, not Qt Multimedia, whose audio thread once froze Home.
+
+## 8. Power and performance
+
+### Sleep
+
+- **PWR-1** Sleep is s2idle with the game still loaded. CX, AOSS and DDR collapse for the sleep (`/sys/kernel/debug/qcom_stats/`).
+- **PWR-2** Sleep drain stays at or under the 30 mA baseline, and lower is always better. It's measured over an unplugged sleep of an hour or more, starting at 4.13 V or lower, because readings just after a charge are gauge artifacts.
+- **PWR-3** After a wake the pad, Wi-Fi, audio and storage work, with no reboot. The power button and the RTC both wake it.
+- **PWR-4** A lid-closed cable wake keeps the game stopped and goes back to sleep.
+- **PWR-6** The fan's rail is off in sleep: fan mode 1 becomes 3 for the sleep and comes back after it.
+- **PWR-8** The gyro service runs only while asked for, per game or by `asgard.motion`, because it keeps the ADSP awake.
+- **PWR-9** Background work doesn't wake the SoC in sleep or redraw when nothing changed, unless there's a stated reason.
+- **PWR-10** Closing the lid or pressing the power button sleeps the Thor, and logind ignores lid events for 10 s after boot or a wake. The power key instead wakes screens that are off, and with an external display attached it blanks the internal panel rather than suspending.
+- **PWR-11** The sleep mode setting offers Sleep, Light sleep (freeze) and Screen off only (no suspend).
+- **PWR-12** After every wake, `asgard-pad-fix` re-probes the pad if its stream stalled, and restarts InputPlumber. `asgard.pad_fix` (on by default) controls it, with a log in `/storage/pad-fix.log`.
+- **BAT-3** A game with sleep mode `screen` keeps running with the screens off, for music on the headphone jack, instead of suspending.
+
+### Charging and battery
+
+- **PWR-5** Charging stops at the limit and resumes 5 % below it. `100` = off, `full` = hold at 100 and resume at 95. The default is 80.
+- **BAT-2** Bypass charging runs the Thor from the cable and leaves the battery alone, charging only below 20 %.
+- **BAT-1** The battery report shows what used the battery since the last unplug, including sleep, Home and each emulator, with time left.
+
+### CPU clusters, GPU and fan
+
+- **PERF-1** There are three core types: little (3× A510, CPU0-2), mid (2× A715 + 2× A710, CPU3-6), prime (1× X3, CPU7). Each takes a clock cap of 25–100 % of its top clock, or off. A cap sets the highest supported frequency at or under it as `scaling_max_freq`.
+- **PERF-2** At least one core type stays on, and CPU0 is never taken offline. Settings doesn't offer a choice that turns every type off.
+- **PERF-3** The menu's profile applies only in Home (defaults: little 90 %, mid 75 %, prime 75 %, GPU 100 %). Games start at stock, with every core on and full clocks, and their overrides apply on top.
+- **PERF-4** The GPU takes a clock cap of 25–100 %, in Home and per game. Per game, the CPU and GPU caps can also be set to Auto.
+- **PWR-7** Auto (autotune) only moves maximum clocks, and doesn't take the GPU ceiling below 348 MHz until lower is tested against GMU hangs.
+- **PERF-5** The fan offers curve modes (quiet, moderate, aggressive) and fixed speeds. A fixed speed survives game launches.
+
+## 9. Tools, ports and PC apps
+
+- **TOOL-1** Asgard Music (playlists, screens-off playback), Asgard Files (copy, move, rename, delete across internal storage, ROMs and SD), Firefox, Terminal and Moonlight open from Home, full screen on the right screens. Firefox and Terminal have Asgard Keyboard on the bottom screen.
+- **PORT-1** PortMaster is the Ports system's launcher.
+- **PORT-2** A `.desktop` file in the PC system runs its own `Exec=` command. `X-Asgard-Kill=` names the process Quit stops, if it isn't the command's own name.
+- **PORT-3** LÖVE ports run outside PortMaster, such as Gen1 Recomp, find the `libtheoradec` they need. Gen1 Recomp runs under XWayland, because it gets no input on native Wayland.
+
+## 10. Graphics
+
+- **GPU-1** The Turnip driver can be chosen per game, and an unset row names the default, the image's Mesa. `runemu.sh` selects it through `VK_DRIVER_FILES`.
+- **GPU-2** The image ships an extra, older Turnip (`turnip-extra`, 25.3.6) in `/usr/lib/gpu-drivers`, because the 3DS Zeldas run on it. Users can add builds in `/storage/.config/gpu-drivers`, made with `tools/turnip/turnip.sh`.
+- **GPU-3** A game's OpenGL can run on Vulkan through Zink (`gl_driver=zink`). Unset is freedreno.
+
+## 11. Diagnostics
+
+- **LOG-1** Warnings, errors, oopses, Wi-Fi and sleep events reach `/storage/.config/thor/logs/events.log`, which rotates.
+- **LOG-2** A boot that never shut down leaves a report in `/storage/.config/thor/freezes/` (newest 10).
+- **LOG-3** Crashes leave a core dump (`coredumpctl`, `/storage/.cache/cores`).
+- **LOG-4** `asgard.sleep_audit=1` writes one line per sleep with its deltas.
+- **LOG-5** The Debug page's sleep experiment (`asgard.sleep_experiment`) switches radios off during sleep, to find what drains the battery.
+- **LOG-6** `battery-log.sh` writes one CSV line every 30 s to `/storage/battery-log.csv`, rotating at 5 MB and keeping one old file. A gap in the timestamps means asleep. The battery report reads it.
+
+## 12. Kernel and hardware support
+
+The kernel carries about 140 patches, from ROCKNIX, Kettle Linux, Armada and Asgard itself. `docs/changes.md` says which
+is which and why. A patch is there to deliver one of these outcomes, and a rebase has to keep them:
+
+- **KERN-1** Both panels run at 60 and 120 Hz, with AYN's Ultra Black and the SY7758 backlight driver, and the touchscreens work.
+- **KERN-2** The pad's MCU (`rsinput`) comes back after a wake, its rail is off in sleep, and haptics and stick LEDs survive a sleep.
+- **KERN-3** UFS runs at HS-G5 and resumes without PHY calibration failures. SD cards run at UHS-I SDR104.
+- **KERN-4** USB resumes cleanly and releases its DDR vote when idle. A USB-C attach can wake the Thor, and charger updates don't wake it from s2idle.
+- **KERN-5** The Wi-Fi PCIe link powers down in sleep and retrains on resume.
+- **KERN-6** The GPU holds no DDR vote in sleep.
+- **KERN-7** The audio block (LPASS) is released in sleep, so CX can collapse, and audio resumes afterwards.
+- **KERN-8** The fan's tach and RPM timer don't wake s2idle. Charge current is controllable, which is what the charge limit relies on.
+
+## 13. Emulators and packages
+
+### How an emulator is packaged
+
+- **EMU-3** A standalone emulator is a package in `packages/emulators/standalone/<name>/`: `package.mk`, source patches in `patches/`, and `scripts/start_<name>.sh`. A RetroArch core is a package in `packages/emulators/libretro/<name>-lr/`.
+- **EMU-4** The metapackage `packages/virtual/emulators/package.mk` decides what's in the image: `PKG_EMUS` and `LIBRETRO_CORES` list the packages, and `add_emu_core <system> <emulator> <core> <default>` registers each one for a system. `runemu.sh` runs `/usr/bin/start_<core minus -sa>.sh`.
+- **EMU-5** Its per-game options go in `es_features.cfg`. EmulationStation isn't in the image, but its option catalogue is.
+- **GAME-8** A new emulator, or a new version of one, meets `docs/adding-an-emulator.md`: launching, exit codes, sleep with no catch-up, in-game menu, Back to Home, windows and controller. That file is part of this spec.
+- **EMU-6** A package's version is `PKG_VERSION` in its `package.mk`. `docs/plans/emulator-versions.md` tracks how far each is behind upstream.
+
+### Standalone emulators
+
+**Bold** is the system's default.
+
+| System | Packages |
+|---|---|
+| Nintendo 3DS | **azahar-sa** |
+| Nintendo Switch | **eden-sa**, eden-duo-sa |
+| GameCube, Wii, Triforce | **dolphin-sa** |
+| Wii U | **cemu-sa** |
+| Nintendo DS | **melonds-sa**, drastic-sa, dsperate-sa, skyemu-sa |
+| Game Boy, Color, Advance | nanoboyadvance-sa (GBA), skyemu-sa, mednafen, ares-sa (default: RetroArch) |
+| Nintendo 64 | gopher64-sa, mupen64plus-sa, daedalusx64-sa, ares-sa (default: RetroArch) |
+| PlayStation | duckstation-sa, mednafen (default: RetroArch) |
+| PlayStation 2 | **armsx2-sa**, aethersx2-sa |
+| PlayStation 3 | **rpcs3-sa** |
+| PSP | **ppsspp-sa** |
+| PS Vita | **vita3k-sa** |
+| Dreamcast, Naomi, Atomiswave | **flycast-sa** |
+| Saturn | **yabasanshiro-sa** |
+| Xbox | **xemu-sa** |
+| Sega Model 3 | **supermodel-sa** |
+| Atari Jaguar | bigpemu-sa (default: RetroArch) |
+| Atari ST | hatarisa (default: RetroArch) |
+| Amiga | amiberry (default: RetroArch) |
+| Commodore | vice-sa (default: RetroArch) |
+| Laserdisc | **hypseus-singe** |
+| DOOM | **gzdoom-sa** |
+| ScummVM | **scummvm-sa** |
+| OpenBOR | **openbor** |
+| iOS | **touchhle-sa** |
+
+mednafen and ares-sa also cover many older systems, as alternatives to RetroArch.
+
+### Platforms, apps and players
+
+| System | Packages |
+|---|---|
+| Steam | **steam**: the ARM64 client, with x86 games through FEX and Proton. Pad settings survive reboots. Home can't pause Steam or PC games. |
+| Heroic | **heroic** |
+| Windows | **wine**, with box64 |
+| Ports | **portmaster** |
+| Game streaming | **moonlight** |
+| Music | **asgard-music**, gmu |
+| Video | **mplayer** |
+
+### RetroArch cores
+
+RetroArch is the default for every other system. `docs/supported-emulators.md` lists each of the roughly 140 systems,
+with its ROM directory, extensions and cores. The image's cores are:
+
+81, a5200, arduous, atari800, b2, beetle-gba, beetle-lynx, beetle-ngp, beetle-pce, beetle-pce-fast, beetle-pcfx,
+beetle-psx, beetle-saturn, beetle-supafaust, beetle-supergrafx, beetle-vb, beetle-wswan, bk, bluemsx, bsnes, bsnes-hd,
+bsnes-mercury-accuracy, bsnes-mercury-balanced, bsnes-mercury-performance, bsnes2014-accuracy, bsnes2014-balanced,
+bsnes2014-performance, cap32, crocods, daphne, dolphin, dosbox-core, dosbox-pure, doublecherrygb, duckstation,
+easyrpg, emuscv, fbalpha2012, fbalpha2019, fbneo, fceumm, flycast, flycast2021, fmsx, freechaf, freeintv, freej2me,
+fuse, gambatte, gearboy, gearcoleco, geargrafx, gearlynx, gearsystem, genesis-plus-gx, genesis-plus-gx-wide, geolith,
+gw, handy, hatari, idtech, jaxe, kronos, mame, mame2003-plus, mame2010, mame2015, melonds, melonds-ds, mesen, mesen-s,
+mgba, minivmac, mojozork, mu, mupen64plus, mupen64plus-nx, neocd, nestopia, np2kai, o2em, opera, parallel-n64,
+pcsx_rearmed, picodrive, pokemini, potator, ppsspp, prboom, prosystem, puae, puae2021, px68k, quasi88, quicknes, race,
+same_cdi, sameboy, sameduck, scummvm, skyemu, smsplus-gx, snes9x, snes9x2002, snes9x2005_plus, snes9x2010, stella,
+supersnes9x, swanstation, tgbdual, theodore, tic80, uae4arm, uzem, vba-next, vbam, vecx, vice, vircon32,
+virtualjaguar, wasm4, xmil, yabasanshiro.
+
+- **EMU-1** Every ROCKNIX system stays in the image. Changing a system's default emulator is a deliberate change, recorded in the README's emulator table.
+
+## 14. Development constraints
+
+### The fork
+
+- **DEV-1** Asgard is its own fork, and this repo is the whole distribution. ROCKNIX fixes come in one at a time with `git cherry-pick <sha>`, never by merging `next`. The two trees have diverged, and newer `next` flashes OpenABL to the ABL slots.
+- **DEV-2** The Thor is the only target. Recipes don't carry branches for other devices.
+- **DEV-3** `main` is the only long-lived branch here, and `asgard` the only one in the kernel repo.
+- **DEV-4** Each layer has its place: `distribution/` the distro and image tools; `device/` the SM8550 board; `packages/` all recipes (ours: `asgard/`, `asgard-home/`, `asgardos/`); `config/` and `scripts/` the build system; `tools/` build helpers; `docs/` the docs.
+- **DEV-5** ROCKNIX's interfaces stay: `runemu.sh`, `system.cfg` keys, `es_systems.cfg`, `es_features.cfg`, `set_kill`. Emulator scripts rely on them, and cherry-picks keep applying because of them.
+
+### The kernel
+
+- **DEV-6** The kernel is a submodule, `packages/linux/src`, on its own repo (`asgardos/linux`, branch `asgard`): Linux stable plus each patch as one commit, and the device trees as one commit. That's what makes kernel upgrades easy: moving to a new version is `git rebase --onto vNEW vOLD asgard`, conflicts appear per patch, and patches that went upstream are simply dropped.
+- **DEV-7** There are no kernel patch files or tarballs. The build copies the submodule as it is. A change is a commit in the submodule, pushed, followed by a pointer bump here. An upgrade also sets `PKG_VERSION` in `packages/linux/package.mk`. Force-push is allowed on `asgard` only, because rebasing needs it.
+- **DEV-8** The submodule keeps its own git objects, with no alternates or `--reference`, because the build container only sees the tree at `/work`.
+
+### Packages and the build
+
+- **DEV-9** `./build.sh` builds the image in a build container pinned by digest. A clean checkout with submodules builds with no other setup.
+- **DEV-10** The build starts from an empty environment, so tokens and `LOCAL_WIFI_*` can't reach the image. The tree is mounted at `/work`, so binaries carry no personal paths.
+- **DEV-11** All build output goes under `build/`, and nothing is written elsewhere in the tree.
+- **DEV-12** A package declares every dependency it uses, optional ones too. A build doesn't depend on package build order.
+- **DEV-13** Package patches are applied with `patch -p1`, fuzz allowed, so that's how they're checked. `git apply` gives wrong answers here.
+- **DEV-14** Tree files don't change while a build runs: stamps are re-hashed, and a change cleans install dirs mid-build.
+- **DEV-15** New build inputs don't depend on LAN hosts or personal paths.
+
+### The image and updates
+
+- **UPD-1** The root filesystem is read-only. What must survive a reboot or update lives in `/storage`, or `/flash` for boot files.
+- **UPD-2** A partial copy never looks like an update: staging copies to a temporary name, checks the checksum on the device, then renames to `*.tar`.
+- **UPD-3** Staging doesn't reboot or disturb a running game. The update installs on the next boot.
+- **UPD-4** An update keeps user data: saves, ROMs, `system.cfg`, `/storage/.config/asgard`, `/storage/.config/thor`, and SSH keys. A change to a key or file format converts existing values.
+- **UPD-5** An update never writes `abl_a`/`abl_b`, directly or through a script it calls, because a bad ABL can only be recovered through EDL. `updateabl` stays a manual command. Updates don't change the boot entry's layout without a migration.
+- **DEV-16** Nothing personal goes in git or an image: Wi-Fi keys, logins, SSH keys, Android blobs or a unit's calibration. Those come from `asgard.yml` or from `/storage`.
+
+### Asgard's code
+
+- **DEV-17** Asgard Home is C++ and QML on the image's Qt 6. Asgard's services are shell and Python using the standard library and `ctypes`, with no pip dependencies.
+- **DEV-18** New logic that runs without hardware gets a `test_*` file next to its source, with paths overridable through the environment so it can run against a fake sysfs. Those files don't ship in the image. `./test.sh` runs them.
+- **DEV-19** Paths and setting names are interfaces: scripts, configs and installed systems rely on them.
+- **DEV-20** Each kind of fact has one home: this file for what must be true, the README for what works today, `docs/changes.md` and commit messages for why, `docs/plans/` for what's planned, and `docs/testing.md` for how it's tested.
+- **DEV-21** Original ROCKNIX and JELOS code keeps its copyright notices. Asgard's own packages are GPL-2.0.
+
+## 15. Known gaps
+
+Where the tree doesn't meet this spec today. These aren't precedents. When one is fixed, delete its row.
+
+| Rule | Gap | Plan |
 |---|---|---|
-| REPO-5, REPO-9 | `.gitmodules` and the `Makefile`'s build image point at LAN hosts (`gitlab.lan.example`, `registry.lan.example`), so outside the LAN a clean checkout can't build. Accepted by the owner until the public move. | Replace at the public move |
-| REPO-5 | Ten packages and `DISTRO_MIRROR` still download from ROCKNIX's GitHub. If ROCKNIX moves a file, a clean build breaks. | `docs/plans/rocknix-sources.md` |
-| REPO-6 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
-| REPO-10 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
-| GAME-7 | The sleep test on the device is still to do for most emulators. Home can't pause Steam or PC games. | `docs/adding-an-emulator.md` §4 |
-| DONE-3 | Tests have no runner or CI. `test_thor_settings.py` and `test_thor_panel.py` need host `libSDL2`, `test_gamma.sh` needs `wayland-scanner`. | Single runner first; see section 12 |
-| TEST-1 | Existing tests don't cite requirement IDs yet. | Add when each test is next touched, or with the runner |
-| TEST-9 | `packages/asgard/package.mk` installs `test_*` into the image. | With the runner |
-| Section 12 | Only level 1 has tests, and they're run by hand. Level 5 is informal. Levels 2 to 4, the fake emulator, the launch test and the QEMU checks aren't built. QEMU isn't installed on the build node. | Build in the order in section 12 |
+| DEV-9, DEV-15 | `.gitmodules` and the `Makefile`'s build image point at LAN hosts (`gitlab.lan.example`, `registry.lan.example`), so outside the LAN a clean checkout can't build. | Replace at the public move |
+| DEV-9 | Ten packages and `DISTRO_MIRROR` still download from ROCKNIX's GitHub. If ROCKNIX moves a file, a clean build breaks. | `docs/plans/rocknix-sources.md` |
+| DEV-11 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
+| DEV-15 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
+| DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
 | Docs | `docs/adding-an-emulator.md` §10 cites a README changes table now in `docs/changes.md`; `docs/sleep.md` has old `~/Projects/asgard` paths; `docs/changes.md` still lists "No Steam (`0006`)". | Fix when next touched |
-
-## 12. Testing
-
-A test is an automated or recorded check that a requirement in this file still holds, and that fails when the
-requirement is broken.
-
-**Levels, cheapest first.** A check belongs at the lowest level that can catch the problem.
-
-| Level | Runs | Catches | Examples |
-|---|---|---|---|
-| 1. Host logic | This machine, every commit | Parsing, state machines, calculations, how Home handles a game | `test_*`, Asgard Home offscreen, the fake emulator (TEST-8) |
-| 2. Tree checks | This machine, every commit | Rules visible in the source | No update path calls `updateabl` (SAFE-1), no new LAN hosts (REPO-9), no `LOCAL_WIFI_*` (SAFE-5) |
-| 3. Image checks | After a build, before staging | A bad image, before it reaches a Thor | The boot entry names a kernel and DTB that exist, no test files or personal paths, a file list diff against the last image, the image's programs under QEMU user mode (TEST-8) |
-| 4. Device checks | A Thor over SSH, after an update | Hardware and integration problems | Services up, both screens and the pad present, the launch test (TEST-7), an RTC-timed sleep that checks collapse and resume |
-| 5. Human checks | On a Thor, recorded per release or feature | What a script can't judge | Touch feel, picture quality, the emulator sleep test, drain under PWR-2's method |
-
-**Build order:** a single runner for levels 1 and 2 with proper skips; the SAFE and REPO tree checks; image checks;
-read-only device checks; the fake emulator; the launch test. A full virtual boot (TEST-8) comes last, if at all.
-
-| ID | Rule |
-|---|---|
-| TEST-1 | Every test cites the requirement ID it checks. A test with no requirement points to a gap in this file, or isn't needed. |
-| TEST-2 | A new test MUST be seen failing once: break the code, watch it go red, restore the code. |
-| TEST-3 | A test changes only if it missed the code being wrong, or if this file changes in the same commit. MUST NOT change a test just to get a pass. |
-| TEST-4 | No silent skips. A test that can't run, such as for a missing tool, reports as skipped with the reason. It doesn't crash or count as a pass. |
-| TEST-5 | Status follows the level (DONE-1). Levels 1 to 3 earn at most 🧪. ✅ needs level 4 or 5. |
-| TEST-6 | Device checks are read-only and stop if `/run/thor-playing.txt` shows a game. Anything that sleeps, restarts or changes the device needs an idle Thor and the owner's go for that run. |
-| TEST-7 | **Launch test, the exception to SAFE-4.** It may start a game on a Thor only if all of these hold: no game shows in `/run/thor-playing.txt`, including one held by Back to Home; it goes through `runemu.sh`; it uses a homebrew ROM we may redistribute; it doesn't change the user's saves or settings; and it quits what it started and confirms a clean exit. A sleep step in this test also falls under TEST-6. Nothing else may start an emulator binary on a Thor. |
-| TEST-8 | **Emulation.** QEMU user mode runs the image's ARM programs at level 3. A fake emulator, a small script that follows the launcher contract and can exit with any code, crash or hang on demand, tests Home in a virtual display at level 1. A full virtual boot may cover boot order, `asgard.yml` precedence and updates keeping user data. A pass in emulation earns at most 🧪, and MUST NOT be taken as proof that an image boots on a Thor. |
-| TEST-9 | Test files and test ROMs MUST NOT ship in the image. |
-| TEST-10 | Not tested here: emulator internals (only how each integrates, per GAME-8), exact screenshots, and exact current draw in automation (gauge noise is about ±20 mA). Emulation can't cover sleep, Adreno and Turnip, the panels, touch, the pad MCU, the ADSP gyro, audio, charging, storage or OpenABL: those stay at levels 4 and 5. |
