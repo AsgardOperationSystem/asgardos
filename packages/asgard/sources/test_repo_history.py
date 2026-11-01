@@ -12,7 +12,7 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 KERNEL = os.path.join(ROOT, "packages", "linux", "src")
 FORK_POINT = "7cffc96"
-# Against the rule but not in SPEC's known gaps yet: these lists stop new ones, and test_gap_kernel_debug_branch.sh and
+# Against the rule, and in SPEC's known gaps: these lists stop new ones, and test_gap_kernel_debug_branch.sh and
 # test_gap_kernel_patch_files.sh hold the rule itself.
 KERNEL_BRANCHES_NOT_IN_SPEC = {"debug/disp-rsc-dump"}
 KERNEL_PATCH_FILES_NOT_IN_SPEC = {

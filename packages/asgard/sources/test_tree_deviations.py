@@ -51,12 +51,12 @@ ROCKNIX_DOWNLOADS = {
 ROOT_LOCAL = {"build", "thor", "asgard.yml", "CLAUDE.local.md", ".git"}
 ROOT_BUILD_LEFTOVERS = {
     ".cache", ".config",  # SPEC 16: a Go package's build
-    "target",  # not in SPEC 16: scripts/image's RELEASE_DIR, empty after a build. Reported.
+    "target",  # SPEC 16: scripts/image's RELEASE_DIR, empty after a build. Reported.
 }
 # SPEC 16: the emulators package regenerates this tracked file.
 WRITES_ROOT = {"distribution/options": r'SYSDOCROOT|SYSDOC='}
 
-# DEV-16. SPEC 16 doesn't list this one; test_gap_local_wifi.sh holds the rule. test_build_env.py checks build.sh's guard.
+# DEV-16, in SPEC 16: test_gap_local_wifi.sh holds the rule. test_build_env.py checks build.sh's guard.
 LOCAL_SECRETS = r"LOCAL_WIFI_|LOCAL_SSH_KEYS_FILE|usr/config/iwd|usr/config/ssh/authorized_keys"
 LOCAL_SECRETS_ALLOWED = {
     "packages/asgardos/package.mk", "Makefile", "build.sh",

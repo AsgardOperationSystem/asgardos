@@ -24,7 +24,7 @@ SYSTEM_CFG = "packages/asgardos/config/system/configs/system.cfg"
 SYSTEM_CFG_AT_FORK = "projects/ROCKNIX/packages/rocknix/config/system/configs/system.cfg"
 LAYERS = {"config", "device", "distribution", "docs", "licenses", "packages", "scripts", "tools"}
 RECIPE_OUTSIDE_PACKAGES = {"config/docker/package.mk"}  # the docker tool's own, not one of the image's
-# Against DEV-17 but not in SPEC's known gaps yet: this stops new ones, and test_gap_service_languages.sh holds the rule.
+# Against DEV-17, and in SPEC's known gaps: this stops new ones, and test_gap_service_languages.sh holds the rule.
 IMPORTS_NOT_IN_SPEC = {("packages/asgard/sources/asgard-motiond.py", "dbussy")}
 COMPILED_NOT_IN_SPEC = {"packages/asgard/gamma/asgard-gamma.c"}  # asgard-gamma.service; the same gap file holds the rule
 COMPILED_NOT_SERVICES = {"packages/asgard/eq/asgard-limiter.c"}  # a LADSPA plugin PipeWire loads

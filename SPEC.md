@@ -467,9 +467,34 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | Rule | Gap | Plan |
 |---|---|---|
 | DEV-9, DEV-15 | `.gitmodules` and the `Makefile`'s build image point at LAN hosts (`gitlab.lan.example`, `registry.lan.example`), so outside the LAN a clean checkout can't build. | Replace at the public move |
-| DEV-9 | Ten packages and `DISTRO_MIRROR` still download from ROCKNIX's GitHub. If ROCKNIX moves a file, a clean build breaks. | `docs/plans/rocknix-sources.md` |
+| DEV-9 | Ten packages (thirteen, counting `emulationstation`, `textviewer` and `rocknix-joypad`) and `DISTRO_MIRROR` still download from ROCKNIX's GitHub. If ROCKNIX moves a file, a clean build breaks. | `docs/plans/rocknix-sources.md` |
 | DEV-11 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
 | DEV-15 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |
 | MENU-5 | PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus (MENU-3), so they have no Performance tile. | Decide how Home's menu reaches them, then change MENU-3 |
 | DEV-11 | The emulators package regenerates the tracked `docs/supported-emulators.md` during a build, so a build can change a file outside `build/`. | Decide whether it stays tracked |
+| PWR-11 | Light sleep and Screen off probably do nothing: Settings saves `system.suspendmode`, then `suspendmode` sees no change and returns, and the SM8550 quirk `030-suspend_mode` overrides `sleep.conf`. | Decide: fix, or change the rule |
+| PWR-10 | A power key press with the screens off from `thor-idle-blank.py` suspends instead of waking them: `power-handler` only knows its own blank flag. | Decide: fix, or change the rule |
+| GPU-3 | The SM8550 quirk `095-force_zink` exports `MESA_LOADER_DRIVER_OVERRIDE=zink`, so an unset game may run on Zink while its row says freedreno. Not confirmed on a Thor. | Decide: fix, or change the rule |
+| BAT-2 | Bypass arms no RTC wake, so a Thor asleep on the cable below 20 % charges on to full. It also charges at exactly 20 % (`-gt 20`). | Decide: fix, or change the rule |
+| LOG-2 | A boot that freezes before its first sleep, game launch or shutdown leaves no report: `asgard-lastboot.sh` needs a snapshot. | Decide: fix, or change the rule |
+| HOME-2 | No Recently played: `backend.recent` exists, but no QML reads it. | Decide: fix, or change the rule |
+| SET-3 | `Settings.qml` also offers a `.img.gz` as an update. `PowerMenu.qml` restarts and powers off with no confirmation. | Decide: fix, or change the rule |
+| GAME-2 | `start_OpenBOR.sh` has no `set_kill`, so an OpenBOR game has no working Quit or Back to Home. | Decide: fix, or change the rule |
+| DEV-16 | `packages/asgardos/package.mk` writes `LOCAL_WIFI_*` and `LOCAL_SSH_KEYS_FILE` into an image built other than through `build.sh`, and `post-update` copies them to `/storage`. | Decide: fix, or change the rule |
+| CFG-9, CFG-11 | Home has its own lookups: `Backend::setting` also reads `global.emulator` and `global.core`, and `optionRow` says `Default` when `get_setting` would find `global.X`. | Decide: fix, or change the rule |
+| CFG-13 | `parse_yaml` doesn't take the inline form `wifi: {ssid: x}`, only the block form. | Decide: fix, or change the rule |
+| CFG-5 | `asgardos.bottomscreen.type`, `screenscraper.*` and `global.retroachievements.webapikey` are new or renamed keys without `asgard.`. | Decide: fix, or change the rule |
+| LOOK-3 | The grid's scroll and the card's settle run 260 ms and 200 ms, and still move with Animations off. | Decide: fix, or change the rule |
+| AUD-2 | The Thor headphone preset's +4 dB shelf outruns its mixer by about 1.3 dB, with no limiter. This is the strictest reading of the rule. | Decide: fix, or change the rule |
+| BAT-5 | The report gives every activity an average current, even one a single sample long. | Decide: fix, or change the rule |
+| EMU-1 | `pico-8` was dropped from the metapackage, and no doc records it. | Decide: fix, or change the rule |
+| EMU-3 | `dolphin-sa`, `heroic`, `hypseus-singe`, `mupen64plus-sa` and `openbor` name or place their start script differently, and `neocd_lr` isn't `neocd-lr`. | Decide: fix, or change the rule |
+| EMU-4 | `cps1`, `cps2` and `cps3` register `AdvanceMame`, which has no package. The image also ships `desmume` and `gpsp`, which section 14's core list omits. | Decide: fix, or change the rule |
+| EMU-6 | `docs/plans/emulator-versions.md` tracks 18 standalone packages, and 16 aren't tracked. | Decide: fix, or change the rule |
+| KERN-1 | No Thor device tree has an SY7758 node, only the Ayaneo Pocket trees, so nothing on a Thor binds that driver. The rule may be what's wrong. | Decide: fix, or change the rule |
+| DEV-2 | 87 other devices' quirks in `packages/hardware/quirks/devices`, and about 45 files naming other SoCs. | Decide: fix, or change the rule |
+| DEV-3 | The kernel repo has `origin/debug/disp-rsc-dump`, as of the last fetch. | Decide: fix, or change the rule |
+| DEV-7 | `packages/linux/patches/mainline` holds four patch files, not applied because `PKG_PATCH_DIRS` is empty. | Decide: fix, or change the rule |
+| DEV-11 | `scripts/image` leaves an empty `target/` at the tree root. | Decide: fix, or change the rule |
+| DEV-17 | `asgard-motiond.py` imports `dbussy`, a recipe's package, and `asgard-gamma` is C. | Decide: fix, or change the rule |
