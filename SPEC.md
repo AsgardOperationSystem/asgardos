@@ -104,7 +104,7 @@ Some games need different settings. These let a user tune one game or system wit
 - **OVR-1** An option's value comes from the game, then the system, then the OS default, as section 4 explains. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
 - **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ, sleep mode, and Wi-Fi and Bluetooth while the screens are off.
 - **OVR-3** The emulator and core can be chosen per system and per game. A game's shader cache can be deleted from its settings.
-- **OVR-4** Overrides last only as long as the game: they apply at launch, and when changed from its in-game menu (MENU-5), and the menu's profile, fan and EQ come back when it exits.
+- **OVR-4** Overrides last only as long as the game: they apply at launch, and when changed from its in-game menu (MENU-5), and the menu's profile, fan and EQ come back when it exits. Back to Home puts the menu's CPU and GPU caps, cores and fan on while the game waits, and returning puts the game's back before it continues.
 - **OVR-5** Each emulator's own options, such as shaders, aspect ratio and Azahar's resolution and layouts, come from `es_features.cfg` and appear as settings rows with no extra work per emulator.
 
 ### Companion windows on the bottom screen

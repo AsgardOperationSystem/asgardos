@@ -20,10 +20,13 @@
 #   asgard-perf-profile.sh apply|restore [platform rom]
 #   asgard-perf-profile.sh cpu <platform> <rom>   only the caps and cores (asgard-screens-off.sh, screens back on)
 #   asgard-perf-profile.sh motion [platform rom]   only the gyro: the game's, or without one the menu's (boot, Settings)
+#   asgard-perf-profile.sh home           Back to Home: the menu's caps, cores and fan while the game waits frozen
+#   asgard-perf-profile.sh game <platform> <rom>   Return to the game: its caps, cores and fan again
 . /etc/profile.d/001-functions
 . /usr/share/asgard/asgard-cpu-lib.sh
 SAVED=/run/asgard-perf.saved    # present while a profile is applied; .fan holds the fan settings to restore
 KEEP=/run/asgard-keep-running   # "<platform>\t<rom>" while sleep_mode=screen; power-handler checks it
+IN_HOME=/run/asgard-perf.home   # present while a game waits in the background and Home has the menu's profile
 
 # system.cfg key=value; an empty value removes the key (set_setting "" leaves the old line, which still wins).
 setkey() { local cfg=/storage/.config/system/configs/system.cfg; sed -i "/^${1//./\\.}=/d" $cfg; [ -n "$2" ] && echo "$1=$2" >> $cfg; }
@@ -71,13 +74,46 @@ apply() {
       --mode=block sleep infinity >/dev/null 2>&1 &
     echo $! > $KEEP.pid
   fi
-  fan=$(get_setting fan_mode "$platform" "$game")
+  fan_apply "$platform" "$game"
+}
+
+fan_apply() {
+  local fan
+  fan=$(get_setting fan_mode "$1" "$2")
   if [ -n "$fan" ]; then
     printf 'fan_manual=%s\ncooling_profile=%s\n' "$(get_setting asgard.fan_manual)" "$(get_setting cooling.profile)" > $SAVED.fan
     if [[ "$fan" =~ ^[0-9]+$ ]]; then setkey asgard.fan_manual "$fan"
     else setkey asgard.fan_manual ""; setkey cooling.profile "$fan"; fi
     systemctl restart fancontrol
   fi
+}
+
+fan_restore() {
+  if [ -f $SAVED.fan ]; then
+    setkey asgard.fan_manual "$(sed -n 's/^fan_manual=//p' $SAVED.fan)"
+    local profile; profile=$(sed -n 's/^cooling_profile=//p' $SAVED.fan)
+    [ -n "$profile" ] && setkey cooling.profile "$profile"
+    systemctl restart fancontrol
+    rm -f $SAVED.fan
+  fi
+}
+
+# Back to Home and back. Only with a game's profile on: one that ended meanwhile has had its restore. The gyro and EQ
+# stay the game's: the EQ restarts PipeWire, and an emulator picks its motion source at launch.
+# One at a time, so quickly going back and forth ends on the last one asked for; what they leave running (autotune)
+# doesn't get the lock.
+home() {
+  [ -f "$SAVED" ] || return 0
+  touch $IN_HOME
+  /usr/share/asgard/asgard-cpu-cap.sh 9>&-
+  fan_restore
+}
+
+game() {
+  [ -f "$SAVED" ] || return 0
+  rm -f $IN_HOME
+  cpu "$1" "$2" 9>&-
+  [ -f $SAVED.fan ] || fan_apply "$1" "$2"
 }
 
 restore() {
@@ -90,14 +126,8 @@ restore() {
   /usr/share/asgard/asgard-cpu-cap.sh
   motion
   eq "" ""
-  if [ -f $SAVED.fan ]; then
-    setkey asgard.fan_manual "$(sed -n 's/^fan_manual=//p' $SAVED.fan)"
-    local profile; profile=$(sed -n 's/^cooling_profile=//p' $SAVED.fan)
-    [ -n "$profile" ] && setkey cooling.profile "$profile"
-    systemctl restart fancontrol
-    rm -f $SAVED.fan
-  fi
-  rm -f $SAVED
+  fan_restore
+  rm -f $SAVED $IN_HOME
 }
 
 case "$1" in
@@ -105,4 +135,9 @@ case "$1" in
   restore) restore ;;
   cpu) cpu "$2" "$3" ;;
   motion) motion "$2" "$3" ;;
+  home|game)
+    exec 9>/run/asgard-perf.lock
+    timeout 30 flock 9 || true
+    "$1" "$2" "$3"
+    ;;
 esac

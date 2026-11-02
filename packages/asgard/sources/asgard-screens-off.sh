@@ -46,7 +46,8 @@ on() {
   local platform game led devices
   IFS=$'\t' read -r platform game < $KEEP 2>/dev/null
   /usr/share/asgard/asgard-cpu-cap.sh 9>&-                                    # all cores, global settings
-  [ -n "$platform" ] && /usr/share/asgard/asgard-perf-profile.sh cpu "$platform" "$game" 9>&-   # and the game's
+  # and the game's, unless it's waiting in the background and this is Home
+  [ -n "$platform" ] && [ ! -e /run/asgard-perf.home ] && /usr/share/asgard/asgard-perf-profile.sh cpu "$platform" "$game" 9>&-
   for r in $(sed -n 's/^rfkill=//p' $STATE); do rfkill unblock "$r"; done
   led=$(sed -n 's/^led=//p' $STATE)
   [ -n "$led" ] && [ "$led" != off ] && ledcontrol "$led" >/dev/null 2>&1 9>&-

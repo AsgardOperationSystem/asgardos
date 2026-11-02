@@ -617,6 +617,7 @@ void Backend::toBackground()
     m_background = true;
     topScreenOn();
     emit playingChanged();
+    shell("/usr/share/asgard/asgard-perf-profile.sh home");   // the menu's profile while the game is frozen
 }
 
 void Backend::resumeGame()
@@ -625,7 +626,11 @@ void Backend::resumeGame()
         return;
     m_background = false;
     emit playingChanged();   // our windows hide
-    QProcess::startDetached("python3", QStringList{"/usr/share/asgard/asgard-background.py", "show"} + runningGame());
+    // The game's profile first, so it continues on the clocks and cores it expects.
+    QProcess::startDetached("/bin/sh", QStringList{"-c",
+        "/usr/share/asgard/asgard-perf-profile.sh game \"$1\" \"${2##*/}\" >/dev/null 2>&1; shift 2; "
+        "exec python3 /usr/share/asgard/asgard-background.py show \"$@\"",
+        "sh", m_launched.value("sys").toString(), m_launched.value("path").toString()} + runningGame());
 }
 
 // RetroArch's network command port (runemu.sh enables it on dual-screen devices). Fire and forget: PAUSE_TOGGLE,
