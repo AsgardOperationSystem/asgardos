@@ -43,7 +43,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Language | ❌ | English only: Asgard Home has no translations. Since 2026-10-28 Home and everything it starts run in a UTF-8 locale (C.UTF-8). |
 | **Settings** | | |
 | Wi-Fi | ✅ | Scan, join, on-screen keyboard. |
-| Bluetooth | 🧪 | Pair a new device now scans and lists what's nearby. On a Thor (2026-11-02), headphones found by the scan paired from the command line and played sound over LDAC. Picking a device on the new page never started pairing there; that's fixed and host-tested only, so pairing from the page is still unchecked. |
+| Bluetooth | ✅ | Pair a new device scans and lists what's nearby. Checked on a Thor (2026-11-02) with a WH-1000XM4: forgotten, paired again from the page, connected over LDAC, and sound heard after an earlier pairing of it. Pairing a controller from the page hasn't been tried. |
 | VPN | 🧪 | Tailscale (sign-in link on screen), ZeroTier (join by network ID), WireGuard (`.conf` files from the Samba "config" share). Back ends checked 2026-10-28 (tailscaled up and asking for a login, ZeroTier online, a `.conf` imported); the sign-in and join flows from Settings are untested. |
 | USB mode, SSH, Samba, Syncthing | ✅ | |
 | Date and time, device name | ✅ | |
