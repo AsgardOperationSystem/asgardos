@@ -17,6 +17,7 @@ mkdir -p $T/sys/class/power_supply/battery $T/sys/class/power_supply/qcom-battmg
 P=$T/sys/class/power_supply; A=$T/sys/class/rtc/rtc0/wakealarm
 echo 6000000 > $P/battery/charge_full; echo 3000000 > $P/battery/charge_counter; echo 0 > $P/qcom-battmgr-usb/online
 echo 50 > $P/battery/capacity; : > $A
+echo 1200000 > $P/battery/current_now; echo 4200000 > $P/battery/voltage_now; echo 4050000 > $P/battery/voltage_ocv
 run() { PATH=$T/bin:$PATH KILL=$T/bin/kill SYS=$T/sys RUN=$T/run LOG=$T/log CFG=$T/cfg RATE=$T/rate sh "$H" $1; }
 printf 'gb|retroarch|gambatte|100|Zelda\n' > $T/run/thor-playing.txt
 
@@ -30,17 +31,20 @@ grep -q '^-CONT' $T/kill.log && [ ! -e $T/run/.asgard-frozen ] || { echo "FAIL: 
 : > $T/kill.log; run pre; echo 2 > $W; echo true > $T/lid
 run post   # cable wake, lid shut: still stopped, re-suspend armed
 ! grep -q CONT $T/kill.log && grep -q 'systemctl suspend' $T/run.log || { echo "FAIL: cable wake"; cat $T/kill.log $T/run.log; exit 1; }
+tail -1 $T/log | grep -q 'usb-c wake.*; 1200000 uA, 4200000 uV, ocv 4050000 uV$' || { echo "FAIL: battery state, cable wake"; cat $T/log; exit 1; }
 
 # Charge limit asleep: on the charger at 50 % (limit 80), 2000 mA -> 30 % of 6000 mAh = 1800 mAh = 3240 s, halved
 : > $T/run.log; rm -f $T/run/thor-playing.txt; echo 1 > $P/qcom-battmgr-usb/online; echo false > $T/lid
 printf 'asgard.charge_limit=80\n' > $T/cfg
 run pre
 [ "$(cat $A)" = +1620 ] || { echo "FAIL: alarm"; cat $A; exit 1; }
+tail -1 $T/log | grep -q 'charging asleep.*; 1200000 uA, 4200000 uV, ocv 4050000 uV$' || { echo "FAIL: battery state, asleep"; cat $T/log; exit 1; }
 # the alarm fired (reads back empty) after 3600 s and 1000 mAh, lid shut: rate learnt (1000 mA), re-suspend armed
 : > $A; read t0 c0 < $T/run/.asgard-charge-alarm; echo "$((t0 - 3600)) $c0" > $T/run/.asgard-charge-alarm
 echo 4000000 > $P/battery/charge_counter; echo true > $T/lid
 run post
 [ "$(cat $T/rate)" = 1000 ] && grep -q 'systemctl suspend' $T/run.log || { echo "FAIL: alarm wake"; cat $T/rate $T/run.log; exit 1; }
+tail -1 $T/log | grep -q 'charge-limit wake.*; 1200000 uA, 4200000 uV, ocv 4050000 uV$' || { echo "FAIL: battery state, alarm wake"; cat $T/log; exit 1; }
 # a learnt rate below 2000 mA doesn't stretch the alarm
 echo 3000000 > $P/battery/charge_counter; run pre; [ "$(cat $A)" = +1620 ] || { echo "FAIL: rate floor"; cat $A; exit 1; }
 # limit off ("full", 100) or unplugged: no alarm

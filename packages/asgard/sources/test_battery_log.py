@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory() as t:
             f.write(text)
 
     for k, v in {"capacity": 71, "current_now": -400000, "voltage_now": 3900000, "charge_counter": 3000000, "temp": 310,
-                 "status": "Discharging"}.items():
+                 "status": "Discharging", "voltage_ocv": 3950000, "charge_full": 7071000}.items():
         put(f"sys/class/power_supply/battery/{k}", f"{v}\n")
     put("sys/class/power_supply/qcom-battmgr-usb/online", "0\n")
     put("sys/class/power_supply/qcom-battmgr-usb/current_now", "0\n")
@@ -78,6 +78,7 @@ with tempfile.TemporaryDirectory() as t:
     assert (r["capacity"], r["current_ua"], r["voltage_uv"], r["charge_uah"]) == ("71", "-400000", "3900000", "3000000"), r
     assert (r["cpu3_khz"], r["gpu_hz"], r["bl_top"], r["suspends"], r["bat_status"]) == ("4000", "348000000", "100", "4", "Discharging"), r
     assert r["app"] == "menu" and r["game"] == "" and r["core"] == "", r
+    assert (r["ocv_uv"], r["charge_full_uah"]) == ("3950000", "7071000"), r
     assert open(f"{t}/sleep.calls").read().split() == ["30"], "the logger's interval isn't 30 s"
     assert len(open(f"{t}/ps.calls").readlines()) == 1, "more than one ps per sample"
     assert len(open(LOG).readlines()) == 2, "not one line per sample"
@@ -87,6 +88,7 @@ with tempfile.TemporaryDirectory() as t:
     launch('/roms/gba/Zelda "LA", Part 2.gba', "gba", "retroarch", "mgba")
     r = sample()
     assert (r["app"], r["core"], r["game"]) == ("retroarch", "mgba", 'Zelda "LA", Part 2'), r
+    assert r["ocv_uv"] == "3950000", r   # still its own field after a quoted game name
     launch("/roms/gba/Metroid.gba", "gba", "retroarch", "mgba")
     sample()
     # BAT-4: a native port or PC app has no emulator process, and isn't Home.

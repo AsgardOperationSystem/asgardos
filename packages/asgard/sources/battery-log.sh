@@ -11,7 +11,9 @@ U=/sys/class/power_supply/qcom-battmgr-usb
 # usb_online/bat_status: catches "plugged in but not charging" (2026-10-09: drained at -500 mA on the charger
 # after a 4 h sleep; a reboot fixed it, and the RAM journal lost the why).
 # game/core: what Home launched (playlog.py's /run/thor-playing.txt), so a native port or PC app isn't "menu".
-HDR="ts,capacity,current_ua,voltage_uv,charge_uah,bat_temp,cpu0_khz,cpu3_khz,cpu7_khz,gpu_hz,bl_top,bl_bottom,suspends,app,usb_online,usb_ua,bat_status,game,core"
+# ocv_uv/charge_full_uah: the gauge's resting-voltage estimate and capacity. Above ~65 % capacity and charge_uah run behind
+# the measured current (2026-11-02: 2.6x at "80 %"), so these show how full the battery really is, and how far the capacity drifts.
+HDR="ts,capacity,current_ua,voltage_uv,charge_uah,bat_temp,cpu0_khz,cpu3_khz,cpu7_khz,gpu_hz,bl_top,bl_bottom,suspends,app,usb_online,usb_ua,bat_status,game,core,ocv_uv,charge_full_uah"
 [ "$(head -1 "$LOG" 2>/dev/null)" = "$HDR" ] || { [ -s "$LOG" ] && mv "$LOG" "$LOG.1"; echo "$HDR" > "$LOG"; }
 while :; do
   [ "$(stat -c %s "$LOG")" -gt 5242880 ] && mv "$LOG" "$LOG.1" && echo "$HDR" > "$LOG"
@@ -29,6 +31,6 @@ while :; do
       *thor_settings.py*) app=settings ;;
     esac
   fi
-  echo "$(date +%s),$(<$B/capacity),$(<$B/current_now),$(<$B/voltage_now),$(<$B/charge_counter),$(<$B/temp),$(<$C/policy0/scaling_cur_freq),$(<$C/policy3/scaling_cur_freq),$(<$C/policy7/scaling_cur_freq),$(<$G/cur_freq),$(<${BL[0]}/brightness),$(<${BL[1]}/brightness),$(</sys/power/suspend_stats/success),${app:-menu},$(<$U/online),$(<$U/current_now),$(<$B/status),\"${p_game//\"/\"\"}\",$p_core" >> "$LOG"
+  echo "$(date +%s),$(<$B/capacity),$(<$B/current_now),$(<$B/voltage_now),$(<$B/charge_counter),$(<$B/temp),$(<$C/policy0/scaling_cur_freq),$(<$C/policy3/scaling_cur_freq),$(<$C/policy7/scaling_cur_freq),$(<$G/cur_freq),$(<${BL[0]}/brightness),$(<${BL[1]}/brightness),$(</sys/power/suspend_stats/success),${app:-menu},$(<$U/online),$(<$U/current_now),$(<$B/status),\"${p_game//\"/\"\"}\",$p_core,$(<$B/voltage_ocv),$(<$B/charge_full)" >> "$LOG"
   sleep 30
 done
