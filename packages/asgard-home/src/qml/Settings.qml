@@ -25,6 +25,8 @@ Item {
     function showPower() { show(); cat = categories.findIndex(c => c.title === "Power"); zone = "list" }
     function show() { open = true; zone = "side"; row = 0; stack = []; dialog.ask = null; keyboard.open = false; refresh(); rev++ }
     function close() { open = false; closed() }
+    onOpenChanged: btScanCheck()
+    onStackChanged: btScanCheck()
 
     // --- content ------------------------------------------------------------------------------------------------
     readonly property var categories: [
@@ -66,7 +68,7 @@ Item {
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
         return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
             const a = n => (l.match(new RegExp(n + '="([^"]*)"')) || [])[1] || ""
-            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes" }
+            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type") }
         })
     }
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
@@ -473,13 +475,40 @@ Item {
                          activate: () => { set("bluetooth.enabled", on ? "0" : "1"); note("btMsg", on ? "Turning off…" : "Turning on…")
                                            backend.exec("asgardos-bluetooth " + (on ? "disable" : "enable"), () => { note("btMsg", ""); refresh() }) } }]]
         if (!on) return rows
-        rows[0].push(action("bluetooth", "Pair a new device", live.pairing ? "Put the device in pairing mode now…" : "Controllers, headphones",
-                            () => { if (live.pairing) return; note("pairing", true)
-                                    backend.exec("asgardos-bluetooth trust input", o => {
-                                        note("pairing", false); note("btMsg", (o.trim().split("\n").pop() || "").slice(0, 60)); refresh() }) }))
+        rows[0].push(link("bluetooth", "Pair a new device", "Controllers, headphones", btScanPage, btScanPoll))
         if ((live.bt || []).length)
             rows.push(live.bt.map(d => link("bluetooth", d.name, d.connected ? "Connected" : "Paired", () => btDevicePage(d))))
         return rows
+    }
+    // The scan runs while this page is open: btScanCheck stops it however the page is left.
+    property bool btScanning: false
+    function btScanStart() {
+        note("btScan", []); note("btScanError", ""); btScanning = true
+        backend.exec("asgardos-bluetooth scan_start", o => note("btScanError", o.trim().split("\n").pop().slice(0, 60)))
+    }
+    function btScanCheck() {
+        if (btScanning && (!open || !stack.some(p => p.build === btScanPage))) {
+            btScanning = false
+            backend.exec("asgardos-bluetooth scan_stop", () => {})
+        }
+    }
+    function btScanPoll() { if (!live.btPairing) sh("btScan", "asgardos-bluetooth scan_list", parseBt) }
+    function btScanPage() {
+        if (live.btPairing) return [[info("bluetooth", "Pairing " + live.btPairing + "…", "This can take up to a minute")]]
+        if (live.btScanError) return [[info("bluetooth", "Can't look for devices", live.btScanError)]]
+        const paired = (live.bt || []).map(d => d.mac)
+        const found = (live.btScan || []).filter(d => !paired.includes(d.mac))
+        const rows = [[info("bluetooth", found.length ? "Choose a device" : "Looking for devices…", "Put the device in pairing mode")]]
+        if (found.length)
+            rows.push(found.map(d => action("bluetooth", d.name, ({ joystick: "Controller", audio: "Audio" })[d.type] || d.mac, () => btPair(d))))
+        return rows
+    }
+    function btPair(d) {
+        note("btPairing", d.name); row = 0
+        backend.exec("asgardos-bluetooth trust " + d.mac, o => {
+            note("btPairing", ""); note("btMsg", (o.trim().split("\n").pop() || "").slice(0, 60)); refresh()
+            if (stack.length && stack[stack.length - 1].build === btScanPage) { stack = stack.slice(0, -1); row = 0 }
+        })
     }
     function btDevicePage(d) {
         return [[action("bluetooth", d.connected ? "Disconnect" : "Connect", d.mac,
@@ -736,6 +765,7 @@ Item {
                 stack = stack.concat([{ title: r.title, build: build, poll: r.poll }]); row = 0
                 if (r.poll) r.poll()
                 if (build === wifiPage) scan()
+                if (build === btScanPage) btScanStart()
                 if (build === batteryPage) { note("battery", null); sh("battery", "python3 /usr/share/asgard/battery-report.py", JSON.parse) }
             }
             else { r.page(); }

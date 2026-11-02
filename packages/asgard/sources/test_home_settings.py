@@ -180,7 +180,9 @@ with Root() as r:
     r.library()
     r.write(CFG, "system.hostname=TEST\nbluetooth.enabled=1\nwifi.enabled=1\n")
     answers = {"wifictl list": "HomeNet\nCafe",
-               "asgardos-bluetooth list": '<device id="AA:BB" name="Pad" connected="no"/>', "^usbgadget$": "disabled"}
+               "asgardos-bluetooth list": '<device id="AA:BB" name="Pad" connected="no"/>', "^usbgadget$": "disabled",
+               "asgardos-bluetooth scan_list": '<device id="AA:BB" name="Pad" type="joystick"/>\n'
+                                               '<device id="CC:DD" name="Headphones" type="audio"/>'}
     network = hardware(NETWORK)
     shown = press(r, network, answers).window("Asgard Home")
     for title in ("Wi-Fi", "Bluetooth", "USB connection", "SSH", "Samba", "Syncthing", "Tailscale", "ZeroTier", "WireGuard"):
@@ -193,7 +195,13 @@ with Root() as r:
     joined = press(r, keys(wifi, row(2), "a", "start"), answers)
     assert "exec: wifictl connect 'HomeNet' 'q'" in joined.log and cfg(r, "wifi.ssid") == "HomeNet"
     bt = keys(network, row(1))
-    assert "exec: asgardos-bluetooth trust input" in press(r, keys(bt, row(1)), answers).log   # pairing
+    pairing = keys(bt, row(1))                                         # a list of what's nearby, already paired left out
+    found = press(r, pairing, answers)
+    assert "exec: asgardos-bluetooth scan_start" in found.log and "exec: asgardos-bluetooth scan_list" in found.log
+    assert found.shows("Headphones") and "scan_stop" not in found.log
+    assert "exec: asgardos-bluetooth trust CC:DD" in press(r, keys(pairing, row(1)), answers).log   # first row of the list
+    assert "exec: asgardos-bluetooth scan_stop" in press(r, keys(pairing, "b"), answers).log        # leaving stops the scan
+    assert "exec: asgardos-bluetooth scan_stop" in press(r, keys(pairing, "start"), answers).log    # so does closing Settings
     assert "Pad" in press(r, bt, answers).window("Asgard Home")
     asked = press(r, keys(bt, row(2), row(1)), answers)                # the device's page: Forget, which asks
     assert asked.shows("Forget Pad?") and "asgardos-bluetooth remove" not in asked.log

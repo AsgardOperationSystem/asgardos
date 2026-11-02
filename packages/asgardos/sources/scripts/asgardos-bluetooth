@@ -47,6 +47,9 @@ Commands:
     restore                     - Restore bluetooth configuration
     start_live_devices          - Start monitoring devices
     stop_live_devices           - Stop monitoring devices
+    scan_start                  - Start looking for devices, without waiting
+    scan_list                   - Print the named devices found so far
+    scan_stop                   - Stop looking for devices
     enable                      - Enable bluetooth
     disable                     - Disable bluetooth
     connect <device address>    - Connect to a device
@@ -180,6 +183,34 @@ do_stopdevlist() {
     cleanup_devlist
 }
 
+# Start a scan and return, for a caller that polls scan_list
+do_scan_start() {
+    if ! check_agent_status; then
+        log_error "Bluetooth agent is not running"
+        return 1
+    fi
+
+    > "${BT_LISTING_FILE}" || return 1
+    echo "start" > "${BT_CONTROL_FILE}"
+}
+
+# The agent appends a line per event. Print each device's latest line, in the order first seen, leaving out
+# devices that are gone or have no name yet: a nameless one can't be told apart on screen.
+do_scan_list() {
+    [ -f "${BT_LISTING_FILE}" ] || return 0
+    awk '
+        match($0, /id="[^"]*"/) {
+            id = substr($0, RSTART, RLENGTH)
+            if (!(id in last)) order[++n] = id
+            last[id] = $0
+        }
+        END {
+            for (i = 1; i <= n; i++)
+                if (last[order[i]] !~ /status="removed"/ && last[order[i]] !~ /name="None"/)
+                    print last[order[i]]
+        }' "${BT_LISTING_FILE}"
+}
+
 # Remove a device
 do_remove() {
     local DEV="$1"
@@ -221,6 +252,12 @@ do_trust() {
     # Write device to control file
     echo "${TRUSTDEV}" > "${BT_DEVICE_FILE}" || return 1
 
+    # A message from an earlier attempt isn't this attempt's result
+    rm -f "${BT_STATUS_FILE}"
+
+    # The agent only pairs while it's discovering
+    echo "start" > "${BT_CONTROL_FILE}"
+
     local LAST_MSG=""
     local NEW_MSG=""
     local N=60
@@ -244,7 +281,14 @@ do_trust() {
         N=$((N-1))
     done
 
-    do_save
+    # Done looking: stop the scan, and stop the agent acting on this device's later events
+    echo "stop" > "${BT_CONTROL_FILE}"
+    rm -f "${BT_DEVICE_FILE}"
+
+    [ -n "${LAST_MSG}" ] || echo "No device found"
+
+    # Quietly: the caller shows the last line of this output as the result
+    do_save >/dev/null
 }
 
 # Enable bluetooth
@@ -345,8 +389,14 @@ case "${ACTION}" in
     "start_live_devices"|"live_devices")
         do_devlist
         ;;
-    "stop_live_devices")
+    "stop_live_devices"|"scan_stop")
         do_stopdevlist
+        ;;
+    "scan_start")
+        do_scan_start
+        ;;
+    "scan_list")
+        do_scan_list
         ;;
     "enable")
         do_enable

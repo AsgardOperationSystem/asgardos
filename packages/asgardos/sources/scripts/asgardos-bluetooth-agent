@@ -25,6 +25,9 @@ glisting_mode = False
 glisting_devs = {}
 gbus = None
 g_shutdown_future = None
+gpicked = None
+gpick_task = None
+gpairing = set()
 
 # Configure logging
 logging.basicConfig(
@@ -96,10 +99,11 @@ def getDevAddressNameType(properties):
 
     return vaddr, vname, vtype
 
-def listing_dev_event(path, properties, adding):
+def listing_dev_event(path, properties, adding, update=False):
     global glisting_devs
 
-    if (path in glisting_devs and adding) or (path not in glisting_devs and not adding):
+    # update: a listed device's name or type arrived late, so write it again (the reader keeps the last line)
+    if not update and ((path in glisting_devs and adding) or (path not in glisting_devs and not adding)):
         return
 
     if adding:
@@ -165,7 +169,8 @@ def interfaces_removed(path, interfaces):
         return
 
     if path in gdevices:
-        listing_dev_event(path, gdevices[path], False)
+        if glisting_mode:
+            listing_dev_event(path, gdevices[path], False)
         del gdevices[path]
 
 async def properties_changed(interface, changed, invalidated, path):
@@ -181,20 +186,21 @@ async def properties_changed(interface, changed, invalidated, path):
         gdevices[path] = changed
 
     if glisting_mode:
-        listing_dev_event(path, gdevices[path], True)
+        listing_dev_event(path, gdevices[path], True, "Name" in changed or "Icon" in changed)
 
     propstr = propertiesToStr(changed)
     if propstr != "":
         logging.info("Properties changed: {}".format(propstr))
 
-    if "Paired" in changed and changed["Paired"] == True:
-        await connect_device(path, gdevices[path]["Address"], gdevices[path], True, getBluetoothWantedAddr())
+    # dbussy hands variants over as (signature, value), which never equals True or False: prop2str unwraps them
+    if "Paired" in changed and prop2str(changed["Paired"]) == True:
+        await connect_device(path, prop2str(gdevices[path]["Address"]), gdevices[path], True, getBluetoothWantedAddr())
         return
 
     if "Connected" in changed:
-        if changed["Connected"] == True:
+        if prop2str(changed["Connected"]) == True:
             return
-        if changed["Connected"] == False:
+        if prop2str(changed["Connected"]) == False:
             logging.info("Skipping (property Connected changed to False)")
             return
 
@@ -234,12 +240,10 @@ async def connect_device(path, address, properties, forceConnect, filter):
     shortDevName = getShortDevName(properties)
     connected = prop2str(properties["Connected"])
 
-    if "Icon" not in properties:
-        logging.info(f"Skipping device {devName} (no type)")
-        return
-
+    # A device picked by address pairs whatever its type. "input" needs the type, to know it's a controller.
+    icon = prop2str(properties["Icon"]) if "Icon" in properties else ""
     if not (filter == prop2str(properties["Address"]) or
-            (filter == "input" and prop2str(properties["Icon"]).startswith("input"))):
+            (filter == "input" and icon.startswith("input"))):
         logging.info(f"Skipping device {devName} (not {filter})")
         return
 
@@ -251,14 +255,46 @@ async def connect_device(path, address, properties, forceConnect, filter):
         logging.info(f"Skipping already connected device {devName}")
         return
 
-    if not paired and not connected and gdiscovering:
-        await doPairing(path, devName, shortDevName)
+    # Pairing makes the device report changes, each landing here: one flow per device, or they'd pair it twice
+    if path in gpairing:
+        logging.info(f"Already working on {devName}")
+        return
 
-    if not trusted and (gdiscovering or forceConnect):
-        await doTrusting(path, devName, shortDevName)
+    gpairing.add(path)
+    try:
+        if not paired and not connected and gdiscovering:
+            await doPairing(path, devName, shortDevName)
 
-    if not connected or forceConnect:
-        await doConnect(path, devName, shortDevName)
+        if not trusted and (gdiscovering or forceConnect):
+            await doTrusting(path, devName, shortDevName)
+
+        if not connected or forceConnect:
+            await doConnect(path, devName, shortDevName)
+    finally:
+        gpairing.discard(path)
+
+async def connect_known_devices(wanted):
+    for path, properties in list(gdevices.items()):
+        if "Address" not in properties:
+            continue
+        try:
+            await connect_device(path, prop2str(properties["Address"]), properties, False, wanted)
+        except Exception as e:
+            logging.error(f"Failed to act on {path}: {e}")
+
+# A device the scan already found stays silent while it sits still (bluez reports RSSI only when it moves by more than
+# RSSI_THRESHOLD), so waiting for its next event can wait forever: act on the pick itself, once. A task, so a scan
+# stop isn't held up for as long as the pairing takes.
+async def act_on_pick():
+    global gpicked, gpick_task
+
+    wanted = getBluetoothWantedAddr()
+    if wanted == gpicked or (wanted and not gdiscovering):
+        return
+
+    gpicked = wanted
+    if wanted:
+        gpick_task = asyncio.create_task(connect_known_devices(wanted))
 
 async def check_discovery_control():
     try:
@@ -467,6 +503,7 @@ async def discovery_control_loop():
     while True:
         try:
             await check_discovery_control()
+            await act_on_pick()
         except Exception as e:
             logging.error(f"Error in discovery_control_loop: {e}")
         await asyncio.sleep(0.5)
