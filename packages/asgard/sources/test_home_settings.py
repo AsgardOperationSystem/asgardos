@@ -203,6 +203,9 @@ with Root() as r:
     assert "exec: asgardos-bluetooth scan_stop" in press(r, keys(pairing, "b"), answers).log        # leaving stops the scan
     assert "exec: asgardos-bluetooth scan_stop" in press(r, keys(pairing, "start"), answers).log    # so does closing Settings
     assert "Pad" in press(r, bt, answers).window("Asgard Home")
+    failing = {**answers, "asgardos-bluetooth connect": "INFO: Attempting to connect...\nERROR: Couldn't connect. Is the device on and nearby?"}
+    tried = press(r, keys(bt, row(2), "a"), failing)                   # Connect that fails says so, on the page
+    assert "exec: asgardos-bluetooth connect AA:BB" in tried.log and tried.shows("Couldn't connect"), tried.log
     asked = press(r, keys(bt, row(2), row(1)), answers)                # the device's page: Forget, which asks
     assert asked.shows("Forget Pad?") and "asgardos-bluetooth remove" not in asked.log
     assert "exec: asgardos-bluetooth remove AA:BB" in press(r, keys(bt, row(2), row(1), "a"), answers).log

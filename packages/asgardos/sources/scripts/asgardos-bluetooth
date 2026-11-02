@@ -329,19 +329,24 @@ do_connect() {
         return 1
     fi
 
-    if bluetoothctl -- info "${DEV}" | grep -q "Connected: yes"; then
+    if timeout 5 bluetoothctl -- info "${DEV}" | grep -q "Connected: yes"; then
         log_info "Device ${DEV} is already connected"
         return 0
     fi
 
     log_info "Attempting to connect to device ${DEV}..."
-    if bluetoothctl -- connect "${DEV}"; then
+    if timeout 30 bluetoothctl -- connect "${DEV}"; then
         log_info "Successfully connected to device ${DEV}"
         return 0
-    else
-        log_error "Failed to connect to device ${DEV}"
-        return 1
     fi
+
+    # The caller shows this last line: say what to do about it
+    if rfkill list bluetooth | grep -q "Soft blocked: yes"; then
+        log_error "The Bluetooth radio is off"
+    else
+        log_error "Couldn't connect. Is the device on and nearby?"
+    fi
+    return 1
 }
 
 # Disconnect from a device
@@ -353,12 +358,12 @@ do_disconnect() {
         return 1
     fi
 
-    if ! bluetoothctl -- info "${DEV}" | grep -q "Connected: yes"; then
+    if ! timeout 5 bluetoothctl -- info "${DEV}" | grep -q "Connected: yes"; then
         log_error "Device ${DEV} is not connected"
         return 1
     fi
 
-    if bluetoothctl -- disconnect "${DEV}"; then
+    if timeout 15 bluetoothctl -- disconnect "${DEV}"; then
         log_info "Successfully disconnected device ${DEV}"
         return 0
     else

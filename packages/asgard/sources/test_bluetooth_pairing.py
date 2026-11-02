@@ -85,6 +85,22 @@ assert read(run_file("bt_discovery_control")).strip() == "stop"
 assert not os.path.exists(run_file("bt_device"))
 assert "Old" not in res.stdout and res.stdout.strip().splitlines()[-1] == "No device found", res.stdout
 
+# Connect that fails ends on a line saying what to do; Settings shows the last line.
+for name, body in (("bluetoothctl", 'case "$2" in info) echo "Connected: no" ;; connect) exit 1 ;; esac\n'),
+                   ("rfkill", f'cat {T}/rfkill\n')):
+    with open(f"{T}/bin/{name}", "w") as f:
+        f.write("#!/bin/sh\n" + body)
+    os.chmod(f"{T}/bin/{name}", 0o755)
+MAC = "AA:BB:CC:DD:EE:FF"
+with open(f"{T}/rfkill", "w") as f:
+    f.write("Soft blocked: no\n")
+res = bt("connect", MAC)
+assert (res.stdout + res.stderr).strip().splitlines()[-1] == "ERROR: Couldn't connect. Is the device on and nearby?", res
+with open(f"{T}/rfkill", "w") as f:
+    f.write("Soft blocked: yes\n")
+res = bt("connect", MAC)
+assert res.stderr.strip().splitlines()[-1] == "ERROR: The Bluetooth radio is off", res
+
 # ---- the agent
 class Signature(str):
     pass

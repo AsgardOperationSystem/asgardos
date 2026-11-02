@@ -510,9 +510,19 @@ Item {
             if (stack.length && stack[stack.length - 1].build === btScanPage) { stack = stack.slice(0, -1); row = 0 }
         })
     }
-    function btDevicePage(d) {
-        return [[action("bluetooth", d.connected ? "Disconnect" : "Connect", d.mac,
-                        () => backend.exec("asgardos-bluetooth " + (d.connected ? "disconnect " : "connect ") + d.mac, () => refresh())),
+    // Connect and Disconnect can fail, and take up to half a minute: say so here. The page holds the device as it was
+    // when opened, so the state comes from the current list.
+    function btConnect(d) {
+        const k = "btConn" + d.mac
+        if (live[k] && live[k].endsWith("…")) return
+        note(k, d.connected ? "Disconnecting…" : "Connecting…")
+        backend.exec("asgardos-bluetooth " + (d.connected ? "disconnect " : "connect ") + d.mac, o => {
+            const last = o.trim().split("\n").pop() || ""
+            note(k, last.startsWith("ERROR: ") ? last.slice(7, 67) : ""); refresh() })
+    }
+    function btDevicePage(opened) {
+        const d = (live.bt || []).find(x => x.mac === opened.mac) || opened
+        return [[action("bluetooth", d.connected ? "Disconnect" : "Connect", live["btConn" + d.mac] || d.mac, () => btConnect(d)),
                  action("power", "Forget this device", d.name,
                         () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
                                       () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))]]
