@@ -5,6 +5,7 @@
 # lights off, Wi-Fi / Bluetooth off when the game's sleep_wifi / sleep_bt, else asgard.sleep_*, is "off". The game keeps running (music keeps
 # playing on the headphone jack). Lid open / another press: all back, and the game's own CPU profile again.
 #   asgard-screens-off.sh power | lid close | lid open | release
+#   asgard-screens-off.sh reconnect <address>...   started by "on": see reconnect()
 . /etc/profile.d/001-functions
 . /usr/share/asgard/asgard-cpu-lib.sh
 STATE=/run/asgard-screens-off.active   # what was changed, for "on"
@@ -32,6 +33,9 @@ off() {
     # Noted first: "on" unblocks what's noted, and a block that fails or is cut short mustn't leave the radio off for
     # good (2026-11-02: Bluetooth stayed blocked after the lid opened, with headphones connected). Unblocking a radio
     # that was on anyway does nothing.
+    # What's connected now, for "on": bluez doesn't reconnect a device by itself when the radio comes back.
+    [ "${r#*:}" = bluetooth ] && timeout 5 bluetoothctl devices Connected 2>/dev/null |
+      sed -n 's/^Device \([0-9A-F:]*\) .*/bt=\1/p' >> $STATE
     echo "rfkill=${r#*:}" >> $STATE
     rfkill block "${r#*:}"
   done
@@ -39,7 +43,7 @@ off() {
 
 on() {
   [ -e $STATE ] || return
-  local platform game led
+  local platform game led devices
   IFS=$'\t' read -r platform game < $KEEP 2>/dev/null
   /usr/share/asgard/asgard-cpu-cap.sh 9>&-                                    # all cores, global settings
   [ -n "$platform" ] && /usr/share/asgard/asgard-perf-profile.sh cpu "$platform" "$game" 9>&-   # and the game's
@@ -48,8 +52,35 @@ on() {
   [ -n "$led" ] && [ "$led" != off ] && ledcontrol "$led" >/dev/null 2>&1 9>&-
   for o in $(sed -n 's/^output=//p' $STATE); do swaymsg -q output "$o" power on, output "$o" dpms on; done
   for i in $(sed -n 's/^touch=//p' $STATE); do swaymsg -q input "$i" events enabled; done
+  devices=$(sed -n 's/^bt=//p' $STATE)
   rm -f $STATE
+  # Not here: it can take a while, and holds nothing the next lid or power press should wait for
+  [ -n "$devices" ] && setsid "$0" reconnect $devices >/dev/null 2>&1 9>&- &
 }
+
+# Once the radio is up, connect what was connected when it went off. A device that's been turned off since just fails.
+# Screens going off again ends it: that turn's "on" starts its own.
+reconnect() {
+  local device n
+  for n in $(seq 1 20); do
+    [ -e $STATE ] && return
+    timeout 3 bluetoothctl show 2>/dev/null | grep -q "Powered: yes" && break
+    sleep 1
+  done
+  for device; do
+    for n in 1 2 3; do
+      [ -e $STATE ] && return
+      timeout 20 bluetoothctl -- connect "$device" >/dev/null 2>&1 && break
+      sleep 2
+    done
+  done
+}
+
+if [ "$1" = reconnect ]; then   # before the lock: it mustn't hold up the next press
+  shift
+  reconnect "$@"
+  exit
+fi
 
 # One at a time: a lid opened while "off" is still working would restore only what it had noted so far. The lock goes
 # with this script, so what it starts has fd 9 closed (autotune outlives it). A stuck holder mustn't keep the screens

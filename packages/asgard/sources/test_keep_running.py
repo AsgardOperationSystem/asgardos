@@ -38,7 +38,7 @@ class Fixture:
                                 f'export PATH="{t}/bin:$PATH"\n')
         self.write("lib", LIB)
         self.write("storage/.config/system/configs/system.cfg", "")
-        for tool in ("systemctl", "ledcontrol", "rfkill", "asgardos-fake-suspend"):
+        for tool in ("systemctl", "ledcontrol", "rfkill", "bluetoothctl", "asgardos-fake-suspend"):
             self.write(f"bin/{tool}", RECORD, True)
         for tool in ("asgard-cpu-cap.sh",):
             self.write(f"asgard/{tool}", RECORD, True)
@@ -155,6 +155,51 @@ with Fixture() as f:
     keep_running(f)
     assert "rfkill block bluetooth" in f.run("power-handler", "lid", "close")
     assert "rfkill unblock bluetooth" in f.run("power-handler", "lid", "open")
+
+# What was connected reconnects once the radio's up, and only if the radio was taken down.
+BLUETOOTHCTL = RECORD + '''case "$1" in
+  devices) echo "Device AA:BB:CC:DD:EE:FF WH-1000XM4" ;;
+  show) cat "$T/powered" ;;
+esac
+'''
+
+
+def connects(f, wait=3.0):
+    """The connect calls recorded within `wait` seconds, for what runs on after the script has returned."""
+    end = time.monotonic() + wait
+    while time.monotonic() < end:
+        if f.has("calls") and "connect" in f.read("calls"):
+            subprocess.run(["sleep", "0.1"])
+            break
+        subprocess.run(["sleep", "0.05"])
+    return [c for c in (f.read("calls") if f.has("calls") else "").splitlines() if " connect " in c]
+
+
+with Fixture() as f:
+    keep_running(f)
+    f.write("bin/bluetoothctl", BLUETOOTHCTL, True)
+    f.write("powered", "Powered: yes\n")
+    f.run("power-handler", "lid", "close")
+    assert "bt=AA:BB:CC:DD:EE:FF" in f.read("run/asgard-screens-off.active")
+    opened = f.run("power-handler", "lid", "open")   # it may already have connected by the time this returns
+    assert [c for c in opened if " connect " in c] + connects(f) == ["bluetoothctl -- connect AA:BB:CC:DD:EE:FF"]
+with Fixture() as f:                                   # kept on: nothing to reconnect
+    keep_running(f, "on")
+    f.write("bin/bluetoothctl", BLUETOOTHCTL, True)
+    f.write("powered", "Powered: yes\n")
+    f.run("power-handler", "lid", "close")
+    f.run("power-handler", "lid", "open")
+    assert connects(f, 1) == []
+with Fixture() as f:                                   # waits for the radio, and the screens going off again ends it
+    keep_running(f)
+    f.write("bin/bluetoothctl", BLUETOOTHCTL, True)
+    f.write("powered", "Powered: no\n")
+    f.run("power-handler", "lid", "close")
+    f.run("power-handler", "lid", "open")
+    assert connects(f, 1) == []
+    f.run("power-handler", "lid", "close")
+    f.write("powered", "Powered: yes\n")
+    assert connects(f, 2) == []
 
 # A block that fails partway still comes back (2026-11-02: Bluetooth stayed off after the lid opened, and Connect failed).
 with Fixture() as f:
