@@ -2,7 +2,7 @@
 # "Screens off, keep running" (emulator option Sleep = sleep_mode=screen, e.g. the Music Player): while that game runs,
 # asgard-perf-profile.sh holds a sleep inhibitor and power-handler sends the power key and the lid here instead of
 # suspending. Lid closed / a press: both screens and touch off, the A715/A710/X3 offline and the A510s capped, stick
-# lights off, Wi-Fi / Bluetooth off when the game's sleep_wifi / sleep_bt is "off". The game keeps running (music keeps
+# lights off, Wi-Fi / Bluetooth off when the game's sleep_wifi / sleep_bt, else asgard.sleep_*, is "off". The game keeps running (music keeps
 # playing on the headphone jack). Lid open / another press: all back, and the game's own CPU profile again.
 #   asgard-screens-off.sh power | lid close | lid open | release
 . /etc/profile.d/001-functions
@@ -14,7 +14,7 @@ export SWAYSOCK=${SWAYSOCK:-$(ls /run/0-runtime-dir/sway-ipc.* 2>/dev/null | hea
 
 off() {
   [ -e $STATE ] && return
-  local platform game
+  local platform game wanted
   IFS=$'\t' read -r platform game < $KEEP 2>/dev/null
   # Lit outputs and enabled touch inputs, so "on" restores exactly those.
   swaymsg -t get_outputs -r | python3 -c 'import json,sys; [print("output="+o["name"]) for o in json.load(sys.stdin) if o.get("power")]' > $STATE
@@ -26,7 +26,8 @@ off() {
   echo "led=$(get_setting led.color)" >> $STATE
   ledcontrol off >/dev/null 2>&1 9>&-
   for r in wifi:wlan bt:bluetooth; do
-    [ "$(get_setting "sleep_${r%%:*}" "$platform" "$game")" = off ] || continue
+    wanted=$(get_setting "sleep_${r%%:*}" "$platform" "$game")   # the game's or system's, else Settings > Performance
+    [ "${wanted:-$(get_setting "asgard.sleep_${r%%:*}")}" = off ] || continue
     rfkill list "${r#*:}" | grep -q "Soft blocked: yes" && continue   # already off: leave it so on "on"
     # Noted first: "on" unblocks what's noted, and a block that fails or is cut short mustn't leave the radio off for
     # good (2026-11-02: Bluetooth stayed blocked after the lid opened, with headphones connected). Unblocking a radio

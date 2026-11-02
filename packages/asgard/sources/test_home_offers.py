@@ -21,7 +21,7 @@ from home_harness import CFG, Root  # noqa: E402
 
 HARDWARE = "start down down down down a"
 AUDIO, DISPLAY, PERFORMANCE = HARDWARE + " a", HARDWARE + " down a", HARDWARE + " down down a"
-LITTLE, GPU, FAN, SLEEP = 0, 3, 4, 8   # rows of Performance
+LITTLE, GPU, FAN, SLEEP, SLEEP_WIFI, SLEEP_BT = 0, 3, 4, 8, 9, 10   # rows of Performance
 STICK_LIGHTS = DISPLAY + " " + " ".join(["down"] * 5) + " a"
 SPEAKER_EQ, HEADPHONE_EQ = 3, 4        # rows of Audio
 
@@ -79,6 +79,10 @@ with Root() as r:
 
     # --- PERF-4: the menu's GPU cap is 25-100 % in fives, with no Auto: Auto is per game (test_perf_profile.py).
     assert press(r, keys(PERFORMANCE, GPU, *["left"] * 15))[0].get("asgard.gpu_cap") == "25"
+    # The radios for games that keep running with the screens off: on unless set, one OS-wide key each.
+    assert press(r, keys(PERFORMANCE, SLEEP_BT, "left"))[0].get("asgard.sleep_bt") == "off"
+    assert press(r, keys(PERFORMANCE, SLEEP_WIFI, "left"))[0].get("asgard.sleep_wifi") == "off"
+    assert press(r, keys(PERFORMANCE, SLEEP_BT, "left"), "asgard.sleep_bt=off\n")[0].get("asgard.sleep_bt") == "on"
     v, res = press(r, keys(PERFORMANCE, GPU, *["left"] * 16))
     assert v.get("asgard.gpu_cap") == "100", v
     assert "/usr/share/asgard/asgard-cpu-cap.sh" in res.log, "the cap isn't applied"

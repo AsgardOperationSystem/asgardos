@@ -225,7 +225,10 @@ Item {
              toggle("battery", "Bypass charging", "On the cable, run from it and leave the battery alone (charges below 20%)",
                     "asgard.bypass_charging", "0"),
              choice("moon", "Sleep mode", "What the power button does", "system.suspendmode", "mem",
-                    [["Sleep", "mem"], ["Light sleep", "freeze"], ["Screen off only", "off"]], v => backend.shell("suspendmode " + v))]]
+                    [["Sleep", "mem"], ["Light sleep", "freeze"], ["Screen off only", "off"]], v => backend.shell("suspendmode " + v)),
+             // asgard-screens-off.sh, for a game set to keep running. A system's or game's own option comes first.
+             choice("wifi", "Wi-Fi while screens off", "For games that keep running", "asgard.sleep_wifi", "on", [["On", "on"], ["Off", "off"]]),
+             choice("bluetooth", "Bluetooth while screens off", "For games that keep running", "asgard.sleep_bt", "on", [["On", "on"], ["Off", "off"]])]]
         case "Network": return [
             [link("wifi", "Wi-Fi", get("wifi.enabled", "1") !== "1" ? "Off" : live.ssid ? "Connected to " + live.ssid : "Not connected", wifiPage),
              link("bluetooth", "Bluetooth", get("bluetooth.enabled") === "1" ? "On" : "Off", btPage)],
@@ -682,7 +685,9 @@ Item {
         const type = f.key.startsWith("cpu_cap_") ? f.key.slice(8) : ""
         // Unset takes the parent's setting: the emulator's, else the OS's (thor_settings.py "default": stock clocks,
         // gyro off, the image's Mesa), else just "Default".
-        const unset = parent ? "Emulator settings (" + label(parent) + ")" : f.default ? "OS (" + f.default + ")" : "Default"
+        // osKey: the OS's value is a setting, read now because the features are cached.
+        const os = f.osKey ? label(get(f.osKey, "on")) : f.default
+        const unset = parent ? "Emulator settings (" + label(parent) + ")" : os ? "OS (" + os + ")" : "Default"
         return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : unset,
                  step: d => { let i = Math.max(0, values.indexOf(cur))
                               for (let n = 0; n < values.length; n++) {   // skip a value that turns every core type off

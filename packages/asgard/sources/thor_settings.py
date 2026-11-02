@@ -115,6 +115,9 @@ def gpu_driver_choices():
     return [(n, n) for n in sorted(names)]
 
 
+OS_KEYS = {"sleep wifi": "asgard.sleep_wifi", "sleep bt": "asgard.sleep_bt"}
+
+
 def default_label(name):
     """What an unset feature is when the emulator doesn't set it either, where the OS fixes it: games start at stock
     clocks with every core on (asgard-perf-profile.sh), the gyro off, the image's own Mesa. "" = just "Default"."""
@@ -124,6 +127,11 @@ def default_label(name):
         return "Off"
     if name == "gl driver":
         return "Zink"
+    if name in OS_KEYS:   # Settings > Performance; asgard-screens-off.sh leaves a radio on unless it's set off
+        try:
+            return "Off" if conf.get(OS_KEYS[name]) == "off" else "On"
+        except OSError:   # no system.cfg yet: nothing set
+            return "On"
     if name == "gpu driver":
         try:
             return open("/usr/share/mesa/version").read().strip()
@@ -647,6 +655,7 @@ def dump_features(emulator, core):
         feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else []) + [GL_DRIVER]
     print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
                        **({"default": default_label(n)} if default_label(n) else {}),
+                       **({"osKey": OS_KEYS[n]} if n in OS_KEYS else {}),
                        **({"group": GROUPS[n]} if n in GROUPS else {})} for n, ch in feats]))
 
 

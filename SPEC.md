@@ -102,7 +102,7 @@ Controls the running game without leaving it, with the same button in every emul
 Some games need different settings. These let a user tune one game or system without affecting the others, and always see where a value comes from.
 
 - **OVR-1** An option's value comes from the game, then the system, then the OS default, as section 4 explains. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
-- **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ and sleep mode.
+- **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ, sleep mode, and Wi-Fi and Bluetooth while the screens are off.
 - **OVR-3** The emulator and core can be chosen per system and per game. A game's shader cache can be deleted from its settings.
 - **OVR-4** Overrides last only as long as the game: they apply at launch, and when changed from its in-game menu (MENU-5), and the menu's profile, fan and EQ come back when it exits.
 - **OVR-5** Each emulator's own options, such as shaders, aspect ratio and Azahar's resolution and layouts, come from `es_features.cfg` and appear as settings rows with no extra work per emulator.
@@ -260,7 +260,7 @@ Close the lid and come back later to the same moment in the game, having lost as
 - **PWR-10** Closing the lid or pressing the power button sleeps the Thor, and logind ignores lid events for 10 s after boot or a wake. The power key instead wakes screens that are off, and with an external display attached it blanks the internal panel rather than suspending.
 - **PWR-11** The sleep mode setting offers Sleep, Light sleep (freeze) and Screen off only (no suspend).
 - **PWR-12** After every wake, `asgard-pad-fix` re-probes the pad if its stream stalled, and restarts InputPlumber. `asgard.pad_fix` (on by default) controls it, with a log in `/storage/pad-fix.log`.
-- **BAT-3** A game with sleep mode `screen` keeps running with the screens off, for music on the headphone jack or Bluetooth, instead of suspending. Wi-Fi and Bluetooth stay on with the screens off unless set off for the game or system, and a radio turned off this way always comes back with the screens.
+- **BAT-3** A game with sleep mode `screen` keeps running with the screens off, for music on the headphone jack or Bluetooth, instead of suspending. Wi-Fi and Bluetooth stay on with the screens off unless set off (the game, the system, then Settings > Performance), and a radio turned off this way always comes back with the screens.
 
 ### Charging
 

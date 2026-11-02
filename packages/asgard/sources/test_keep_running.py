@@ -34,7 +34,7 @@ class Fixture:
         t = self.t = self._tmp.name
         for d in ("asgard", "bin", "run", "storage/.config/system/configs"):
             os.makedirs(f"{t}/{d}")
-        self.write("functions", f'get_setting() {{ [ "$1" = sleep_mode ] && cat "{t}/sleep_mode" 2>/dev/null; [ "$1" = sleep_bt ] && cat "{t}/sleep_bt" 2>/dev/null; [ "$1" = system.suspendmode ] && echo off; }}\n'
+        self.write("functions", f'get_setting() {{ [ "$1" = sleep_mode ] && cat "{t}/sleep_mode" 2>/dev/null; [ "$1" = sleep_bt ] && cat "{t}/sleep_bt" 2>/dev/null; [ "$1" = asgard.sleep_bt ] && cat "{t}/os_sleep_bt" 2>/dev/null; [ "$1" = system.suspendmode ] && echo off; }}\n'
                                 f'export PATH="{t}/bin:$PATH"\n')
         self.write("lib", LIB)
         self.write("storage/.config/system/configs/system.cfg", "")
@@ -138,6 +138,16 @@ def keep_running(f, bt="off"):
 # Set to stay on: the radio isn't touched, so headphones keep playing.
 with Fixture() as f:
     keep_running(f, "on")
+    assert not any("rfkill block" in c for c in f.run("power-handler", "lid", "close"))
+
+# Unset, it takes Settings > Performance; the game's own wins over that.
+with Fixture() as f:
+    keep_running(f, "")
+    f.write("os_sleep_bt", "off\n")
+    assert "rfkill block bluetooth" in f.run("power-handler", "lid", "close")
+with Fixture() as f:
+    keep_running(f, "on")
+    f.write("os_sleep_bt", "off\n")
     assert not any("rfkill block" in c for c in f.run("power-handler", "lid", "close"))
 
 # Set off: down with the screens, back with them.
