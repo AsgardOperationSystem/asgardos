@@ -260,7 +260,7 @@ Close the lid and come back later to the same moment in the game, having lost as
 - **PWR-10** Closing the lid or pressing the power button sleeps the Thor, and logind ignores lid events for 10 s after boot or a wake. The power key instead wakes screens that are off, and with an external display attached it blanks the internal panel rather than suspending.
 - **PWR-11** The sleep mode setting offers Sleep, Light sleep (freeze) and Screen off only (no suspend).
 - **PWR-12** After every wake, `asgard-pad-fix` re-probes the pad if its stream stalled, and restarts InputPlumber. `asgard.pad_fix` (on by default) controls it, with a log in `/storage/pad-fix.log`.
-- **BAT-3** A game with sleep mode `screen` keeps running with the screens off, for music on the headphone jack, instead of suspending.
+- **BAT-3** A game with sleep mode `screen` keeps running with the screens off, for music on the headphone jack or Bluetooth, instead of suspending. Wi-Fi and Bluetooth stay on with the screens off unless set off for the game or system, and a radio turned off this way always comes back with the screens.
 
 ### Charging
 

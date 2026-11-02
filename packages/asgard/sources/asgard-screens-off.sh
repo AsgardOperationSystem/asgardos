@@ -24,11 +24,15 @@ off() {
   autotune_stop   # "on" restarts it with the game's profile
   online_type mid 0; online_type prime 0; set_cap little $LITTLE_CAP; write_affinity
   echo "led=$(get_setting led.color)" >> $STATE
-  ledcontrol off >/dev/null 2>&1
+  ledcontrol off >/dev/null 2>&1 9>&-
   for r in wifi:wlan bt:bluetooth; do
     [ "$(get_setting "sleep_${r%%:*}" "$platform" "$game")" = off ] || continue
     rfkill list "${r#*:}" | grep -q "Soft blocked: yes" && continue   # already off: leave it so on "on"
-    rfkill block "${r#*:}" && echo "rfkill=${r#*:}" >> $STATE
+    # Noted first: "on" unblocks what's noted, and a block that fails or is cut short mustn't leave the radio off for
+    # good (2026-11-02: Bluetooth stayed blocked after the lid opened, with headphones connected). Unblocking a radio
+    # that was on anyway does nothing.
+    echo "rfkill=${r#*:}" >> $STATE
+    rfkill block "${r#*:}"
   done
 }
 
@@ -36,15 +40,21 @@ on() {
   [ -e $STATE ] || return
   local platform game led
   IFS=$'\t' read -r platform game < $KEEP 2>/dev/null
-  /usr/share/asgard/asgard-cpu-cap.sh                                         # all cores, global settings
-  [ -n "$platform" ] && /usr/share/asgard/asgard-perf-profile.sh cpu "$platform" "$game"   # and the game's
+  /usr/share/asgard/asgard-cpu-cap.sh 9>&-                                    # all cores, global settings
+  [ -n "$platform" ] && /usr/share/asgard/asgard-perf-profile.sh cpu "$platform" "$game" 9>&-   # and the game's
   for r in $(sed -n 's/^rfkill=//p' $STATE); do rfkill unblock "$r"; done
   led=$(sed -n 's/^led=//p' $STATE)
-  [ -n "$led" ] && [ "$led" != off ] && ledcontrol "$led" >/dev/null 2>&1
+  [ -n "$led" ] && [ "$led" != off ] && ledcontrol "$led" >/dev/null 2>&1 9>&-
   for o in $(sed -n 's/^output=//p' $STATE); do swaymsg -q output "$o" power on, output "$o" dpms on; done
   for i in $(sed -n 's/^touch=//p' $STATE); do swaymsg -q input "$i" events enabled; done
   rm -f $STATE
 }
+
+# One at a time: a lid opened while "off" is still working would restore only what it had noted so far. The lock goes
+# with this script, so what it starts has fd 9 closed (autotune outlives it). A stuck holder mustn't keep the screens
+# off for good, so wait a bounded time and go on (BusyBox flock has no -w).
+exec 9>/run/asgard-screens-off.lock
+timeout 30 flock 9 || true
 
 case "$1" in
   power) if [ -e $STATE ]; then on; else off; fi ;;

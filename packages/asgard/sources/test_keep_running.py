@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # spec: BAT-3
-# requires: cmd:bash cmd:setsid
+# requires: cmd:bash cmd:setsid cmd:flock cmd:timeout
 # sleep_mode=screen, through the real scripts with their paths in a temp dir and fake system tools: asgard-perf-profile.sh holds the
 # inhibitor and marker for the game's run only, power-handler hands the power key and lid to asgard-screens-off.sh, which turns the
 # screens off and doesn't suspend or stop the game. That music keeps playing is a human check.
@@ -8,6 +8,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 HANDLER = f"{HERE}/../../hardware/quirks/platforms/SM8550/bin/power-handler"
@@ -33,7 +34,7 @@ class Fixture:
         t = self.t = self._tmp.name
         for d in ("asgard", "bin", "run", "storage/.config/system/configs"):
             os.makedirs(f"{t}/{d}")
-        self.write("functions", f'get_setting() {{ [ "$1" = sleep_mode ] && cat "{t}/sleep_mode" 2>/dev/null; [ "$1" = system.suspendmode ] && echo off; }}\n'
+        self.write("functions", f'get_setting() {{ [ "$1" = sleep_mode ] && cat "{t}/sleep_mode" 2>/dev/null; [ "$1" = sleep_bt ] && cat "{t}/sleep_bt" 2>/dev/null; [ "$1" = system.suspendmode ] && echo off; }}\n'
                                 f'export PATH="{t}/bin:$PATH"\n')
         self.write("lib", LIB)
         self.write("storage/.config/system/configs/system.cfg", "")
@@ -127,4 +128,52 @@ with Fixture() as f:
         subprocess.run(["sleep", "0.02"])
     else:
         raise AssertionError("the inhibitor outlived the game")
+
+
+def keep_running(f, bt="off"):
+    f.write("run/asgard-keep-running", "music\tSong.mp3\n")
+    f.write("sleep_bt", bt + "\n")
+
+
+# Set to stay on: the radio isn't touched, so headphones keep playing.
+with Fixture() as f:
+    keep_running(f, "on")
+    assert not any("rfkill block" in c for c in f.run("power-handler", "lid", "close"))
+
+# Set off: down with the screens, back with them.
+with Fixture() as f:
+    keep_running(f)
+    assert "rfkill block bluetooth" in f.run("power-handler", "lid", "close")
+    assert "rfkill unblock bluetooth" in f.run("power-handler", "lid", "open")
+
+# A block that fails partway still comes back (2026-11-02: Bluetooth stayed off after the lid opened, and Connect failed).
+with Fixture() as f:
+    keep_running(f)
+    f.write("bin/rfkill", RECORD + 'case "$1" in block) exit 1 ;; esac\n', True)
+    f.run("power-handler", "lid", "close")
+    assert "rfkill unblock bluetooth" in f.run("power-handler", "lid", "open")
+
+# A lid opened while the close is still working waits for it, so what the close turned off comes back after.
+with Fixture() as f:
+    keep_running(f)
+    f.write("bin/rfkill", RECORD + 'case "$1" in block) sleep 1; echo "block done" >>"$T/calls" ;; esac\n', True)
+    closing = subprocess.Popen(["bash", f"{f.t}/power-handler", "lid", "close"], env={"PATH": os.environ["PATH"], "T": f.t})
+    for _ in range(200):
+        if f.has("calls") and "rfkill block" in f.read("calls"):
+            break
+        subprocess.run(["sleep", "0.02"])
+    calls = f.run("power-handler", "lid", "open")
+    closing.wait(timeout=30)
+    assert "rfkill unblock bluetooth" in calls and calls.index("block done") < calls.index("rfkill unblock bluetooth"), calls
+    assert not f.has("run/asgard-screens-off.active")
+
+# What the script leaves running doesn't keep the lock: the next lid or power press isn't held up for it.
+with Fixture() as f:
+    keep_running(f)
+    f.write("asgard/asgard-cpu-cap.sh", RECORD + "sleep 5 >/dev/null 2>&1 &\n", True)
+    f.run("power-handler", "lid", "close")
+    f.run("power-handler", "lid", "open")
+    start = time.monotonic()
+    f.run("power-handler", "lid", "close")
+    assert time.monotonic() - start < 3, "a child held the lock"
 print("ok")
