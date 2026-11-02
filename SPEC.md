@@ -95,16 +95,16 @@ Controls the running game without leaving it, with the same button in every emul
 - **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access) and Wind Waker HD (its settings).
 - **MENU-3** PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus instead.
 - **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
-- **MENU-5** A game's menu has a Performance tile with its CPU cap per core type and its GPU cap, the same values as its Settings page. D-pad left and right step a value, and A steps forward. A change is saved to the game's own keys, so the next launch loads it, and applies to the running game on leaving the page or the menu. A core type turned back on may need a game restart, because launchers pin emulators to the cores online at launch.
+- **MENU-5** A game's menu has a Performance tile with its CPU cap per core type and its GPU cap, and each screen's overrides on pages of their own, the same values as its Settings page. D-pad left and right step a value, and A steps forward. A change is saved to the game's own keys, so the next launch loads it, and applies to the running game on leaving the page or the menu. A core type turned back on may need a game restart, because launchers pin emulators to the cores online at launch.
 
 ### Per-game and per-emulator overrides
 
 Some games need different settings. These let a user tune one game or system without affecting the others, and always see where a value comes from.
 
 - **OVR-1** An option's value comes from the game, then the system, then the OS default, as section 4 explains. An unset row names what it takes: `Emulator settings (80%)`, `OS (100%)` or `Default`. Unsetting a value goes back to inheriting.
-- **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ, sleep mode, and Wi-Fi and Bluetooth while the screens are off.
+- **OVR-2** Every emulator gets the same hardware overrides, per system and per game: CPU cap per core type, GPU cap, fan, gyro, sound EQ, sleep mode, Wi-Fi and Bluetooth while the screens are off, and each screen's refresh rate, brightness, warmth, tint and contrast, plus Ultra Black on the top. A screen override never changes the Settings value it overrides.
 - **OVR-3** The emulator and core can be chosen per system and per game. A game's shader cache can be deleted from its settings.
-- **OVR-4** Overrides last only as long as the game: they apply at launch, and when changed from its in-game menu (MENU-5), and the menu's profile, fan and EQ come back when it exits. Back to Home puts the menu's CPU and GPU caps, cores and fan on while the game waits, and returning puts the game's back before it continues.
+- **OVR-4** Overrides last only as long as the game: they apply at launch, and when changed from its in-game menu (MENU-5), and the menu's profile, fan and EQ come back when it exits. Back to Home puts the menu's CPU and GPU caps, cores, fan and screen settings on while the game waits, and returning puts the game's back before it continues.
 - **OVR-5** Each emulator's own options, such as shaders, aspect ratio and Azahar's resolution and layouts, come from `es_features.cfg` and appear as settings rows with no extra work per emulator.
 
 ### Companion windows on the bottom screen

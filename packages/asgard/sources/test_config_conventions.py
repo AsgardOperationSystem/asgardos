@@ -43,7 +43,7 @@ QML_CALLS = [r'\b(?:get|set)\(\s*"([a-z][\w.]*)"',                         # Set
              r'(?:toggle|choice)\([^\n]*?"((?:[a-z][\w]*\.)+[a-z][\w.]*)"']  # its rows name their key
 # A game option is a suffix of <system>.<key>, read as get_setting <key> <system> <game>: CFG-12 and thor_settings' PERF_FEATURES
 # name these, and they stay short for ROCKNIX's option rows to work. Everything else has to be dotted.
-GAME_OPTION = re.compile(r"^(cpu_cap_\w*|gpu_cap|fan_mode|motion|eq_speaker|eq_headphones|sleep_\w*)$")
+GAME_OPTION = re.compile(r"^(cpu_cap_\w*|gpu_cap|fan_mode|motion|eq_speaker|eq_headphones|sleep_\w*|top_\w*|bottom_\w*)$")
 found = {}
 for path in FILES:
     text = read(path)

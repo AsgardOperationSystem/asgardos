@@ -11,6 +11,7 @@ Item {
     property var game: []                    // running emulator process names, read when the menu opens
     property var settings: null              // the Settings panel: its option rows are the Performance page's
     property var launched: ({})              // the running game (backend.launchedGame), read when the menu opens
+    property bool screenChanged: false       // a screen row changed: applied the same way
     property bool perfChanged: false         // a Performance row changed: apply it on leaving the page or the menu
     readonly property bool azahar: game.indexOf("azahar") >= 0
     readonly property bool eden: game.indexOf("eden") >= 0
@@ -21,12 +22,12 @@ Item {
     property real openedAt: 0
     onOpenChanged: {
         if (open) {
-            game = backend.runningGame(); launched = backend.launchedGame(); group = null; sel = 0; openedAt = Date.now()
+            game = backend.runningGame(); launched = backend.launchedGame(); group = null; parents = []; sel = 0; openedAt = Date.now()
             if (hasPerf()) settings.features(perfEmu(), perfCore())   // loaded here: not from the page's binding
         } else applyPerf()
     }
 
-    // Performance: the game's CPU and GPU caps, saved to its own keys as in its Settings page, so the next launch
+    // Performance: the game's CPU and GPU caps and its screens, saved to its own keys as in its Settings page, so the next launch
     // loads them. Games only: a tool has no keys to save to.
     function hasPerf() { return game.length > 0 && !!launched.path }
     function perfFile() { return launched.path.split("/").pop() }
@@ -42,13 +43,40 @@ Item {
             return { icon: "chip", title: r.title, sub: "‹  " + r.value + "  ›", step: step, run: () => step(1) }
         })
     }
+    function screenPage(keys) {
+        settings.rev
+        const rows = settings.screenRows(perfPrefix(), perfEmu(), perfCore(), launched.sys, keys)
+        if (!rows) return [{ icon: "refresh", title: "Loading…", sub: "", run: () => {} }]
+        return rows.map(r => {
+            const step = d => { r.step(d); screenChanged = true }
+            return { icon: "display", title: r.title, sub: "‹  " + r.value + "  ›", step: step, run: () => step(1) }
+        })
+    }
+    // Five rows to a page, Back among them, so a screen's colour is a page of its own.
+    function colourTile(screen) {
+        return { icon: "display", title: "Colour", sub: "Warmth, tint and contrast",
+                 page: () => screenPage([screen + "_warmth", screen + "_tint", screen + "_contrast"]) }
+    }
+    function topScreenPage() { return screenPage(["top_refresh", "top_brightness", "top_ultra_black"]).concat([colourTile("top")]) }
+    function bottomScreenPage() { return screenPage(["bottom_refresh", "bottom_brightness"]).concat([colourTile("bottom")]) }
+    function perfTiles() {
+        return [{ icon: "chip", title: "CPU and GPU", sub: "Clocks and cores", page: perfPage,
+                  note: "Applies when you leave · A core type turned back on needs a game restart" },
+                { icon: "display", title: "Top screen", sub: "Refresh, brightness, colour", page: topScreenPage, note: "Applies when you leave" },
+                { icon: "display", title: "Bottom screen", sub: "Refresh, brightness, colour", page: bottomScreenPage, note: "Applies when you leave" }]
+    }
     // Applied once, on the way out: the game is paused meanwhile, and each apply stops autotune and cycles the cores.
     // Guarded by the profile's marker: a game that ended with the menu open has had its restore already.
     function applyPerf() {
-        if (!perfChanged) return
-        perfChanged = false
-        backend.shell("[ -f /run/asgard-perf.saved ] && /usr/share/asgard/asgard-perf-profile.sh cpu " +
-                      settings.q(launched.sys) + " " + settings.q(perfFile()))
+        const args = settings.q(launched.sys) + " " + settings.q(perfFile())
+        if (perfChanged) {
+            perfChanged = false
+            backend.shell("[ -f /run/asgard-perf.saved ] && /usr/share/asgard/asgard-perf-profile.sh cpu " + args)
+        }
+        if (screenChanged) {
+            screenChanged = false
+            backend.shell("[ -f /run/asgard-perf.saved ] && /usr/share/asgard/asgard-perf-profile.sh screens " + args)
+        }
     }
 
     function resume(keys) {                  // close, run the hotkeys, unpause
@@ -67,8 +95,7 @@ Item {
     // (RetroArch, Azahar, Eden) is undone. "Quit and save log" is for a hung game: keeps its log and a core dump.
     function withExit(list, restart, quit) {
         if (hasPerf())
-            list = list.concat([{ icon: "gauge", title: "Performance", sub: "CPU and GPU clocks for this game", page: perfPage,
-                                  note: "Applies when you leave · A core type turned back on needs a game restart" }])
+            list = list.concat([{ icon: "gauge", title: "Performance", sub: "CPU, GPU and screens for this game", items: perfTiles() }])
         const exit = (game.length ? [{ icon: "home", title: "Back to Home", sub: "The game waits in the background",
                                        run: () => { resume(); backend.toBackground() } }] : [])
             .concat(restart ? [restart] : [])
@@ -126,15 +153,17 @@ Item {
 
     property var group: null                 // the open sub-grid's tile, or null for the top level
     property int groupSel: 0                 // its index, to come back to it
+    property var parents: []                 // the groups above it, each with its index
     readonly property bool onPage: !!group && !!group.page   // one column: left / right step the values
     readonly property var shown: group ? [{ icon: "list", title: "Back", sub: group.note || group.title, run: () => back() }]
                                          .concat(group.page ? group.page() : group.items) : items
     function activate(i) {
         const it = shown[i]
-        if (it.items || it.page) { group = it; groupSel = i; sel = 1 } else it.run()
+        if (it.items || it.page) { parents = parents.concat([{ group: group, sel: groupSel }]); group = it; groupSel = i; sel = 1 } else it.run()
     }
     function back() {
-        sel = groupSel; group = null
+        const up = parents[parents.length - 1]
+        sel = groupSel; group = up.group; groupSel = up.sel; parents = parents.slice(0, -1)
         applyPerf()
     }
 

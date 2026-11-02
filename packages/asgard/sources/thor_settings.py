@@ -115,7 +115,14 @@ def gpu_driver_choices():
     return [(n, n) for n in sorted(names)]
 
 
-OS_KEYS = {"sleep wifi": "asgard.sleep_wifi", "sleep bt": "asgard.sleep_bt"}
+# The OS's value of an option where that's a setting: name -> (key, its default). Read live, as Settings changes them.
+OS_KEYS = {"sleep wifi": ("asgard.sleep_wifi", "on"), "sleep bt": ("asgard.sleep_bt", "on"),
+           "top refresh": ("asgard.refresh", "120"), "top brightness": ("display.brightness2", "50"),
+           "top warmth": ("asgard.warmth.top", "0"), "top tint": ("asgard.tint.top", "0"),
+           "top contrast": ("asgard.contrast.top", "0"), "top ultra black": ("asgard.ultra_black", "1"),
+           "bottom refresh": ("asgard.refresh_bottom", "60"), "bottom brightness": ("display.brightness", "50"),
+           "bottom warmth": ("asgard.warmth.bottom", "0"), "bottom tint": ("asgard.tint.bottom", "3"),
+           "bottom contrast": ("asgard.contrast.bottom", "3")}
 
 
 def default_label(name):
@@ -127,11 +134,13 @@ def default_label(name):
         return "Off"
     if name == "gl driver":
         return "Zink"
-    if name in OS_KEYS:   # Settings > Performance; asgard-screens-off.sh leaves a radio on unless it's set off
+    if name in OS_KEYS:
+        key, value = OS_KEYS[name]
         try:
-            return "Off" if conf.get(OS_KEYS[name]) == "off" else "On"
+            value = conf.get(key) or value
         except OSError:   # no system.cfg yet: nothing set
-            return "On"
+            pass
+        return next((label for label, v in dict(PERF_FEATURES)[name] if v == value), value)
     if name == "gpu driver":
         try:
             return open("/usr/share/mesa/version").read().strip()
@@ -156,6 +165,14 @@ PCT = [(f"{v}%", str(v)) for v in range(25, 101, 5)]
 CPU = [("Off", "off"), ("Auto", "autotune")] + PCT
 GPU_CAP = [("Auto", "autotune")] + PCT
 ON_OFF = [("On", "on"), ("Off", "off")]
+PERCENT = [(f"{v}%", str(v)) for v in range(10, 101, 10)]
+
+
+def wb_steps(neg, pos):
+    """As Settings > Display's white balance rows: -10..10."""
+    return [("Neutral" if v == 0 else f"{abs(v)} {pos if v > 0 else neg}", str(v)) for v in range(-10, 11)]
+
+
 PERF_FEATURES = [("cpu cap little", CPU), ("cpu cap mid", CPU), ("cpu cap prime", CPU), ("gpu cap", GPU_CAP),
                  ("fan mode", [("Quiet", "quiet"), ("Smart", "moderate"), ("Sport", "aggressive"),
                                ("30%", "77"), ("50%", "128"), ("75%", "191"), ("100%", "255")]),
@@ -163,13 +180,21 @@ PERF_FEATURES = [("cpu cap little", CPU), ("cpu cap mid", CPU), ("cpu cap prime"
                  ("eq speaker", [("Thor's own", "thor"), ("Joey's", "joey"), ("Off", "off")]),
                  ("eq headphones", [("Thor's own", "thor"), ("AutoEQ profile", "autoeq"), ("Off", "off")]),
                  ("sleep mode", [("Suspend", "suspend"), ("Screens off, keep running", "screen")]),
-                 ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF)]
+                 ("sleep wifi", ON_OFF), ("sleep bt", ON_OFF),
+                 ("top refresh", [("120 Hz", "120"), ("60 Hz", "60")]), ("top brightness", PERCENT),
+                 ("top warmth", wb_steps("cooler", "warmer")), ("top tint", wb_steps("greener", "pinker")),
+                 ("top contrast", wb_steps("softer", "punchier")), ("top ultra black", [("On", "1"), ("Off", "0")]),
+                 ("bottom refresh", [("120 Hz (washed out)", "120"), ("60 Hz", "60")]), ("bottom brightness", PERCENT),
+                 ("bottom warmth", wb_steps("cooler", "warmer")), ("bottom tint", wb_steps("greener", "pinker")),
+                 ("bottom contrast", wb_steps("softer", "punchier"))]
 # OpenGL: the image's default is Zink (Mesa's GL on top of the Vulkan driver, the GPU driver option's if set), from the
 # SM8550 quirk. freedreno is Mesa's native driver; Zink is here so a game can go back to it from a system's freedreno.
 GL_DRIVER = ("gl driver", [("freedreno (native OpenGL)", "freedreno"), ("Zink (OpenGL on Vulkan)", "zink")])
 HW = "Hardware overrides"
 GROUPS = {"cpu cap little": HW, "cpu cap mid": HW, "cpu cap prime": HW, "gpu cap": HW, "fan mode": HW, "motion": HW, "eq speaker": HW + "/Sound EQ", "eq headphones": HW + "/Sound EQ",
-          "sleep mode": HW + "/Sleep", "sleep wifi": HW + "/Sleep", "sleep bt": HW + "/Sleep"}
+          "sleep mode": HW + "/Sleep", "sleep wifi": HW + "/Sleep", "sleep bt": HW + "/Sleep",
+          **{f"top {n}": HW + "/Top screen" for n in ("refresh", "brightness", "warmth", "tint", "contrast", "ultra black")},
+          **{f"bottom {n}": HW + "/Bottom screen" for n in ("refresh", "brightness", "warmth", "tint", "contrast")}}
 
 
 def _standard(attr):
@@ -231,7 +256,10 @@ LABELS = {"ratio": "Aspect ratio", "smooth": "Smoothing (bilinear)", "rewind": "
           "cpu cap little": "Little core (A510)", "cpu cap mid": "Big cores (A715/A710)",
           "cpu cap prime": "Prime core (X3)", "gpu cap": "GPU (Adreno 740)",
           "fan mode": "Fan", "motion": "Gyro (motion sensors)", "eq speaker": "Speaker EQ", "eq headphones": "Headphone EQ", "sleep mode": "Lid / power button", "sleep wifi": "Wi-Fi while screens off",
-          "sleep bt": "Bluetooth while screens off"}
+          "sleep bt": "Bluetooth while screens off",
+          **{f"{s} {n}": label for s in ("top", "bottom") for n, label in
+             (("refresh", "Refresh rate"), ("brightness", "Brightness"), ("warmth", "Warmth"), ("tint", "Tint"), ("contrast", "Contrast"))},
+          "top ultra black": "OLED Ultra Black"}
 
 
 def pretty(name):
@@ -655,7 +683,7 @@ def dump_features(emulator, core):
         feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else []) + [GL_DRIVER]
     print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
                        **({"default": default_label(n)} if default_label(n) else {}),
-                       **({"osKey": OS_KEYS[n]} if n in OS_KEYS else {}),
+                       **({"osKey": OS_KEYS[n][0], "osDefault": OS_KEYS[n][1]} if n in OS_KEYS else {}),
                        **({"group": GROUPS[n]} if n in GROUPS else {})} for n, ch in feats]))
 
 

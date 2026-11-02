@@ -686,7 +686,7 @@ Item {
         // Unset takes the parent's setting: the emulator's, else the OS's (thor_settings.py "default": stock clocks,
         // gyro off, the image's Mesa), else just "Default".
         // osKey: the OS's value is a setting, read now because the features are cached.
-        const os = f.osKey ? label(get(f.osKey, "on")) : f.default
+        const os = f.osKey ? label(get(f.osKey, f.osDefault)) : f.default
         const unset = parent ? "Emulator settings (" + label(parent) + ")" : os ? "OS (" + os + ")" : "Default"
         return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : unset,
                  step: d => { let i = Math.max(0, values.indexOf(cur))
@@ -701,6 +701,11 @@ Item {
         const feats = features(emu, core)
         return feats && feats.filter(f => f.key.startsWith("cpu_cap_") || f.key === "gpu_cap").map(f => optionRow(f, prefix, inherit))
     }
+    // Its screen rows, by key: the in-game menu fits five rows to a page, so it picks what goes where.
+    function screenRows(prefix, emu, core, inherit, keys) {
+        const feats = features(emu, core)
+        return feats && keys.map(k => feats.find(f => f.key === k)).filter(f => f).map(f => optionRow(f, prefix, inherit))
+    }
     function optionsPage(prefix, emu, core, inherit) {
         const feats = features(emu, core)
         if (feats === null) return [[info("refresh", "Loading options…", emu + " / " + core)]]
@@ -708,7 +713,7 @@ Item {
         const row = f => optionRow(f, prefix, inherit)
         // Grouped features (thor_settings.py GROUPS: Hardware overrides, its core types and Sleep) are submenus, in
         // the order they first appear; a group "A/B" is submenu B inside A.
-        const icons = { "Hardware overrides": "gauge", "Sleep": "moon", "Sound EQ": "speaker" }
+        const icons = { "Hardware overrides": "gauge", "Sleep": "moon", "Sound EQ": "speaker", "Top screen": "display", "Bottom screen": "display" }
         const level = (fs, depth) => {
             const out = [], groups = {}
             for (const f of fs) {

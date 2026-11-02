@@ -6,6 +6,7 @@
 // 50 % brightness; contrast +10 (exponent 2.0) put the bottom on the top's curve with Ultra Black on (grey 128 at
 // ~20 % of white, sRGB's ~22 %), +6 with it off. +3 keeps more shadow detail than either.
 // SIGHUP re-reads them. Gains only ever lower a channel, so nothing clips.
+// A running game's own values are in /run/asgard-screen-override.cfg (asgard-perf-profile.sh), and win over system.cfg.
 #define _GNU_SOURCE
 #include <errno.h>
 #include <math.h>
@@ -31,9 +32,8 @@ static struct out outs[4];
 static int nouts;
 static struct zwlr_gamma_control_manager_v1 *mgr;
 
-static int cfg_int(const char *key, int v)
+static int file_int(const char *path, const char *key, int v)
 {
-	const char *path = getenv("CFG") ? getenv("CFG") : "/storage/.config/system/configs/system.cfg";
 	FILE *f = fopen(path, "r");
 	char line[256];
 	size_t n = strlen(key);
@@ -43,6 +43,14 @@ static int cfg_int(const char *key, int v)
 		if (!strncmp(line, key, n) && line[n] == '=')
 			v = atoi(line + n + 1);
 	fclose(f);
+	return v;
+}
+
+static int cfg_int(const char *key, int v)
+{
+	const char *path = getenv("CFG") ? getenv("CFG") : "/storage/.config/system/configs/system.cfg";
+	const char *over = getenv("CFG_OVERRIDE") ? getenv("CFG_OVERRIDE") : "/run/asgard-screen-override.cfg";
+	v = file_int(over, key, file_int(path, key, v));
 	return v < -10 ? -10 : v > 10 ? 10 : v;
 }
 
@@ -154,6 +162,10 @@ int main(int argc, char **argv)
 {
 	if (argc == 3 && !strcmp(argv[1], "--exponent")) {   // the mappings alone, for test_gamma.sh
 		printf("%.1f\n", exponent(atoi(argv[2])));
+		return 0;
+	}
+	if (argc == 4 && !strcmp(argv[1], "--cfg")) {
+		printf("%d\n", cfg_int(argv[2], atoi(argv[3])));
 		return 0;
 	}
 	if (argc == 4 && !strcmp(argv[1], "--gains")) {

@@ -14,4 +14,10 @@ cc -I$T -o $T/g $G/asgard-gamma.c $T/proto.c -lwayland-client -lm
 [ "$($T/g --gains 0 -3)" = "0.940 1.000 0.940" ] || { echo "FAIL: green"; exit 1; }
 [ "$($T/g --exponent 0)" = "1.0" ] && [ "$($T/g --exponent 10)" = "2.0" ] && [ "$($T/g --exponent -5)" = "0.5" ] ||
   { echo "FAIL: exponent"; exit 1; }
+# A game's override wins over system.cfg; the setting itself stays as it is.
+echo 'asgard.warmth.top=2' > $T/cfg
+[ "$(CFG=$T/cfg CFG_OVERRIDE=$T/none $T/g --cfg asgard.warmth.top 0)" = 2 ] || { echo "FAIL: system.cfg"; exit 1; }
+echo 'asgard.warmth.top=-4' > $T/over
+[ "$(CFG=$T/cfg CFG_OVERRIDE=$T/over $T/g --cfg asgard.warmth.top 0)" = -4 ] || { echo "FAIL: override"; exit 1; }
+[ "$(CFG=$T/cfg CFG_OVERRIDE=$T/over $T/g --cfg asgard.tint.top 3)" = 3 ] || { echo "FAIL: unset default"; exit 1; }
 echo ok

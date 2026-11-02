@@ -199,6 +199,17 @@ case "${ACTION}" in
     getBrightnessValue
     ;;
 
+  "apply")   # a game's override: this screen now, the saved setting left alone (asgard-perf-profile.sh)
+    if [ "$#" -lt 3 ] || ! [[ "${3}" =~ ^[0-9]+$ ]] || ! _resolve_config "${2}"; then
+      echo "Usage: $0 apply <screen_num> <percentage>" >&2
+      exit 1
+    fi
+    percent="${3}"
+    ((percent < 5)) && percent=5
+    ((percent > 100)) && percent=100
+    _compute_raw "${percent}" "${CURRENT_MAX}" > "${CURRENT_DEV_PATH}"
+    ;;
+
   "")
     ;&
   *)

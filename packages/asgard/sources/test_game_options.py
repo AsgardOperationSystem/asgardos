@@ -93,7 +93,7 @@ assert cfg[f"{GAME}.cpu_cap_mid"] == "" and out["s"] == "Emulator settings (80%)
 assert cfg["3ds.cpu_cap_mid"] == "80"   # a game's row leaves the system's key alone
 
 # The radios while the screens are off: unset names the OS-wide row's value, read at the time, and a system's own wins.
-BT = {"key": "sleep_bt", "label": "Bluetooth while screens off", "choices": [["On", "on"], ["Off", "off"]], "osKey": "asgard.sleep_bt"}
+BT = {"key": "sleep_bt", "label": "Bluetooth while screens off", "choices": [["On", "on"], ["Off", "off"]], "osKey": "asgard.sleep_bt", "osDefault": "on"}
 row = VALUE % (json.dumps(BT), json.dumps(GAME), json.dumps(SYSTEM))
 assert node({}, [BT], {"s": row})[0]["s"] == "OS (On)"
 assert node({"asgard.sleep_bt": "off"}, [BT], {"s": row})[0]["s"] == "OS (Off)"
@@ -101,7 +101,8 @@ assert node({"asgard.sleep_bt": "off", "3ds.sleep_bt": "on"}, [BT], {"s": row})[
 assert next(f for f in features("azahar", "azahar-sa") if f["key"] == "sleep_bt")["osKey"] == "asgard.sleep_bt"
 
 # OVR-2: every emulator add_emu_core registers, whether es_features.cfg knows it or not, offers the same hardware rows.
-HARDWARE = {"cpu_cap_little", "cpu_cap_mid", "cpu_cap_prime", "gpu_cap", "fan_mode", "motion", "eq_speaker", "eq_headphones", "sleep_mode", "sleep_wifi", "sleep_bt"}
+HARDWARE = {"cpu_cap_little", "cpu_cap_mid", "cpu_cap_prime", "gpu_cap", "fan_mode", "motion", "eq_speaker", "eq_headphones", "sleep_mode", "sleep_wifi", "sleep_bt",
+            *(f"{s}_{n}" for s in ("top", "bottom") for n in ("refresh", "brightness", "warmth", "tint", "contrast")), "top_ultra_black"}
 registered = {(e, c) for _, e, c, _ in re.findall(r"^\s*add_emu_core\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)", META, re.M)}
 assert len(registered) > 100
 catalogue = {}
@@ -122,13 +123,21 @@ out, cfg, _ = node({}, [CAP], {"g": "optionRow(%s, %s, %s).step(1)" % (json.dump
 assert cfg == {f"{GAME}.cpu_cap_mid": "60", "3ds.cpu_cap_mid": "60"}, cfg
 # And each of those keys is what the profile script reads for the game.
 profile = "\n".join(ln for ln in open(f"{HERE}/asgard-perf-profile.sh") if not ln.lstrip().startswith("#"))
-for key in HARDWARE - {"cpu_cap_little", "cpu_cap_mid", "cpu_cap_prime", "sleep_wifi", "sleep_bt"}:
+for key in HARDWARE - {"cpu_cap_little", "cpu_cap_mid", "cpu_cap_prime", "sleep_wifi", "sleep_bt"} - {k for k in HARDWARE if k.startswith(("top_", "bottom_"))}:
     assert f'get_setting {key} "$platform" "$game"' in profile or f'get_setting {key} "$1" "$2"' in profile, key
 assert 'get_setting "cpu_cap_$t" "$platform" "$game"' in profile
 # The radios are read when the screens go off, under the keys of its wifi:wlan bt:bluetooth list.
 screens_off = open(f"{HERE}/asgard-screens-off.sh").read()
 assert 'for r in wifi:wlan bt:bluetooth; do' in screens_off and 'get_setting "sleep_${r%%:*}" "$platform" "$game"' in screens_off
 assert 'get_setting "asgard.sleep_${r%%:*}"' in screens_off
+# The screens go through one table in the profile script, with the same OS keys as these rows.
+assert 'value=$(get_setting "$key" "$platform" "$game")' in profile
+table = dict(line.split()[:2] for line in re.search(r'SCREEN_KEYS="(.*?)"', open(f"{HERE}/asgard-perf-profile.sh").read(), re.S).group(1).splitlines())
+assert set(table) == {k for k in HARDWARE if k.startswith(("top_", "bottom_"))}
+for f in features("azahar", "azahar-sa"):
+    if f["key"] in table:
+        assert f["osKey"] == table[f["key"]], f
+        assert f["osDefault"] in [v for _, v in f["choices"]], f
 
 # OVR-5: an option in es_features.cfg is a row, with no code naming it. A made-up emulator proves that; Azahar's are the real ones.
 with tempfile.TemporaryDirectory() as d:
