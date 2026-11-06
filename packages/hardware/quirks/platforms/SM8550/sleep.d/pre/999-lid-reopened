@@ -1,0 +1,31 @@
+#!/bin/sh
+# Last pre hook: a lid opened while the Thor is still going to sleep cancels the sleep (PWR-13).
+#
+# The lid wakes the Thor only on its open edge, and the kernel arms that wake late, when it suspends devices. Before
+# then an open is just an input event: logind logs it but doesn't cancel a sleep under way, and systemd-sleep doesn't
+# use /sys/power/wakeup_count, so the kernel doesn't either. Going down takes seconds, up to 15 more in
+# 001-suspend-grace with the screens already dark, so a quick close-open-close-open slept with the lid open and only
+# the power key woke it (2026-11-06 21:33: two lid opens and a press lost in the grace hold).
+#
+# So when this sleep began with the lid closing and the lid is open again: arm wakeup_count, which makes the kernel
+# cancel the suspend on the next wakeup event, and set an RTC alarm 2 s out as that event. It cancels the suspend, or
+# if the kernel is already asleep, wakes it. post/000-lid-reopened clears the alarm and the note.
+
+. /etc/profile
+
+S=${SYS:-/sys}
+RUN=${RUN:-/run}
+Q=${QUIRK_BIN:-/usr/lib/autostart/quirks/platforms/SM8550/bin}
+
+"${Q}/lid-reopened" || exit 0
+
+# Reading wakeup_count waits while a wakeup event is in progress, and writing it back fails if one happened since.
+for n in 1 2 3 4 5; do
+  c=$(timeout 1 cat "${S}/power/wakeup_count") && echo "${c}" >"${S}/power/wakeup_count" 2>/dev/null && break
+  sleep 0.1
+done
+echo 0 >"${S}/class/rtc/rtc0/wakealarm"
+echo +2 >"${S}/class/rtc/rtc0/wakealarm"
+touch "${RUN}/.lid-reopened-alarm"
+log $0 "Lid opened while going to sleep: cancelling the sleep."
+exit 0

@@ -1,0 +1,11 @@
+#!/bin/sh
+# After every wake, or a sleep that was cancelled: forget the lid close power-handler noted, and clear the alarm
+# pre/999-lid-reopened set, if it did.
+S=${SYS:-/sys}
+RUN=${RUN:-/run}
+rm -f "${RUN}/.lid-closed-at"
+if [ -e "${RUN}/.lid-reopened-alarm" ]; then
+  echo 0 >"${S}/class/rtc/rtc0/wakealarm" 2>/dev/null
+  rm -f "${RUN}/.lid-reopened-alarm"
+fi
+exit 0

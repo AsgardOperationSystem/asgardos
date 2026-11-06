@@ -54,6 +54,9 @@ fi
 
 log $0 "WiFi bring-up still settling, holding suspend for $((DEADLINE - NOW))s."
 
+# A lid opened again ends the hold: this sleep began with the lid closing, and 999-lid-reopened cancels it (PWR-13),
+# so there's no suspend to hold back, and the screens shouldn't stay dark for the rest of the window.
 while [ "$(monotonic)" -lt "${DEADLINE}" ]; do
+  ${QUIRK_BIN:-/usr/lib/autostart/quirks/platforms/SM8550/bin}/lid-reopened && break
   sleep 1
 done

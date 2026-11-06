@@ -1,0 +1,12 @@
+#!/bin/sh
+# Exit 0 when the sleep under way began with the lid closing and the lid is open again: power-handler noted the
+# close (in seconds of uptime) less than a minute ago, and logind reads the lid as open now.
+# Used by sleep.d/pre/001-suspend-grace and 999-lid-reopened.
+RUN=${RUN:-/run}
+UPTIME=${UPTIME:-/proc/uptime}
+at=$(cat "${RUN}/.lid-closed-at" 2>/dev/null)
+case "${at}" in ''|*[!0-9]*) exit 1 ;; esac
+now=$(cut -d. -f1 "${UPTIME}")
+[ $((now - at)) -le 60 ] || exit 1
+busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed \
+  2>/dev/null | grep -qx 'b false'

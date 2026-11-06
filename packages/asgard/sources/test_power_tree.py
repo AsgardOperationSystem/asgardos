@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 # spec: PWR-9 LOG-3
 # Tree checks. PWR-9, only the part the tree shows: nothing arms a wake from sleep except asgard-charge-fix, whose reason is
-# stopping at the charge limit (its header). What really wakes a sleep and redraw are a device and a human check.
+# stopping at the charge limit (its header), and 999-lid-reopened, which sets a 2 s alarm only when the lid was opened
+# again while the Thor was going down, so it cancels that sleep or wakes it (PWR-13); its post hook only clears it. What really wakes a sleep and redraw are a device and a human check.
 # LOG-3, the wiring: systemd-coredump keeps dumps as files, on /storage. That a crash leaves one is a human check.
 import os
 import re
 
 ROOT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
-ALLOWED = {"packages/asgard/sleep.d/asgard-charge-fix"}
+ALLOWED = {"packages/asgard/sleep.d/asgard-charge-fix",
+           "packages/hardware/quirks/platforms/SM8550/sleep.d/pre/999-lid-reopened",
+           "packages/hardware/quirks/platforms/SM8550/sleep.d/post/000-lid-reopened"}
 ARMS_WAKE = re.compile(r"\brtcwake\b|\bwakealarm\b|^\s*WakeSystem\s*=\s*(true|yes|1)", re.M)
 found = []
 for top in ("packages", "device", "distribution"):

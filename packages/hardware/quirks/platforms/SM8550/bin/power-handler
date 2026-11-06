@@ -162,6 +162,15 @@ case "$1" in
     # that this means closing the lid on a docked device does suspend it,
     # unlike the power key above.
     ${DEBUG} && log $0 "Lid event left to logind: $2"
+    # But note a close for sleep.d/pre/999-lid-reopened: a sleep that began with one is cancelled if the lid opens
+    # again before the Thor is down (PWR-13). An open while logind isn't preparing a sleep forgets it, so a sleep
+    # from the menu with the lid open later isn't taken for one. Not after "Input sense: stop": that's the hooks' job.
+    if [ "$2" = close ]; then
+      cut -d. -f1 /proc/uptime >/run/.lid-closed-at
+    elif ! busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager \
+           PreparingForSleep 2>/dev/null | grep -qx 'b true'; then
+      rm -f /run/.lid-closed-at
+    fi
     ;;
 esac
 
