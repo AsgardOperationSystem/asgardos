@@ -77,7 +77,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Output follows the headphone jack | ✅ | |
 | Speaker EQ | ✅ | Thor tuning (Android's preset), Joey's preset, or off. |
 | Headphone EQ (AutoEQ) | ✅ | Pick a profile by headphone model (~8,850); saved per headphone. |
-| Menu sounds, charger chimes | ✅ | |
+| Menu sounds, charger chimes | ✅ | No lag after a pause: outputs stay open 60 s after a sound (checked 2026-11-06). |
 | **Storage** | | |
 | SD card (UHS-I SDR104, 76 MB/s) | 👀 | Android keeps UHS off as unstable; watch for mmc errors after sleep. |
 | UFS (HS-G5, 2.6–2.8 GB/s) | ✅ | |
