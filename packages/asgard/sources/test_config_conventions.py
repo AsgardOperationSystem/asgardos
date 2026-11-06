@@ -65,7 +65,8 @@ assert not bad, f"new settings need the asgard. prefix (CFG-5), or the list here
 OTHERS = {"asgard", "thor", "autostart", "azahar", "gmu", "gpu-drivers", "mako", "pipewire", "profile.d", "qterminal.org",
           "retroarch", "sway", "system", "wireguard", "zerotier", "zerotier-networks",
           # the emulators asgard-screen-filter.sh writes the screen filter into (VID-1)
-          "ARMSX2", "aethersx2", "dolphin-emu", "eden", "flycast", "nanoboyadvance", "ppsspp", "rpcs3", "xemu"}
+          "ARMSX2", "aethersx2", "dolphin-emu", "eden", "flycast", "nanoboyadvance", "ppsspp", "rpcs3", "xemu",
+          "Cemu", "melonDS", "Vita3K", "scummvm"}
 used = {}
 for path in FILES:
     for name in re.findall(r"/storage/\.config/([\w.-]+)", read(path)):

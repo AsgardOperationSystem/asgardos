@@ -76,6 +76,9 @@ if [[ -f "${dir}/${name}.commands" ]]; then
     params=$(<"${dir}/${name}.commands")
 fi
 
+# Screen filter (VID-1): linear scaling unless it's nearest neighbour (Hypseus' own default)
+[ "$(/usr/share/asgard/asgard-screen-filter.sh get "${2}" "${1##*/}")" = nearest ] || params="${params} -linear_scale"
+
 cd "${config}"
 
 if [[ -f "${dir}/${name}.singe" ]]; then

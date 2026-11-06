@@ -368,6 +368,8 @@ esac
 ### Execution time.
 clear_screen
 ${VERBOSE} && log $0 "executing game: ${ROMNAME}"
+### Screen filter (VID-1) for ScummVM, whose start script doesn't write its config. The rest write their own.
+[ "${EMULATOR}" = scummvm-sa ] && /usr/share/asgard/asgard-screen-filter.sh apply scummvm-sa "${PLATFORM}" "${ROMNAME##*/}"
 ${VERBOSE} && log $0 "script to execute: ${RUNTHIS}"
 
 ### Set the cores to use

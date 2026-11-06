@@ -33,6 +33,8 @@ mkdir -p "$HATARI_TMP_DIR"
 
 # copy default config file to tmp
 cp $HATARI_CONFIG_DIR/Atari-ST-default.cfg "$HATARI_TMP_CONFIG"
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear (its default was nearest)
+/usr/share/asgard/asgard-screen-filter.sh apply hatarisa "${2}" "${1##*/}"
 
 # Check if we are loading a .zip file
 if [ `echo $1 | grep -i .zip | wc -l` -eq 1 ]; then

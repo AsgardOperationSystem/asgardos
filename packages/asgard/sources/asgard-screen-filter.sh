@@ -15,6 +15,8 @@ get() {   # get <system> <game>
   [ -z "$v" ] && v=$(get_setting asgard.screen_filter)
   case "$v" in
     nearest|bilinear|sharp|fsr) echo "$v" ;;
+    0) echo nearest ;;   # melonDS's own Screen filter option, before VID-1: 1 linear, 0 nearest
+    1) echo bilinear ;;
     *) echo bilinear ;;
   esac
 }
@@ -43,6 +45,28 @@ else:
         lines.insert(start + 1, f"{key}{sep}{value}")
     else:
         lines[hit] = f"{key}{sep}{value}"
+os.makedirs(os.path.dirname(path), exist_ok=True)
+open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
+PY
+}
+
+# flat_set <file> <key> <value> [separator]: a key=value file with no sections (melonDS, Vita3K's top-level YAML)
+flat_set() {
+  python3 - "$@" <<'PY'
+import os
+import sys
+path, key, value = sys.argv[1:4]
+sep = sys.argv[4] if len(sys.argv) > 4 else "="
+mark = sep.strip()
+try:
+    lines = open(path, encoding="utf-8", errors="replace").read().splitlines()
+except FileNotFoundError:
+    lines = []
+hit = next((i for i, l in enumerate(lines) if mark in l and l.split(mark, 1)[0].strip() == key and not l.startswith(" ")), None)
+if hit is None:
+    lines.append(f"{key}{sep}{value}")
+else:
+    lines[hit] = f"{key}{sep}{value}"
 os.makedirs(os.path.dirname(path), exist_ok=True)
 open(path, "w", encoding="utf-8").write("\n".join(lines) + "\n")
 PY
@@ -107,6 +131,32 @@ apply() {   # apply <emulator> <system> <game>
       local m=linear
       [ "$f" = nearest ] && m=nearest
       ini_set "${ROOT}/storage/.config/nanoboyadvance/config.toml" video filter "\"${m}\"" " = "
+      ;;
+    melonds)   # flat ini, ScreenFilter 0 nearest / 1 linear
+      local n=1
+      [ "$f" = nearest ] && n=0
+      flat_set "${ROOT}/storage/.config/melonDS/melonDS.ini" ScreenFilter "$n"
+      ;;
+    vita3k)   # top-level YAML
+      local m=Bilinear
+      case "$f" in nearest) m=Nearest ;; fsr) m=FSR ;; esac
+      flat_set "${ROOT}/storage/.config/Vita3K/config.yml" screen-filter "$m" ": "
+      ;;
+    cemu)   # settings.xml <Graphic><UpscaleFilter>: 0 bilinear, 1 bicubic, 2 hermite, 3 nearest
+      local n=0
+      [ "$f" = nearest ] && n=3
+      local xml="${ROOT}/storage/.config/Cemu/settings.xml"
+      [ -f "$xml" ] && sed -i "s|<UpscaleFilter>[0-9]*</UpscaleFilter>|<UpscaleFilter>${n}</UpscaleFilter>|" "$xml"
+      ;;
+    hatarisa)   # the launch's temp config (start_hatarisa.sh copies it fresh): an SDL scale-quality hint
+      local n=1
+      [ "$f" = nearest ] && n=0
+      ini_set "${ROOT}/tmp/hatari/.hatari-temp.cfg" Screen nRenderScaleQuality "$n" " = "
+      ;;
+    scummvm-sa)
+      local b=true
+      [ "$f" = nearest ] && b=false
+      ini_set "${ROOT}/storage/.config/scummvm/scummvm.ini" scummvm filtering "$b"
       ;;
     *) return 1 ;;
   esac

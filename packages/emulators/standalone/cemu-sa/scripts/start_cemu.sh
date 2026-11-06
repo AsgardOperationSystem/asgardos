@@ -114,7 +114,6 @@ RENDERER=$(get_setting graphics_backend wiiu "${FILE}")
 BACKEND=$(get_setting gdk_backend wiiu "${FILE}")
 VSYNC=$(get_setting vsync wiiu "${FILE}")
 GX2_DRAW_DONE_SYNC=$(get_setting gx2_draw_done_sync wiiu "${FILE}")
-UPSCALE_FILTER=$(get_setting upscale_filter wiiu "${FILE}")
 DOWNSCALE_FILTER=$(get_setting downscale_filter wiiu "${FILE}")
 FULLSCREEN_SCALING=$(get_setting fullscreen_scaling wiiu "${FILE}")
 ASYNC_SHADER_COMPILE=$(get_setting async_shader_compile wiiu "${FILE}")
@@ -231,9 +230,8 @@ xmlstarlet ed --inplace -u "//Graphic/VSync" -v "$VSYNC" ${CEMU_CONFIG_ROOT}/set
 [[ -z $GX2_DRAW_DONE_SYNC ]] && GX2_DRAW_DONE_SYNC="true"
 xmlstarlet ed --inplace -u "//Graphic/GX2DrawdoneSync" -v "$GX2_DRAW_DONE_SYNC" ${CEMU_CONFIG_ROOT}/settings.xml
 
-# Upscale filter
-[[ -z $UPSCALE_FILTER ]] && UPSCALE_FILTER="1"
-xmlstarlet ed --inplace -u "//Graphic/UpscaleFilter" -v "$UPSCALE_FILTER" ${CEMU_CONFIG_ROOT}/settings.xml
+# Upscale filter: the Screen filter (VID-1) instead of its own "upscale filter", whose default was bicubic
+/usr/share/asgard/asgard-screen-filter.sh apply cemu wiiu "${FILE}"
 
 # Downscale filter
 [[ -z $DOWNSCALE_FILTER ]] && DOWNSCALE_FILTER="0"

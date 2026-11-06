@@ -35,7 +35,9 @@ with tempfile.TemporaryDirectory() as root:
     for cfg, want in (("", "bilinear"), ("asgard.screen_filter=nearest\n", "nearest"),
                       ("asgard.screen_filter=nearest\nswitch.screen_filter=fsr\n", "fsr"),
                       (f'asgard.screen_filter=nearest\nswitch.screen_filter=fsr\nswitch["{GAME}"].screen_filter=sharp\n', "sharp"),
-                      ("asgard.screen_filter=bogus\n", "bilinear")):
+                      ("asgard.screen_filter=bogus\n", "bilinear"),
+                      # melonDS's own option, before VID-1, used the same name with 1 / 0
+                      ("switch.screen_filter=0\n", "nearest"), ("switch.screen_filter=1\n", "bilinear")):
         got = run(root, cfg, "get", "switch", GAME)
         assert got == want, (cfg, got, want)
 
@@ -75,6 +77,14 @@ with tempfile.TemporaryDirectory() as root:
          {"nearest": "BufferFiltering = 2", "bilinear": "BufferFiltering = 1"}),
         ("nanoboyadvance", f"{S}/nanoboyadvance/config.toml", "video",
          {"nearest": 'filter = "nearest"', "bilinear": 'filter = "linear"'}),
+        ("melonds", f"{S}/melonDS/melonDS.ini", "", {"nearest": "ScreenFilter=0", "bilinear": "ScreenFilter=1"}),
+        ("vita3k", f"{S}/Vita3K/config.yml", "",
+         {"nearest": "screen-filter: Nearest", "bilinear": "screen-filter: Bilinear", "fsr": "screen-filter: FSR"}),
+        ("hatarisa", "tmp/hatari/.hatari-temp.cfg", "Screen",
+         {"nearest": "nRenderScaleQuality = 0", "bilinear": "nRenderScaleQuality = 1"}),
+        ("scummvm-sa", f"{S}/scummvm/scummvm.ini", "scummvm", {"nearest": "filtering=false", "bilinear": "filtering=true"}),
+        ("cemu", f"{S}/Cemu/settings.xml", None,
+         {"nearest": "    <UpscaleFilter>3</UpscaleFilter>", "bilinear": "    <UpscaleFilter>0</UpscaleFilter>"}),
         ("rpcs3", f"{S}/rpcs3/config.yml", None,
          {"nearest": "  Output Scaling Mode: Nearest", "bilinear": "  Output Scaling Mode: Bilinear",
           "fsr": "  Output Scaling Mode: FidelityFX Super Resolution"}),
@@ -83,14 +93,17 @@ with tempfile.TemporaryDirectory() as root:
         path = f"{root}/{rel}"
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w") as f:
-            f.write("Video:\n  Renderer: Vulkan\n  Output Scaling Mode: Bilinear\n" if section is None else "[Other]\nx = 1\n")
+            f.write({"rpcs3": "Video:\n  Renderer: Vulkan\n  Output Scaling Mode: Bilinear\n",
+                     "cemu": "<content>\n  <Graphic>\n    <UpscaleFilter>1</UpscaleFilter>\n  </Graphic>\n</content>\n"}.get(emu)
+                    or ("Other=1\n" if section == "" else "[Other]\nx = 1\n"))
         for choice, line in list(table.items()) * 2:
             run(root, f"psx.screen_filter={choice}\n", "apply", emu, "psx", GAME)
             text = open(path).read()
-            body = text if section is None else text.split(f"[{section}]\n", 1)[1].split("\n[", 1)[0]
+            body = text if not section else text.split(f"[{section}]\n", 1)[1].split("\n[", 1)[0]
             assert line in body.splitlines(), (emu, choice, text)
-            key = line.split("=")[0].split(":")[0].strip()
-            assert sum(1 for l in body.splitlines() if l.split("=")[0].split(":")[0].strip() == key) == 1, (emu, choice, text)
+            key = line.split("=")[0].split(":")[0].split(">")[0].strip()
+            assert sum(1 for l in body.splitlines() if l.split("=")[0].split(":")[0].split(">")[0].strip() == key) == 1, \
+                (emu, choice, text)
             if section:
                 assert "[Other]\nx = 1" in text, (emu, text)
     # PPSSPP's portrait layout gets the same (the last choice applied above was bilinear)
@@ -108,13 +121,31 @@ STARTS = {"eden": ["eden-sa/scripts/start_eden.sh"], "eden-duo": ["eden-duo-sa/s
           "dolphin": ["dolphin-sa/scripts/start_dolphin_gc.sh", "dolphin-sa/scripts/start_dolphin_wii.sh"],
           "azahar": ["azahar-sa/scripts/start_azahar.sh"], "rpcs3": ["rpcs3-sa/scripts/start_rpcs3.sh"],
           "xemu": ["xemu-sa/scripts/start_xemu.sh"], "ppsspp": ["ppsspp-sa/scripts/start_ppsspp.sh"],
-          "nanoboyadvance": ["nanoboyadvance-sa/scripts/start_nanoboyadvance.sh"]}
-assert known == set(STARTS), known
+          "nanoboyadvance": ["nanoboyadvance-sa/scripts/start_nanoboyadvance.sh"],
+          "melonds": ["melonds-sa/scripts/start_melonds.sh"], "vita3k": ["vita3k-sa/scripts/start_vita3k.sh"],
+          "hatarisa": ["hatarisa/scripts/start_hatarisa.sh"]}
+# Emulators that take it another way: (emulator, file, what the file has to do with it)
+OTHER = {"cemu": ("standalone/cemu-sa/scripts/start_cemu.sh", r'asgard-screen-filter\.sh apply cemu wiiu "\$\{FILE\}"'),
+         "scummvm-sa": ("../asgardos/sources/scripts/runemu.sh",
+                        r'"\$\{EMULATOR\}" = scummvm-sa \] && \S*asgard-screen-filter\.sh apply scummvm-sa'),
+         "retroarch": ("../asgardos/sources/scripts/setsettings.sh",
+                       r'asgard-screen-filter\.sh get "\$\{PLATFORM\}" "\$\{ROM\}"\)" = nearest \] && smooth=false'),
+         "dsperate": ("standalone/dsperate-sa/scripts/start_dsperate.sh",
+                      r'asgard-screen-filter\.sh get "\$\{PLATFORM\}" "\$\{GAME\}"\)" = nearest \] && SMOOTH=0'),
+         "mupen64plus": ("standalone/mupen64plus-sa/mupen64plus-sa-core/scripts/start_mupen64plus.sh",
+                         r'asgard-screen-filter\.sh get "\$\{PLATFORM\}" "\$\{GAME\}"\)" = nearest \] && HYBRID=False'),
+         "hypseus-singe": ("standalone/hypseus-singe/scripts/start_hypseus.sh",
+                           r'asgard-screen-filter\.sh get "\$\{2\}" "\$\{1##\*/\}"\)" = nearest \] \|\| params="\$\{params\} -linear_scale"')}
+for emu, (rel, pattern) in OTHER.items():
+    assert re.search(pattern, open(os.path.join(HERE, "..", "..", "emulators", rel)).read()), (emu, rel)
+mupen = open(os.path.join(HERE, "..", "..", "emulators", OTHER["mupen64plus"][0])).read()
+assert "EnableHybridFilter]=False" not in mupen and mupen.count("EnableHybridFilter]=${HYBRID}") == 2
+assert known == set(STARTS) | {"cemu", "scummvm-sa"}, known
 for emu, starts in STARTS.items():
     for start in starts:
         text = open(os.path.join(HERE, "..", "..", "emulators", "standalone", start)).read()
-        assert re.search(rf"asgard-screen-filter\.sh apply {emu} \"\$\{{PLATFORM\}}\" \"\$\{{GAME\}}\"", text), start
+        assert re.search(rf'asgard-screen-filter\.sh apply {emu} "\$\{{?(PLATFORM|2)\}}?" "\$\{{(GAME|ROMNAME|1##\*/)\}}"', text), start
 ts = open(os.path.join(HERE, "thor_settings.py")).read()
 listed = set(re.findall(r'"([a-z0-9-]+)": \[(?:NEAREST|BILINEAR)', ts))
-assert listed == known, (listed, known)
+assert listed == known | set(OTHER), (listed, known | set(OTHER))
 print("ok")

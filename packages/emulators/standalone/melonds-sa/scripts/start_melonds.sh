@@ -223,8 +223,8 @@ TOP_SCREEN_ASPECT=$(get_setting top_screen_aspect "${PLATFORM}" "${GAME}")
 [ -n "${TOP_SCREEN_ASPECT}" ] && sed -i "/^ScreenAspectTop=/c\ScreenAspectTop=${TOP_SCREEN_ASPECT}" "${CONF_DIR}/${MELONDS_INI}"
 BOTTOM_SCREEN_ASPECT=$(get_setting bottom_screen_aspect "${PLATFORM}" "${GAME}")
 [ -n "${BOTTOM_SCREEN_ASPECT}" ] && sed -i "/^ScreenAspectBot=/c\ScreenAspectBot=${BOTTOM_SCREEN_ASPECT}" "${CONF_DIR}/${MELONDS_INI}"
-SCREEN_FILTER=$(get_setting screen_filter "${PLATFORM}" "${GAME}")
-[ -n "${SCREEN_FILTER}" ] && sed -i "/^ScreenFilter=/c\ScreenFilter=${SCREEN_FILTER}" "${CONF_DIR}/${MELONDS_INI}"
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear (its old 1/0 values still read)
+/usr/share/asgard/asgard-screen-filter.sh apply melonds "${PLATFORM}" "${GAME}"
 
 #Generate a new MelonDS.toml each run (temporary hack)
 rm -rf "${CONF_DIR}/melonDS.toml"

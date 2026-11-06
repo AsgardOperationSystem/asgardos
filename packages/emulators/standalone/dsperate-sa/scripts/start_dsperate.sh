@@ -41,7 +41,9 @@ GAME=$(echo "${1}" | sed "s#^/.*/##")
 PLATFORM=$(echo "${2}" | sed "s#^/.*/##")
 SLAYOUT=$(get_setting screen_layout "${PLATFORM}" "${GAME}")
 SCREEN=$(get_setting main_screen "${PLATFORM}" "${GAME}")
-SMOOTH=$(get_setting smooth_scaling "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1) instead of its own "smooth scaling": linear unless it's nearest neighbour
+SMOOTH=1
+[ "$(/usr/share/asgard/asgard-screen-filter.sh get "${PLATFORM}" "${GAME}")" = nearest ] && SMOOTH=0
 CHUNKY=$(get_setting chunky_pixels "${PLATFORM}" "${GAME}")
 LCDGRID=$(get_setting lcd_grid "${PLATFORM}" "${GAME}")
 VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")

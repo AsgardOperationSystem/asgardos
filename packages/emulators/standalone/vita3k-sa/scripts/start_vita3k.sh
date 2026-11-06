@@ -34,7 +34,6 @@ PLATFORM="${2}"
 RENDERER=$(get_setting graphics_backend "${PLATFORM}" "${ROMNAME}")
 PSTVMODE=$(get_setting pstv_mode "${PLATFORM}" "${ROMNAME}")
 IRES=$(get_setting internal_resolution "${PLATFORM}" "${ROMNAME}")
-FILTER=$(get_setting bilinear_filtering "${PLATFORM}" "${ROMNAME}")
 ACCURACY=$(get_setting high_accuracy "${PLATFORM}" "${ROMNAME}")
 MEMMAPPING=$(get_setting memory_mapping "${PLATFORM}" "${ROMNAME}")
 VSYNC=$(get_setting vsync "${PLATFORM}" "${ROMNAME}")
@@ -85,18 +84,8 @@ else
   sed -i "/^pstv-mode:/c\pstv-mode: false" /storage/.config/Vita3K/config.yml
 fi
 
-# Bilinear Filtering
-if [ "${FILTER}" = "0" ]; then
-  sed -i '/^screen-filter:/c\screen-filter: Nearest' /storage/.config/Vita3K/config.yml
-elif [ "${FILTER}" = "2" ]; then
-  sed -i '/^screen-filter:/c\screen-filter: Bicubic' /storage/.config/Vita3K/config.yml
-elif [ "${FILTER}" = "3" ]; then
-  sed -i '/^screen-filter:/c\screen-filter: FXAA' /storage/.config/Vita3K/config.yml
-elif [ "${FILTER}" = "4" ]; then
-  sed -i '/^screen-filter:/c\screen-filter: FSR' /storage/.config/Vita3K/config.yml
-else
-  sed -i '/^screen-filter:/c\screen-filter: Bilinear' /storage/.config/Vita3K/config.yml
-fi
+# Screen filter (VID-1) instead of its own "bilinear filtering": nearest, bilinear or FSR
+/usr/share/asgard/asgard-screen-filter.sh apply vita3k "${PLATFORM}" "${ROMNAME}"
 
 # Renderer Accuracy
 if [ "${ACCURACY}" = "true" ]; then

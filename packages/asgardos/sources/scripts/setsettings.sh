@@ -680,7 +680,11 @@ function set_aspectratio() {
 }
 
 function set_filtering() {
-    add_setting "smooth" "video_smooth"
+    # VID-1: the shared Screen filter (the game's, the system's, Settings > Display's, else bilinear) instead of
+    # RetroArch's own "smooth" option, whose default, off, was nearest neighbour.
+    local smooth=true
+    [ "$(/usr/share/asgard/asgard-screen-filter.sh get "${PLATFORM}" "${ROM}")" = nearest ] && smooth=false
+    add_setting "none" "video_smooth" "${smooth}"
 }
 
 function set_integerscale() {

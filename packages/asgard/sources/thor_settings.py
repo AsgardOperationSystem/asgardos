@@ -137,7 +137,14 @@ SCREEN_FILTERS = {"eden": [NEAREST, BILINEAR, FSR], "eden-duo": [NEAREST, BILINE
                   "armsx2": [NEAREST, BILINEAR, SHARP], "aethersx2": [NEAREST, BILINEAR],
                   "flycast": [NEAREST, BILINEAR], "dolphin": [BILINEAR, SHARP],   # Dolphin has no nearest
                   "azahar": [NEAREST, BILINEAR], "rpcs3": [NEAREST, BILINEAR, FSR], "xemu": [NEAREST, BILINEAR],
-                  "ppsspp": [NEAREST, BILINEAR], "nanoboyadvance": [NEAREST, BILINEAR]}
+                  "ppsspp": [NEAREST, BILINEAR], "nanoboyadvance": [NEAREST, BILINEAR],
+                  "retroarch": [NEAREST, BILINEAR], "melonds": [NEAREST, BILINEAR], "dsperate": [NEAREST, BILINEAR],
+                  "vita3k": [NEAREST, BILINEAR, FSR], "cemu": [NEAREST, BILINEAR], "mupen64plus": [NEAREST, BILINEAR],
+                  "hatarisa": [NEAREST, BILINEAR], "hypseus-singe": [NEAREST, BILINEAR], "scummvm-sa": [NEAREST, BILINEAR]}
+# The emulator's own filter option that Screen filter replaces (its start script now reads screen_filter). Not ARMSX2's
+# and AetherSX2's "bilinear filtering": that's their texture filter.
+SCREEN_FILTER_REPLACES = {"retroarch": {"smooth"}, "melonds": {"screen filter"}, "dsperate": {"smooth scaling"},
+                          "vita3k": {"bilinear filtering"}, "cemu": {"upscale filter"}}
 
 
 def default_label(name):
@@ -250,13 +257,17 @@ def load_features():
         if drivers:   # every emulator: only Vulkan ones load it, the rest ignore VK_DRIVER_FILES
             base = [("gpu driver", drivers)] + base
         base = [GL_DRIVER] + base   # likewise: only OpenGL ones load it
-        if emu.get("name") in SCREEN_FILTERS:
-            base = [("screen filter", SCREEN_FILTERS[emu.get("name")])] + base
+        name = emu.get("name")
+        if name in SCREEN_FILTERS:
+            gone = SCREEN_FILTER_REPLACES.get(name, set()) | {"screen filter"}
+            base = [("screen filter", SCREEN_FILTERS[name])] + [f for f in base if f[0] not in gone]
         base = PERF_FEATURES + base
         out[(emu.get("name"), None)] = base
         for core in emu.findall("cores/core"):
             extra = _standard(core.get("features")) + _feats(core.find("features"))
-            out[(emu.get("name"), core.get("name"))] = base + [f for f in extra if f[0] not in {b[0] for b in base}]
+            gone = SCREEN_FILTER_REPLACES.get(emu.get("name"), set()) if emu.get("name") in SCREEN_FILTERS else set()
+            out[(emu.get("name"), core.get("name"))] = base + [f for f in extra
+                                                               if f[0] not in {b[0] for b in base} | gone]
     return out
 
 
