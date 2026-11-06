@@ -242,6 +242,7 @@ The speakers sound thin and harsh without tuning, and headphones differ widely. 
 - **SND-2** AutoEQ finds a profile by headphone model, which needs internet. A downloaded profile stays usable offline.
 - **SND-3** A game's EQ override lasts until the game ends and leaves the saved setting alone. PipeWire restarts only if the override changes something.
 - **SND-4** Menu sounds and charger chimes can be switched off, and menu sounds have a volume. They play through `pw-play`, not Qt Multimedia, whose audio thread once froze Home.
+- **SND-6** A menu sound starts with no audible delay: an output stays open for 60 s after its last sound, instead of WirePlumber's 5 s, because reopening the DSP's path took about half a second.
 
 ## 8. Power and performance
 
