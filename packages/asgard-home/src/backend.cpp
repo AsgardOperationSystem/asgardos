@@ -295,11 +295,12 @@ void Backend::readPlaytime()
 
 void Backend::readStatus()
 {
-    QFile cap("/sys/class/power_supply/battery/capacity"), st("/sys/class/power_supply/battery/status");
+    // m_root: the test fixture's fake /sys (empty on the device)
+    QFile cap(m_root + "/sys/class/power_supply/battery/capacity"), st(m_root + "/sys/class/power_supply/battery/status");
     const int battery = cap.open(QIODevice::ReadOnly) ? cap.readAll().trimmed().toInt() : -1;
     const bool charging = st.open(QIODevice::ReadOnly) && st.readAll().trimmed() == "Charging";
     // Charger in/out chime. The charger's own online flag: the battery reads "Not charging" at the charge limit.
-    QFile usb("/sys/class/power_supply/qcom-battmgr-usb/online");
+    QFile usb(m_root + "/sys/class/power_supply/qcom-battmgr-usb/online");
     const int plugged = usb.open(QIODevice::ReadOnly) ? usb.readAll().trimmed().toInt() : -1;
     if (m_plugged >= 0 && plugged >= 0 && plugged != m_plugged && getSetting("asgard.charger_sounds", "1") == "1")
         play(plugged ? "charger-in" : "charger-out");
@@ -545,6 +546,12 @@ void Backend::command(const QString &cmd)
     // game already paused (the in-game menu) or frozen in the background, and only ours to unpause.
     if (cmd == "sleep" && playing() && !m_gameMenu && !m_sleepPaused)
         m_sleepPaused = togglePause();
+    // The battery at once, not at the next 5 s poll, which the sleep only paused (PWR-14). Again a moment later, in case
+    // the charger firmware's link was still coming back.
+    if (cmd == "wake") {
+        readStatus();
+        QTimer::singleShot(1500, this, &Backend::readStatus);
+    }
     if (cmd == "wake" && m_sleepPaused) {
         m_sleepPaused = false;
         if (playing())
