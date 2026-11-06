@@ -43,7 +43,9 @@ QML_CALLS = [r'\b(?:get|set)\(\s*"([a-z][\w.]*)"',                         # Set
              r'(?:toggle|choice)\([^\n]*?"((?:[a-z][\w]*\.)+[a-z][\w.]*)"']  # its rows name their key
 # A game option is a suffix of <system>.<key>, read as get_setting <key> <system> <game>: CFG-12 and thor_settings' PERF_FEATURES
 # name these, and they stay short for ROCKNIX's option rows to work. Everything else has to be dotted.
-GAME_OPTION = re.compile(r"^(cpu_cap_\w*|gpu_cap|fan_mode|motion|eq_speaker|eq_headphones|sleep_\w*|top_\w*|bottom_\w*)$")
+# screen_filter: VID-1's per-game and per-system option (asgard-screen-filter.sh), with asgard.screen_filter for the OS.
+GAME_OPTION = re.compile(r"^(cpu_cap_\w*|gpu_cap|fan_mode|motion|eq_speaker|eq_headphones|sleep_\w*|top_\w*|bottom_\w*"
+                         r"|screen_filter)$")
 found = {}
 for path in FILES:
     text = read(path)
@@ -61,7 +63,9 @@ assert not bad, f"new settings need the asgard. prefix (CFG-5), or the list here
 # --- CFG-6.
 # Other programs' own config, whose location isn't ours to choose. ROCKNIX's are the system/, sway/, profile.d/ ones.
 OTHERS = {"asgard", "thor", "autostart", "azahar", "gmu", "gpu-drivers", "mako", "pipewire", "profile.d", "qterminal.org",
-          "retroarch", "sway", "system", "wireguard", "zerotier", "zerotier-networks"}
+          "retroarch", "sway", "system", "wireguard", "zerotier", "zerotier-networks",
+          # the emulators asgard-screen-filter.sh writes the screen filter into (VID-1)
+          "ARMSX2", "aethersx2", "dolphin-emu", "eden", "flycast", "nanoboyadvance", "ppsspp", "rpcs3", "xemu"}
 used = {}
 for path in FILES:
     for name in re.findall(r"/storage/\.config/([\w.-]+)", read(path)):

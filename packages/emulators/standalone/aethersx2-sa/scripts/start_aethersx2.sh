@@ -34,6 +34,8 @@ GRENDERER=$(get_setting graphics_backend "${PLATFORM}" "${GAME}")
 IRES=$(get_setting internal_resolution "${PLATFORM}" "${GAME}")
 VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")
 ENABLE_WIDESCREEN_PATCHES=$(get_setting enable_widescreen_patches "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply aethersx2 "${PLATFORM}" "${GAME}"
 
 #Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")

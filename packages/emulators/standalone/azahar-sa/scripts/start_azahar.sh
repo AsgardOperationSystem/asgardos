@@ -74,6 +74,8 @@ DISABLE_RIGHT_EYE_RENDER=$(get_setting disable_right_eye_render "${PLATFORM}" "$
 SIMULATE_3DS_GPU_TIMINGS=$(get_setting simulate_3ds_gpu_timings "${PLATFORM}" "${GAME}")
 SIMULATE_HEADPHONES_PLUGGED=$(get_setting simulate_headphones_plugged "${PLATFORM}" "${GAME}")
 CUSTOM_TEXTURES=$(get_setting custom_textures "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply azahar "${PLATFORM}" "${GAME}"
 
 #Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")

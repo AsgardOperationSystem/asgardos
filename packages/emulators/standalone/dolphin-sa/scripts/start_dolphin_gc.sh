@@ -527,5 +527,8 @@ fi
   echo "WPC set to: ${WPC}"
   echo "Launching /usr/bin/${DOLPHIN_CORE} ${CMD} -e ${1}"
 
+# Screen filter (VID-1), after GFX.ini is in place: the game's, the system's, Settings > Display's, else bilinear
+  /usr/share/asgard/asgard-screen-filter.sh apply dolphin "${PLATFORM}" "${GAME}"
+
 # Run Dolphin emulator
   ${EMUPERF} /usr/bin/${DOLPHIN_CORE} ${CMD} -e "${1}"

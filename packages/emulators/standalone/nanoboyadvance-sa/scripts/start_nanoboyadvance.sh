@@ -26,6 +26,8 @@ fi
 GAME=$(echo "${1}"| sed "s#^/.*/##")
 PLATFORM=$(echo "${2}"| sed "s#^/.*/##")
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply nanoboyadvance "${PLATFORM}" "${GAME}"
 if [ "${CORES}" = "little" ]
 then
   EMUPERF="${SLOW_CORES}"

@@ -68,6 +68,8 @@ FPS=$(get_setting show_fps "${PLATFORM}" "${GAME}")
 IRES=$(get_setting internal_resolution "${PLATFORM}" "${GAME}")
 GRENDERER=$(get_setting graphics_backend "${PLATFORM}" "${GAME}")
 VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply flycast "${PLATFORM}" "${GAME}"
 
 #Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")

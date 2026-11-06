@@ -30,6 +30,8 @@ GRENDERER=$(get_setting graphics_backend "${PLATFORM}" "${GAME}")
 SKIPB=$(get_setting skip_buffer_effects "${PLATFORM}" "${GAME}")
 VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")
 CLOCK_SPEED=$(get_setting clock_speed "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply ppsspp "${PLATFORM}" "${GAME}"
 
 #Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")

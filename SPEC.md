@@ -319,6 +319,7 @@ Some games only run correctly on a particular driver, so a user can pick one per
 - **GPU-2** The image ships an extra, older Turnip (`turnip-extra`, 25.3.6) in `/usr/lib/gpu-drivers`, because the 3DS Zeldas run on it. Users can add builds in `/storage/.config/gpu-drivers`, made with `tools/turnip/turnip.sh`.
 - **GPU-3** A game's OpenGL runs on Vulkan through Zink by default, as ROCKNIX's SM8550 quirk sets for the whole image, because native OpenGL showed flicker and tiling on this GPU family. It can be set to Mesa's native driver per game or system (`gl_driver=freedreno`), and back to Zink (`gl_driver=zink`). Unset is the OS's choice (GPU-4), else Zink.
 - **GPU-4** Settings > Performance sets the Vulkan and OpenGL drivers for every game (`asgard.gpu_driver`, `asgard.gl_driver`), and a system's or game's own choice wins. They apply to what `runemu.sh` starts, not to Home or sway, so a bad driver can't take the menus down.
+- **VID-1** Every emulator with a setting for how its picture is scaled to the screens has a Screen filter option: nearest neighbour, bilinear, and sharp bilinear or FSR where the emulator has them. The game's choice wins, then its system's, then Settings > Display (`asgard.screen_filter`), else bilinear, because nearest neighbour scales unevenly to the 1080p panels (a 1 px step across Brilliant Diamond's HP bar). `asgard-screen-filter.sh` writes it into each emulator's own config at launch.
 
 ## 12. Diagnostics
 
@@ -473,6 +474,7 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 |---|---|---|
 | DEV-9, DEV-15 | `.gitmodules` and the `Makefile`'s build image point at LAN hosts (`gitlab.lan.example`, `registry.lan.example`), so outside the LAN a clean checkout can't build. | Replace at the public move |
 | DEV-9 | Ten packages (thirteen, counting `emulationstation`, `textviewer` and `rocknix-joypad`) and `DISTRO_MIRROR` still download from ROCKNIX's GitHub. If ROCKNIX moves a file, a clean build breaks. | `docs/plans/rocknix-sources.md` |
+| VID-1 | Screen filter isn't on RetroArch (`video_smooth`, nearest by default), melonDS, DSperate, Vita3K and Cemu (each has its own differently named option to move over), mupen64plus (GLideN64's hybrid filter is forced off), Amiberry, Hatari, VICE, Hypseus and ScummVM. gopher64 and Yaba Sanshiro hard-code nearest, ares only scales through a shader, DuckStation's key in this build is unknown, and SkyEmu, OpenBOR and BigPEmu keep it in binary settings. | Next batch: the config-key and option-migration ones; then patches or shaders for the rest. `test_gap_screen_filter.py` |
 | DEV-11 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
 | DEV-15 | `distribution/options` points its URLs at the old `asgardos/asgardos` project. `PKG_SITE` values and Home's RetroAchievements user agent carry the GitLab URL. | Fix with the public move |
 | DEV-2 | `device/config.xml` and `device/filesystem/` still carry other SM8550 handhelds' device trees and input maps. | Remove when next touched |

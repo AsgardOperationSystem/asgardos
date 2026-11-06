@@ -45,6 +45,8 @@ VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")
 WCOLORB=$(get_setting write_color_buffers "${PLATFORM}" "${GAME}")
 ZCULLA=$(get_setting zcull_accuracy "${PLATFORM}" "${GAME}")
 SUI=$(get_setting start_ui "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply rpcs3 "${PLATFORM}" "${GAME}"
 CONFIG_YML="/storage/.config/rpcs3/config.yml"
 
 #Aspect Ratio

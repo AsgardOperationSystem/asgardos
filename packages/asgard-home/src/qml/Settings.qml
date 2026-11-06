@@ -197,7 +197,13 @@ Item {
                     () => backend.shell("systemctl restart thor-idle-blank"))],
             [link("display", "Top screen", "Refresh rate, colour and Ultra Black", topScreenPage),
              link("display", "Bottom screen", "Refresh rate, colour and RetroArch controls", bottomScreenPage)],
-            [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)]]
+            [link("sparkle", "Stick lights", "Colour, brightness or battery level", ledPage)],
+            // VID-1: every game's screen filter (asgard-screen-filter.sh). Sharp bilinear and FSR where the emulator
+            // has them, else bilinear. A system's or game's own (Emulator options) wins.
+            [choice("display", "Screen filter", "How games are scaled to the screens · a system's or game's own setting wins",
+                    "asgard.screen_filter", "bilinear",
+                    [["Bilinear (smooth)", "bilinear"], ["Nearest neighbour (sharp, uneven)", "nearest"],
+                     ["Sharp bilinear", "sharp"], ["FSR (sharpened upscale)", "fsr"]])]]
         case "Performance": return [
             // Clock cap per core type, % of the cluster's top clock (asgard-cpu-cap.sh); lower = cooler, longer battery.
             // The Asgard menu's own profile per core type (asgard-cpu-cap.sh, only while in Home): clock cap, % of the

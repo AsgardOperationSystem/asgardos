@@ -126,7 +126,18 @@ OS_KEYS = {"sleep wifi": ("asgard.sleep_wifi", "on"), "sleep bt": ("asgard.sleep
            "bottom warmth": ("asgard.warmth.bottom", "0"), "bottom tint": ("asgard.tint.bottom", "3"),
            "bottom contrast": ("asgard.contrast.bottom", "3"),
            # GPU-4: Settings > Performance's drivers for every game. "": none chosen, the image's (default_label).
-           "gpu driver": ("asgard.gpu_driver", ""), "gl driver": ("asgard.gl_driver", "")}
+           "gpu driver": ("asgard.gpu_driver", ""), "gl driver": ("asgard.gl_driver", ""),
+           "screen filter": ("asgard.screen_filter", "bilinear")}   # VID-1: Settings > Display
+
+# VID-1: the screen filter, for the emulators asgard-screen-filter.sh writes it for. Sharp bilinear and FSR only where
+# the emulator has them (the script falls back to bilinear otherwise).
+NEAREST, BILINEAR = ("Nearest neighbour (sharp, uneven)", "nearest"), ("Bilinear (smooth)", "bilinear")
+SHARP, FSR = ("Sharp bilinear", "sharp"), ("FSR (sharpened upscale)", "fsr")
+SCREEN_FILTERS = {"eden": [NEAREST, BILINEAR, FSR], "eden-duo": [NEAREST, BILINEAR, FSR],
+                  "armsx2": [NEAREST, BILINEAR, SHARP], "aethersx2": [NEAREST, BILINEAR],
+                  "flycast": [NEAREST, BILINEAR], "dolphin": [BILINEAR, SHARP],   # Dolphin has no nearest
+                  "azahar": [NEAREST, BILINEAR], "rpcs3": [NEAREST, BILINEAR, FSR], "xemu": [NEAREST, BILINEAR],
+                  "ppsspp": [NEAREST, BILINEAR], "nanoboyadvance": [NEAREST, BILINEAR]}
 
 
 def default_label(name):
@@ -143,6 +154,12 @@ def default_label(name):
             return open("/usr/share/mesa/version").read().strip()
         except OSError:
             return ""
+    if name == "screen filter":   # Settings > Display's, else bilinear
+        try:
+            value = conf.get(OS_KEYS[name][0]) or "bilinear"
+        except OSError:
+            value = "bilinear"
+        return next((label for label, v in (NEAREST, BILINEAR, SHARP, FSR) if v == value), BILINEAR[0])
     if name in OS_KEYS:
         key, value = OS_KEYS[name]
         try:
@@ -233,6 +250,8 @@ def load_features():
         if drivers:   # every emulator: only Vulkan ones load it, the rest ignore VK_DRIVER_FILES
             base = [("gpu driver", drivers)] + base
         base = [GL_DRIVER] + base   # likewise: only OpenGL ones load it
+        if emu.get("name") in SCREEN_FILTERS:
+            base = [("screen filter", SCREEN_FILTERS[emu.get("name")])] + base
         base = PERF_FEATURES + base
         out[(emu.get("name"), None)] = base
         for core in emu.findall("cores/core"):
@@ -696,7 +715,8 @@ def dump_features(emulator, core):
     feats = load_features().get((emulator, core)) or load_features().get((emulator, None))
     if feats is None:   # not in ROCKNIX's catalogue (e.g. gmu, the Music Player): the options every emulator gets
         drivers = gpu_driver_choices()
-        feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else []) + [GL_DRIVER]
+        feats = PERF_FEATURES + ([("gpu driver", drivers)] if drivers else []) + [GL_DRIVER] \
+            + ([("screen filter", SCREEN_FILTERS[emulator])] if emulator in SCREEN_FILTERS else [])
     print(json.dumps([{"key": n.replace(" ", "_"), "label": pretty(n), "choices": [list(c) for c in ch],
                        **({"default": default_label(n)} if default_label(n) else {}),
                        **({"osKey": OS_KEYS[n][0], "osDefault": OS_KEYS[n][1]} if n in OS_KEYS else {}),

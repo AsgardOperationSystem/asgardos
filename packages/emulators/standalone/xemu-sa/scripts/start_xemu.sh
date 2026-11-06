@@ -51,6 +51,8 @@ SHOWFPS=$(get_setting show_fps "${PLATFORM}" "${GAME}")
 SKIPBOOT=$(get_setting skip_boot_animation "${PLATFORM}" "${GAME}")
 SMEM=$(get_setting system_memory "${PLATFORM}" "${GAME}")
 VSYNC=$(get_setting vsync "${PLATFORM}" "${GAME}")
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply xemu "${PLATFORM}" "${GAME}"
 
 # Set the cores to use
 CORES=$(get_setting "cores" "${PLATFORM}" "${GAME}")

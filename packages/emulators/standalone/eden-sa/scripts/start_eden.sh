@@ -44,6 +44,8 @@ case "${ASTC}" in 0|2) ;; *) ASTC=1;; esac
 eden_set gpu_accuracy "${GPU_ACC}"
 eden_set accelerate_astc "${ASTC}"
 eden_set use_asynchronous_gpu_emulation "${ASYNC_GPU}"
+# Screen filter (VID-1): the game's, the system's, Settings > Display's, else bilinear
+/usr/share/asgard/asgard-screen-filter.sh apply eden "${PLATFORM}" "${GAME}"
 # Turnip flushes and invalidates its caches before every draw: Luminescent Platinum (BD) drew stray red/green
 # "fireworks" without it, on Mesa 26.2.4 + Eden master-58c1e20ee5 (2026-10-17; GPU accuracy, ASTC, async GPU,
 # sysmem, nolrz and noubwc didn't help). Costs some speed, so per game.

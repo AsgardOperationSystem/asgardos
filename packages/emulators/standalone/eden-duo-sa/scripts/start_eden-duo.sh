@@ -64,6 +64,8 @@ case "${ASTC}" in 0|2) ;; *) ASTC=1;; esac
 eden_set gpu_accuracy "${GPU_ACC}"
 eden_set accelerate_astc "${ASTC}"
 eden_set use_asynchronous_gpu_emulation "${ASYNC_GPU}"
+# Screen filter (VID-1): Eden Duo's own default is nearest neighbour, which stepped Brilliant Diamond's HP bar
+/usr/share/asgard/asgard-screen-filter.sh apply eden-duo "${PLATFORM}" "${GAME}"
 # Flush GPU caches: Turnip flushes before every draw (Luminescent Platinum's stray "fireworks", see start_eden.sh).
 [ "$(get_setting flush_gpu_caches "${PLATFORM}" "${GAME}")" = 1 ] && export TU_DEBUG=flushall
 
