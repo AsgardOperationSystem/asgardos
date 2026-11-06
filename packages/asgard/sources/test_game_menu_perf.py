@@ -41,6 +41,7 @@ const backend = { shell: c => shell.push(c) }
 let game = ["azahar"], launched = { sys: "3ds", path: "/roms/3ds/Pokemon X.3ds", emulator: "azahar", core: "azahar" }
 let perfChanged = false, screenChanged = false, group = null, groupSel = 0, sel = 0, open = true, openedAt = 0, items = [], parents = []
 const resume = () => { open = false }
+const networkOpen = false   // MENU-6, test_game_menu_network.py
 %s
 const back_ = { title: "Back", run: () => back() }
 const tile = { title: "Performance", items: perfTiles() }

@@ -24,7 +24,10 @@ Item {
         if (open) {
             game = backend.runningGame(); launched = backend.launchedGame(); group = null; parents = []; sel = 0; openedAt = Date.now()
             if (hasPerf()) settings.features(perfEmu(), perfCore())   // loaded here: not from the page's binding
-        } else applyPerf()
+        } else {
+            applyPerf()
+            if (networkOpen) network.item.close()   // the game resumed or ended under it: stop a Bluetooth scan
+        }
     }
 
     // Performance: the game's CPU and GPU caps and its screens, saved to its own keys as in its Settings page, so the next launch
@@ -79,6 +82,18 @@ Item {
         }
     }
 
+    // Wi-Fi and Bluetooth (MENU-6): Settings' own pages, on the menu's screen. The menu is in whichever window is on the
+    // physical bottom screen and Settings in the other, so it has its own Settings, made the first time it's used.
+    function networkTile() {
+        return { icon: "wifi", title: "Wi-Fi and Bluetooth", sub: "Networks, headphones, controllers", items: [
+            { icon: "wifi", title: "Wi-Fi", sub: backend.getSetting("wifi.enabled", "1") === "1" ? "On" : "Off",
+              run: () => openNetwork("Wi-Fi") },
+            { icon: "bluetooth", title: "Bluetooth", sub: backend.getSetting("bluetooth.enabled", "") === "1" ? "On" : "Off",
+              run: () => openNetwork("Bluetooth") }] }
+    }
+    function openNetwork(title) { network.active = true; network.item.showNetwork(title) }
+    readonly property bool networkOpen: network.status === Loader.Ready && network.item.open
+
     function resume(keys) {                  // close, run the hotkeys, unpause
         backend.gameMenu = false
         for (const k of keys || []) backend.gameKeys(k)
@@ -96,6 +111,7 @@ Item {
     function withExit(list, restart, quit) {
         if (hasPerf())
             list = list.concat([{ icon: "gauge", title: "Performance", sub: "CPU, GPU and screens for this game", items: perfTiles() }])
+        list = list.concat([networkTile()])
         const exit = (game.length ? [{ icon: "home", title: "Back to Home", sub: "The game waits in the background",
                                        run: () => { resume(); backend.toBackground() } }] : [])
             .concat(restart ? [restart] : [])
@@ -172,6 +188,7 @@ Item {
         // A short tap of Home comes with an extra event (a long press doesn't) that reached the menu as it opened
         // and resumed the game at once: input in the first 400 ms is ignored.
         if (Date.now() - openedAt < 400) return true
+        if (networkOpen) { network.item.nav(b); return true }   // B there closes it, back to this menu
         if (onPage && (b === "up" || b === "down" || b === "left" || b === "right")) {
             if (b === "up" && sel > 0) sel--
             else if (b === "down" && sel + 1 < shown.length) sel++
@@ -243,4 +260,5 @@ Item {
             }
         }
     }
+    Loader { id: network; anchors.fill: parent; active: false; z: 10; sourceComponent: Settings {} }
 }

@@ -24,6 +24,7 @@ function menuFor(game, launched) {
     const azahar = game.includes("azahar"), eden = game.includes("eden"), retroarch = game.includes("retroarch"),
           steam = game.includes("steam"), wwhd = game.includes("wwhd")
     const hasPerf = () => false
+    const networkTile = () => ({ title: "Wi-Fi and Bluetooth", items: [{ title: "Wi-Fi" }, { title: "Bluetooth" }] })  // MENU-6
     %s
     %s
     const show = list => list.map(t => {

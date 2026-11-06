@@ -24,6 +24,13 @@ Item {
     function showGame(g) { show(); cat = 2; stack = [{ title: g.name, build: () => gamePage(g), closeOnBack: true }]; zone = "list" }
     function showPower() { show(); cat = categories.findIndex(c => c.title === "Power"); zone = "list" }
     function show() { open = true; zone = "side"; row = 0; stack = []; dialog.ask = null; keyboard.open = false; refresh(); rev++ }
+    // The in-game menu's Wi-Fi and Bluetooth (MENU-6): opened straight on that Network page, as if picked there
+    // (so Wi-Fi scans), and Back closes it, back to the menu.
+    function showNetwork(title) {
+        show(); cat = categories.findIndex(c => c.title === "Hardware"); zone = "list"
+        openRow(section("Network")[0].find(r => r.title === title))
+        stack = [Object.assign({}, stack[0], { closeOnBack: true })]
+    }
     function close() { open = false; closed() }
     onOpenChanged: btScanCheck()
     onStackChanged: btScanCheck()
