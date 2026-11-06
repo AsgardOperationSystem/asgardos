@@ -1,4 +1,4 @@
-# spec: OVR-1 OVR-2 OVR-3 OVR-5 GPU-1 GPU-2 GPU-3
+# spec: OVR-1 OVR-2 OVR-3 OVR-5 GPU-1 GPU-2 GPU-3 GPU-4
 # requires: cmd:node lib:libSDL2-2.0.so.0 lib:libSDL2_ttf-2.0.so.0 lib:libSDL2_image-2.0.so.0
 """A game's and a system's settings rows: the real thor_settings.py --features answers, with the real row functions from
 Settings.qml run in node against a fake system.cfg. OVR-1 what an unset row says, and that unsetting inherits again. OVR-2 the same
@@ -57,7 +57,7 @@ const out = {}
 const req = JSON.parse(process.argv[2])
 for (const [name, code] of Object.entries(req)) out[name] = eval(code)
 console.log(JSON.stringify({ out, cfg, shells }))
-""" % "\n".join(function(QML, f) for f in ("allCoresOff", "optionRow", "optionsPage", "gamePage", "systemPage"))
+""" % "\n".join(function(QML, f) for f in ("allCoresOff", "optionRow", "optionsPage", "gamePage", "systemPage", "osDriverRows"))
 
 
 def node(cfg, feats, requests, emus=()):
@@ -182,10 +182,30 @@ with tempfile.TemporaryDirectory() as d:
     ts.GPU_DRIVERS = (f"{d}/user", f"{d}/image", f"{d}/not-there")
     ts.open = lambda path, *a, **k: io.StringIO("mesa-26.2.6\n") if path == "/usr/share/mesa/version" else open(path, *a, **k)
     row = next(f for f in features("azahar", "azahar-sa") if f["key"] == "gpu_driver")
-    assert row["choices"] == [["mesa-25.3.6", "mesa-25.3.6"], ["mine", "mine"]], row
+    assert row["choices"] == [["Image's Mesa", "image"], ["mesa-25.3.6", "mesa-25.3.6"], ["mine", "mine"]], row
+    assert row["osKey"] == "asgard.gpu_driver", row   # GPU-4: the OS's choice, read live
     assert row["default"] == "mesa-26.2.6", row
     out, _, _ = node({}, [row], {"v": VALUE % (json.dumps(row), json.dumps(GAME), json.dumps(SYSTEM))})
     assert out["v"] == "OS (mesa-26.2.6)", out
+    # GPU-4: with a driver chosen for every game, an unset row names it; the TUI's label too.
+    out, _, _ = node({"asgard.gpu_driver": "mine"}, [row], {"v": VALUE % (json.dumps(row), json.dumps(GAME), json.dumps(SYSTEM))})
+    assert out["v"] == "OS (mine)", out
+    ts.conf.get = lambda key, default="": {"asgard.gpu_driver": "mine"}.get(key, default)
+    assert ts.unset_label("gpu driver", "") == "OS (mine)", ts.unset_label("gpu driver", "")
+    ts.conf.get = lambda key, default="": default
+    assert ts.unset_label("gpu driver", "") == "OS (mesa-26.2.6)", ts.unset_label("gpu driver", "")
+    del ts.conf.get
+    # GPU-4: Settings > Performance's two rows, from the same answer as any emulator's: unset names the image's
+    # driver; stepping goes to the image's Mesa by name, then the builds, then back to unset; they save asgard.* keys.
+    os_feats = features("os", "os")
+    rows = "osDriverRows().map(r => [r.title, r.value])"
+    out, _, _ = node({}, os_feats, {"v": rows})
+    assert out["v"] == [["Vulkan driver", "Image's (mesa-26.2.6)"], ["OpenGL driver", "Image's (Zink)"]], out
+    steps = "[1, 2, 3, 4].map(() => { osDriverRows()[0].step(1); return get('asgard.gpu_driver') })"
+    out, cfg, _ = node({}, os_feats, {"v": steps})
+    assert out["v"] == ["image", "mesa-25.3.6", "mine", ""], out
+    out, cfg, _ = node({}, os_feats, {"v": "(osDriverRows()[1].step(1), osDriverRows()[1].value)"})
+    assert out["v"] == "freedreno (native OpenGL)" and cfg == {"asgard.gl_driver": "freedreno"}, (out, cfg)
     # An emulator es_features.cfg doesn't know gets it too.
     assert "gpu_driver" in {f["key"] for f in features("amiberry", "amiberry")}
     del ts.open

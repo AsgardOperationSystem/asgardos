@@ -105,14 +105,16 @@ GPU_DRIVERS = ("/storage/.config/gpu-drivers", "/usr/lib/gpu-drivers")
 
 
 def gpu_driver_choices():
-    """Installed Turnip builds; unset ("Default") is the image's own Mesa. runemu.sh exports VK_DRIVER_FILES."""
+    """Installed Turnip builds, after the image's own Mesa by name ("image", no build has that dir): with an OS choice in
+    Settings (asgard.gpu_driver), unset means that one, so a game or system needs a way back to the image's. Unset with
+    no OS choice is the image's Mesa. runemu.sh exports VK_DRIVER_FILES."""
     names = set()
     for top in GPU_DRIVERS:
         try:
             names.update(d for d in os.listdir(top) if os.path.isfile(f"{top}/{d}/icd.json"))
         except OSError:
             pass
-    return [(n, n) for n in sorted(names)]
+    return [("Image's Mesa", "image")] + [(n, n) for n in sorted(names)] if names else []
 
 
 # The OS's value of an option where that's a setting: name -> (key, its default). Read live, as Settings changes them.
@@ -122,7 +124,9 @@ OS_KEYS = {"sleep wifi": ("asgard.sleep_wifi", "on"), "sleep bt": ("asgard.sleep
            "top contrast": ("asgard.contrast.top", "0"), "top ultra black": ("asgard.ultra_black", "1"),
            "bottom refresh": ("asgard.refresh_bottom", "60"), "bottom brightness": ("display.brightness", "50"),
            "bottom warmth": ("asgard.warmth.bottom", "0"), "bottom tint": ("asgard.tint.bottom", "3"),
-           "bottom contrast": ("asgard.contrast.bottom", "3")}
+           "bottom contrast": ("asgard.contrast.bottom", "3"),
+           # GPU-4: Settings > Performance's drivers for every game. "": none chosen, the image's (default_label).
+           "gpu driver": ("asgard.gpu_driver", ""), "gl driver": ("asgard.gl_driver", "")}
 
 
 def default_label(name):
@@ -134,6 +138,11 @@ def default_label(name):
         return "Off"
     if name == "gl driver":
         return "Zink"
+    if name == "gpu driver":
+        try:
+            return open("/usr/share/mesa/version").read().strip()
+        except OSError:
+            return ""
     if name in OS_KEYS:
         key, value = OS_KEYS[name]
         try:
@@ -141,11 +150,6 @@ def default_label(name):
         except OSError:   # no system.cfg yet: nothing set
             pass
         return next((label for label, v in dict(PERF_FEATURES)[name] if v == value), value)
-    if name == "gpu driver":
-        try:
-            return open("/usr/share/mesa/version").read().strip()
-        except OSError:
-            pass
     return ""
 
 
@@ -153,8 +157,20 @@ def unset_label(name, parent_label):
     """An unset option takes its parent's setting: "Emulator settings (80%)", else "OS (100%)", else "Default"."""
     if parent_label:
         return f"Emulator settings ({parent_label})"
-    dflt = default_label(name)
+    dflt = os_driver_label(name) or default_label(name)
     return f"OS ({dflt})" if dflt else "Default"
+
+
+def os_driver_label(name):
+    """The driver chosen for every game in Settings (GPU-4), as its row names it; "" when none is."""
+    if name not in ("gpu driver", "gl driver"):
+        return ""
+    try:
+        value = conf.get(OS_KEYS[name][0])
+    except OSError:
+        return ""
+    choices = gpu_driver_choices() if name == "gpu driver" else GL_DRIVER[1]
+    return next((label for label, v in choices if v == value), value or "")
 
 
 # Per-system / per-game profile (asgard-perf-profile.sh, run by runemu.sh around the emulator): clock cap and cores

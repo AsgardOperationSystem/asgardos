@@ -315,9 +315,10 @@ Makes the Thor useful beyond emulators: music, files, a browser, a terminal, gam
 
 Some games only run correctly on a particular driver, so a user can pick one per game instead of the whole system changing.
 
-- **GPU-1** The Turnip driver can be chosen per game, and an unset row names the default, the image's Mesa. `runemu.sh` selects it through `VK_DRIVER_FILES`.
+- **GPU-1** The Turnip driver can be chosen per game, and an unset row names what it falls back to: the system's, else the OS's (GPU-4), else the image's Mesa. "Image's Mesa" can be chosen by name, to go back to it. `runemu.sh` selects it through `VK_DRIVER_FILES`.
 - **GPU-2** The image ships an extra, older Turnip (`turnip-extra`, 25.3.6) in `/usr/lib/gpu-drivers`, because the 3DS Zeldas run on it. Users can add builds in `/storage/.config/gpu-drivers`, made with `tools/turnip/turnip.sh`.
-- **GPU-3** A game's OpenGL runs on Vulkan through Zink by default, as ROCKNIX's SM8550 quirk sets for the whole image, because native OpenGL showed flicker and tiling on this GPU family. It can be set to Mesa's native driver per game or system (`gl_driver=freedreno`), and back to Zink (`gl_driver=zink`). Unset is Zink.
+- **GPU-3** A game's OpenGL runs on Vulkan through Zink by default, as ROCKNIX's SM8550 quirk sets for the whole image, because native OpenGL showed flicker and tiling on this GPU family. It can be set to Mesa's native driver per game or system (`gl_driver=freedreno`), and back to Zink (`gl_driver=zink`). Unset is the OS's choice (GPU-4), else Zink.
+- **GPU-4** Settings > Performance sets the Vulkan and OpenGL drivers for every game (`asgard.gpu_driver`, `asgard.gl_driver`), and a system's or game's own choice wins. They apply to what `runemu.sh` starts, not to Home or sway, so a bad driver can't take the menus down.
 
 ## 12. Diagnostics
 

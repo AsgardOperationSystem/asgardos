@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# spec: GAME-1 GAME-2 GAME-3 EMU-4 GPU-1 GPU-3
+# spec: GAME-1 GAME-2 GAME-3 EMU-4 GPU-1 GPU-3 GPU-4
 # requires: cmd:bash cmd:jq cmd:flock
 # The real runemu.sh and profile functions, every path rewritten into a temp dir, with fake start_*.sh and helpers. GAME-1: what
 # it does around any emulator (profile, pre-rotation, per-game options); GAME-2: the kill data's life around a launch; GAME-3: the
@@ -172,7 +172,11 @@ with Fixture() as f:
                       ('gba.gpu_driver=mesa-a\ngba["Metroid.gba"].gpu_driver=mesa-b\n', f"{gpu}/mesa-b/icd.json"),
                       ("gba.gpu_driver=mine\n", f"{user}/mine/icd.json"),
                       ("gba.gpu_driver=both\n", f"{user}/both/icd.json"),
-                      ("gba.gpu_driver=missing\n", None)):
+                      ("gba.gpu_driver=missing\n", None),
+                      # GPU-4: the OS's choice when the game and system have none; theirs win; "image" goes back to Mesa
+                      ("asgard.gpu_driver=mesa-a\n", f"{gpu}/mesa-a/icd.json"),
+                      ("asgard.gpu_driver=mesa-a\ngba.gpu_driver=mesa-b\n", f"{gpu}/mesa-b/icd.json"),
+                      ('asgard.gpu_driver=mesa-a\ngba["Metroid.gba"].gpu_driver=image\n', None)):
         f.cfg(cfg)
         _, seen = f.launch()
         assert seen.get("VK_DRIVER_FILES") == want, (cfg, seen)
@@ -182,7 +186,9 @@ with Fixture() as f:
 with Fixture() as f:
     for cfg, want in (("", None), ("gba.gl_driver=freedreno\n", "msm"), ('gba["Metroid.gba"].gl_driver=freedreno\n', "msm"),
                       ('gba.gl_driver=freedreno\ngba["Metroid.gba"].gl_driver=zink\n', "zink"),
-                      ('nds.gl_driver=freedreno\n', None)):
+                      ('nds.gl_driver=freedreno\n', None),
+                      ("asgard.gl_driver=freedreno\n", "msm"),                       # GPU-4: the OS's
+                      ("asgard.gl_driver=freedreno\ngba.gl_driver=zink\n", "zink")):  # the system's wins
         f.cfg(cfg)
         _, seen = f.launch()
         assert seen.get("MESA_LOADER_DRIVER_OVERRIDE") == want, (cfg, seen)

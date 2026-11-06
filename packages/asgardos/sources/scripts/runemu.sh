@@ -430,6 +430,8 @@ fi
 ### or /usr/lib/gpu-drivers/<name>/ (the image's) instead of the image's Mesa, per system or game ("GPU driver" in the
 ### emulator options)
 GPUDRIVER=$(get_setting "gpu_driver" "${PLATFORM}" "${ROMNAME##*/}")
+### none for the game or system: Settings > Performance's, for every game (GPU-4). "image" has no build dir: the image's Mesa
+[ -z "${GPUDRIVER}" ] && GPUDRIVER=$(get_setting "asgard.gpu_driver")
 for GPUDIR in /storage/.config/gpu-drivers /usr/lib/gpu-drivers
 do
     if [ -n "${GPUDRIVER}" ] && [ -f "${GPUDIR}/${GPUDRIVER}/icd.json" ]
@@ -442,6 +444,7 @@ done
 ### OpenGL driver (Asgard): the image's default is Zink (GL on the Vulkan driver above, from the SM8550 quirk); freedreno
 ### is Mesa's native driver, msm to its loader. Per system or game
 GL_DRIVER=$(get_setting "gl_driver" "${PLATFORM}" "${ROMNAME##*/}")
+[ -z "${GL_DRIVER}" ] && GL_DRIVER=$(get_setting "asgard.gl_driver")   # likewise (GPU-4)
 case "${GL_DRIVER}" in
     zink) export MESA_LOADER_DRIVER_OVERRIDE=zink ;;
     freedreno) export MESA_LOADER_DRIVER_OVERRIDE=msm ;;

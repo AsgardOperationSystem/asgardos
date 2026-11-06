@@ -235,7 +235,8 @@ Item {
                     [["Sleep", "mem"], ["Light sleep", "freeze"], ["Screen off only", "off"]], v => backend.shell("suspendmode " + v)),
              // asgard-screens-off.sh, for a game set to keep running. A system's or game's own option comes first.
              choice("wifi", "Wi-Fi while screens off", "For games that keep running", "asgard.sleep_wifi", "on", [["On", "on"], ["Off", "off"]]),
-             choice("bluetooth", "Bluetooth while screens off", "For games that keep running", "asgard.sleep_bt", "on", [["On", "on"], ["Off", "off"]])]]
+             choice("bluetooth", "Bluetooth while screens off", "For games that keep running", "asgard.sleep_bt", "on", [["On", "on"], ["Off", "off"]])],
+            osDriverRows()]
         case "Network": return [
             [link("wifi", "Wi-Fi", get("wifi.enabled", "1") !== "1" ? "Off" : live.ssid ? "Connected to " + live.ssid : "Not connected", wifiPage),
              link("bluetooth", "Bluetooth", get("bluetooth.enabled") === "1" ? "On" : "Off", btPage)],
@@ -693,7 +694,9 @@ Item {
         // Unset takes the parent's setting: the emulator's, else the OS's (thor_settings.py "default": stock clocks,
         // gyro off, the image's Mesa), else just "Default".
         // osKey: the OS's value is a setting, read now because the features are cached.
-        const os = f.osKey ? label(get(f.osKey, f.osDefault)) : f.default
+        // An empty OS value (the drivers, GPU-4: none chosen) is the image's, f.default.
+        const osValue = f.osKey ? get(f.osKey, f.osDefault) : ""
+        const os = osValue ? label(osValue) : f.default
         const unset = parent ? "Emulator settings (" + label(parent) + ")" : os ? "OS (" + os + ")" : "Default"
         return { kind: "choice", icon: "chip", title: f.label, sub: "", value: cur ? label(cur) : unset,
                  step: d => { let i = Math.max(0, values.indexOf(cur))
@@ -702,6 +705,21 @@ Item {
                                   if (!type || !allCoresOff(prefix, inherit, type, values[i])) break
                               }
                               set(key, values[i]) } }
+    }
+    // GPU-4: the Vulkan and OpenGL drivers for every game (asgard.gpu_driver / asgard.gl_driver, runemu.sh). A system's or
+    // game's own choice wins. The rows and the image's defaults are the emulator options' (thor_settings.py, any emulator).
+    function osDriverRows() {
+        const feats = features("os", "os")
+        if (!feats) return [info("chip", "Graphics drivers", "Loading…")]
+        const subs = { gpu_driver: "Vulkan, for every game · a system's or game's own setting wins",
+                       gl_driver: "OpenGL, for every game · a system's or game's own setting wins" }
+        return feats.filter(f => subs[f.key]).map(f => {
+            const key = "asgard." + f.key, cur = get(key)
+            const values = [""].concat(f.choices.map(c => c[1]))
+            return { kind: "choice", icon: "chip", title: f.key === "gpu_driver" ? "Vulkan driver" : "OpenGL driver", sub: subs[f.key],
+                     value: cur ? (f.choices.find(c => c[1] === cur) || [cur])[0] : "Image's (" + f.default + ")",
+                     step: d => set(key, values[(Math.max(0, values.indexOf(cur)) + d + values.length) % values.length]) }
+        })
     }
     // The game's CPU and GPU cap rows, the same ones as its Emulator options (the in-game menu's Performance page).
     function perfRows(prefix, emu, core, inherit) {
