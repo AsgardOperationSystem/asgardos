@@ -3,6 +3,15 @@
 # Copyright (C) 2024-present ROCKNIX (https://github.com/ROCKNIX)
 #
 # This script will update the ABL on the internal eMMC/UFS.
+#
+# AsgardOS (UPD-6): a bad ABL in both slots can only be recovered through EDL, so this does what a careful hand flash
+# does: Thor only, the image's checksum checked, both slots backed up to /storage first, a typed confirmation, then
+# one slot at a time (abl_b, then abl_a), each read back from the device and compared. A slot that doesn't read back
+# right is restored from its backup and the other slot is left alone.
+#   updateabl          ask before flashing
+#   updateabl --yes    don't ask (still refuses on any failed check)
+# For the host test, these environment variables replace the device paths: ABL_OS_RELEASE, ABL_MODEL_FILE, ABL_ELF,
+# ABL_DEV_A, ABL_DEV_B (regular files allowed only then), ABL_BACKUP_ROOT.
 
 if [ -n "$SYSTEM_ROOT" ]; then
   ROOT=$SYSTEM_ROOT
@@ -10,80 +19,129 @@ if [ -n "$SYSTEM_ROOT" ]; then
   mount --bind /proc $ROOT/proc
   mount --bind /sys $ROOT/sys
   mount -t tmpfs tmpfs $ROOT/tmp
-  SYSTEM_ROOT="" chroot $ROOT /usr/bin/updateabl
+  SYSTEM_ROOT="" chroot $ROOT /usr/bin/updateabl "$@"
   RC=$?
   umount $ROOT/tmp $ROOT/sys $ROOT/proc $ROOT/dev
   exit $RC
 fi
 
-. $SYSTEM_ROOT/etc/os-release
+PATH=$PATH:/usr/sbin:/usr/bin:/sbin:/bin
 
-case "$HW_DEVICE" in
-  SM4450|SM6115|SM8250|SM8550|SM8650|SM8750)
-    ;;
-  *)
-    echo "This script is not compatible with this device!"
-    exit 1
-    ;;
+YES=
+case "$1" in
+  --yes) YES=1 ;;
+  "") ;;
+  *) echo "usage: updateabl [--yes]"; exit 2 ;;
 esac
 
-# ---- Paths ----
-ELF="$SYSTEM_ROOT/usr/share/bootloader/openabl/abl_signed-${HW_DEVICE}.elf"
-TMP_ABL_A="/tmp/current_abl_a.bin"
-TMP_ABL_B="/tmp/current_abl_b.bin"
-
-# ---- Sanity checks ----
-if [ ! -f "${ELF}" ]; then
-  echo "Error: ABL update not found"
+fail() {
+  echo "Error: $*"
   exit 1
+}
+
+. "${ABL_OS_RELEASE:-/etc/os-release}"
+
+# ---- Thor only: the image is built and checked for it, and other SM8550 devices aren't tested ----
+[ "$HW_DEVICE" = "SM8550" ] || fail "this script is only for the AYN Thor (SM8550), not '${HW_DEVICE}'"
+MODEL="$(tr -d '\0' < "${ABL_MODEL_FILE:-/sys/firmware/devicetree/base/model}" 2>/dev/null)"
+[ "$MODEL" = "AYN Thor" ] || fail "this script is only for the AYN Thor, not '${MODEL}'"
+
+# ---- The image, checked against the checksum shipped with it ----
+ELF="${ABL_ELF:-/usr/share/bootloader/openabl/abl_signed-${HW_DEVICE}.elf}"
+[ -f "$ELF" ] || fail "ABL update not found: $ELF"
+[ -f "$ELF.sha256" ] || fail "no checksum next to the ABL update: $ELF.sha256"
+SUM_UPDATE="$(sha256sum "$ELF" | awk '{print $1}')"
+[ "$SUM_UPDATE" = "$(awk '{print $1}' "$ELF.sha256")" ] || fail "the ABL update doesn't match its checksum"
+ELF_SIZE=$(stat -c%s "$ELF")
+
+# ---- The slots ----
+if [ -n "$ABL_DEV_A$ABL_DEV_B" ]; then
+  ABL_A="$ABL_DEV_A"
+  ABL_B="$ABL_DEV_B"
+  [ -e "$ABL_A" ] && [ -e "$ABL_B" ] || fail "ABL partitions not found"
+else
+  partprobe
+  ABL_A="$(blkid -t PARTLABEL=abl_a -o device)"
+  ABL_B="$(blkid -t PARTLABEL=abl_b -o device)"
+  [ -b "$ABL_A" ] && [ -b "$ABL_B" ] || fail "ABL partitions not found"
 fi
 
-$SYSTEM_ROOT/usr/sbin/partprobe
+part_size() {
+  if [ -b "$1" ]; then blockdev --getsize64 "$1"; else stat -c%s "$1"; fi
+}
 
-ABL_A="$($SYSTEM_ROOT/usr/sbin/blkid -t PARTLABEL=abl_a -o device)"
-ABL_B="$($SYSTEM_ROOT/usr/sbin/blkid -t PARTLABEL=abl_b -o device)"
-if [ ! -b "${ABL_A}" ] || [ ! -b "${ABL_B}" ]; then
-  echo "Error: ABL partitions not found"
-  exit 1
+# What the slot holds where the image goes: the first ELF_SIZE bytes, read from the device, not the page cache.
+slot_sum() {
+  [ -b "$1" ] && blockdev --flushbufs "$1"
+  head -c "$ELF_SIZE" "$1" | sha256sum | awk '{print $1}'
+}
+
+for DEV in "$ABL_A" "$ABL_B"; do
+  SIZE=$(part_size "$DEV")
+  [ -n "$SIZE" ] && [ "$SIZE" -ge "$ELF_SIZE" ] || fail "$DEV is smaller than the ABL update"
+done
+
+SUM_A="$(slot_sum "$ABL_A")"
+SUM_B="$(slot_sum "$ABL_B")"
+echo "Checksum abl_a:  ${SUM_A%"${SUM_A#???????}"}"
+echo "Checksum abl_b:  ${SUM_B%"${SUM_B#???????}"}"
+echo "Checksum update: ${SUM_UPDATE%"${SUM_UPDATE#???????}"}"
+
+if [ "$SUM_A" = "$SUM_UPDATE" ] && [ "$SUM_B" = "$SUM_UPDATE" ]; then
+  echo "abl_a and abl_b match the update: nothing to flash."
+  exit 0
 fi
 
-# ---- Get sector size ----
-SS="$($SYSTEM_ROOT/usr/sbin/blockdev --getss "${ABL_A}")"
-[ -z "${SS}" ] && echo "Error: failed to get sector size" && exit 1
-
-
-# ---- Determine how many sectors to read ----
-ELF_SIZE=$($SYSTEM_ROOT/usr/bin/stat -c%s "${ELF}")
-COUNT=$(( (ELF_SIZE + SS - 1) / SS ))
-
-# ---- Read current ABLs ----
-echo "Reading ${COUNT} sectors from ABL_A..."
-dd if="${ABL_A}" of="${TMP_ABL_A}" bs="${SS}" count="${COUNT}" status=none
-
-echo "Reading ${COUNT} sectors from ABL_B..."
-dd if="${ABL_B}" of="${TMP_ABL_B}" bs="${SS}" count="${COUNT}" status=none
-
-# ---- Calculate checksums ----
-SUM_A="$($SYSTEM_ROOT/usr/bin/sha256sum "${TMP_ABL_A}" | awk '{print $1}')"
-SUM_B="$($SYSTEM_ROOT/usr/bin/sha256sum "${TMP_ABL_B}" | awk '{print $1}')"
-SUM_UPDATE="$($SYSTEM_ROOT/usr/bin/sha256sum "${ELF}" | awk '{print $1}')"
-
-echo "Checksum abl_a: ${SUM_A:0:7}"
-echo "Checksum abl_b: ${SUM_B:0:7}"
-echo "Checksum update: ${SUM_UPDATE:0:7}"
-
-# ---- Compare ----
-if [ "${SUM_A}" = "${SUM_UPDATE}" ] && [ "${SUM_B}" = "${SUM_UPDATE}" ]; then
-    echo "ABL_A and ABL_B match update version — skipping flash."
-    exit 0
-fi
-
-echo "Checksums differ — flashing ABL partitions..."
-
-# ---- Flash ----
-dd if="${ELF}" of="${ABL_A}" bs="${SS}" conv=fsync,notrunc status=none
-dd if="${ELF}" of="${ABL_B}" bs="${SS}" conv=fsync,notrunc status=none
-
+# ---- Back up both slots whole, and check the copies ----
+BACKUP="${ABL_BACKUP_ROOT:-/storage/.config/asgard/abl-backup}/$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$BACKUP" || fail "can't create $BACKUP"
+backup_slot() {  # slot letter, device
+  dd if="$2" of="$BACKUP/abl_$1.img" bs=64k status=none || fail "backing up abl_$1 failed"
+  [ -b "$2" ] && blockdev --flushbufs "$2"
+  cmp -s "$2" "$BACKUP/abl_$1.img" || fail "the backup of abl_$1 doesn't match the partition"
+}
+backup_slot a "$ABL_A"
+backup_slot b "$ABL_B"
+(cd "$BACKUP" && sha256sum abl_a.img abl_b.img > sha256.txt) || fail "can't write $BACKUP/sha256.txt"
 sync
+echo "Backed up both slots to $BACKUP"
+echo "Copy that folder off the Thor before going on (it's in the Samba \"config\" share, under asgard/abl-backup)."
 
-echo "ABL update completed successfully..."
+# ---- Ask ----
+if [ -z "$YES" ]; then
+  echo
+  echo "This writes OpenABL to abl_b, checks it, then abl_a. If both slots end up bad, only EDL can recover the Thor."
+  printf 'Type "flash" to go on: '
+  read ANSWER
+  [ "$ANSWER" = "flash" ] || { echo "Nothing written."; exit 1; }
+fi
+
+# ---- Flash one slot, read it back; a bad read-back puts the backup back ----
+flash_slot() {  # slot letter, device, current checksum
+  if [ "$3" = "$SUM_UPDATE" ]; then
+    echo "abl_$1 already matches the update."
+    return 0
+  fi
+  echo "Writing abl_$1..."
+  dd if="$ELF" of="$2" bs=64k conv=fsync,notrunc status=none
+  sync
+  if [ "$(slot_sum "$2")" = "$SUM_UPDATE" ]; then
+    echo "abl_$1 written and verified."
+    return 0
+  fi
+  echo "Error: abl_$1 doesn't read back as the update. Restoring its backup..."
+  dd if="$BACKUP/abl_$1.img" of="$2" bs=64k conv=fsync,notrunc status=none
+  sync
+  [ -b "$2" ] && blockdev --flushbufs "$2"
+  if cmp -s "$2" "$BACKUP/abl_$1.img"; then
+    echo "abl_$1 restored from the backup."
+  else
+    echo "Error: abl_$1 couldn't be restored either. Don't reboot; the backup is in $BACKUP."
+  fi
+  return 1
+}
+
+flash_slot b "$ABL_B" "$SUM_B" || { echo "abl_a was not touched."; exit 1; }
+flash_slot a "$ABL_A" "$SUM_A" || { echo "abl_b holds the update; abl_a holds what it had before."; exit 1; }
+
+echo "ABL update completed: both slots verified. The backup is in $BACKUP."

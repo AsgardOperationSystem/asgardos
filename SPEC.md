@@ -456,6 +456,7 @@ These keep one person able to maintain a fork of a large distribution and keep u
 - **UPD-3** Staging doesn't reboot or disturb a running game. The update installs on the next boot.
 - **UPD-4** An update keeps user data: saves, ROMs, `system.cfg`, `/storage/.config/asgard`, `/storage/.config/thor`, SSH keys, and emulators' own settings. New shipped keys are added to those settings, and the user's values stay. A change to a key or file format converts existing values.
 - **UPD-5** An update never writes `abl_a`/`abl_b`, directly or through a script it calls, because a bad ABL can only be recovered through EDL. `updateabl` stays a manual command. Updates don't change the boot entry's layout without a migration.
+- **UPD-6** `updateabl` runs only on a Thor and only with an image that matches its checksum. Before writing, it saves both slots whole to `/storage` and checks the copies, and it writes only after a typed confirmation (or `--yes`). It writes `abl_b` and then `abl_a`, reading each back from the device. A slot that doesn't match is restored from its backup, and the other slot isn't written, so one working slot always remains.
 - **DEV-16** Nothing personal goes in git or an image: Wi-Fi keys, logins, SSH keys, Android blobs or a unit's calibration. Those come from `asgard.yml` or from `/storage`.
 
 ### Asgard's code
