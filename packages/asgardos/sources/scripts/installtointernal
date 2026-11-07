@@ -103,10 +103,37 @@ if (( MAX_PART_NUM > UD_NUM )); then
     PRESERVE_USERDATA=1
   fi
 
+  # AsgardOS (UPD-7): everything that could stop a removal is settled before the first one, so a failure can't
+  # leave a half-removed table. ROCKNIX ran `parted rm ... || true`: a partition auto-mounted at /storage/roms
+  # silently stayed, the one before it went, and the script died later on overlapping partitions.
+  mapfile -t OLD_PARTS < <(parted -m -s "$DEVICE" print | awk -F: -v ud="$UD_NUM" '/^[0-9]+:/ && $1 > ud {print $1}' | sort -rn)
+  for p in "${OLD_PARTS[@]}"; do
+    dev="${DEVICE}${p}"
+    [[ "$HW_DEVICE" == "SM6115" ]] && dev="${DEVICE}p${p}"
+    # Deepest mount first, so a mount inside another one goes before it
+    mapfile -t mps < <(mount | awk -v d="$dev" '$1 == d {print $3}' | sort -r)
+    for mp in "${mps[@]}"; do
+      if [[ "$mp" == "$FLASH_DIR" || "$mp" == "$OLD_STORAGE" || "$mp" == "/" ]]; then
+        echo "ERROR: the running system is on ${dev} (${mp}). Boot from the SD card and run this again."
+        exit 1
+      fi
+    done
+    for mp in "${mps[@]}"; do
+      echo "Unmounting ${dev} from ${mp}..."
+      if ! umount "$mp"; then
+        echo "ERROR: couldn't unmount ${mp}. Nothing was removed; close what uses it and run this again."
+        exit 1
+      fi
+    done
+  done
+
   echo "Removing partitions..."
   # Delete backwards to preserve partition numbering integrity during removal
-  for (( p=MAX_PART_NUM; p>UD_NUM; p-- )); do
-    parted -s "$DEVICE" rm "$p" >/dev/null 2>&1 || true
+  for p in "${OLD_PARTS[@]}"; do
+    if ! parted -s "$DEVICE" rm "$p"; then
+      echo "ERROR: couldn't remove partition #${p}. Stopping before anything is created."
+      exit 1
+    fi
   done
 else
   # 3) Standard warning for clean Android installations
