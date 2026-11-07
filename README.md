@@ -141,6 +141,8 @@ cd asgardos && ./build.sh      # docker build of the SM8550 image -> build/targe
 ```
 `./build.sh stage root@<thor>` copies the update to a running Thor; it's applied on the next reboot.
 
+To put Asgard on a Thor, see [Install](https://github.com/AsgardOperationSystem/asgardos/wiki/Install) in the wiki.
+
 ## Kernel
 
 The kernel is its own repo, [asgardos/linux](https://github.com/AsgardOperationSystem/linux) (branch `asgard`): Linux
@@ -211,6 +213,7 @@ Which patch came from where, and why: [docs/changes.md](docs/changes.md). What w
 
 ## More docs
 
+- [Installing](https://github.com/AsgardOperationSystem/asgardos/wiki/Install) (wiki): OpenABL first, then the SD card, internal storage, updates and recovery.
 - [Specification](SPEC.md): what Asgard is, its features and emulators, and its development constraints.
 - [Testing](docs/testing.md): how we check it, and `./test.sh`.
 - [Changes on top of ROCKNIX](docs/changes.md): every patch, what was broken and why.

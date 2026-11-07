@@ -465,7 +465,7 @@ These keep one person able to maintain a fork of a large distribution and keep u
 - **DEV-17** Asgard Home is C++ and QML on the image's Qt 6. Asgard's services are shell and Python using the standard library and `ctypes`, with no pip dependencies.
 - **DEV-18** New logic that runs without hardware gets a `test_*` file next to its source, with paths overridable through the environment so it can run against a fake sysfs. Those files don't ship in the image. `./test.sh` runs them.
 - **DEV-19** Paths and setting names are interfaces: scripts, configs and installed systems rely on them.
-- **DEV-20** Each kind of fact has one home: this file for what must be true, the README for what works today, `docs/changes.md` and commit messages for why, `docs/plans/` for what's planned, and `docs/testing.md` for how it's tested.
+- **DEV-20** Each kind of fact has one home: this file for what must be true, the README for what works today, `docs/changes.md` and commit messages for why, `docs/plans/` for what's planned, `docs/testing.md` for how it's tested, and the project wiki for user guides (install, recovery). A change that alters an install or recovery step updates the wiki with it, and the wiki links to these files instead of restating their rules.
 - **DEV-21** Original ROCKNIX and JELOS code keeps its copyright notices. Asgard's own packages are GPL-2.0.
 
 ## 16. Known gaps
