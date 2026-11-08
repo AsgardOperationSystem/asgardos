@@ -3,7 +3,8 @@
 """Run: python -I test_game_menu_network.py  (no Thor, no Qt): the in-game menu's Wi-Fi and Bluetooth, by running those
 functions from GameMenu.qml and Settings.qml in node with a stub backend. Every menu, a tool's too, gets the tile; its
 two tiles open Settings' own Network pages (Wi-Fi scanning, as when picked in Settings) with Back closing them; while one
-is open it takes the buttons, so B doesn't resume the game; and the menu closing closes it. That the page shows on the
+is open it takes the buttons, so B doesn't resume the game; back from it, the tiles show what was switched there; and the
+menu closing closes it. That the page shows on the
 menu's screen and pairs or joins there is a device check."""
 import json
 import os
@@ -73,7 +74,9 @@ tile.items[1].run()
 out.active = network.active
 nav("b"); nav("a")
 out.navs = navs.slice(); out.resumedWhileOpen = resumed
+cfg["bluetooth.enabled"] = "1"   // switched on in the page
 settingsOpen = false
+out.tilesAfter = tile.items.map(t => [t.title, t.sub])
 nav("b")
 out.resumedAfter = resumed
 out.nets = nets
@@ -94,5 +97,6 @@ assert r["game"].index("Wi-Fi and Bluetooth") < len(r["game"]) - 1, "the tile ca
 assert r["tiles"] == [["Wi-Fi", "On"], ["Bluetooth", "Off"]], r["tiles"]
 assert r["active"] and r["nets"] == ["Bluetooth"], (r["active"], r["nets"])
 assert r["navs"] == ["b", "a"] and r["resumedWhileOpen"] == 0, "the open network page didn't take the buttons"
+assert r["tilesAfter"] == [["Wi-Fi", "On"], ["Bluetooth", "On"]], f"the tiles kept the menu's opening state: {r['tilesAfter']}"
 assert r["resumedAfter"] == 1, "with the page closed, B no longer resumes"
 print("ok")

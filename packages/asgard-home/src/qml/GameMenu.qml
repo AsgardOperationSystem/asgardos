@@ -84,12 +84,16 @@ Item {
 
     // Wi-Fi and Bluetooth (MENU-6): Settings' own pages, on the menu's screen. The menu is in whichever window is on the
     // physical bottom screen and Settings in the other, so it has its own Settings, made the first time it's used.
+    // Its tiles are a getter: read each time the sub-grid is shown, and again when the page closes (networkOpen is a
+    // dependency of `shown`), so On / Off follows what was switched there rather than the menu's opening.
     function networkTile() {
-        return { icon: "wifi", title: "Wi-Fi and Bluetooth", sub: "Networks, headphones, controllers", items: [
-            { icon: "wifi", title: "Wi-Fi", sub: backend.getSetting("wifi.enabled", "1") === "1" ? "On" : "Off",
-              run: () => openNetwork("Wi-Fi") },
-            { icon: "bluetooth", title: "Bluetooth", sub: backend.getSetting("bluetooth.enabled", "") === "1" ? "On" : "Off",
-              run: () => openNetwork("Bluetooth") }] }
+        return { icon: "wifi", title: "Wi-Fi and Bluetooth", sub: "Networks, headphones, controllers", get items() {
+            networkOpen
+            return [
+                { icon: "wifi", title: "Wi-Fi", sub: backend.getSetting("wifi.enabled", "1") === "1" ? "On" : "Off",
+                  run: () => openNetwork("Wi-Fi") },
+                { icon: "bluetooth", title: "Bluetooth", sub: backend.getSetting("bluetooth.enabled", "") === "1" ? "On" : "Off",
+                  run: () => openNetwork("Bluetooth") }] } }
     }
     function openNetwork(title) { network.active = true; network.item.showNetwork(title) }
     readonly property bool networkOpen: network.status === Loader.Ready && network.item.open
