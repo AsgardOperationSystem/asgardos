@@ -1,4 +1,4 @@
-# spec: MENU-2 MENU-4 GAME-5
+# spec: MENU-2 MENU-4 GAME-5 SND-7
 # requires: cmd:node
 """Run: python -I test_game_menu_items.py  (no Thor, no Qt): the in-game menu's tiles per emulator, by running GameMenu.qml's
 list in node with a stub backend. MENU-2: each emulator's items and what they send. MENU-4: every level fits the grid's 5
@@ -25,6 +25,7 @@ function menuFor(game, launched) {
           steam = game.includes("steam"), wwhd = game.includes("wwhd")
     const hasPerf = () => false
     const networkTile = () => ({ title: "Wi-Fi and Bluetooth", items: [{ title: "Wi-Fi" }, { title: "Bluetooth" }] })  // MENU-6
+    const settings = {}, soundTile = { title: "Sound", page: () => [] }  // SND-7: its page is test_game_menu_sound.py
     %s
     %s
     const show = list => list.map(t => {
@@ -114,6 +115,10 @@ backend = open(os.path.join(HERE, "../../asgard-home/src/backend.cpp")).read()
 assert re.search(r'cmd == "menu" && playing\(\).*?togglePause\(\);\s*if \(open\)\s*setGameMenu\(true\)', backend, re.S)
 pause = re.search(r"bool Backend::togglePause\(\)\n\{.*?\n\}", backend, re.S).group(0)
 assert re.search(r'"azahar".*"eden".*gameKeys\("F4"\)', pause, re.S) and 'retroarch("PAUSE_TOGGLE")' in pause
+
+# SND-7: every menu, a tool's too, has Sound
+for name in menus:
+    assert "Sound" in titles(name), f"{name}: no Sound tile"
 
 # MENU-4: two columns of 5 rows at most at every level: a sub-grid's own Back tile counts
 ROWS, COLUMNS = 5, 2

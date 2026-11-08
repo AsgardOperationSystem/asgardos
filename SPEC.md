@@ -237,10 +237,11 @@ Motion aiming for the games that use it, and stick lights as a personal touch or
 The speakers sound thin and harsh without tuning, and headphones differ widely. This makes both sound good with no setup, and gives the interface audible feedback.
 
 - **AUD-1** The default output follows the headphone jack.
-- **AUD-2** EQ filter nodes stay at 100 %, and volume is set on the real sink. A preset with positive gain goes through the limiter.
+- **AUD-2** EQ filter nodes stay at 100 %, and volume is set on the real sink. Every EQ chain ends in the limiter, so no preset's boost, nor bass, mid and treble on top of it, can clip.
 - **SND-1** Speaker EQ offers Thor tuning, Joey's preset and off. Headphone EQ offers Thor tuning, AutoEQ and off.
 - **SND-2** AutoEQ finds a profile by headphone model, which needs internet. A downloaded profile stays usable offline.
-- **SND-3** A game's EQ override lasts until the game ends and leaves the saved setting alone. PipeWire restarts only if the override changes something.
+- **SND-3** A game's EQ override lasts until the game ends and leaves the saved setting alone. It's set on the running EQ, as SND-7's changes are.
+- **SND-7** Each output's EQ, and bass, mid and treble (±6 dB) on top of it, change while sound plays, with no gap: every EQ is one chain of the same shape, and a change only sets its values. PipeWire doesn't restart for it, because SDL3's PulseAudio backend doesn't reconnect and a game would stay silent. Every in-game menu has a Sound page with them for the output that plays (Bluetooth has no EQ: it shows the speaker's), Settings > Hardware > Audio's own rows and saved settings. While a game's override sets that output's EQ (SND-3), the menu shows it and leaves it alone.
 - **SND-4** Menu sounds and charger chimes can be switched off, and menu sounds have a volume. They play through `pw-play`, not Qt Multimedia, whose audio thread once froze Home.
 - **SND-6** A menu sound starts with no audible delay: an output stays open for 60 s after its last sound, instead of WirePlumber's 5 s, because reopening the DSP's path took about half a second.
 
@@ -488,7 +489,6 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 | CFG-13 | `parse_yaml` doesn't take the inline form `wifi: {ssid: x}`, only the block form. | `docs/plans/open-gaps.md` |
 | CFG-5 | `asgardos.bottomscreen.type`, `screenscraper.*` and `global.retroachievements.webapikey` are new or renamed keys without `asgard.`. | `docs/plans/open-gaps.md` |
 | LOOK-3 | The grid's scroll and the card's settle run 260 ms and 200 ms, and still move with Animations off. | `docs/plans/open-gaps.md` |
-| AUD-2 | The Thor headphone preset's +4 dB shelf outruns its mixer by about 1.3 dB, with no limiter. This is the strictest reading of the rule. | `docs/plans/open-gaps.md` |
 | BAT-5 | The report gives every activity an average current, even one a single sample long. | `docs/plans/open-gaps.md` |
 | EMU-1 | `pico-8` was dropped from the metapackage, and no doc records it. | `docs/plans/open-gaps.md` |
 | EMU-3 | `dolphin-sa`, `heroic`, `hypseus-singe`, `mupen64plus-sa` and `openbor` name or place their start script differently, and `neocd_lr` isn't `neocd-lr`. | `docs/plans/open-gaps.md` |

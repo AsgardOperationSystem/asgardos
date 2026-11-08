@@ -245,7 +245,7 @@ with Root() as r:
     assert cfg(r, "asgard.sounds") == "0"
     press(r, keys(audio, row(1, "left")))
     assert cfg(r, "asgard.sounds_volume") == "25"
-    press(r, keys(audio, row(6)))                                      # past the volume and the EQ rows
+    press(r, keys(audio, row(7)))                                      # past the volume, the EQ and tone rows
     assert cfg(r, "asgard.charger_sounds") == "0"
 home = os.path.join(HERE, "../../asgard-home/src")
 backend = open(f"{home}/backend.cpp").read()

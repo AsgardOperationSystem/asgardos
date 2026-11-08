@@ -41,7 +41,6 @@ Check these before fixing the tree, because the rule itself looks wrong or too s
 | EMU-3 | Five inherited packages name their start script differently. Renaming them costs cherry-picks, which DEV-5 protects. | Whether the rule can list them as exceptions. | `test_emulator_names.py` |
 | CFG-5 | `asgardos.bottomscreen.type` came from the fork's rename, and is what COMP-3 documents. Renaming these keys now would need a conversion under UPD-4. | Whether the rule should only apply from now on. | `test_setting_names.py` |
 | DEV-17 | `asgard-motiond.py` needs `dbussy`, and `asgard-gamma` is C, both for good reasons. | Whether the rule should allow a recipe's package and a compiled helper. | `test_gap_service_languages.sh` |
-| AUD-2 | The +1.3 dB comes from the strictest reading: the largest boost plus the summed mixer gains. | Whether that preset can clip in practice. If so, lower it or add the limiter. | `test_eq_headroom.py` |
 
 ## The owner decides
 

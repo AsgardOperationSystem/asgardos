@@ -149,14 +149,14 @@ assert res.rc == 0 and len(launches) == 1, launches
 
 # GAME-2: Quit game reads the signal and names from the launcher's set_kill; no signal means ask politely.
 MENU = 'cmd menu; hang'
-QUIT = f"{OPEN_GAME} {WAIT} down right a down a"  # Exit (after Wi-Fi and Bluetooth), then its last tile: Quit game
+QUIT = f"{OPEN_GAME} {WAIT} down down a down a"  # Exit (after Sound and Wi-Fi and Bluetooth), then its last tile: Quit game
 for kill, want in (("-9 fake-emu", "killall -9 fake-emu;"), ("fake-emu", "killall -TERM fake-emu;"),
                    ("-15 one two", "killall -15 one two;")):
     _, _, res = with_rig(QUIT, behaviour=MENU, kill=kill)
     assert f"shell: {want}" in res.log, (want, res.log[-600:])
 
 # GAME-6: Back to Home freezes through asgard-background.py, shows the return tile, and A on it continues the game.
-TO_HOME = f"{OPEN_GAME} {WAIT} down right a a"    # Exit, then Back to Home
+TO_HOME = f"{OPEN_GAME} {WAIT} down down a a"    # Exit, then Back to Home
 trace, launches, res = with_rig(TO_HOME + " b", behaviour=MENU)
 assert ["python3", "/usr/share/asgard/asgard-background.py", "hide", "fake-emu"] in trace, trace
 assert res.shows("Return to game"), res.texts
@@ -174,8 +174,8 @@ assert udp_toggles(OPEN_GAME, 1200, SLEEP, "fake-emu") == 0
 assert udp_toggles(OPEN_GAME, 1200, 'sleep 0.3; cmd wake; hang', "retroarch") == 0
 # The in-game menu already paused it: one toggle for the menu, none for the sleep or the wake.
 assert udp_toggles(OPEN_GAME, 1500, 'cmd menu; sleep 0.3; cmd sleep; sleep 0.3; cmd wake; hang', "retroarch") == 1
-# Frozen in the background: the menu's pause and unpause only, nothing for the sleep. RetroArch's Exit is its eighth tile.
-assert udp_toggles(f"{OPEN_GAME} {WAIT} down down down right a a", 800,
+# Frozen in the background: the menu's pause and unpause only, nothing for the sleep. RetroArch's Exit is its ninth tile.
+assert udp_toggles(f"{OPEN_GAME} {WAIT} down down down down a a", 800,
                    'cmd menu; until grep -q asgard-background "$FAKE_DIR/trace"; do sleep 0.1; done; cmd sleep; sleep 0.2; cmd wake; hang',
                    "retroarch") == 2
 

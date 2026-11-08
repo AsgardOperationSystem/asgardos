@@ -180,3 +180,9 @@ do
   file="/storage/.config/sysctl.d/${conf%%:*}"
   [ "$(md5sum "${file}" 2>/dev/null | cut -d' ' -f1)" = "${conf##*:}" ] && rm -f "${file}"
 done
+
+# The EQ chains have one fixed shape since SND-7, so the menu can change them live. A 60-asgard-eq.conf written before
+# that has the old shape: write it again from eq.json, and restart PipeWire only if it changed (at boot, no game runs).
+if [ -f /storage/.config/pipewire/pipewire.conf.d/60-asgard-eq.conf ]; then
+  python3 /usr/share/asgard/asgard-eq.py regen >>${LOG} 2>&1
+fi

@@ -183,7 +183,8 @@ Item {
                                                                                                : "Follows the headphone jack")),
              live.eq && live.eq.saved && live.eq.saved.length
                  ? link("speaker", "Your headphones", "Saved AutoEQ profiles, or find another model", eqSavedPage)
-                 : action("speaker", "Find your headphones", "AutoEQ corrects your model's sound; needs internet", eqAsk)],
+                 : action("speaker", "Find your headphones", "AutoEQ corrects your model's sound; needs internet", eqAsk),
+             link("speaker", "Bass, mid and treble", "For the speaker and the headphones, on top of their EQ", tonePage)],
             [toggle("battery", "Charger sounds", "A chime when the charger is plugged in or out", "asgard.charger_sounds", "1")]]
         case "Display": return [
             [toggle("display", "Separate screen brightness", "Set the top and bottom screens on their own",
@@ -548,17 +549,20 @@ Item {
     readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],
                                        ["Cyan", "0 255 255"], ["Blue", "0 0 255"], ["Purple", "160 0 255"], ["Pink", "255 0 120"],
                                        ["White", "255 255 255"], ["Off", "0 0 0"]]
-    // asgard-eq.py: Thor tuning / off / an AutoEQ profile (headphones), applied by restarting PipeWire.
+    // asgard-eq.py: Thor tuning / off / an AutoEQ profile (headphones) and bass, mid and treble, set on the running EQ
+    // with no gap (SND-7). "later": the running EQ is of an older shape and a game is playing, so it waits for the next one.
     function eqRun(args, then) {
         note("eqMsg", "Applying…")
         backend.exec("python3 /usr/share/asgard/asgard-eq.py " + args, out => {
             const r = JSON.parse(out || "{}")
-            note("eqMsg", r.error || "")
-            sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
+            note("eqMsg", r.error || (r.later ? "Saved: heard from the next game" : ""))
+            eqRefresh()
             if (then && !r.error) then()
         })
     }
+    function eqRefresh() { sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse) }
     // Headphones cycle through Thor tuning, Off and every saved AutoEQ profile (by name); each step applies at once.
+    // While a game overrides that output's EQ (its Sound EQ option, SND-3), the row shows it and doesn't step.
     function eqRow(which, title, sub) {
         const modes = which === "speaker" ? [["Thor tuning", "set speaker thor"], ["Joey (Retro Handhelds)", "set speaker joey"], ["Off", "set speaker off"]]
                                           : [["Thor tuning", "set headphones thor"], ["Off", "set headphones off"]]
@@ -567,8 +571,34 @@ Item {
         const e = live.eq, cur = !e ? "" : which === "headphones" && e.headphones === "autoeq" ? "use " + q(e.headphones_name)
                                                                                           : "set " + which + " " + e[which]
         const i = Math.max(0, modes.findIndex(m => m[1] === cur))
+        const game = e && e.game && e.game[which]
+        if (game)
+            return { kind: "choice", icon: "speaker", title: title, sub: "Set by this game's Sound EQ option",
+                     value: ({ thor: "Thor tuning", joey: "Joey (Retro Handhelds)", off: "Off", autoeq: e.headphones_name || "AutoEQ" })[game] || game,
+                     step: d => {} }
         return { kind: "choice", icon: "speaker", title: title, sub: sub, value: e ? modes[i][0] : "…",
                  step: d => eqRun(modes[(i + d + modes.length) % modes.length][1]) }
+    }
+    // Bass, mid and treble, -6..+6 dB, per output: on top of its EQ, whichever it is.
+    function toneRow(which, band, title, sub) {
+        const t = live.eq && live.eq.tone ? live.eq.tone[which] : null
+        const v = t ? Math.round(t[band]) : 0
+        return { kind: "choice", icon: "speaker", title: title, sub: sub, value: t ? (v > 0 ? "+" : "") + v + " dB" : "…",
+                 step: d => {
+                     if (!t || Math.abs(v + d) > 6) return
+                     const n = t.slice(); n[band] = v + d
+                     eqRun("tone " + which + " " + n.join(" "))
+                 } }
+    }
+    // An output's EQ and tone: Settings' Tone page and the in-game menu's Sound page (SND-7).
+    function soundRows(which) {
+        return [eqRow(which, which === "speaker" ? "Speaker EQ" : "Headphone EQ", ""),
+                toneRow(which, 0, "Bass", "Below 100 Hz"), toneRow(which, 1, "Mid", "Around 1 kHz"), toneRow(which, 2, "Treble", "Above 8 kHz")]
+    }
+    function tonePage() {
+        return [["speaker", "Speaker"], ["headphones", "Headphones"]].map(w => [
+            toneRow(w[0], 0, w[1] + " bass", "Below 100 Hz"), toneRow(w[0], 1, w[1] + " mid", "Around 1 kHz"),
+            toneRow(w[0], 2, w[1] + " treble", "Above 8 kHz")])
     }
     function eqAsk() { keyboard.ask("Headphone model", "", false, v => { if (v && v.trim()) eqSearch(v.trim()) }) }
     // Headphones found before (no internet needed), then a search for a new model.

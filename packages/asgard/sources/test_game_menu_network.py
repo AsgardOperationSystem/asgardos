@@ -60,6 +60,7 @@ const network = { active: false, status: 1, item: { get open() { return settings
 Object.defineProperty(globalThis, "networkOpen", { get: () => network.status === Loader.Ready && network.item.open })
 let open = true, game = [], openedAt = 0, onPage = false, sel = 0, group = null, shown = []
 const hasPerf = () => game.length > 0, perfTiles = () => [], resume = () => { resumed++ }
+const settings = null, soundTile = { title: "Sound" }   // SND-7: test_game_menu_sound.py
 const activate = () => {}, back = () => {}
 %s
 %s

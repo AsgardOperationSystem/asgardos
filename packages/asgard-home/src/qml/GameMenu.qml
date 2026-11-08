@@ -24,6 +24,7 @@ Item {
         if (open) {
             game = backend.runningGame(); launched = backend.launchedGame(); group = null; parents = []; sel = 0; openedAt = Date.now()
             if (hasPerf()) settings.features(perfEmu(), perfCore())   // loaded here: not from the page's binding
+            if (settings) settings.eqRefresh()                        // the Sound page: what plays now, and its EQ
         } else {
             applyPerf()
             if (networkOpen) network.item.close()   // the game resumed or ended under it: stop a Bluetooth scan
@@ -95,6 +96,25 @@ Item {
                 { icon: "bluetooth", title: "Bluetooth", sub: backend.getSetting("bluetooth.enabled", "") === "1" ? "On" : "Off",
                   run: () => openNetwork("Bluetooth") }] } }
     }
+    // Sound (SND-7): the EQ of the output that plays (the speaker, or the headphones in the jack) and its bass, mid and
+    // treble, Settings' own rows, heard at once: set on the running EQ with no gap in the game's sound. Four rows and
+    // Back fill the page. Bluetooth has no EQ, so it shows the speaker's and Back says so.
+    function soundOut() {
+        const e = settings.live.eq
+        return e && e.output === "headphones" ? "headphones" : "speaker"
+    }
+    function soundPage() {
+        settings.rev                         // re-evaluate after changes
+        if (!settings.live.eq) return [{ icon: "refresh", title: "Loading…", sub: "", run: () => {} }]
+        return settings.soundRows(soundOut()).map(r => ({ icon: "speaker", title: r.title, sub: "‹  " + r.value + "  ›",
+                                                          step: r.step, run: () => r.step(1) }))
+    }
+    readonly property var soundTile: ({ icon: "speaker", title: "Sound", sub: "EQ, bass, mid and treble", page: () => soundPage(),
+        get note() {
+            settings.rev
+            const e = settings.live.eq
+            return e && e.output === "bluetooth" ? "Bluetooth has no EQ; these are the speaker's" : "Sound"
+        } })
     function openNetwork(title) { network.active = true; network.item.showNetwork(title) }
     readonly property bool networkOpen: network.status === Loader.Ready && network.item.open
 
@@ -115,7 +135,7 @@ Item {
     function withExit(list, restart, quit) {
         if (hasPerf())
             list = list.concat([{ icon: "gauge", title: "Performance", sub: "CPU, GPU and screens for this game", items: perfTiles() }])
-        list = list.concat([networkTile()])
+        list = list.concat(settings ? [soundTile] : []).concat([networkTile()])
         const exit = (game.length ? [{ icon: "home", title: "Back to Home", sub: "The game waits in the background",
                                        run: () => { resume(); backend.toBackground() } }] : [])
             .concat(restart ? [restart] : [])

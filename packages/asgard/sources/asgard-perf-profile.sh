@@ -11,7 +11,7 @@
 #   motion             "on": the gyro (asgard-motiond, a DSU server) while the game runs; unset/"off" = stopped.
 #                      Outside games the menu's asgard.motion=1 (Settings > Hardware > Performance > Gyro) decides.
 #   eq_speaker         thor|joey|off, eq_headphones thor|autoeq|off: the sound EQ while the game runs (asgard-eq.py
-#                      game); unset = Settings > Hardware > Audio's. PipeWire restarts (~2 s) only if that changes it.
+#                      game); unset = Settings > Hardware > Audio's. Set on the running EQ, with no gap (SND-7).
 #   top_* / bottom_*   each screen's refresh, brightness, warmth, tint and contrast, and the top's ultra_black, while the
 #                      game runs: screens(). Unset = Settings > Hardware > Display's, which they never change.
 #   sleep_mode         "screen": the lid and the power key turn the screens off and keep the game running (music on
@@ -155,7 +155,7 @@ fan_restore() {
 }
 
 # Back to Home and back. Only with a game's profile on: one that ended meanwhile has had its restore. The gyro and EQ
-# stay the game's: the EQ restarts PipeWire, and an emulator picks its motion source at launch.
+# stay the game's: an emulator picks its motion source at launch, and the EQ is the game's own choice.
 # One at a time, so quickly going back and forth ends on the last one asked for; what they leave running (autotune)
 # doesn't get the lock.
 home() {
