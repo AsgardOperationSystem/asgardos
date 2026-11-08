@@ -641,7 +641,7 @@ void Backend::resumeGame()
 }
 
 // RetroArch's network command port (runemu.sh enables it on dual-screen devices). Fire and forget: PAUSE_TOGGLE,
-// MENU_TOGGLE, SAVE_STATE, LOAD_STATE, SCREENSHOT, RESET.
+// MENU_TOGGLE, SAVE_STATE, LOAD_STATE, SCREENSHOT, RESET. ASGARD_RA_PORT: another port, for a test's own listener.
 void Backend::retroarch(const QString &cmd)
 {
     const int s = ::socket(AF_INET, SOCK_DGRAM, 0);
@@ -649,7 +649,8 @@ void Backend::retroarch(const QString &cmd)
         return;
     sockaddr_in a = {};
     a.sin_family = AF_INET;
-    a.sin_port = htons(55355);
+    const int port = qEnvironmentVariableIntValue("ASGARD_RA_PORT");
+    a.sin_port = htons(port > 0 ? port : 55355);
     a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     const QByteArray b = cmd.toUtf8();
     ::sendto(s, b.constData(), b.size(), 0, reinterpret_cast<sockaddr *>(&a), sizeof a);

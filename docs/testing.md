@@ -32,6 +32,11 @@ fails if it starts passing, so the header and the row get removed together. `./t
 at any level. A rule counted there may have only part of it checked: a test's header says which part, and the rest sits at a
 higher level. A device or human check counts as written, not as passed, until someone runs it.
 
+`./test.sh` runs 8 tests at a time, or `-j <n>` or `TEST_JOBS`, and `-j 1` runs them one at a time. Results print in file order
+however the tests finish. Each test gets its own folder, `build/test/runs/<run>/<test>/` (`TEST_PREFIX` moves `build/test/runs`),
+with its `output.log` and the `tmp/` that is its `TMPDIR`, so tests and simultaneous runs can't collide. A run that fails keeps
+its folder and names it at the end. A test waits on a deadline, not a count of tries, and listens on its own port, not a real one.
+
 Tests have no CI: `./test.sh` is run by hand. QEMU isn't installed on the build node. The emulator sleep test is still to do
 for most emulators (`docs/adding-an-emulator.md` §4).
 

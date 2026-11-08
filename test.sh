@@ -2,6 +2,10 @@
 # Asgard OS: run the host tests (docs/testing.md, levels 1 and 2). No Thor, no build, no root.
 #   ./test.sh            run them all
 #   ./test.sh <text>     run only the tests whose name contains <text>
+#   ./test.sh -j <n> ...  run at most <n> at once (default: $TEST_JOBS, else 8); -j 1 runs them one at a time
+# Results print in file order however the tests finish. Each test gets its own folder, <run>/<name>/, holding output.log and
+# the tmp/ that is its TMPDIR, so tests and simultaneous runs can't collide. <run> is under $TEST_PREFIX, by default
+# build/test/runs (DEV-11). It's deleted unless something failed, and then it's kept, and named at the end.
 # Exit code: 1 if anything failed, else 0. A skipped test isn't a pass: it's listed with the reason.
 #
 # A test is packages/asgard/sources/test_*. Its first lines say what it checks and what it needs:
@@ -14,9 +18,25 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 SOURCES=packages/asgard/sources
+JOBS=${TEST_JOBS:-8}
+case ${1:-} in
+  -j) JOBS=${2:-}; shift; [ $# = 0 ] || shift ;;
+  -j*) JOBS=${1#-j}; shift ;;
+esac
+[[ $JOBS =~ ^[1-9][0-9]*$ ]] || { echo "test.sh: -j needs a number above 0, not '$JOBS'" >&2; exit 2; }
 FILTER=${1:-}
 TIMEOUT=300  # the first Asgard Home test builds it
-OUT=$(mktemp); trap 'rm -f "$OUT"' EXIT
+PREFIX=${TEST_PREFIX:-build/test/runs}
+mkdir -p "$PREFIX"
+find "$PREFIX" -mindepth 1 -maxdepth 1 -type d -name 'run.*' -mtime +1 -exec rm -rf {} +  # kept by old failures
+RUN=$(realpath "$(mktemp -d "$PREFIX/run.XXXXXX")")
+interrupted() {  # timeout puts a test in its own process group, so Ctrl-C doesn't reach it
+  local worker
+  for worker in $(jobs -p); do pkill -TERM -P "$worker"; kill "$worker" 2>/dev/null; done
+  rm -rf "$RUN"
+  exit 130
+}
+trap interrupted INT TERM
 export PYTHONDONTWRITEBYTECODE=1
 
 pass=0 fail=0 skip=0 gaps=0
@@ -41,24 +61,49 @@ missing_needs() {  # missing_needs <needs...>: prints the ones this machine lack
   done
 }
 
-run() {  # run <name> <spec ids> <command...>
-  local name=$1 ids=$2 gap rc; shift 2
+queue=() shown=0
+
+start() {  # start <name> <spec ids> <command...>: runs it in the background, once a place is free
+  local name=$1 ids=$2 dir="$RUN/$1"; shift 2
+  queue+=("run|$name|$ids")
+  while [ "$(jobs -rp | wc -l)" -ge "$JOBS" ]; do wait -n 2>/dev/null; show; done
+  mkdir -p "$dir/tmp"
+  {
+    (cd "$SOURCES" && TMPDIR="$dir/tmp" timeout "$TIMEOUT" "$@") >"$dir/output.log" 2>&1 </dev/null
+    echo $? >"$dir/rc.part"; mv "$dir/rc.part" "$dir/rc"
+  } &
+}
+
+report() {  # report <name> <spec ids> <exit code> <its output>
+  local name=$1 ids=$2 rc=$3 out=$4 gap
   gap=$(header "$SOURCES/$name" gap 2>/dev/null)
-  (cd "$SOURCES" && timeout "$TIMEOUT" "$@") >"$OUT" 2>&1; rc=$?
-  if [ -n "$gap" ] && [ $rc != 0 ]; then
+  if [ -n "$gap" ] && [ "$rc" != 0 ]; then
     gaps=$((gaps + 1)); gapped+=("$name: $gap")
     printf 'GAP   %-28s %s\n' "$name" "$ids"
   elif [ -n "$gap" ]; then
     fail=$((fail + 1)); failed+=("$name")
     printf 'FAIL  %-28s %s (passes now: remove its gap header and the row in SPEC.md)\n' "$name" "$ids"
-  elif [ $rc = 0 ]; then
+  elif [ "$rc" = 0 ]; then
     pass=$((pass + 1)); printf 'PASS  %-28s %s\n' "$name" "$ids"
   else
     fail=$((fail + 1)); failed+=("$name")
-    [ $rc = 124 ] && echo "timed out after ${TIMEOUT}s" >>"$OUT"
+    [ "$rc" = 124 ] && echo "timed out after ${TIMEOUT}s" >>"$out"
     printf 'FAIL  %-28s %s (exit %s)\n' "$name" "$ids" "$rc"
-    tail -n 15 "$OUT" | sed 's/^/      /'
+    tail -n 15 "$out" | sed 's/^/      /'
   fi
+}
+
+show() {  # Prints what's ready, in queue order: it stops at the first test still running.
+  local kind name ids
+  while [ "$shown" -lt "${#queue[@]}" ]; do
+    IFS='|' read -r kind name ids <<<"${queue[$shown]}"
+    case $kind in
+      run) [ -e "$RUN/$name/rc" ] || return 0; report "$name" "$ids" "$(cat "$RUN/$name/rc")" "$RUN/$name/output.log" ;;
+      skip) printf 'SKIP  %-28s %s\n' "$name" "$ids" ;;
+      bad) fail=$((fail + 1)); failed+=("$name"); echo "FAIL  $name: not .py or .sh, can't run it" ;;
+    esac
+    shown=$((shown + 1))
+  done
 }
 
 selected() { [ -z "$FILTER" ] || [[ $1 == *"$FILTER"* ]]; }
@@ -73,20 +118,23 @@ for file in "$SOURCES"/test_*; do
   for id in $ids; do known_id "$id" || badlinks+=("$name cites $id, which isn't in SPEC.md"); done
   if [ -n "$lacking" ]; then
     skip=$((skip + 1)); skipped+=("$name: missing ${lacking% }")
-    printf 'SKIP  %-28s %s\n' "$name" "$ids"
+    queue+=("skip|$name|$ids")
     continue
   fi
   case $name in
-    *.py) run "$name" "$ids" python3 "$name" ;;
-    *.sh) run "$name" "$ids" sh "$name" ;;
-    *) fail=$((fail + 1)); failed+=("$name"); echo "FAIL  $name: not .py or .sh, can't run it" ;;
+    *.py) start "$name" "$ids" python3 "$name" ;;
+    *.sh) start "$name" "$ids" sh "$name" ;;
+    *) queue+=("bad|$name|") ;;
   esac
 done
 
 # Self-checks built into a script instead of a test_ file.
 if selected asgard_config; then
-  run "asgard_config.py --test" "CFG-1 CFG-3" python3 asgard_config.py --test
+  start "asgard_config.py --test" "CFG-1 CFG-3" python3 asgard_config.py --test
 fi
+while [ "$(jobs -rp | wc -l)" -gt 0 ]; do wait -n 2>/dev/null; show; done
+wait
+show
 
 echo
 [ ${#skipped[@]} = 0 ] || { echo "Skipped, not tested:"; printf '  %s\n' "${skipped[@]}"; }
@@ -114,4 +162,5 @@ if [ -z "$FILTER" ]; then
   echo "Spec: $(wc -w <<<"$rules") rules: $host_only with a host test, $device_only with only a device check, $human_only with only a human check, $uncovered with none"
   [ "$uncovered" = 0 ] || echo "  no check: ${none[*]}"
 fi
+if [ "$fail" = 0 ]; then rm -rf "$RUN"; else echo "Each test's output and temp files: $RUN"; fi
 [ "$fail" = 0 ] && [ ${#badlinks[@]} = 0 ] && [ "$uncovered" = 0 ]

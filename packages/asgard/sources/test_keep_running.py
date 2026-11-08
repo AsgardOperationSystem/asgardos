@@ -91,9 +91,8 @@ with Fixture() as f:
     f.write("sleep_mode", "screen\n")
     calls = f.run("asgard/asgard-perf-profile.sh", "apply", "music", "Song.mp3")
     assert f.read("run/asgard-keep-running") == "music\tSong.mp3\n"
-    for _ in range(50):
-        if any("systemd-inhibit" in c for c in calls):
-            break
+    until = time.monotonic() + 30
+    while not any("systemd-inhibit" in c for c in calls) and time.monotonic() < until:   # it starts in the background
         subprocess.run(["sleep", "0.02"])
         calls += f.run("asgard/asgard-cpu-cap.sh")
     assert any("--what=sleep:handle-lid-switch" in c and "--mode=block" in c for c in calls), calls
@@ -120,14 +119,14 @@ with Fixture() as f:
     calls = f.run("asgard/asgard-perf-profile.sh", "restore")
     assert "swaymsg -q output DSI-2 power on, output DSI-2 dpms on" in calls, calls
     assert not f.has("run/asgard-keep-running")
-    for _ in range(50):
+    until = time.monotonic() + 30
+    while True:
         try:
             os.kill(pid, 0)
         except OSError:
             break
+        assert time.monotonic() < until, "the inhibitor outlived the game"
         subprocess.run(["sleep", "0.02"])
-    else:
-        raise AssertionError("the inhibitor outlived the game")
 
 
 def keep_running(f, bt="off"):

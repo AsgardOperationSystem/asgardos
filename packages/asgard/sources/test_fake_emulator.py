@@ -38,7 +38,7 @@ OPEN_GAME = "a a"             # the first system, its first game
 
 
 class Rig:
-    def __init__(self, root, behaviour="exit 0", kill="fake-emu"):
+    def __init__(self, root, behaviour="exit 0", kill="fake-emu", ra_port=None):
         self.root, self.dir = root, f"{root.path}/.fake"
         os.makedirs(f"{self.dir}/bin")
         self.write("runemu", FAKE, True)
@@ -47,6 +47,7 @@ class Rig:
         self.write("bash_env", BASH_ENV)
         self.write("behaviour", behaviour + "\n")
         self.kill = kill
+        self.ra_port = {"ASGARD_RA_PORT": str(ra_port)} if ra_port else {}
 
     def write(self, name, text, executable=False):
         path = f"{self.dir}/{name}"
@@ -60,7 +61,7 @@ class Rig:
             "ASGARD_RUNEMU": f"{self.dir}/runemu", "ASGARD_KILL_DATA": f"{self.dir}/kill-data",
             "ASGARD_CMD_FIFO": f"{self.dir}/cmd", "FAKE_DIR": self.dir, "FAKE_KILL": self.kill,
             "EXEC_LOG": f"{self.dir}/exec.log", "BASH_ENV": f"{self.dir}/bash_env",
-            "PATH": f"{self.dir}/bin:" + os.environ["PATH"]})
+            "PATH": f"{self.dir}/bin:" + os.environ["PATH"], **self.ra_port})
 
     def trace(self):
         """Every recorded call, in order: [program, arg, arg...]."""
@@ -82,9 +83,10 @@ def with_rig(keys="", ms=600, library=None, **rig):
 
 
 def udp_toggles(keys, ms, behaviour, kill):
-    """How many PAUSE_TOGGLEs Home sends RetroArch's command port during this run."""
+    """How many PAUSE_TOGGLEs Home sends RetroArch's command port during this run, on a port of this test's own: another
+    test's Home, or a RetroArch on this machine, uses the real one."""
     sink = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sink.bind(("127.0.0.1", 55355))
+    sink.bind(("127.0.0.1", 0))
     sink.settimeout(0.1)
     got, stop = [], threading.Event()
 
@@ -98,7 +100,7 @@ def udp_toggles(keys, ms, behaviour, kill):
     t = threading.Thread(target=listen)
     t.start()
     try:
-        with_rig(keys, ms, behaviour=behaviour, kill=kill)
+        with_rig(keys, ms, behaviour=behaviour, kill=kill, ra_port=sink.getsockname()[1])
         time.sleep(0.2)
     finally:
         stop.set()
