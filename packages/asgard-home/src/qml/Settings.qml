@@ -71,6 +71,7 @@ Item {
         sh("update", "ls /storage/.update/*.tar 2>/dev/null | head -1")
         sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
         if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt)
+        storageRefresh()
     }
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
         return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
@@ -170,6 +171,7 @@ Item {
              link("display", "Display", "Brightness, screens and stick lights", () => section("Display")),
              link("gauge", "Performance", "Menu CPU profile, fan, gyro, charging and sleep", () => section("Performance")),
              link("wifi", "Network", "Wi-Fi, Bluetooth, USB and services", () => section("Network")),
+             link("save", "Storage", storageSummary(), storagePage, storageRefresh),
              link("battery", "Battery", "What used it since it was unplugged", batteryPage)],
             [link("gamepad", "Calibration", "Touch screens and sticks", calibrationPage)]]
         case "Audio": return [
@@ -624,6 +626,53 @@ Item {
         return [[info("info", "Pick your model", "Measured by the source shown; the first ones are the most reliable")],
                 (live.eqResults || []).map(h => action("speaker", h.name, h.by,
                     () => eqRun("autoeq " + q(h.path) + " " + q(h.name), () => { stack = stack.slice(0, -1); row = 0; rev++ })))]
+    }
+
+    // Hardware > Storage (SET-5): df for the internal storage, the SD card, the system partition and the ROMs folder.
+    // ROCKNIX mounts the card at /storage/games-external (and binds /storage/roms to it); without a card that path
+    // is a plain folder, and df answers for the mount it's on. One line per path: "<path> <df -P line>", so a path
+    // df can't read (empty) doesn't shift the others.
+    readonly property var volumes: ["/storage", "/storage/games-external", "/flash", "/storage/roms"]
+    function storageRefresh() {
+        sh("storage", "for p in " + volumes.join(" ") + "; do echo \"$p $(df -PkT \"$p\" 2>/dev/null | tail -n +2 | tail -1)\"; done",
+           parseStorage)
+    }
+    // -> { "<path>": {dev, type, total, used, free, mount} } in bytes, for the paths df answered
+    function parseStorage(out) {
+        const r = {}
+        for (const l of out.split("\n")) {
+            const p = l.trim().split(/\s+/)   // path, Filesystem, Type, 1024-blocks, Used, Available, Capacity, Mounted on
+            if (p.length < 8 || !/^\d+$/.test(p[3])) continue
+            r[p[0]] = { dev: p[1], type: p[2], total: p[3] * 1024, used: p[4] * 1024, free: p[5] * 1024, mount: p.slice(7).join(" ") }
+        }
+        return r
+    }
+    function gb(bytes) {   // decimal units, as cards and drives are labelled
+        const g = bytes / 1e9
+        return g >= 1000 ? (g / 1000).toFixed(2) + " TB" : g >= 100 ? Math.round(g) + " GB" : g >= 10 ? g.toFixed(1) + " GB"
+                         : g >= 1 ? g.toFixed(2) + " GB" : Math.round(bytes / 1e6) + " MB"
+    }
+    function volume(path) {   // the volume at exactly that mount point, else null
+        const v = (live.storage || {})[path]
+        return v && v.mount === path ? v : null
+    }
+    function usage(v) {
+        return gb(v.free) + " free of " + gb(v.total) + "  ·  " + gb(v.used) + " used (" + Math.round(100 * v.used / Math.max(1, v.total)) + "%)"
+    }
+    function storageSummary() {
+        if (!live.storage) return "Internal storage and SD card"
+        const i = volume("/storage"), sd = volume("/storage/games-external")
+        return [i ? gb(i.free) + " free inside" : "", sd ? gb(sd.free) + " free on the SD card" : "No SD card"].filter(x => x).join("  ·  ")
+    }
+    function storagePage() {
+        if (!live.storage) return [[info("save", "Storage", "Reading…")]]
+        const i = volume("/storage"), sd = volume("/storage/games-external"), sys = volume("/flash")
+        const roms = live.storage["/storage/roms"]
+        const where = !roms ? "—" : sd && roms.dev === sd.dev ? "On the SD card" : roms.dev === (i || {}).dev ? "On the internal storage" : roms.mount
+        return [[info("save", "Internal storage", i ? usage(i) : "Can't read /storage"),
+                 info("save", "SD card", sd ? usage(sd) + "  ·  " + sd.type : "No SD card in")],
+                [info("gamepad", "Games", where + "  ·  /storage/roms"),
+                 ...(sys ? [info("chip", "System", usage(sys) + "  ·  the OS image and its updates")] : [])]]
     }
 
     // battery-report.py: the battery logger's samples since the last unplug, split by what was running (or asleep).

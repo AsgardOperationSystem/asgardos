@@ -1,4 +1,4 @@
-# spec: SET-1 SET-3 SET-4 NET-1 NET-2 LOOK-2 LOOK-3 OLED-2 SND-4
+# spec: SET-1 SET-3 SET-4 SET-5 NET-1 NET-2 LOOK-2 LOOK-3 OLED-2 SND-4
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_settings.py  (no Thor): Settings on the host, offscreen, driven by pad presses. On a host commands
 are logged, not run, and a QML copy answers backend.exec with canned output, so this checks what is offered and what it
@@ -20,7 +20,7 @@ from home_harness import CFG, Root  # noqa: E402
 
 # Settings' sidebar: Start opens it on General; the rest are this many downs away, then A enters the list.
 GENERAL, APPEARANCE, LIBRARY, ACHIEVEMENTS, HARDWARE, ABOUT, POWER = range(7)
-AUDIO, DISPLAY, PERFORMANCE, NETWORK = range(4)   # rows of Hardware
+AUDIO, DISPLAY, PERFORMANCE, NETWORK, STORAGE = range(5)   # rows of Hardware
 
 
 def keys(*parts):
@@ -234,6 +234,28 @@ with Root() as r:
     assert page.shows("home") and page.shows("office") and page.shows("/storage/.config/wireguard")
     imported = press(r, keys(network, row(9), "a"), wireguard)
     assert "nmcli connection import type wireguard file '/storage/.config/wireguard/home.conf'" in imported.log
+
+# ---- SET-5: Storage, from df (the Thor's own answer, 2026-11-08): internal, SD card, games folder, system; no card
+DF = "df -PkT"
+with Root() as r:
+    r.library()
+    card = {DF: "/storage /dev/sda19 ext4 197797304 62741964 135038956 32% /storage\n"
+                "/storage/games-external /dev/mmcblk0p1 exfat 488552448 156551680 332000768 32% /storage/games-external\n"
+                "/flash /dev/sda18 vfat 2092928 1668644 424284 80% /flash\n"
+                "/storage/roms /dev/mmcblk0p1 exfat 488552448 156551680 332000768 32% /storage/games-external"}
+    assert press(r, cat(HARDWARE), card).shows("138 GB free inside  ·  340 GB free on the SD card")
+    page = press(r, hardware(STORAGE), card)
+    assert "exec: for p in /storage /storage/games-external /flash /storage/roms; do" in page.log
+    for text in ("138 GB free of 203 GB  ·  64.2 GB used (32%)", "340 GB free of 500 GB  ·  160 GB used (32%)  ·  exfat",
+                 "On the SD card  ·  /storage/roms", "434 MB free of 2.14 GB  ·  1.71 GB used (80%)"):
+        assert page.shows(text), text
+    # No card: games-external is a folder on /storage, so df names /storage as its mount; a path df can't read is empty
+    none = {DF: "/storage /dev/sda19 ext4 197797304 62741964 135038956 32% /storage\n"
+                "/storage/games-external /dev/sda19 ext4 197797304 62741964 135038956 32% /storage\n/flash \n"
+                "/storage/roms /dev/sda19 ext4 197797304 62741964 135038956 32% /storage"}
+    page = press(r, hardware(STORAGE), none)
+    assert page.shows("No SD card in") and page.shows("On the internal storage") and not page.shows("System")
+    assert press(r, cat(HARDWARE), none).shows("138 GB free inside  ·  No SD card")
 
 # ---- SND-4: the settings; pw-play and no Qt Multimedia
 with Root() as r:
