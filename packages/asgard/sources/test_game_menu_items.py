@@ -21,7 +21,7 @@ const log = name => (...args) => { sent.push([name, ...args]) }
 const backend = { retroarch: log("ra"), gameKeys: log("key"), padChord: log("chord"), quitGame: log("quit"),
                   toBackground: log("background"), set gameMenu(v) { sent.push(["menu", v]) } }
 function menuFor(game, launched) {
-    const azahar = game.includes("azahar"), eden = game.includes("eden"), retroarch = game.includes("retroarch"),
+    const azahar = game.includes("azahar"), eden = game.includes("eden"), edenDuo = game.includes("eden-duo-cli"), retroarch = game.includes("retroarch"),
           steam = game.includes("steam"), wwhd = game.includes("wwhd")
     const hasPerf = () => false
     const networkTile = () => ({ title: "Wi-Fi and Bluetooth", items: [{ title: "Wi-Fi" }, { title: "Bluetooth" }] })  // MENU-6
@@ -37,7 +37,7 @@ function menuFor(game, launched) {
     return show(items)
 }
 const out = {}
-for (const g of ["azahar", "eden", "retroarch", "steam", "wwhd", "melonds"]) out[g] = menuFor([g], { path: "/r/x", sys: "s" })
+for (const g of ["azahar", "eden", "eden-duo-cli", "retroarch", "steam", "wwhd", "melonds"]) out[g] = menuFor([g], { path: "/r/x", sys: "s" })
 out.tool = menuFor([], {})
 console.log(JSON.stringify(out))
 """ % (resume, list_src)
@@ -108,13 +108,14 @@ for name in menus:
     assert ["quit", True] in tile(name, "Quit and save log")["sent"]
 sends("azahar", "Resume", ["key", "F4"])
 sends("eden", "Resume", ["key", "F4"])
+sends("eden-duo-cli", "Resume", ["key", "F4"])                              # Eden Duo: its kill-data name isn't "eden"
 sends("retroarch", "Resume", ["ra", "PAUSE_TOGGLE"])
 assert not [s for s in tile("melonds", "Resume")["sent"] if s[0] != "menu"]   # no pause of its own: nothing to undo
 
 backend = open(os.path.join(HERE, "../../asgard-home/src/backend.cpp")).read()
 assert re.search(r'cmd == "menu" && playing\(\).*?togglePause\(\);\s*if \(open\)\s*setGameMenu\(true\)', backend, re.S)
 pause = re.search(r"bool Backend::togglePause\(\)\n\{.*?\n\}", backend, re.S).group(0)
-assert re.search(r'"azahar".*"eden".*gameKeys\("F4"\)', pause, re.S) and 'retroarch("PAUSE_TOGGLE")' in pause
+assert re.search(r'"azahar".*"eden".*"eden-duo-cli".*gameKeys\("F4"\)', pause, re.S) and 'retroarch("PAUSE_TOGGLE")' in pause
 
 # SND-7: every menu, a tool's too, has Sound
 for name in menus:

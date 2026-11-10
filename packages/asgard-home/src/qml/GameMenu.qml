@@ -15,6 +15,7 @@ Item {
     property bool perfChanged: false         // a Performance row changed: apply it on leaving the page or the menu
     readonly property bool azahar: game.indexOf("azahar") >= 0
     readonly property bool eden: game.indexOf("eden") >= 0
+    readonly property bool edenDuo: game.indexOf("eden-duo-cli") >= 0   // pause (F4) only: eden-cli has none of Eden's other keys
     readonly property bool retroarch: game.indexOf("retroarch") >= 0
     readonly property bool steam: game.indexOf("steam") >= 0
     readonly property bool wwhd: game.indexOf("wwhd") >= 0
@@ -121,7 +122,7 @@ Item {
     function resume(keys) {                  // close, run the hotkeys, unpause
         backend.gameMenu = false
         for (const k of keys || []) backend.gameKeys(k)
-        if (azahar || eden) backend.gameKeys("F4")
+        if (azahar || eden || edenDuo) backend.gameKeys("F4")
         if (retroarch) backend.retroarch("PAUSE_TOGGLE")
     }
     function raResume(cmd) {                 // a RetroArch command (it runs while paused), then unpause

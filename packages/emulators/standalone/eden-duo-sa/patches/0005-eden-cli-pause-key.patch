@@ -1,0 +1,25 @@
+eden-cli has no pause key, so Asgard Home's in-game menu and its sleep hook, which pause Eden with F4, left an Eden Duo
+game running under the menu. F4 now toggles System::Pause()/Run(), the same calls eden-cli makes around a shader cache
+reload. It's taken in SDL_AppEvent, before the DSMod harness and the main window, so it works whichever of the two
+windows has focus.
+
+--- a/src/yuzu_cmd/yuzu.cpp
++++ b/src/yuzu_cmd/yuzu.cpp
+@@ -347,6 +347,17 @@
+ }
+ extern "C" SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event) {
+     SdlState *state = (SdlState *)appstate;
++    // Asgard: F4 pauses and continues, as in Eden's Qt frontend. Asgard Home sends it while its in-game menu is open
++    // and around a sleep, to whichever of the two windows has focus, so it's handled before either window sees it.
++    if (event->type == SDL_EVENT_KEY_DOWN && event->key.scancode == SDL_SCANCODE_F4 && !event->key.repeat &&
++        state->system.IsPoweredOn()) {
++        if (state->system.IsPaused())
++            state->system.Run();
++        else
++            state->system.Pause();
++        LOG_INFO(Frontend, "F4: emulation {}", state->system.IsPaused() ? "paused" : "continued");
++        return SDL_APP_CONTINUE;
++    }
+     if (!DSModHarness::HandleEvent(state->dsmod, *event)) {
+         state->emu_window->OnEvent(*event);
+     }

@@ -76,7 +76,7 @@ Status (2026-10-26, from each emulator's source; the sleep test on the device is
 
 | Emulator | Pacing clock | After a sleep | Pause hook |
 |---|---|---|---|
-| Eden, Eden Duo | ARM counter (keeps running) | **replayed every missed frame**: fixed by patch 0002 | Eden F4; Eden Duo has none |
+| Eden, Eden Duo | ARM counter (keeps running) | **replayed every missed frame**: fixed by patch 0002 | F4 (Eden Duo's is ours: eden-duo-sa patch 0005) |
 | ARMSX2 | ARM counter (keeps running) | skips whole missed frames: OK | none bound (TogglePause unset) |
 | Azahar | emulated cycles + wall clock | limiter error clamped to ±25 ms: OK | F4 |
 | Dolphin (NoGUI, Wayland) | steady_clock | stops in sleep; 100 ms max fallback: OK | none (NoGUI Wayland has no pause) |

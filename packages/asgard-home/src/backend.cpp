@@ -562,7 +562,8 @@ void Backend::command(const QString &cmd)
 bool Backend::togglePause()
 {
     const QStringList names = runningGame();
-    if (names.contains("azahar") || names.contains("eden")) {
+    // Eden Duo's eden-cli: its F4 is Asgard's (eden-duo-sa patch 0005).
+    if (names.contains("azahar") || names.contains("eden") || names.contains("eden-duo-cli")) {
         gameKeys("F4");      // pause / unpause (Azahar and Eden keep running when they lose focus)
         return true;
     }

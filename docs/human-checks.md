@@ -25,7 +25,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 | NET-1 | Scan and join a Wi-Fi network with the on-screen keyboard; pair a Bluetooth pad, then forget it; switch USB mode with a PC attached; connect over SSH, Samba and Syncthing after turning each on. | |
 | NET-2 | Tailscale: follow the on-screen link and see Connected. ZeroTier: join by network ID and approve it. WireGuard: put a `.conf` in `/storage/.config/wireguard`, turn it on and see an address. | |
 | TRO-1 | Sign in with a real account and web API key: games with sets show the right progress in Trophies, and opening one lists its achievements. | |
-| GAME-5 | In a RetroArch game and in an Azahar game, tap Home: the picture stops while the menu is open and carries on from there after Resume. | |
+| GAME-5 | In a RetroArch game, an Azahar game and an Eden Duo game, tap Home: the picture stops while the menu is open and carries on from there after Resume. | |
 | MENU-1 | In a game, tap Home: the menu opens on the bottom screen, with the screens swapped too. Hold Home and press a hotkey: no menu opens and the hotkey works. | |
 | MENU-3 | Tap Home in PPSSPP, ARMSX2, AetherSX2 and Flycast: each opens its own menu, on top of the game. | |
 | PANEL-1 | In a game, press AYN: the panel fills the bottom screen and the game stops. Press AYN again: the game carries on. | |
