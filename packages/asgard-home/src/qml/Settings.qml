@@ -76,7 +76,7 @@ Item {
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
         return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
             const a = n => (l.match(new RegExp(n + '="([^"]*)"')) || [])[1] || ""
-            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type") }
+            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type"), battery: a("battery") }
         })
     }
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
@@ -248,7 +248,7 @@ Item {
             osDriverRows()]
         case "Network": return [
             [link("wifi", "Wi-Fi", get("wifi.enabled", "1") !== "1" ? "Off" : live.ssid ? "Connected to " + live.ssid : "Not connected", wifiPage),
-             link("bluetooth", "Bluetooth", get("bluetooth.enabled") === "1" ? "On" : "Off", btPage)],
+             link("bluetooth", "Bluetooth", get("bluetooth.enabled") === "1" ? "On" : "Off", btPage, btPoll)],
             [{ kind: "choice", icon: "chip", title: "USB connection", sub: "To a PC over the USB-C port",
                value: ({ disabled: "Off", network: "Network", file_transfer: "File transfer" })[live.usb] || "…",
                step: d => { const m = ["disabled", "network", "file_transfer"]
@@ -489,6 +489,10 @@ Item {
         else keyboard.ask("Password for " + ssid, "", true, go)
     }
 
+    // A paired device's state, with its battery when it reports one (only while connected)
+    function btState(d) { return d.connected ? "Connected" + (d.battery ? "  ·  battery " + d.battery + "%" : "") : "Paired" }
+    // While a Bluetooth page is up: connections, and a battery that headphones report a few seconds after connecting
+    function btPoll() { if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt) }
     function btPage() {
         const on = get("bluetooth.enabled") === "1"
         const rows = [[{ kind: "toggle", icon: "bluetooth", title: "Bluetooth", sub: live.btMsg || (on ? "On" : "Off"), on: on,
@@ -497,7 +501,7 @@ Item {
         if (!on) return rows
         rows[0].push(link("bluetooth", "Pair a new device", "Controllers, headphones", btScanPage, btScanPoll))
         if ((live.bt || []).length)
-            rows.push(live.bt.map(d => link("bluetooth", d.name, d.connected ? "Connected" : "Paired", () => btDevicePage(d))))
+            rows.push(live.bt.map(d => link("bluetooth", d.name, btState(d), () => btDevicePage(d), btPoll)))
         return rows
     }
     // The scan runs while this page is open: btScanCheck stops it however the page is left.
@@ -545,7 +549,8 @@ Item {
         return [[action("bluetooth", d.connected ? "Disconnect" : "Connect", live["btConn" + d.mac] || d.mac, () => btConnect(d)),
                  action("power", "Forget this device", d.name,
                         () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
-                                      () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))]]
+                                      () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))],
+                ...(d.connected && d.battery ? [[info("battery", "Battery", d.battery + "%")]] : [])]
     }
 
     readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],

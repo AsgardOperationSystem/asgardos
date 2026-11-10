@@ -26,6 +26,7 @@ os.makedirs(f"{T}/bin")
 script = open(f"{SCRIPTS}/asgardos-bluetooth").read()
 assert ". /etc/profile\n" in script
 script = script.replace(". /etc/profile\n", "").replace('"/run/', f'"{T}/run/').replace('STORAGE_PATH="/storage"', f'STORAGE_PATH="{T}/storage"')
+script = script.replace('POWER_SUPPLY_PATH="/sys/class/power_supply"', f'POWER_SUPPLY_PATH="{T}/power_supply"')
 with open(f"{T}/bin/bt", "w") as f:
     f.write(script)
 # sleep records what the agent would see at that moment, and doesn't wait
@@ -100,6 +101,32 @@ with open(f"{T}/rfkill", "w") as f:
     f.write("Soft blocked: yes\n")
 res = bt("connect", MAC)
 assert res.stderr.strip().splitlines()[-1] == "ERROR: The Bluetooth radio is off", res
+
+# list: each trusted device's battery while connected, from BlueZ (as bluetoothctl prints it), else from the kernel's
+# power_supply entry named after its address (hid-playstation: lower case; hid-nintendo: upper case), else none.
+DEVICES = {"11:22:33:44:55:66": ("Headphones", "yes", "\tBattery Percentage: 0x46 (70)\n"),
+           "A0:AB:51:00:00:01": ("DualSense", "yes", ""),
+           "98:B6:E9:00:00:02": ("Pro Controller", "yes", ""),
+           "C0:FF:EE:00:00:03": ("Off pad", "no", ""),
+           "C0:FF:EE:00:00:04": ("Plain pad", "yes", "")}
+case = "".join(f'  {mac}) printf "\\tConnected: {conn}\\n{batt}" ;;\n' for mac, (_, conn, batt) in DEVICES.items())
+with open(f"{T}/bin/bluetoothctl", "w") as f:
+    f.write(f'#!/bin/sh\n[ "$2" = info ] || exit 1\ncase "$3" in\n{case}esac\n')
+for mac, (name, _, _) in DEVICES.items():
+    os.makedirs(f"{T}/storage/.cache/bluetooth/00:00:00:00:00:00/{mac}")
+    with open(f"{T}/storage/.cache/bluetooth/00:00:00:00:00:00/{mac}/info", "w") as f:
+        f.write(f"[General]\nName={name}\nTrusted=true\n")
+for entry, capacity in (("ps-controller-battery-a0:ab:51:00:00:01", "55"),
+                        ("nintendo_switch_controller_battery_98:B6:E9:00:00:02", "40"),
+                        ("ps-controller-battery-c0:ff:ee:00:00:03", "90"),   # not connected: not shown
+                        ("battery", "77")):                                   # the Thor's own
+    os.makedirs(f"{T}/power_supply/{entry}")
+    with open(f"{T}/power_supply/{entry}/capacity", "w") as f:
+        f.write(capacity + "\n")
+listed = {m.group(1): m.group(2) for m in re.finditer(r'name="([^"]*)".*battery="([^"]*)"', bt("list").stdout)}
+assert listed == {"Headphones": "70", "DualSense": "55", "Pro Controller": "40", "Off pad": "", "Plain pad": ""}, listed
+for mac in DEVICES:
+    subprocess.run(["rm", "-r", f"{T}/storage/.cache/bluetooth/00:00:00:00:00:00/{mac}"], check=True)
 
 # ---- the agent
 class Signature(str):

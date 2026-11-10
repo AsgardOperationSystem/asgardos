@@ -14,6 +14,7 @@ BT_LISTING_PID_FILE="/run/bt_listing.pid"
 BT_CONTROL_FILE="/run/bt_discovery_control"
 BT_AGENT_STATUS_FILE="/run/bt_agent_status"
 BT_STATUS_FILE="/run/bt_status"
+POWER_SUPPLY_PATH="/sys/class/power_supply"
 
 # Action from command line
 ACTION=$1
@@ -114,13 +115,30 @@ do_list() {
             esac
 
             # Check connection status
-            if bluetoothctl -- info "${DEVADDR}" | grep -q "Connected: yes"; then
+            INFO=$(timeout 5 bluetoothctl -- info "${DEVADDR}")
+            if echo "${INFO}" | grep -q "Connected: yes"; then
                 CONNECTED="yes"
             else
                 CONNECTED="no"
             fi
 
-            echo "<device id=\"${DEVADDR}\" name=\"${DEVNAME}\" type=\"${DEVTYPE}\" connected=\"${CONNECTED}\" />"
+            # Battery, while connected: BlueZ's own (BLE battery service; headphones through PipeWire's HFP
+            # battery provider), else the kernel's for pads whose driver reads it (DualSense, DualShock 4, Switch
+            # Pro: power_supply entries named after the address, in either case)
+            BATTERY=""
+            if [ "${CONNECTED}" = "yes" ]; then
+                BATTERY=$(echo "${INFO}" | sed -n 's/^[[:space:]]*Battery Percentage: 0x[0-9a-fA-F]* (\([0-9]*\))$/\1/p' | head -1)
+                if [ -z "${BATTERY}" ]; then
+                    ADDR_LC=$(echo "${DEVADDR}" | tr 'A-F' 'a-f')
+                    for PS in "${POWER_SUPPLY_PATH}"/*; do
+                        case "$(basename "${PS}" | tr 'A-F' 'a-f')" in
+                            *"${ADDR_LC}"*) [ -r "${PS}/capacity" ] && BATTERY=$(cat "${PS}/capacity") && break ;;
+                        esac
+                    done
+                fi
+            fi
+
+            echo "<device id=\"${DEVADDR}\" name=\"${DEVNAME}\" type=\"${DEVTYPE}\" connected=\"${CONNECTED}\" battery=\"${BATTERY}\" />"
         fi
     done
 }

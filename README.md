@@ -44,6 +44,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | **Settings** | | |
 | Wi-Fi | ✅ | Scan, join, on-screen keyboard. |
 | Bluetooth | ✅ | Pair a new device scans and lists what's nearby. Checked on a Thor (2026-11-02) with a WH-1000XM4: forgotten, paired again from the page, connected over LDAC, and sound heard after an earlier pairing of it. Pairing a controller from the page hasn't been tried. With the lid closed, music stayed in the headphones without stutter when set to keep Bluetooth on; set off, Bluetooth came back with the lid, but the headphones need Connect pressed. |
+| Bluetooth device battery | 🧪 | Settings > Network > Bluetooth (and the in-game menu's) shows a connected device's battery: BlueZ's for headphones (HFP) and BLE pads, the kernel's for DualSense, DualShock 4 and Switch Pro pads (NET-1). Host-tested; not checked on a Thor yet, and which headphones and pads report one is still to see. |
 | VPN | 🧪 | Tailscale (sign-in link on screen), ZeroTier (join by network ID), WireGuard (`.conf` files from the Samba "config" share). Back ends checked 2026-10-28 (tailscaled up and asking for a login, ZeroTier online, a `.conf` imported); the sign-in and join flows from Settings are untested. |
 | USB mode, SSH, Samba, Syncthing | ✅ | |
 | Date and time, device name | ✅ | |

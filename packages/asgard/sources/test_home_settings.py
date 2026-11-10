@@ -206,6 +206,9 @@ with Root() as r:
     failing = {**answers, "asgardos-bluetooth connect": "INFO: Attempting to connect...\nERROR: Couldn't connect. Is the device on and nearby?"}
     tried = press(r, keys(bt, row(2), "a"), failing)                   # Connect that fails says so, on the page
     assert "exec: asgardos-bluetooth connect AA:BB" in tried.log and tried.shows("Couldn't connect"), tried.log
+    charged = {**answers, "asgardos-bluetooth list": '<device id="AA:BB" name="Pad" connected="yes" battery="64"/>'}
+    assert press(r, bt, charged).shows("battery 64%")                  # a connected device's battery, in the list
+    assert press(r, keys(bt, row(2)), charged).shows("64%")            # and on its page
     asked = press(r, keys(bt, row(2), row(1)), answers)                # the device's page: Forget, which asks
     assert asked.shows("Forget Pad?") and "asgardos-bluetooth remove" not in asked.log
     assert "exec: asgardos-bluetooth remove AA:BB" in press(r, keys(bt, row(2), row(1), "a"), answers).log
