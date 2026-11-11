@@ -285,5 +285,5 @@ Item {
             }
         }
     }
-    Loader { id: network; anchors.fill: parent; active: false; z: 10; sourceComponent: Settings {} }
+    Loader { id: network; anchors.fill: parent; active: false; z: 10; sourceComponent: Settings { menuStyle: true } }
 }

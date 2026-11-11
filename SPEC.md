@@ -96,7 +96,7 @@ Controls the running game without leaving it, with the same button in every emul
 - **MENU-3** PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus instead.
 - **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
 - **MENU-5** A game's menu has a Performance tile with its CPU cap per core type and its GPU cap, and each screen's overrides on pages of their own, the same values as its Settings page. D-pad left and right step a value, and A steps forward. A change is saved to the game's own keys, so the next launch loads it, and applies to the running game on leaving the page or the menu. A core type turned back on may need a game restart, because launchers pin emulators to the cores online at launch.
-- **MENU-6** Every in-game menu has Wi-Fi and Bluetooth, a sub-grid whose two tiles open Settings' own Wi-Fi and Bluetooth pages on the menu's screen: on and off, joining a network with the on-screen keyboard, pairing, connecting and disconnecting. Back returns to the menu, and the menu closing closes them.
+- **MENU-6** Every in-game menu has Wi-Fi and Bluetooth, a sub-grid whose two tiles open Settings' own Wi-Fi and Bluetooth pages on the menu's screen, drawn as the menu (its header, B back, big tiles, no Settings categories): on and off, joining a network with the on-screen keyboard, pairing, connecting and disconnecting. Back returns to the menu, and the menu closing closes them.
 
 ### Per-game and per-emulator overrides
 

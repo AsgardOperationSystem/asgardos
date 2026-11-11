@@ -27,7 +27,8 @@ def function(src, name):
 
 
 # The menu has its own Settings (it may be in the other window from Home's), and closing the menu closes it.
-assert re.search(r"Loader \{ id: network;.*sourceComponent: Settings \{\}", menu), "the menu has no Settings of its own"
+assert re.search(r"Loader \{ id: network;.*sourceComponent: Settings \{ menuStyle: true \}", menu), \
+    "the menu has no Settings of its own, or it isn't drawn as the menu"
 assert re.search(r"if \(networkOpen\) network\.item\.close\(\)", menu), "closing the menu leaves the network page open"
 
 script = """

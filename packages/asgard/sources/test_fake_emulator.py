@@ -1,4 +1,4 @@
-# spec: GAME-1 GAME-2 GAME-4 GAME-6 GAME-7 GAME-10 OVR-3 PORT-2
+# spec: GAME-1 GAME-2 GAME-4 GAME-6 GAME-7 GAME-10 MENU-6 OVR-3 PORT-2
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """The fake emulator (docs/testing.md, TEST-8): Asgard Home offscreen starting a script that follows the launcher contract and
 exits with any code, crashes or hangs. Home's half of each rule: GAME-1 the command line and what it does for .desktop apps;
@@ -154,6 +154,14 @@ for kill, want in (("-9 fake-emu", "killall -9 fake-emu;"), ("fake-emu", "killal
                    ("-15 one two", "killall -15 one two;")):
     _, _, res = with_rig(QUIT, behaviour=MENU, kill=kill)
     assert f"shell: {want}" in res.log, (want, res.log[-600:])
+
+# MENU-6: the menu's Wi-Fi and Bluetooth pages are drawn as the menu: its header and "B  back", no Settings categories.
+NETWORK = f"{OPEN_GAME} {WAIT} down right a"     # Wi-Fi and Bluetooth (after Resume, Performance and Sound)
+for keys, title in ((NETWORK + " a", "Wi-Fi"), (NETWORK + " left down a", "Bluetooth")):
+    _, _, res = with_rig(keys, behaviour=MENU)
+    shown = res.window("Asgard Home (Bottom)")
+    assert title in shown and "B  back" in shown, (title, shown)
+    assert not {"Settings", "General", "Hardware", "‹  Hardware"} & set(shown), (title, shown)
 
 # GAME-6: Back to Home freezes through asgard-background.py, shows the return tile, and A on it continues the game.
 TO_HOME = f"{OPEN_GAME} {WAIT} down down a a"    # Exit, then Back to Home

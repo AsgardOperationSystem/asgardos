@@ -13,6 +13,12 @@ Item {
     property int row: 0
     property var stack: []                   // sub-pages: [{title, build}]
     property var live: ({})                  // command results (Wi-Fi, Bluetooth, USB...): key -> value
+    // Drawn as the in-game menu (MENU-6): its dark backdrop, its header with "B  back", no categories, and each row one
+    // of its big tiles. Only the look: the pages and what they run are the same.
+    property bool menuStyle: false
+    readonly property int rowH: menuStyle ? 150 : 112
+    readonly property int rowGap: menuStyle ? 18 : 0            // between rows of a group
+    readonly property int groupGap: menuStyle ? 18 : 22
     signal closed()
 
     readonly property color ink: "#2a2b3d"
@@ -938,7 +944,7 @@ Item {
 
     // --- look -----------------------------------------------------------------------------------------------------
     visible: open
-    Rectangle { anchors.fill: parent; color: "#80000000"; MouseArea { anchors.fill: parent } }
+    Rectangle { anchors.fill: parent; color: settings.menuStyle ? "#0b0c14" : "#80000000"; MouseArea { anchors.fill: parent } }
 
     Rectangle {
         id: sheet
@@ -948,6 +954,7 @@ Item {
         // categories
         Rectangle {
             id: side
+            visible: !settings.menuStyle
             x: 22; y: 22; width: 340; height: parent.height - 44; radius: 32; color: "#e1e3ea"
             Text {
                 x: 32; y: 26; text: settings.stack.length > 1 ? "‹  " + settings.stack[settings.stack.length - 2].title
@@ -988,6 +995,7 @@ Item {
 
         // close
         Rectangle {
+            visible: !settings.menuStyle
             anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 22
             width: 60; height: 60; radius: 30; color: "#d6d8e0"
             Text { anchors.centerIn: parent; text: "×"; font.family: Theme.font; font.pixelSize: 44; font.weight: Font.Black; color: settings.ink }
@@ -997,68 +1005,76 @@ Item {
         // rows
         Flickable {
             id: list
-            x: side.x + side.width + 26; y: 96; width: parent.width - x - 26; height: parent.height - y - 22
+            x: settings.menuStyle ? 32 : side.x + side.width + 26; y: settings.menuStyle ? 120 : 96
+            width: parent.width - x - (settings.menuStyle ? 32 : 26); height: parent.height - y - 22
             clip: true; interactive: false
-            // Row positions from the page itself (rows 112 px, 22 px between groups): a change rebuilds every row
-            // item, and positions read from the new items (not laid out yet) scrolled the list back to the top.
+            // Row positions from the page itself (rowH a row, rowGap between rows, groupGap between groups): a change
+            // rebuilds every row item, and positions read from the new items (not laid out yet) scrolled the list back
+            // to the top.
             readonly property real rowY: {
                 let y = 0, n = settings.row
                 for (const g of settings.page) {
-                    if (n < g.length) return y + n * 112
-                    y += g.length * 112 + 22; n -= g.length
+                    if (n < g.length) return y + n * (settings.rowH + settings.rowGap)
+                    y += g.length * (settings.rowH + settings.rowGap) - settings.rowGap + settings.groupGap; n -= g.length
                 }
                 return 0
             }
-            readonly property real pageHeight: settings.page.reduce((h, g) => h + g.length * 112 + 22, 0) - 22
+            readonly property real pageHeight: settings.page.reduce((h, g) => h + g.length * (settings.rowH + settings.rowGap)
+                                                                    - settings.rowGap + settings.groupGap, 0) - settings.groupGap
             contentHeight: pageHeight
             contentY: settings.zone !== "list" ? 0 : Math.max(0, Math.min(pageHeight - height, rowY - height / 2 + 60))
             Behavior on contentY { NumberAnimation { duration: Theme.anim } }
 
             Column {
                 id: groupsCol
-                width: list.width; spacing: 22
+                width: list.width; spacing: settings.groupGap
                 Repeater {
                     model: settings.page
                     Rectangle {
                         id: group
                         readonly property int base: { let n = 0; for (let g = 0; g < index; g++) n += settings.page[g].length; return n }
-                        width: groupsCol.width; height: rows.height; radius: 28; color: settings.card
+                        width: groupsCol.width; height: rows.height; radius: 28
+                        color: settings.menuStyle ? "transparent" : settings.card
                         Column {
                             id: rows
-                            width: parent.width
+                            width: parent.width; spacing: settings.rowGap
                             Repeater {
                                 model: modelData
                                 Item {
                                     readonly property int flatIndex: group.base + index
                                     readonly property bool sel: settings.zone === "list" && flatIndex === settings.row
-                                    width: rows.width; height: 112
-                                    Rectangle {
-                                        anchors.fill: parent; anchors.margins: 6; radius: 22
-                                        color: parent.sel ? "#e6ecff" : "transparent"
+                                    width: rows.width; height: settings.rowH
+                                    Rectangle {  // the selection; in menuStyle, the tile itself (the menu's own)
+                                        anchors.fill: parent; anchors.margins: settings.menuStyle ? 0 : 6
+                                        radius: settings.menuStyle ? 30 : 22
+                                        color: parent.sel ? "#e6ecff" : settings.menuStyle ? settings.card : "transparent"
                                         border.color: parent.sel ? Theme.selA : "transparent"; border.width: 3
                                     }
                                     Rectangle {  // separator
-                                        visible: index > 0; x: 28; width: parent.width - 56; height: 2; color: settings.line
+                                        visible: index > 0 && !settings.menuStyle; x: 28; width: parent.width - 56; height: 2; color: settings.line
                                     }
                                     Image {
-                                        x: 34; anchors.verticalCenter: parent.verticalCenter; width: 44; height: 44
-                                        source: "icons/settings/" + modelData.icon + ".svg"; sourceSize: Qt.size(88, 88)
+                                        x: settings.menuStyle ? 30 : 34; anchors.verticalCenter: parent.verticalCenter
+                                        width: settings.menuStyle ? 52 : 44; height: width
+                                        source: "icons/settings/" + modelData.icon + ".svg"; sourceSize: Qt.size(104, 104)
                                     }
                                     Column {
                                         x: 104; anchors.verticalCenter: parent.verticalCenter
                                         width: parent.width - x - ({ link: 100, action: 100, toggle: 140, choice: 230 }[modelData.kind] || 30)
                                         Text {
                                             width: parent.width; elide: Text.ElideRight; text: modelData.title
-                                            font.family: Theme.font; font.pixelSize: 32; font.weight: Font.Black; color: settings.ink
+                                            font.family: Theme.font; font.pixelSize: settings.menuStyle ? 34 : 32; font.weight: Font.Black
+                                            color: settings.ink
                                         }
                                         Text {
                                             width: parent.width; elide: Text.ElideRight; text: modelData.sub || ""; visible: text !== ""
-                                            font.family: Theme.font; font.pixelSize: 24; font.weight: Font.Bold; color: settings.inkDim
+                                            font.family: Theme.font; font.pixelSize: settings.menuStyle ? 22 : 24; font.weight: Font.Bold
+                                            color: settings.inkDim
                                         }
                                     }
                                     // right side: chevron (link/action), switch (toggle), value (choice)
                                     Rectangle {
-                                        visible: modelData.kind === "link" || modelData.kind === "action"
+                                        visible: (modelData.kind === "link" || modelData.kind === "action") && !settings.menuStyle
                                         anchors.right: parent.right; anchors.rightMargin: 30; anchors.verticalCenter: parent.verticalCenter
                                         width: 50; height: 50; radius: 25; color: settings.ink
                                         Text { anchors.centerIn: parent; anchors.horizontalCenterOffset: 2; text: "›"; color: "white"
@@ -1093,11 +1109,18 @@ Item {
                 }
             }
         }
-        // page title on the right when a sub-page is open
+        // page title on the right when a sub-page is open; in menuStyle, where the menu has "Paused"
         Text {
-            x: list.x + 8; y: 30; visible: true; width: parent.width - x - 110; elide: Text.ElideRight
+            x: settings.menuStyle ? 44 : list.x + 8; y: settings.menuStyle ? 34 : 30
+            width: parent.width - x - (settings.menuStyle ? 260 : 110); elide: Text.ElideRight
             text: settings.stack.length ? settings.stack[settings.stack.length - 1].title : settings.categories[settings.cat].title
-            font.family: Theme.font; font.pixelSize: 40; font.weight: Font.Black; color: settings.ink
+            font.family: Theme.font; font.pixelSize: settings.menuStyle ? 44 : 40; font.weight: Font.Black; color: settings.ink
+        }
+        Text {                               // menuStyle: the menu's hint, where Settings has its close button
+            visible: settings.menuStyle
+            anchors.right: parent.right; anchors.rightMargin: 44; y: 46
+            text: "B  back"; font.family: Theme.font; font.pixelSize: 28; font.weight: Font.Bold; color: settings.inkDim
+            MouseArea { anchors.fill: parent; anchors.margins: -20; onClicked: settings.nav("b") }
         }
     }
 
