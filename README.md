@@ -60,7 +60,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
 | **Screens and input** | | |
 | Dual screens | ✅ | Landscape bottom screen, games placed on the right screen, quiet boot, "ASGARD OS" splash on the top screen. |
-| 120 Hz on both screens | ⚠️ | Settings > Display, per screen. The top is fine. The bottom's colours wash out at 120 Hz (about 1.8× brighter, roughly half the saturation) until its panel commands are known, so it defaults to 60. |
+| 120 Hz on both screens | ⚠️ | Settings > Display, per screen. The top is fine. The bottom's colours wash out at 120 Hz (about 1.8× brighter, roughly half the saturation) until its panel commands are known, so it defaults to 60. Switch games default to 60 Hz on the top too (no Switch game runs faster, and it halves the top's redraws) 🧪. |
 | Full top brightness range | ✅ | The top panel goes to its 12-bit maximum (ROCKNIX stopped ~40 % short). |
 | Matched screen colours | ✅ | Per-screen white balance in the display hardware (`asgard-gamma`); the bottom defaults to tint +3, contrast +3, chosen by eye to sit close to the top while keeping shadow detail. It isn't an exact match: matching the top's white measured at tint +10. Adjustable per screen in Settings > Display. |
 | OLED Ultra Black, idle blank | ✅ | Ultra Black is on the top panel only and applies after the screen cycles. Burn-in protection: screens off after a timeout, and X turns both off. |

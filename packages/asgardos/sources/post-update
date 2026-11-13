@@ -132,6 +132,18 @@ fi
 grep -q "^system\.batteryplus\.enabled=" /storage/.config/system/configs/system.cfg ||
     sed -i '$ a\system.batteryplus.enabled=1' /storage/.config/system/configs/system.cfg
 
+# Defaults the image's system.cfg gained after a user's install: added once each, so one the user clears later stays
+# cleared (CFG-1). The list in defaults-applied says which were added.
+DEFAULTS_DONE=/storage/.config/asgard/defaults-applied
+add_default_once() {   # <name> <key> <value>
+  grep -qx "$1" "$DEFAULTS_DONE" 2>/dev/null && return
+  grep -q "^${2//./\\.}=" /storage/.config/system/configs/system.cfg ||
+    sed -i "\$ a\\$2=$3" /storage/.config/system/configs/system.cfg   # on its own line, even after a last line with no newline
+  mkdir -p /storage/.config/asgard && echo "$1" >> "$DEFAULTS_DONE"
+}
+# Switch games run at 60 fps at most: the top screen at 60 Hz halves its presents and scanout for nothing lost
+add_default_once switch-top-60hz switch.top_refresh 60
+
 # Dolphin controller profiles moved from evdev to SDL bindings. Existing copies
 # in /storage name "Microsoft X-Box 360 pad", the virtual pad gptokeyb used to
 # create, and Dolphin no longer starts gptokeyb, so they would bind nothing.

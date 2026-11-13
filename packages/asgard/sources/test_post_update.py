@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-# spec: UPD-4
+# spec: UPD-4 SCR-2
 # requires: cmd:bash cmd:rsync cmd:awk
 # Runs the real post-update against a fake /storage and image: the user's saves, ROMs, settings, state and SSH keys come
-# through two updates untouched, emulators' settings keep their values and gain new shipped keys, and old keys convert.
+# through two updates untouched, emulators' settings keep their values and gain new shipped keys, old keys convert, and
+# a default added to the image later reaches system.cfg once, never over the user's value or after they cleared it.
 # It runs a copy with its paths rewritten into a temp dir, so it needs no root or namespaces and leaves the host alone.
 import os
 import re
@@ -114,6 +115,8 @@ def check(tmp, storage, failures):
             failures.append(f"system.cfg lost: {line}")
     if "asgardos.old=kept" not in cfg.splitlines() or "rocknix.old" in cfg:
         failures.append("system.cfg: rocknix.old wasn't converted to asgardos.old")
+    if cfg.splitlines().count("switch.top_refresh=60") != 1:
+        failures.append("system.cfg: the Switch's 60 Hz top screen wasn't added once")
 
     if not os.path.isfile(os.path.join(storage, ".config/system/shipped.conf")):
         failures.append("the image's new file in .config/system wasn't synced")
@@ -133,6 +136,18 @@ def check(tmp, storage, failures):
         failures.append("melonDS: a new shipped file wasn't added")
 
 
+def image_defaults(failures):
+    """Each one-time default in post-update is also in the image's system.cfg, with the same value, so a new install and
+    an updated one start alike. The Switch's top screen at 60 Hz is one (SCR-2)."""
+    image = read(os.path.dirname(SCRIPT), "../config/system/configs/system.cfg").splitlines()
+    once = re.findall(r"^add_default_once \S+ (\S+) (\S+)$", read(os.path.dirname(SCRIPT), "post-update"), re.M)
+    if ("switch.top_refresh", "60") not in once:
+        failures.append("post-update doesn't add the Switch's 60 Hz top screen")
+    for key, value in once:
+        if f"{key}={value}" not in image:
+            failures.append(f"the image's system.cfg lacks post-update's default {key}={value}")
+
+
 def main():
     with tempfile.TemporaryDirectory() as tmp:
         write(f"{tmp}/usr/config", IMAGE)
@@ -146,6 +161,7 @@ def main():
 
         output = update(tmp, script)
         failures = []
+        image_defaults(failures)
         check(tmp, storage, failures)
         first = snapshot(storage)
         update(tmp, script)
@@ -160,6 +176,19 @@ def main():
         update(tmp, script)
         if read(storage, MELONDS_INI) != IMAGE["melonDS/melonDS.ini"]:
             failures.append("melonDS: a missing config wasn't installed from the image")
+
+        # A one-time default stays away once the user clears it, and never replaces their own value.
+        cfg_path = os.path.join(storage, SYSTEM_CFG)
+        write(storage, {SYSTEM_CFG: read(storage, SYSTEM_CFG).replace("switch.top_refresh=60\n", "")})
+        update(tmp, script)
+        if "switch.top_refresh" in read(storage, SYSTEM_CFG):
+            failures.append("system.cfg: a default the user cleared came back")
+        subprocess.run(["rm", "-f", os.path.join(storage, ".config/asgard/defaults-applied")], check=True)
+        with open(cfg_path, "a") as f:
+            f.write("switch.top_refresh=120")   # no newline at the end: the default must not join or replace it
+        update(tmp, script)
+        if read(storage, SYSTEM_CFG).splitlines()[-1] != "switch.top_refresh=120":
+            failures.append("system.cfg: a default replaced the user's own value")
 
         if failures:
             print(output[-1500:])
