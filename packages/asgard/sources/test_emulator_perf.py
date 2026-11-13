@@ -8,7 +8,8 @@ the Thor stay in place. Whether a game runs faster or draws less is measured on 
 - Azahar uses no geometry shaders on Turnip, as on Android (each lit draw had one; they're slow on a tiler).
 - Eden's thread priorities become nice values on Linux (SCHED_OTHER's only priority is 0, so they did nothing).
 - Eden and Eden Duo count a lone handheld pad as one player when a game's controller applet closes (it got 0, and
-  Echoes of Wisdom asked again until Eden ran out of kernel events and crashed).
+  Echoes of Wisdom asked again until Eden ran out of kernel events and crashed), and Eden's dialog for it accepts at
+  once when the handheld P1 alone meets the game's parameters (it disconnected P1 and left OK greyed out).
 - The image's Mesa carries two upstream Turnip fixes not in 26.2.6: the A740 SP_DBG_ECO_CNTL value (random GPU hangs;
   the Thor's chip 43050a01 uses that device entry) and the flushes lost across a split suspend/resume render pass."""
 import os
@@ -61,6 +62,12 @@ for pkg, patch in (("eden-sa", "0005"), ("eden-duo-sa", "0006")):
     assert re.search(r"result_info\.player_count == 0 &&\s+system\.HIDCore\(\)\.GetEmulatedController\("
                      r"Core::HID::NpadIdType::Handheld\)->IsConnected\(\)\) \{\s+result_info\.player_count = 1;",
                      added(applet)), f"{pkg}: a lone handheld pad still counts as 0 players"
+
+dialog = added(read(STANDALONE, "eden-sa", "patches", "0006-qt-controller-applet-accepts-a-lone-handheld-p1.patch"))
+assert "Core::HID::NpadStyleIndex::Handheld" in dialog and "handheld_only = true;" in dialog, \
+    "Eden's controller dialog doesn't accept a lone handheld P1"
+assert "if (parameters_met && (parameters.enable_single_mode || handheld_only)) {" in dialog, \
+    "exec() would still show the dialog"
 
 mesa = os.path.join(ROOT, "packages", "graphics", "mesa", "patches")
 names = os.listdir(mesa)

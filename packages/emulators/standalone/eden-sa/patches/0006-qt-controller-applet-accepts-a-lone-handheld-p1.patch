@@ -1,0 +1,51 @@
+Subject: [PATCH] qt: the controller applet accepts a lone handheld P1 without showing
+
+When a game opens the controller applet without single mode and with keep_controllers_connected false (Echoes of
+Wisdom), the dialog disconnected every player, P1 included, so it showed 0 players with OK greyed out, and the
+game waited until P1 was ticked by touch. On a Switch the attached Joy-Cons stay connected. When P1 is the handheld
+pad and meets the parameters alone, accept at once, as the single-mode case already does.
+
+---
+--- a/src/yuzu/applets/qt_controller.cpp
++++ b/src/yuzu/applets/qt_controller.cpp
+@@ -232,6 +232,19 @@
+         return;
+     }
+ 
++    // Asgard: a handheld has nothing else to connect. On a Switch the attached Joy-Cons stay connected through this
++    // applet, but below every player was disconnected, P1 included, which left 0 players and OK greyed out until P1
++    // was ticked by touch (Echoes of Wisdom on a Thor, 2026-11-13). When P1 is the handheld pad and meets the
++    // parameters alone, accept without showing the dialog.
++    if (CheckIfParametersMet() && player_groupboxes[0]->isChecked() &&
++        std::count_if(player_groupboxes.begin(), player_groupboxes.end(),
++                      [](const QGroupBox* player) { return player->isChecked(); }) == 1 &&
++        GetControllerTypeFromIndex(emulated_controllers[0]->currentIndex(), 0) ==
++            Core::HID::NpadStyleIndex::Handheld) {
++        handheld_only = true;
++        return;
++    }
++
+     // If keep_controllers_connected is false, forcefully disconnect all controllers
+     if (!parameters.keep_controllers_connected) {
+         for (auto player : player_groupboxes) {
+@@ -248,7 +261,7 @@
+ }
+ 
+ int QtControllerSelectorDialog::exec() {
+-    if (parameters_met && parameters.enable_single_mode) {
++    if (parameters_met && (parameters.enable_single_mode || handheld_only)) {
+         return QDialog::Accepted;
+     }
+     return QDialog::exec();
+--- a/src/yuzu/applets/qt_controller.h
++++ b/src/yuzu/applets/qt_controller.h
+@@ -127,6 +127,9 @@
+     // This determines whether the "OK" button can be clicked to exit the applet.
+     bool parameters_met{false};
+ 
++    // Asgard: P1 is the console's own (handheld) pad and meets the parameters alone, so exec() accepts at once.
++    bool handheld_only{false};
++
+     static constexpr std::size_t NUM_PLAYERS = 8;
+ 
+     // Widgets encapsulating the groupboxes and comboboxes per player.
