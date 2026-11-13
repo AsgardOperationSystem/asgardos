@@ -269,6 +269,11 @@ with Root() as r:
     page = press(r, hardware(STORAGE), none)
     assert page.shows("No SD card in") and page.shows("On the internal storage") and not page.shows("System")
     assert press(r, cat(HARDWARE), none).shows("138 GB free inside  ·  No SD card")
+    # PWR-5: while asgard-charge-limit.sh has a recalibration due, the Charge limit row says the next charge goes to 100%
+    due = {"cat /run/asgard-charge-recal": "6680000 7091000"}
+    assert "exec: cat /run/asgard-charge-recal" in press(r, hardware(PERFORMANCE), due).log
+    assert press(r, keys(hardware(PERFORMANCE), *["down"] * 8), due).shows("to recalibrate the battery gauge")
+    assert not press(r, keys(hardware(PERFORMANCE), *["down"] * 8)).shows("to recalibrate the battery gauge")
 
 # ---- SND-4: the settings; pw-play and no Qt Multimedia
 with Root() as r:

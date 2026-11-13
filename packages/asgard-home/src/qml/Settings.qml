@@ -76,6 +76,7 @@ Item {
         sh("usb", "usbgadget")
         sh("update", "ls /storage/.update/*.tar 2>/dev/null | head -1")
         sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
+        sh("chargeRecal", "cat /run/asgard-charge-recal 2>/dev/null")
         if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt)
         storageRefresh()
     }
@@ -240,7 +241,9 @@ Item {
              // asgard-motiond while in Home; games use their own Gyro option (Hardware overrides, default off)
              toggle("gamepad", "Gyro", "Motion sensors in the menu; games set their own. Uses more battery",
                     "asgard.motion", "0", () => backend.shell("/usr/share/asgard/asgard-perf-profile.sh motion"))],
-            [choice("battery", "Charge limit", "At the limit the charger runs the Thor and the battery rests; charges again 5% below it",
+            // asgard-charge-limit.sh: a gauge that drifted gets one charge to 100% (/run/asgard-charge-recal while due)
+            [choice("battery", "Charge limit", live.chargeRecal ? "The next charge goes to 100% once, to recalibrate the battery gauge"
+                                                                : "At the limit the charger runs the Thor and the battery rests; charges again 5% below it",
                     "asgard.charge_limit", "80",
                     [["80%", "80"], ["100%", "full"], ["Off", "100"]]),  // asgard-charge-limit.sh reads the setting
              // asgard-charge-limit.sh too: charge current 0 while on the cable, the charger runs the Thor

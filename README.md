@@ -74,6 +74,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Sleep (s2idle) | ✅ | Full SoC sleep (CX, AOSS, DDR), 20–30 mA (~0.3 %/h). Pad, Wi-Fi, audio and storage resume. Emulators don't replay the time asleep. A lid opened again while it's going down cancels the sleep (checked 2026-11-06). |
 | Sleep drain below ~23 mA | ⏸️ | Same ~22 mA floor on 7.2 and 7.3. Suspects: audio codec rails, devices on vph_pwr. See [docs/sleep.md](docs/sleep.md). |
 | Charge limit | ✅ | Stops at the limit, starts again 5 % below. Bypass charging. |
+| Charge limit recalibration | 🧪 | Under the limit the gauge drifts (its full capacity up about 50 mAh a day, so 80 % holds more each day); once it's 5 % past the last full charge, the next charge goes to 100 % once, and Settings' Charge limit row says so (PWR-5). Host-tested; not checked on a Thor yet. |
 | Battery report | ✅ | What used the battery since the last unplug (sleep, Home, each emulator), time left. |
 | CPU cap, performance profiles | ✅ | Per core type, 25–100 %; per-game profiles. |
 | **Audio** | | |

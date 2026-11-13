@@ -272,7 +272,7 @@ Close the lid and come back later to the same moment in the game, having lost as
 
 Lets a battery that's often plugged in last longer, by not holding it at full charge.
 
-- **PWR-5** Charging stops at the limit and resumes 5 % below it. `100` = off, `full` = hold at 100 and resume at 95. The default is 80.
+- **PWR-5** Charging stops at the limit and resumes 5 % below it. `100` = off, `full` = hold at 100 and resume at 95. The default is 80. Under a limit, once the gauge's full capacity has drifted 5 % above its value at the last full charge, the next charge goes to 100 % once to recalibrate it, and Settings says so; not with bypass charging.
 - **BAT-2** Bypass charging runs the Thor from the cable and leaves the battery alone, charging only below 20 %.
 
 ### CPU clusters, GPU and fan
