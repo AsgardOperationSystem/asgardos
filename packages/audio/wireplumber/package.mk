@@ -48,12 +48,6 @@ wireplumber.profiles = {
 }
 EOF
 
-  cat >${INSTALL}/usr/share/wireplumber/wireplumber.conf.d/89-disable-bluez-hfphsp-backend.conf <<EOF
-monitor.bluez.properties = {
-  bluez5.hfphsp-backend = "none"
-}
-EOF
-
   cat > ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d/89-disable-libcamera.conf << EOF
 wireplumber.profiles = {
   main = {

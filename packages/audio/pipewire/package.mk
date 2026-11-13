@@ -14,8 +14,9 @@ PKG_PATCH_DIRS+=" ${DEVICE}"
 if [ "${BLUETOOTH_SUPPORT}" = "yes" ]; then
   PKG_DEPENDS_TARGET+=" bluez sbc ldacBT libfreeaptx fdk-aac"
   PKG_PIPEWIRE_BLUETOOTH="-Dbluez5=enabled \
-                          -Dbluez5-backend-hsp-native=disabled \
-                          -Dbluez5-backend-hfp-native=disabled \
+                          -Dbluez5-backend-hsp-native=enabled \
+                          -Dbluez5-backend-hfp-native=enabled \
+                          -Dbluez5-backend-native-mm=disabled \
                           -Dbluez5-backend-ofono=disabled \
                           -Dbluez5-backend-hsphfpd=disabled \
                           -Dbluez5-codec-aptx=enabled \
