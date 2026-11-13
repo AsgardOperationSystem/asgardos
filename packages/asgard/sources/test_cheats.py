@@ -4,7 +4,7 @@
 """Run: python -I test_cheats.py  (no Thor): a game's cheats. asgard-cheats.py against a fake database and state: which
 database file a ROM gets, a cheat switched on and off by name, and what runemu.sh's apply writes for RetroArch (its
 game-specific .cht with the chosen cheats enabled, apply_cheats_after_load for the launch, a user's own file left alone,
-ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled) and PPSSPP (the disc ID from an ISO, CSO or PBP; _C1).
+ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled) PPSSPP (the disc ID from an ISO, CSO or PBP; _C1) and melonDS (<rom>.mch).
 Then Home, offscreen: Select > Cheats lists them and A switches one through the
 script. That a cheat works in a game is a human check."""
 import json
@@ -204,6 +204,28 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "Mine" in open(f"{tmp}/psp/ULUS10041.ini").read()
     open(f"{tmp}/x.chd", "wb").write(b"MComprHD")                              # not read yet: no cheats, no crash
     assert run(env, "list", "psp", f"{tmp}/x.chd", "ppsspp", "ppsspp-sa")["error"]
+
+# ---- melonDS: libretro's DS .cht as <rom>.mch beside the ROM, EnableCheats on; emulators with none say what to do
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env["ASGARD_CHEATS_MELONDS_TOML"] = f"{tmp}/melonDS.toml"
+    open(f"{tmp}/melonDS.toml", "w").write('[Instance0]\nCheatFilePath = ""\nEnableCheats = false\n')
+    os.makedirs(f"{tmp}/db/Nintendo - Nintendo DS")
+    open(f"{tmp}/db/Nintendo - Nintendo DS/World Ends with You, The (USA).cht", "w").write(
+        'cheats = 2\ncheat0_desc = "Miscellaneous Codes"\n'
+        'cheat1_desc = "Debug Menu"\ncheat1_code = "920AE5F0+00000AB1+D2000000+00000000"\ncheat1_enable = false\n')
+    os.makedirs(f"{tmp}/roms")
+    ds = ("nds", f"{tmp}/roms/World Ends with You, The (USA).nds", "melonds", "melonds-sa")
+    assert [c["name"] for c in run(env, "list", *ds)["cheats"]] == ["Debug Menu"]          # the header isn't a cheat
+    run(env, "set", *ds, "Debug Menu", "on")
+    run(env, "apply", *ds)
+    mch = open(f"{tmp}/roms/World Ends with You, The (USA).mch").read()
+    assert "CODE 1 Debug Menu\n920AE5F0 00000AB1\nD2000000 00000000\n" in mch and mch.startswith("# Asgard")
+    assert "EnableCheats = true" in open(f"{tmp}/melonDS.toml").read()
+    run(env, "set", *ds, "Debug Menu", "off")
+    run(env, "apply", *ds)
+    assert not os.path.exists(f"{tmp}/roms/World Ends with You, The (USA).mch")
+    assert "RetroArch (mGBA)" in run(env, "list", "gba", "/r/x.gba", "nanoboyadvance", "nanoboyadvance-sa")["error"]
 
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402

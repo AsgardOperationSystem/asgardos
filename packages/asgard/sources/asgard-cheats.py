@@ -16,6 +16,8 @@ Cheats come from databases shipped in the image (offline):
   PPSSPP     the image's CWCheat database (ppsspp-sa's PSP/Cheats/cheat.db, or a game's own shipped <ID>.ini); written
              to PPSSPP's PSP/Cheats/<disc ID>.ini with _C1 on the ones on. The disc ID is read from the ISO's
              UMD_DATA.BIN (a .cso's blocks are inflated as needed) or a PBP's PARAM.SFO; a .chd isn't read yet.
+  melonDS    libretro-database's Nintendo DS .cht (Action Replay); written as <rom>.mch beside the ROM (CheatFilePath
+             is empty), with EnableCheats switched on in melonDS.toml.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
 import difflib
@@ -34,6 +36,12 @@ DB = os.environ.get("ASGARD_CHEATS_DB", "/usr/share/asgard-cheats")          # a
 AZAHAR_OUT = os.environ.get("ASGARD_CHEATS_AZAHAR_OUT", "/storage/.config/azahar/cheats")
 PSP_DB = os.environ.get("ASGARD_CHEATS_PSP_DB", "/usr/config/ppsspp/PSP/Cheats")      # cheat.db + shipped inis
 PSP_OUT = os.environ.get("ASGARD_CHEATS_PSP_OUT", "/storage/.config/ppsspp/PSP/Cheats")
+MELONDS_TOML = os.environ.get("ASGARD_CHEATS_MELONDS_TOML", "/storage/.config/melonDS/melonDS.toml")
+# Emulators with no cheat engine, or none Asgard writes yet: what the list says instead
+NO_CHEATS = {
+    "nanoboyadvance": "NanoBoyAdvance has no cheats: set this game's emulator to RetroArch (mGBA) for them",
+    "mednafen": "No cheats for Mednafen yet: set this game's emulator to RetroArch for them",
+}
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
 
 # ES system -> libretro-database cht folder
@@ -379,7 +387,49 @@ class PPSSPP:
         write_file(dst, "\n".join(lines) + "\n")
 
 
-BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP()}
+# --- melonDS (.mch: "CAT <name>", "CODE <0|1> <name>", then 8+8 hex digit lines) -----------------------------------
+class MelonDS:
+    FOLDER = "Nintendo - Nintendo DS"
+
+    def source(self, system, rom):
+        return best_file(os.path.join(RA_DB, self.FOLDER), rom)
+
+    def coded(self, src):
+        out = []
+        for c in cht_read(src):
+            code = c["values"].get(f"cheat{c['i']}_code", "")
+            words = [w for w in re.split(r"[+\s]+", code) if re.fullmatch(r"[0-9A-Fa-f]{8}", w)]
+            if words and len(words) % 2 == 0:     # headers ("Miscellaneous Codes") have no code
+                out.append((c["name"][:120], [f"{words[i]} {words[i + 1]}" for i in range(0, len(words), 2)]))
+        return out
+
+    def cheats(self, src):
+        return [name for name, _ in self.coded(src)]
+
+    def apply(self, system, rom, core, src, on):
+        dst = os.path.splitext(rom)[0] + ".mch"
+        exists, mine = ours(dst, MARK)
+        if exists and not mine:
+            return
+        if not src or not on:
+            if mine:
+                os.remove(dst)
+            return
+        text = [MARK + "\n", "CAT Cheats\n"]
+        for name, lines in self.coded(src):
+            text += [f"CODE {1 if name in on else 0} {name}\n"] + [l + "\n" for l in lines] + ["\n"]
+        write_file(dst, "".join(text))
+        try:
+            with open(MELONDS_TOML) as f:
+                toml = f.read()
+            new = re.sub(r"(?m)^(\s*EnableCheats\s*=\s*)false\s*$", r"\1true", toml)
+            if new != toml:
+                write_file(MELONDS_TOML, new)
+        except OSError:
+            pass
+
+
+BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS()}
 
 
 def backend(emulator):
@@ -413,7 +463,7 @@ def save_on(system, rom, on):
 def listing(system, rom, emulator, core):
     b = backend(emulator)
     if not b:
-        return {"source": "", "cheats": [], "error": f"No cheats for {emulator} yet"}
+        return {"source": "", "cheats": [], "error": NO_CHEATS.get(emulator, f"No cheats for {emulator} yet")}
     src = b.source(system, rom)
     if not src:
         return {"source": "", "cheats": [], "error": "No cheats found for this game"}
