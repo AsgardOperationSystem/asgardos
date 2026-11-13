@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # spec: EMU-3
 # requires: cmd:git
-"""Run: python -I test_emulator_perf.py  (no Thor): build flags and source patches that make emulators faster on the Thor
-stay in place. Whether a game runs faster or draws less is measured on a Thor, not here.
+"""Run: python -I test_emulator_perf.py  (no Thor): build flags and source patches that make Azahar and Eden faster on
+the Thor stay in place. Whether a game runs faster or draws less is measured on a Thor, not here.
 - No recipe appends a compiler flag with no space: Azahar's `CXXFLAGS+=-fpch-preprocess` turned the toolchain's last
   flag into `-DNDEBUG-fpch-preprocess`, so dynarmic and the other bundled libraries were built with asserts on.
-- Azahar uses no geometry shaders on Turnip, as on Android (each lit draw had one; they're slow on a tiler)."""
+- Azahar uses no geometry shaders on Turnip, as on Android (each lit draw had one; they're slow on a tiler).
+- Eden's thread priorities become nice values on Linux (SCHED_OTHER's only priority is 0, so they did nothing)."""
 import os
 import re
 import subprocess
@@ -35,9 +36,18 @@ for name in recipes.split():
             glued.append(f"{name}:{n}: {line.strip()}")
 assert not glued, "a flag appended with no space joins the one before it:\n  " + "\n  ".join(glued)
 
-
 azahar = read(STANDALONE, "azahar-sa", "patches", "0004-vulkan-no-geometry-shaders-on-turnip.patch")
 assert "vk_instance.h" in azahar and "UseGeometryShaders" not in added(azahar), "the patch should change the body only"
 assert re.search(r"return features\.geometryShader && driver_id != vk::DriverIdKHR::eMesaTurnip;", added(azahar)), \
     "Azahar still uses geometry shaders on Turnip"
+
+eden = read(STANDALONE, "eden-sa", "patches", "0004-common-thread-priorities-as-nice-values.patch")
+body = added(eden)
+assert "src/common/thread.cpp" in eden
+assert re.search(r"setpriority\(PRIO_PROCESS, 0, nice_value\)", body), "Eden's thread priorities aren't set as nice values"
+assert "#elif defined(__linux__) && !defined(__ANDROID__)" in body, "the Linux branch must come before the SCHED_OTHER one"
+for level, nice in (("Critical", "NICE_AUDIO"), ("VeryHigh", "NICE_URGENT_DISPLAY"), ("High", "NICE_DISPLAY"),
+                    ("Low", "NICE_BACKGROUND")):
+    assert f"case Common::ThreadPriority::{level}: return {nice};" in body, f"{level} isn't mapped"
+assert "RLIMIT_NICE" in body, "a nice value below what RLIMIT_NICE allows would just fail"
 print("OK")
