@@ -35,7 +35,7 @@ PKG_CMAKE_OPTS_TARGET+=" -DENABLE_OPENGL=ON \
                          -DUSE_DISCORD_PRESENCE=OFF"
 
 pre_configure_target() {
-  export CXXFLAGS+=-fpch-preprocess
+  export CXXFLAGS="${CXXFLAGS} -fpch-preprocess"   # with the space: glued on, it ate -DNDEBUG (-DNDEBUG-fpch-preprocess)
   export CFLAGS="${CFLAGS} -Wno-error=incompatible-pointer-types"
 }
 
