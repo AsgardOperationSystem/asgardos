@@ -807,7 +807,9 @@ Item {
     function optionRow(f, prefix, inherit) {
         const key = prefix + "." + f.key
         const cur = get(key)
-        const label = v => (f.choices.find(c => c[1] === v) || [v])[0]
+        // A value between the choices (the OS's brightness 45, the choices 10% steps) gets their unit too
+        const pct = f.choices.length > 0 && f.choices.every(c => c[0] === c[1] + "%")
+        const label = v => (f.choices.find(c => c[1] === v) || [pct ? v + "%" : v])[0]
         const parent = inherit ? get(inherit + "." + f.key) : ""
         const values = [""].concat(f.choices.map(c => c[1]))
         const type = f.key.startsWith("cpu_cap_") ? f.key.slice(8) : ""

@@ -98,6 +98,13 @@ row = VALUE % (json.dumps(BT), json.dumps(GAME), json.dumps(SYSTEM))
 assert node({}, [BT], {"s": row})[0]["s"] == "OS (On)"
 assert node({"asgard.sleep_bt": "off"}, [BT], {"s": row})[0]["s"] == "OS (Off)"
 assert node({"asgard.sleep_bt": "off", "3ds.sleep_bt": "on"}, [BT], {"s": row})[0]["s"] == "Emulator settings (On)"
+# A value between the choices keeps their unit: the OS's brightness 45 against 10 % steps reads "OS (45%)", not "OS (45)"
+LIGHT = {"key": "top_brightness", "label": "Brightness", "choices": [[f"{v}%", str(v)] for v in range(10, 101, 10)],
+         "osKey": "display.brightness2", "osDefault": "50"}
+light = VALUE % (json.dumps(LIGHT), json.dumps(GAME), json.dumps(SYSTEM))
+assert node({"display.brightness2": "45"}, [LIGHT], {"s": light})[0]["s"] == "OS (45%)"
+assert node({"display.brightness2": "40"}, [LIGHT], {"s": light})[0]["s"] == "OS (40%)"
+assert node({"3ds.ratio": "16/10"}, [PLAIN], {"s": VALUE % (json.dumps(PLAIN), json.dumps(GAME), json.dumps(SYSTEM))})[0]["s"] == "Emulator settings (16/10)"
 assert next(f for f in features("azahar", "azahar-sa") if f["key"] == "sleep_bt")["osKey"] == "asgard.sleep_bt"
 
 # OVR-2: every emulator add_emu_core registers, whether es_features.cfg knows it or not, offers the same hardware rows.
