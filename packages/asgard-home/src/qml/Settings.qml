@@ -82,7 +82,7 @@ Item {
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
         return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
             const a = n => (l.match(new RegExp(n + '="([^"]*)"')) || [])[1] || ""
-            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type"), battery: a("battery") }
+            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type"), battery: a("battery"), codec: a("codec") }
         })
     }
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
@@ -495,8 +495,10 @@ Item {
         else keyboard.ask("Password for " + ssid, "", true, go)
     }
 
-    // A paired device's state, with its battery when it reports one (only while connected)
-    function btState(d) { return d.connected ? "Connected" + (d.battery ? "  ·  battery " + d.battery + "%" : "") : "Paired" }
+    // A paired device's state, with its audio codec and its battery when it reports one (only while connected)
+    function btState(d) {
+        return d.connected ? "Connected" + (d.codec ? "  ·  " + d.codec : "") + (d.battery ? "  ·  battery " + d.battery + "%" : "") : "Paired"
+    }
     // While a Bluetooth page is up: connections, and a battery that headphones report a few seconds after connecting
     function btPoll() { if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt) }
     function btPage() {
@@ -556,7 +558,9 @@ Item {
                  action("power", "Forget this device", d.name,
                         () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
                                       () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))],
-                ...(d.connected && d.battery ? [[info("battery", "Battery", d.battery + "%")]] : [])]
+                ...(d.connected && (d.codec || d.battery)
+                    ? [[...(d.codec ? [info("speaker", "Audio codec", d.codec)] : []),
+                        ...(d.battery ? [info("battery", "Battery", d.battery + "%")] : [])]] : [])]
     }
 
     readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],

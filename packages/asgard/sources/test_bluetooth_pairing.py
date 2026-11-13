@@ -123,8 +123,33 @@ for entry, capacity in (("ps-controller-battery-a0:ab:51:00:00:01", "55"),
     os.makedirs(f"{T}/power_supply/{entry}")
     with open(f"{T}/power_supply/{entry}/capacity", "w") as f:
         f.write(capacity + "\n")
+# No PipeWire (pactl fails): no codec, and the rest still listed
+with open(f"{T}/bin/pactl", "w") as f:
+    f.write('#!/bin/sh\nexit 1\n')
+os.chmod(f"{T}/bin/pactl", 0o755)
 listed = {m.group(1): m.group(2) for m in re.finditer(r'name="([^"]*)".*battery="([^"]*)"', bt("list").stdout)}
 assert listed == {"Headphones": "70", "DualSense": "55", "Pro Controller": "40", "Off pad": "", "Plain pad": ""}, listed
+assert set(re.findall(r'codec="([^"]*)"', bt("list").stdout)) == {""}
+
+# codec: from the api.bluez5.* properties of the device's sink in pactl's listing (address in either case, codec
+# before or after it), named the way it's known; a pad, the speaker sink and a disconnected device have none
+SINK = 'Sink #{n}\n\tName: {name}\n\tProperties:\n{props}\tFormats:\n\t\tpcm\n\n'
+sinks = (SINK.format(n=40, name="thor_dsp_speaker", props='\t\tnode.name = "thor_dsp_speaker"\n')
+         + SINK.format(n=41, name="bluez_output.11_22_33_44_55_66.1",
+                       props='\t\tapi.bluez5.codec = "ldac"\n\t\tapi.bluez5.address = "11:22:33:44:55:66"\n')
+         + SINK.format(n=42, name="bluez_output.C0_FF_EE_00_00_03.1",
+                       props='\t\tapi.bluez5.address = "c0:ff:ee:00:00:03"\n\t\tapi.bluez5.codec = "aac"\n'))
+with open(f"{T}/sinks", "w") as f:
+    f.write(sinks)
+with open(f"{T}/bin/pactl", "w") as f:
+    f.write(f'#!/bin/sh\n[ "$*" = "list sinks" ] && cat {T}/sinks\n')
+codecs = {m.group(1): m.group(2) for m in re.finditer(r'name="([^"]*)".*codec="([^"]*)"', bt("list").stdout)}
+assert codecs == {"Headphones": "LDAC", "DualSense": "", "Pro Controller": "", "Off pad": "", "Plain pad": ""}, codecs
+for pw, shown in (("sbc_xq", "SBC-XQ"), ("aptx_hd", "aptX HD"), ("aptx", "aptX"), ("msbc", "mSBC"), ("cvsd", "CVSD"),
+                  ("aac", "AAC"), ("sbc", "SBC")):
+    with open(f"{T}/sinks", "w") as f:
+        f.write(sinks.replace('"ldac"', f'"{pw}"'))
+    assert f'name="Headphones"' in bt("list").stdout and f'codec="{shown}"' in bt("list").stdout, (pw, bt("list").stdout)
 for mac in DEVICES:
     subprocess.run(["rm", "-r", f"{T}/storage/.cache/bluetooth/00:00:00:00:00:00/{mac}"], check=True)
 

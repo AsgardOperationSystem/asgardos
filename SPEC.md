@@ -135,7 +135,7 @@ are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files a
 - **SET-3** Restart, power off and installing an update ask for confirmation first. An update is offered only when a `.tar` is in `/storage/.update`.
 - **SET-4** A change takes effect without a restart where it can. A setting that needs one says so on its row.
 - **SET-5** Storage shows the free, total and used space of the internal storage and the SD card (or that no card is in), whether the games folder is on the card or inside, and the system partition.
-- **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting, and a connected device's battery when it reports one; USB mode; and SSH, Samba and Syncthing.
+- **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting, and a connected device's battery when it reports one and its audio codec while it plays; USB mode; and SSH, Samba and Syncthing.
 - **NET-2** VPN offers Tailscale (sign-in link on screen), ZeroTier (join by network ID) and WireGuard (`.conf` files).
 
 ### Personal configuration: asgard.yml

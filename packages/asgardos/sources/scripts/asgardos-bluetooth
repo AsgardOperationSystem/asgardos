@@ -101,8 +101,35 @@ do_restore() {
     fi
 }
 
+# The audio codec PipeWire streams to a device over, from the api.bluez5.* properties of its sink in
+# pactl's listing ($1): the address and the codec's PipeWire name, shown the way the codec is known
+bt_codec() {
+    echo "${SINKS}" | awk -v addr="$1" '
+        /^Sink #/ { a = ""; c = "" }
+        /api\.bluez5\.address = / { split($0, q, "\""); a = toupper(q[2]) }
+        /api\.bluez5\.codec = / { split($0, q, "\""); c = q[2] }
+        a == toupper(addr) && c != "" { print c; exit }' | {
+        read -r CODEC
+        case "${CODEC}" in
+            "") ;;
+            sbc_xq) echo "SBC-XQ" ;;
+            aptx) echo "aptX" ;;
+            aptx_hd) echo "aptX HD" ;;
+            aptx_ll*) echo "aptX LL" ;;
+            msbc) echo "mSBC" ;;
+            faststream*) echo "FastStream" ;;
+            lc3plus*) echo "LC3plus" ;;
+            lc3_swb) echo "LC3-SWB" ;;
+            opus*) echo "Opus" ;;
+            *) echo "${CODEC}" | tr 'a-z' 'A-Z' ;;
+        esac
+    }
+}
+
 # List paired devices
 do_list() {
+    # PipeWire's sinks, read once: a connected audio device's codec (none while Bluetooth audio isn't streaming)
+    SINKS=$(timeout 5 pactl list sinks 2>/dev/null)
     find "${CACHE_PATH}/bluetooth" -type f -name info | while read -r FILE; do
         if grep -qE '^Trusted=true$' "${FILE}"; then
             DEVNAME=$(grep -E '^Name=' "${FILE}" | sed -e s+"^Name="++)
@@ -138,7 +165,10 @@ do_list() {
                 fi
             fi
 
-            echo "<device id=\"${DEVADDR}\" name=\"${DEVNAME}\" type=\"${DEVTYPE}\" connected=\"${CONNECTED}\" battery=\"${BATTERY}\" />"
+            CODEC=""
+            [ "${CONNECTED}" = "yes" ] && CODEC=$(bt_codec "${DEVADDR}")
+
+            echo "<device id=\"${DEVADDR}\" name=\"${DEVNAME}\" type=\"${DEVTYPE}\" connected=\"${CONNECTED}\" battery=\"${BATTERY}\" codec=\"${CODEC}\" />"
         fi
     done
 }
