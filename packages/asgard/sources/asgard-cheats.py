@@ -13,6 +13,9 @@ Cheats come from databases shipped in the image (offline):
              RetroArch's game-specific cheat file, with apply_cheats_after_load for that launch.
   Azahar     asgard-cheats-db's 3ds/<title ID>.txt (Sharkive, already Azahar's format); written to Azahar's
              cheats/<title ID>.txt with *citra_enabled under each cheat that's on. The title ID is in the ROM's header.
+  PPSSPP     the image's CWCheat database (ppsspp-sa's PSP/Cheats/cheat.db, or a game's own shipped <ID>.ini); written
+             to PPSSPP's PSP/Cheats/<disc ID>.ini with _C1 on the ones on. The disc ID is read from the ISO's
+             UMD_DATA.BIN (a .cso's blocks are inflated as needed) or a PBP's PARAM.SFO; a .chd isn't read yet.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
 import difflib
@@ -20,6 +23,7 @@ import json
 import os
 import re
 import sys
+import zlib
 
 STATE = os.environ.get("ASGARD_CHEATS_STATE", "/storage/.config/asgard/cheats")
 RA_DB = os.environ.get("ASGARD_CHEATS_RA_DB", "/usr/share/libretro-database/cht")
@@ -28,6 +32,8 @@ RA_CORES = os.environ.get("ASGARD_CHEATS_RA_CORES", "/tmp/cores")          # <co
 RA_APPEND = os.environ.get("ASGARD_CHEATS_RA_APPEND", "/tmp/.retroarch.cfg")  # runemu.sh's --appendconfig
 DB = os.environ.get("ASGARD_CHEATS_DB", "/usr/share/asgard-cheats")          # asgard-cheats-db
 AZAHAR_OUT = os.environ.get("ASGARD_CHEATS_AZAHAR_OUT", "/storage/.config/azahar/cheats")
+PSP_DB = os.environ.get("ASGARD_CHEATS_PSP_DB", "/usr/config/ppsspp/PSP/Cheats")      # cheat.db + shipped inis
+PSP_OUT = os.environ.get("ASGARD_CHEATS_PSP_OUT", "/storage/.config/ppsspp/PSP/Cheats")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
 
 # ES system -> libretro-database cht folder
@@ -234,7 +240,146 @@ class Azahar:
         write_file(dst, "".join(text))
 
 
-BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar()}
+# --- PPSSPP (CWCheat: "_S <disc ID>", "_G <title>", "_C0|_C1 <name>", "_L <code>") -------------------------------
+class Image:
+    """Random reads from a PSP disc image: a plain .iso, or a .cso (CISO: an index of deflated blocks)."""
+    def __init__(self, path):
+        self.f = open(path, "rb")
+        head = self.f.read(0x18)
+        self.cso = head[:4] == b"CISO"
+        if self.cso:
+            total, self.block, self.align = int.from_bytes(head[8:16], "little"), int.from_bytes(head[16:20], "little"), head[21]
+            n = (total + self.block - 1) // self.block + 1
+            raw = self.f.read(4 * n)
+            self.index = [int.from_bytes(raw[i:i + 4], "little") for i in range(0, len(raw), 4)]
+
+    def read(self, offset, size):
+        if not self.cso:
+            self.f.seek(offset)
+            return self.f.read(size)
+        out = b""
+        while size > 0:
+            b, inner = divmod(offset, self.block)
+            if b + 1 >= len(self.index):
+                break
+            start, end = (self.index[b] & 0x7FFFFFFF) << self.align, (self.index[b + 1] & 0x7FFFFFFF) << self.align
+            self.f.seek(start)
+            data = self.f.read(end - start)
+            if not self.index[b] & 0x80000000:
+                data = zlib.decompressobj(-15).decompress(data)
+            chunk = data[inner:inner + size]
+            if not chunk:
+                break
+            out += chunk
+            offset, size = offset + len(chunk), size - len(chunk)
+        return out
+
+
+def iso_file(img, name):
+    """A file in the ISO9660 root directory, or None."""
+    pvd = img.read(16 * 2048, 2048)
+    if pvd[1:6] != b"CD001":
+        return None
+    lba, size = int.from_bytes(pvd[158:162], "little"), int.from_bytes(pvd[166:170], "little")
+    d, i = img.read(lba * 2048, size), 0
+    while i < len(d):
+        n = d[i]
+        if n == 0:                       # records don't cross a sector: on to the next one
+            i = (i // 2048 + 1) * 2048
+            continue
+        ident = d[i + 33:i + 33 + d[i + 32]].decode("ascii", "replace").split(";")[0]
+        if ident.upper() == name:
+            return img.read(int.from_bytes(d[i + 2:i + 6], "little") * 2048, int.from_bytes(d[i + 10:i + 14], "little"))
+        i += n
+    return None
+
+
+def sfo_value(sfo, key):
+    if not sfo or sfo[:4] != b"\0PSF":
+        return None
+    keys, data, count = (int.from_bytes(sfo[o:o + 4], "little") for o in (8, 12, 16))
+    for e in range(count):
+        at = 20 + 16 * e
+        name = sfo[keys + int.from_bytes(sfo[at:at + 2], "little"):].split(b"\0")[0].decode("ascii", "replace")
+        if name == key:
+            off, size = data + int.from_bytes(sfo[at + 12:at + 16], "little"), int.from_bytes(sfo[at + 4:at + 8], "little")
+            return sfo[off:off + size].split(b"\0")[0].decode("ascii", "replace")
+    return None
+
+
+def disc_id_psp(rom):
+    """ULUS-10041, as cheat.db names it; None for what isn't read (.chd)."""
+    try:
+        if rom.lower().endswith(".pbp"):
+            with open(rom, "rb") as f:
+                head = f.read(0x28)
+                start, end = int.from_bytes(head[8:12], "little"), int.from_bytes(head[12:16], "little")
+                f.seek(start)
+                v = sfo_value(f.read(end - start), "DISC_ID")
+            return v[:4] + "-" + v[4:] if v and "-" not in v else v
+        img = Image(rom)
+        umd = iso_file(img, "UMD_DATA.BIN")
+        return umd[:10].decode() if umd and re.match(rb"^[A-Z]{4}-\d{5}", umd) else None
+    except (OSError, ValueError, zlib.error, IndexError):
+        return None
+
+
+def cw_blocks(path, disc):
+    """The lines of every _S block for this disc in a CWCheat file."""
+    out, take = [], False
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.rstrip("\r\n")
+            if line.startswith("_S"):
+                take = line[2:].strip().replace("-", "") == disc.replace("-", "")
+            if take:
+                out.append(line)
+    return out
+
+
+class PPSSPP:
+    def _db(self, disc):
+        shipped = os.path.join(PSP_DB, disc.replace("-", "") + ".ini")
+        return shipped if os.path.exists(shipped) else os.path.join(PSP_DB, "cheat.db")
+
+    def source(self, system, rom):
+        disc = disc_id_psp(rom)
+        if not disc:
+            return None
+        db = self._db(disc)
+        return f"{db}|{disc}" if os.path.exists(db) and cw_blocks(db, disc) else None
+
+    def cheats(self, src):
+        db, disc = src.split("|")
+        return [l[3:].strip() for l in cw_blocks(db, disc) if re.match(r"_C\d", l)]
+
+    def apply(self, system, rom, core, src, on):
+        disc = disc_id_psp(rom)
+        if not disc:
+            return
+        dst = os.path.join(PSP_OUT, disc.replace("-", "") + ".ini")
+        exists, mine = ours(dst, MARK)
+        shipped = os.path.join(PSP_DB, disc.replace("-", "") + ".ini")
+        if exists and not mine:
+            try:
+                same = open(dst, "rb").read() == open(shipped, "rb").read()   # the image's copy: ours to replace
+            except OSError:
+                same = False
+            if not same:
+                return
+        if not src or not on:
+            if mine:
+                os.remove(dst)
+            return
+        db, disc = src.split("|")
+        lines = [MARK]
+        for l in cw_blocks(db, disc):
+            m = re.match(r"_C\d\s*(.*)", l)
+            lines.append(("_C1 " if m.group(1).strip() in on else "_C0 ") + m.group(1).strip() if m else l)
+        write_file(dst, "\n".join(lines) + "\n")
+
+
+BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP()}
 
 
 def backend(emulator):

@@ -63,7 +63,7 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 - **HOME-7** Home and everything it starts run in a UTF-8 locale. The interface is English only.
 - **TRO-1** Trophies show RetroAchievements progress per game, with ROMs hashed as RetroAchievements does.
 - **SCRAPE-1** Select → Scrape this game uses ScreenScraper when a developer ID is set, and otherwise libretro thumbnails with no account. Results go in ES-DE's layout.
-- **CHEAT-1** Select → Cheats, also on the game's settings page, lists that game's cheats from databases shipped in the image (offline), one on/off row each. The choice is saved per game by cheat name in `/storage/.config/asgard/cheats`. Before each launch `runemu.sh` writes the cheats that are on into the game's emulator's own cheat file, so a change applies at the next start. A cheat file the user made in the emulator itself is never overwritten. RetroArch reads libretro-database's `.cht` files, and Azahar FlagBrew's Sharkive (`asgard-cheats-db`).
+- **CHEAT-1** Select → Cheats, also on the game's settings page, lists that game's cheats from databases shipped in the image (offline), one on/off row each. The choice is saved per game by cheat name in `/storage/.config/asgard/cheats`. Before each launch `runemu.sh` writes the cheats that are on into the game's emulator's own cheat file, so a change applies at the next start. A cheat file the user made in the emulator itself is never overwritten. RetroArch reads libretro-database's `.cht` files, Azahar FlagBrew's Sharkive (`asgard-cheats-db`), and PPSSPP the image's CWCheat database.
 
 ### Look and feel
 
