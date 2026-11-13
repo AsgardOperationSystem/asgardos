@@ -83,6 +83,14 @@ if [ "$1" = reconnect ]; then   # before the lock: it mustn't hold up the next p
   exit
 fi
 
+# The screens come back before the lock: a close still blocking a radio takes about 12 s with headphones connected
+# (2026-11-02), and a lid opened meanwhile mustn't wait that long in the dark. Lighting them twice does nothing, and
+# "on" below still restores everything once the close is done.
+if { [ "$1" = lid ] && [ "$2" = open ]; } || { [ "$1" = power ] && [ -e $STATE ]; }; then
+  for o in $(sed -n 's/^output=//p' $STATE 2>/dev/null); do swaymsg -q output "$o" power on, output "$o" dpms on; done
+  for i in $(sed -n 's/^touch=//p' $STATE 2>/dev/null); do swaymsg -q input "$i" events enabled; done
+fi
+
 # One at a time: a lid opened while "off" is still working would restore only what it had noted so far. The lock goes
 # with this script, so what it starts has fd 9 closed (autotune outlives it). A stuck holder mustn't keep the screens
 # off for good, so wait a bounded time and go on (BusyBox flock has no -w).

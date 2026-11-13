@@ -207,7 +207,8 @@ with Fixture() as f:
     f.run("power-handler", "lid", "close")
     assert "rfkill unblock bluetooth" in f.run("power-handler", "lid", "open")
 
-# A lid opened while the close is still working waits for it, so what the close turned off comes back after.
+# A lid opened while the close is still working: the screens light at once, not after the radio's block (about 12 s
+# with headphones, 2026-11-02); the rest waits for the close, so what it turned off comes back after.
 with Fixture() as f:
     keep_running(f)
     f.write("bin/rfkill", RECORD + 'case "$1" in block) sleep 1; echo "block done" >>"$T/calls" ;; esac\n', True)
@@ -218,6 +219,8 @@ with Fixture() as f:
         subprocess.run(["sleep", "0.02"])
     calls = f.run("power-handler", "lid", "open")
     closing.wait(timeout=30)
+    lit = "swaymsg -q output DSI-2 power on, output DSI-2 dpms on"
+    assert lit in calls and calls.index(lit) < calls.index("block done"), calls
     assert "rfkill unblock bluetooth" in calls and calls.index("block done") < calls.index("rfkill unblock bluetooth"), calls
     assert not f.has("run/asgard-screens-off.active")
 
