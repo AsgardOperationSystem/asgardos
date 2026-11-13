@@ -212,6 +212,10 @@ with Root() as r:
     playing = {**answers, "asgardos-bluetooth list": '<device id="AA:BB" name="Phones" connected="yes" battery="" codec="LDAC"/>'}
     assert press(r, bt, playing).shows("Connected  ·  LDAC")           # a connected device's audio codec, in the list
     assert press(r, keys(bt, row(2)), playing).shows("Audio codec")    # and on its page
+    choosing = {**answers, "asgardos-bluetooth list":
+                '<device id="AA:BB" name="Phones" connected="yes" battery="" codec="LDAC" codecs="LDAC,AAC,SBC-XQ,SBC"/>'}
+    assert "exec: asgardos-bluetooth codec AA:BB 'AAC'" in press(r, keys(bt, row(2), row(2, "right")), choosing).log
+    assert "exec: asgardos-bluetooth codec AA:BB 'SBC'" in press(r, keys(bt, row(2), row(2, "left")), choosing).log  # wraps
     asked = press(r, keys(bt, row(2), row(1)), answers)                # the device's page: Forget, which asks
     assert asked.shows("Forget Pad?") and "asgardos-bluetooth remove" not in asked.log
     assert "exec: asgardos-bluetooth remove AA:BB" in press(r, keys(bt, row(2), row(1), "a"), answers).log

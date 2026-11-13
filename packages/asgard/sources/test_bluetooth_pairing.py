@@ -150,6 +150,38 @@ for pw, shown in (("sbc_xq", "SBC-XQ"), ("aptx_hd", "aptX HD"), ("aptx", "aptX")
     with open(f"{T}/sinks", "w") as f:
         f.write(sinks.replace('"ldac"', f'"{pw}"'))
     assert f'name="Headphones"' in bt("list").stdout and f'codec="{shown}"' in bt("list").stdout, (pw, bt("list").stdout)
+
+# codecs: the A2DP profiles of the device's card that are available, PipeWire's preferred first, named as its
+# description names them; the call profile, one not available and another device's card left out. codec switches to
+# one through its profile, and refuses one not offered.
+CARD = 'Card #{n}\n\tName: {name}\n\tProperties:\n\t\tapi.bluez5.address = "{addr}"\n\tProfiles:\n{profiles}\tActive Profile: a2dp-sink\n\n'
+PROF = '\t\t{p}: {desc} (sinks: 1, sources: 0, priority: {prio}, available: {av})\n'
+headphones = "".join(PROF.format(p=p, desc=d, prio=n, av=a) for p, d, n, a in (
+    ("off", "Off", 0, "yes"),
+    ("a2dp-sink-sbc", "High Fidelity Playback (A2DP Sink, codec SBC)", 18, "yes"),
+    ("a2dp-sink-sbc_xq", "High Fidelity Playback (A2DP Sink, codec SBC-XQ)", 17, "yes"),
+    ("a2dp-sink-aac", "High Fidelity Playback (A2DP Sink, codec AAC)", 19, "yes"),
+    ("a2dp-sink-aptx_hd", "High Fidelity Playback (A2DP Sink, codec aptX HD)", 21, "no"),
+    ("a2dp-sink", "High Fidelity Playback (A2DP Sink, codec LDAC)", 20, "yes"),
+    ("headset-head-unit", "Headset Head Unit (HSP/HFP, codec mSBC)", 30, "yes")))
+other = PROF.format(p="a2dp-sink-aac", desc="High Fidelity Playback (A2DP Sink, codec AAC)", prio=19, av="yes")
+with open(f"{T}/cards", "w") as f:
+    f.write(CARD.format(n=1, name="bluez_card.C0_FF_EE_00_00_03", addr="C0:FF:EE:00:00:03", profiles=other)
+            + CARD.format(n=2, name="bluez_card.11_22_33_44_55_66", addr="11:22:33:44:55:66", profiles=headphones))
+with open(f"{T}/sinks", "w") as f:
+    f.write(sinks)
+with open(f"{T}/bin/pactl", "w") as f:
+    f.write(f'#!/bin/sh\ncase "$*" in\n  "list sinks") cat {T}/sinks ;;\n  "list cards") cat {T}/cards ;;\n'
+            f'  set-card-profile*) echo "$*" >> {T}/pactl.log ;;\n  *) exit 1 ;;\nesac\n')
+offered = {m.group(1): m.group(2) for m in re.finditer(r'name="([^"]*)".*codecs="([^"]*)"', bt("list").stdout)}
+assert offered == {"Headphones": "LDAC,AAC,SBC,SBC-XQ", "DualSense": "", "Pro Controller": "", "Off pad": "", "Plain pad": ""}, offered
+res = bt("codec", "11:22:33:44:55:66", "AAC")
+assert read(f"{T}/pactl.log") == "set-card-profile bluez_card.11_22_33_44_55_66 a2dp-sink-aac\n", res
+res = bt("codec", "11:22:33:44:55:66", "LDAC")
+assert read(f"{T}/pactl.log").splitlines()[-1] == "set-card-profile bluez_card.11_22_33_44_55_66 a2dp-sink", res
+res = bt("codec", "11:22:33:44:55:66", "aptX HD")                 # listed, but not available
+assert res.stderr.strip().splitlines()[-1].startswith("ERROR: aptX HD isn't offered"), res
+assert len(read(f"{T}/pactl.log").splitlines()) == 2
 for mac in DEVICES:
     subprocess.run(["rm", "-r", f"{T}/storage/.cache/bluetooth/00:00:00:00:00:00/{mac}"], check=True)
 

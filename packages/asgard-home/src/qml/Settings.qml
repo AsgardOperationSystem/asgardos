@@ -82,7 +82,7 @@ Item {
     function parseBt(out) {   // <device id="MAC" name="..." connected="yes"/> lines
         return out.split("\n").filter(l => l.startsWith("<device")).map(l => {
             const a = n => (l.match(new RegExp(n + '="([^"]*)"')) || [])[1] || ""
-            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type"), battery: a("battery"), codec: a("codec") }
+            return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type"), battery: a("battery"), codec: a("codec"), codecs: a("codecs") }
         })
     }
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
@@ -559,8 +559,24 @@ Item {
                         () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
                                       () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))],
                 ...(d.connected && (d.codec || d.battery)
-                    ? [[...(d.codec ? [info("speaker", "Audio codec", d.codec)] : []),
+                    ? [[...(d.codec ? [btCodecRow(d)] : []),
                         ...(d.battery ? [info("battery", "Battery", d.battery + "%")] : [])]] : [])]
+    }
+    // The codec music plays over; ‹ › switches to the next one the device offers (codecs=, best first)
+    function btCodecRow(d) {
+        const offered = d.codecs ? d.codecs.split(",") : []
+        const k = "btCodec" + d.mac
+        if (offered.length < 2) return info("speaker", "Audio codec", d.codec)
+        return { kind: "choice", icon: "speaker", title: "Audio codec", sub: live[k] || "Sound quality, or a steadier link",
+                 value: d.codec,
+                 step: dir => {
+                     if (live[k] === "Switching…") return
+                     const c = offered[(Math.max(0, offered.indexOf(d.codec)) + dir + offered.length) % offered.length]
+                     note(k, "Switching…")
+                     backend.exec("asgardos-bluetooth codec " + d.mac + " " + q(c) + " 2>&1", o => {
+                         const last = o.trim().split("\n").pop() || ""
+                         note(k, last.startsWith("ERROR: ") ? last.slice(7, 67) : ""); btPoll() })
+                 } }
     }
 
     readonly property var ledColours: [["Red", "255 0 0"], ["Orange", "255 100 0"], ["Yellow", "255 200 0"], ["Green", "0 255 0"],

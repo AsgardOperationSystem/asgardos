@@ -55,6 +55,7 @@ Commands:
     disable                     - Disable bluetooth
     connect <device address>    - Connect to a device
     disconnect <device address> - Disconnect from a device
+    codec <device address> <codec> - Play music to a connected device over a codec list offers (codecs=)
 EOF
 }
 
@@ -126,10 +127,48 @@ bt_codec() {
     }
 }
 
+# The music (A2DP) codecs a device can switch between: PipeWire offers each as a profile of the device's card, named in
+# its description ("High Fidelity Playback (A2DP Sink, codec AAC) (... priority: 19, available: yes)"). From pactl's
+# card listing ($2) for address $1, one "profile<TAB>codec" line each, PipeWire's preferred (highest priority) first.
+bt_codec_profiles() {
+    echo "$2" | awk -v addr="$1" '
+        /^Card #/ { a = "" }
+        /api\.bluez5\.address = / { split($0, q, "\""); a = toupper(q[2]) }
+        a == toupper(addr) && /^[[:space:]]+a2dp-sink[^:]*: .*codec [^)]*\).*available: yes/ {
+            p = $1; sub(/:$/, "", p)
+            c = $0; sub(/.*codec /, "", c); sub(/\).*/, "", c)
+            r = $0; sub(/.*priority: /, "", r); sub(/[^0-9].*/, "", r)
+            print r "\t" p "\t" c
+        }' | sort -rn | cut -f2-
+}
+
+# Switch a connected device's music to codec $2 (a name as list prints it), through its card's profile
+do_codec() {
+    local DEV="$1" WANT="$2" CARDS PROFILE CARD
+    if ! validate_mac_address "${DEV}"; then
+        log_error "Invalid device address format"
+        return 1
+    fi
+    CARDS=$(timeout 5 pactl list cards 2>/dev/null)
+    PROFILE=$(bt_codec_profiles "${DEV}" "${CARDS}" | awk -F '\t' -v c="${WANT}" '$2 == c { print $1; exit }')
+    if [ -z "${PROFILE}" ]; then
+        log_error "${WANT} isn't offered for this device. Is it connected?"
+        return 1
+    fi
+    CARD="bluez_card.$(echo "${DEV}" | tr ':' '_')"
+    if timeout 10 pactl set-card-profile "${CARD}" "${PROFILE}"; then
+        log_info "Switched ${DEV} to ${WANT}"
+    else
+        log_error "Couldn't switch to ${WANT}"
+        return 1
+    fi
+}
+
 # List paired devices
 do_list() {
     # PipeWire's sinks, read once: a connected audio device's codec (none while Bluetooth audio isn't streaming)
     SINKS=$(timeout 5 pactl list sinks 2>/dev/null)
+    CARDS=$(timeout 5 pactl list cards 2>/dev/null)
     find "${CACHE_PATH}/bluetooth" -type f -name info | while read -r FILE; do
         if grep -qE '^Trusted=true$' "${FILE}"; then
             DEVNAME=$(grep -E '^Name=' "${FILE}" | sed -e s+"^Name="++)
@@ -168,7 +207,12 @@ do_list() {
             CODEC=""
             [ "${CONNECTED}" = "yes" ] && CODEC=$(bt_codec "${DEVADDR}")
 
-            echo "<device id=\"${DEVADDR}\" name=\"${DEVNAME}\" type=\"${DEVTYPE}\" connected=\"${CONNECTED}\" battery=\"${BATTERY}\" codec=\"${CODEC}\" />"
+            # The codecs it can switch to, best first, comma-separated (not with paste: on the Thor that's an
+            # upload to a pastebin)
+            CODECS=""
+            [ "${CONNECTED}" = "yes" ] && CODECS=$(bt_codec_profiles "${DEVADDR}" "${CARDS}" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+
+            echo "<device id=\"${DEVADDR}\" name=\"${DEVNAME}\" type=\"${DEVTYPE}\" connected=\"${CONNECTED}\" battery=\"${BATTERY}\" codec=\"${CODEC}\" codecs=\"${CODECS}\" />"
         fi
     done
 }
@@ -464,6 +508,10 @@ case "${ACTION}" in
     "disconnect")
         [ -z "$2" ] && { do_help "${0}"; exit 1; }
         do_disconnect "$2"
+        ;;
+    "codec")
+        [ -z "$3" ] && { do_help "${0}"; exit 1; }
+        do_codec "$2" "$3"
         ;;
     *)
         do_help "${0}"
