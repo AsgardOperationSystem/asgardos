@@ -52,7 +52,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Date and time, device name | ✅ | |
 | Per-emulator settings | ✅ | Default emulator and core per console, ROCKNIX's emulator options (shaders, aspect ratio, Azahar's resolution and layouts...) as settings rows. |
 | Per-game settings | ✅ | Emulator, core, the same options, CPU/fan profile and gyro, per game. |
-| GPU driver | ✅ | Turnip version selector. |
+| GPU driver | ✅ | Turnip version selector. The image's Mesa 26.2.6 carries two upstream Turnip fixes from Mesa main: a GPU-hang register value for the A740 and flushes lost across split render passes 🧪. |
 | Calibration | ✅ | Touch and sticks. |
 | `asgard.yml` | ✅ | Personal config outside the image (see below). Applied on a real boot 2026-10-28. |
 | **Thor Panel and overlays** | | |

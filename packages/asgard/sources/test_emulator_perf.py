@@ -8,7 +8,9 @@ the Thor stay in place. Whether a game runs faster or draws less is measured on 
 - Azahar uses no geometry shaders on Turnip, as on Android (each lit draw had one; they're slow on a tiler).
 - Eden's thread priorities become nice values on Linux (SCHED_OTHER's only priority is 0, so they did nothing).
 - Eden and Eden Duo count a lone handheld pad as one player when a game's controller applet closes (it got 0, and
-  Echoes of Wisdom asked again until Eden ran out of kernel events and crashed)."""
+  Echoes of Wisdom asked again until Eden ran out of kernel events and crashed).
+- The image's Mesa carries two upstream Turnip fixes not in 26.2.6: the A740 SP_DBG_ECO_CNTL value (random GPU hangs;
+  the Thor's chip 43050a01 uses that device entry) and the flushes lost across a split suspend/resume render pass."""
 import os
 import re
 import subprocess
@@ -59,4 +61,12 @@ for pkg, patch in (("eden-sa", "0005"), ("eden-duo-sa", "0006")):
     assert re.search(r"result_info\.player_count == 0 &&\s+system\.HIDCore\(\)\.GetEmulatedController\("
                      r"Core::HID::NpadIdType::Handheld\)->IsConnected\(\)\) \{\s+result_info\.player_count = 1;",
                      added(applet)), f"{pkg}: a lone handheld pad still counts as 0 players"
+
+mesa = os.path.join(ROOT, "packages", "graphics", "mesa", "patches")
+names = os.listdir(mesa)
+eco = [n for n in names if "SP_DBG_ECO_CNTL" in n]
+assert eco and "[A6XXRegs.REG_A6XX_SP_DBG_ECO_CNTL, 0x10200000]," in added(read(mesa, eco[0])), \
+    "Mesa lacks the A740 SP_DBG_ECO_CNTL fix (c534b8df8)"
+flush = [n for n in names if "pending-flushes" in n]
+assert flush and "tu_EndCommandBuffer" in read(mesa, flush[0]), "Mesa lacks the s/r chain flush fix (8a494f248)"
 print("OK")
