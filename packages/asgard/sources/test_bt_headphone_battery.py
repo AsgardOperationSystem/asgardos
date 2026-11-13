@@ -22,6 +22,9 @@ pw = read(PKGS, "audio", "pipewire", "package.mk")
 assert "-Dbluez5-backend-hfp-native=enabled" in pw, "PipeWire built without native HFP"
 # 1.2.6 calls rfcomm_send_volume_cmd from the HFP code but defines it only with HSP: HFP alone doesn't compile
 assert "-Dbluez5-backend-hsp-native=enabled" in pw, "PipeWire 1.2.6 HFP needs HSP built too"
+# HFP runs over RFCOMM: without it bluetoothd logs "socket(STREAM, RFCOMM): Protocol not supported" (a Thor, 2026-11-13)
+kconf = read(PKGS, "..", "device", "linux", "linux.aarch64.conf").splitlines()
+assert "CONFIG_BT_RFCOMM=m" in kconf or "CONFIG_BT_RFCOMM=y" in kconf, "the kernel has no RFCOMM, so HFP can't connect"
 conf = body(read(HERE, "..", "wireplumber", "62-bluez-headphone-battery.conf"))
 assert re.search(r'bluez5\.hfphsp-backend\s*=\s*"native"', conf), "HFP backend not turned on"
 assert re.search(r"bluetooth\.autoswitch-to-headset-profile\s*=\s*false", conf), "a microphone would switch to HFP"
