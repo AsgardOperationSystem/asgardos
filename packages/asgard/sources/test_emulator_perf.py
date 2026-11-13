@@ -6,7 +6,9 @@ the Thor stay in place. Whether a game runs faster or draws less is measured on 
 - No recipe appends a compiler flag with no space: Azahar's `CXXFLAGS+=-fpch-preprocess` turned the toolchain's last
   flag into `-DNDEBUG-fpch-preprocess`, so dynarmic and the other bundled libraries were built with asserts on.
 - Azahar uses no geometry shaders on Turnip, as on Android (each lit draw had one; they're slow on a tiler).
-- Eden's thread priorities become nice values on Linux (SCHED_OTHER's only priority is 0, so they did nothing)."""
+- Eden's thread priorities become nice values on Linux (SCHED_OTHER's only priority is 0, so they did nothing).
+- Eden and Eden Duo count a lone handheld pad as one player when a game's controller applet closes (it got 0, and
+  Echoes of Wisdom asked again until Eden ran out of kernel events and crashed)."""
 import os
 import re
 import subprocess
@@ -50,4 +52,11 @@ for level, nice in (("Critical", "NICE_AUDIO"), ("VeryHigh", "NICE_URGENT_DISPLA
                     ("Low", "NICE_BACKGROUND")):
     assert f"case Common::ThreadPriority::{level}: return {nice};" in body, f"{level} isn't mapped"
 assert "RLIMIT_NICE" in body, "a nice value below what RLIMIT_NICE allows would just fail"
+
+for pkg, patch in (("eden-sa", "0005"), ("eden-duo-sa", "0006")):
+    applet = read(STANDALONE, pkg, "patches", f"{patch}-am-controller-applet-counts-handheld.patch")
+    assert "applet_controller.cpp" in applet, pkg
+    assert re.search(r"result_info\.player_count == 0 &&\s+system\.HIDCore\(\)\.GetEmulatedController\("
+                     r"Core::HID::NpadIdType::Handheld\)->IsConnected\(\)\) \{\s+result_info\.player_count = 1;",
+                     added(applet)), f"{pkg}: a lone handheld pad still counts as 0 players"
 print("OK")

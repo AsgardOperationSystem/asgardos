@@ -1,0 +1,24 @@
+Subject: [PATCH] am: the controller applet counts a lone handheld pad as one player
+
+ConfigurationComplete() reports player_count from HIDCore::GetPlayerCount(), which counts P1-P8 only. With the
+console's own pad in the handheld slot and nothing else, a game got 0 players back. Echoes of Wisdom wants one, so it
+opened the controller applet again and again (38 times in 30 s on a Thor), each time leaking a kernel event, until
+CreateEvent failed and Eden crashed (SIGSEGV). Report 1 when the handheld pad is the only one connected.
+
+---
+--- a/src/core/hle/service/am/frontend/applet_controller.cpp
++++ b/src/core/hle/service/am/frontend/applet_controller.cpp
+@@ -250,6 +250,13 @@
+     // If enable_single_mode is enabled, player_count is 1 regardless of any other parameters.
+     // Otherwise, only count connected players from P1-P8.
+     result_info.player_count = is_single_mode ? 1 : system.HIDCore().GetPlayerCount();
++    // Asgard: plus the handheld pad when it's the only one. P1-P8 leaves it out, so a handheld player came back as 0
++    // players, and a game that wants one (Echoes of Wisdom) asked again and again, each time leaking a kernel event,
++    // until CreateEvent failed and Eden crashed (Thor, 2026-11-13).
++    if (result_info.player_count == 0 &&
++        system.HIDCore().GetEmulatedController(Core::HID::NpadIdType::Handheld)->IsConnected()) {
++        result_info.player_count = 1;
++    }
+ 
+     result_info.selected_id = static_cast<u32>(system.HIDCore().GetFirstNpadId());
+ 
