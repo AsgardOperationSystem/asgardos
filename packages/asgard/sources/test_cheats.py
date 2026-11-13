@@ -4,7 +4,7 @@
 """Run: python -I test_cheats.py  (no Thor): a game's cheats. asgard-cheats.py against a fake database and state: which
 database file a ROM gets, a cheat switched on and off by name, and what runemu.sh's apply writes for RetroArch (its
 game-specific .cht with the chosen cheats enabled, apply_cheats_after_load for the launch, a user's own file left alone,
-ours removed when nothing is on). Then Home, offscreen: Select > Cheats lists them and A switches one through the
+ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled). Then Home, offscreen: Select > Cheats lists them and A switches one through the
 script. That a cheat works in a game is a human check."""
 import json
 import os
@@ -33,7 +33,8 @@ cheat1_enable = false
 def setup(tmp):
     env = dict(os.environ, ASGARD_CHEATS_STATE=f"{tmp}/state", ASGARD_CHEATS_RA_DB=f"{tmp}/db",
                ASGARD_CHEATS_RA_OUT=f"{tmp}/out", ASGARD_CHEATS_RA_CORES=f"{tmp}/cores",
-               ASGARD_CHEATS_RA_APPEND=f"{tmp}/append.cfg")
+               ASGARD_CHEATS_RA_APPEND=f"{tmp}/append.cfg", ASGARD_CHEATS_DB=f"{tmp}/asgard-db",
+               ASGARD_CHEATS_AZAHAR_OUT=f"{tmp}/azahar")
     os.makedirs(f"{tmp}/db/{GBA}")
     for name in ("Metroid Fusion (USA).cht", "Metroid Fusion (Europe) (En,Fr,De,Es,It).cht",
                  "Pokemon - Ruby Version (USA).cht", "Pokemon - Sapphire Version (USA).cht"):
@@ -91,6 +92,35 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "set", *ra, "All Items", "off")
     run(env, "apply", *ra)
     assert os.path.exists(out)
+
+# ---- Azahar: by the title ID in the ROM's header, Sharkive's file, *citra_enabled under the ones on
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    rom = f"{tmp}/Zelda.3ds"
+    head = bytearray(0x200)
+    head[0x100:0x104] = b"NCSD"
+    head[0x108:0x110] = (0x0004000000033500).to_bytes(8, "little")
+    open(rom, "wb").write(bytes(head))
+    os.makedirs(f"{tmp}/asgard-db/3ds")
+    open(f"{tmp}/asgard-db/3ds/0004000000033500.txt", "w").write(
+        "[500 Rupees]\n1050AF88 000001F4\n\n[Always max health]\nDA000000 0058799A\nD2000000 00000000\n")
+    az = ("3ds", rom, "azahar", "azahar-sa")
+    assert [c["name"] for c in run(env, "list", *az)["cheats"]] == ["500 Rupees", "Always max health"]
+    run(env, "set", *az, "Always max health", "on")
+    run(env, "apply", *az)
+    out = f"{tmp}/azahar/0004000000033500.txt"
+    text = open(out).read()
+    assert "[Always max health]\n*citra_enabled\nDA000000 0058799A" in text
+    assert "[500 Rupees]\n1050AF88 000001F4" in text and text.count("*citra_enabled") == 1
+    run(env, "set", *az, "Always max health", "off")
+    run(env, "apply", *az)
+    assert not os.path.exists(out)
+    open(out, "w").write("[Mine]\n*citra_enabled\n00000000 00000000\n")    # made in Azahar: left alone
+    run(env, "set", *az, "500 Rupees", "on")
+    run(env, "apply", *az)
+    assert open(out).read().startswith("[Mine]")
+    open(f"{tmp}/plain.3ds", "wb").write(b"\0" * 0x200)                         # no header: no cheats, no crash
+    assert run(env, "list", "3ds", f"{tmp}/plain.3ds", "azahar", "azahar-sa")["error"]
 
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402

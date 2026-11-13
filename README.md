@@ -36,7 +36,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Tile reordering | ✅ | Y or a long press, for consoles and games (saved per console). |
 | Trophies (RetroAchievements) | ✅ | Progress per game; ROMs hashed like RA does. Sign-in in Settings. |
 | Scraping | ⚠️ | Select → Scrape this game (libretro thumbnails). ScreenScraper is off until a developer ID is set; our own scraper is planned. |
-| Cheats | 🧪 | Select → Cheats (or the game's settings page): the game's cheats, on or off per game, applied at its next launch. RetroArch games, from libretro's cheat database in the image. Switch, 3DS, GameCube/Wii, PS2 and PSP are next. |
+| Cheats | 🧪 | Select → Cheats (or the game's settings page): the game's cheats, on or off per game, applied at its next launch. RetroArch games, from libretro's cheat database in the image; 3DS (Azahar) from Sharkive. Switch, GameCube/Wii, PS2 and PSP are next. |
 | Back to Home | ✅ | Leave a game without quitting it (frozen, hidden); the first tile returns to it. |
 | In-game menu (Home) | ✅ | On the bottom screen: quick save/load, screenshot, restart, quit, plus each emulator's own items (see the emulator table). |
 | In-game Wi-Fi and Bluetooth | 🧪 | The menu's Wi-Fi and Bluetooth tile opens Settings' pages drawn as the menu: its header, big tiles, B back (MENU-6). Built, host-tested (offscreen screenshots); not checked on a Thor. |

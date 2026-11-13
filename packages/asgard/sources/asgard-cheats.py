@@ -11,6 +11,9 @@ database update that renumbers cheats, and follows the game to another emulator 
 Cheats come from databases shipped in the image (offline):
   RetroArch  libretro-database's cht/<system>/<No-Intro name>.cht; written to <cheat_database_path>/<core>/<rom>.cht,
              RetroArch's game-specific cheat file, with apply_cheats_after_load for that launch.
+  Azahar     asgard-cheats-db's 3ds/<title ID>.txt (Sharkive, already Azahar's format); written to Azahar's
+             cheats/<title ID>.txt with *citra_enabled under each cheat that's on. The title ID is in the ROM's header.
+A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
 import difflib
 import json
@@ -23,6 +26,8 @@ RA_DB = os.environ.get("ASGARD_CHEATS_RA_DB", "/usr/share/libretro-database/cht"
 RA_OUT = os.environ.get("ASGARD_CHEATS_RA_OUT", "/tmp/database/cht")       # cheat_database_path (overlay on /storage)
 RA_CORES = os.environ.get("ASGARD_CHEATS_RA_CORES", "/tmp/cores")          # <core>_libretro.info: corename
 RA_APPEND = os.environ.get("ASGARD_CHEATS_RA_APPEND", "/tmp/.retroarch.cfg")  # runemu.sh's --appendconfig
+DB = os.environ.get("ASGARD_CHEATS_DB", "/usr/share/asgard-cheats")          # asgard-cheats-db
+AZAHAR_OUT = os.environ.get("ASGARD_CHEATS_AZAHAR_OUT", "/storage/.config/azahar/cheats")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
 
 # ES system -> libretro-database cht folder
@@ -151,7 +156,85 @@ class RetroArch:
             f.write('apply_cheats_after_load = "true"\n')
 
 
-BACKENDS = {"retroarch": RetroArch()}
+def ours(path, mark):
+    """(exists, written by us): a file without our first line is the user's."""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return True, f.readline().startswith(mark)
+    except OSError:
+        return False, False
+
+
+def write_file(path, text):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path + ".new", "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(path + ".new", path)
+
+
+# --- Azahar (Citra's Gateway format: "[name]", code lines, "*citra_enabled" to switch one on) ----------------------
+def title_id_3ds(rom):
+    """The program ID from a .3ds/.cci (NCSD: media ID at 0x108) or .cxi (NCCH: program ID at 0x118), or None."""
+    try:
+        with open(rom, "rb") as f:
+            head = f.read(0x200)
+    except OSError:
+        return None
+    if len(head) < 0x120:
+        return None
+    if head[0x100:0x104] == b"NCSD":
+        return "%016X" % int.from_bytes(head[0x108:0x110], "little")
+    if head[0x100:0x104] == b"NCCH":
+        return "%016X" % int.from_bytes(head[0x118:0x120], "little")
+    return None
+
+
+def gateway_read(path):
+    cheats, cur = [], None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            m = re.match(r"^\[(.+)\]$", line)
+            if m:
+                cur = {"name": m.group(1).strip(), "code": []}
+                cheats.append(cur)
+            elif cur is not None and line and not line.startswith("*"):
+                cur["code"].append(line)
+    return cheats
+
+
+AZAHAR_MARK = "*" + MARK.lstrip("#")   # a "*" line is a comment to Azahar
+
+
+class Azahar:
+    def source(self, system, rom):
+        tid = title_id_3ds(rom)
+        path = os.path.join(DB, "3ds", tid + ".txt") if tid else None
+        return path if path and os.path.exists(path) else None
+
+    def cheats(self, src):
+        return [c["name"] for c in gateway_read(src)]
+
+    def apply(self, system, rom, core, src, on):
+        tid = title_id_3ds(rom)
+        if not tid:
+            return
+        dst = os.path.join(AZAHAR_OUT, tid + ".txt")
+        exists, mine = ours(dst, AZAHAR_MARK)
+        if exists and not mine:
+            return
+        if not src or not on:
+            if mine:
+                os.remove(dst)
+            return
+        text = [AZAHAR_MARK + "\n"]
+        for c in gateway_read(src):   # every cheat, so Azahar's own list shows them all; ours switched on
+            text += ["\n", f"[{c['name']}]\n"] + (["*citra_enabled\n"] if c["name"] in on else []) + \
+                    [code + "\n" for code in c["code"]]
+        write_file(dst, "".join(text))
+
+
+BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar()}
 
 
 def backend(emulator):
