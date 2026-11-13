@@ -54,7 +54,7 @@ Where the user browses their library and starts games. It's built for the Thor's
 Two windows: the top screen shows the grid and dock, the bottom shows the detail card and hints. L+R swaps them, and
 the swap is saved. It's the only frontend: it's what boots and where games start.
 
-- **HOME-1** Buttons: A selects, B goes back, X turns the screens off, Y reorders, Start opens settings (the game's in a game list), Select opens the game's actions, LB/RB change tab, L+R swaps the screens. The pad uses the Thor's Nintendo layout: A east, B south.
+- **HOME-1** Buttons: A selects, B goes back, X turns the screens off, Y reorders, Start opens settings (the game's in a game list), Select opens the game's actions (scrape, cheats, its settings and overrides, details), LB/RB change tab, L+R swaps the screens. The pad uses the Thor's Nintendo layout: A east, B south.
 - **HOME-2** Tabs are home (with the return tile and Recently played), consoles and trophies. Only systems with games are listed.
 - **HOME-3** The library comes from `es_systems.cfg`, the ROM directories and ES-DE-format media. Tiles show art, and game cards show details and play time.
 - **HOME-4** Tile order can be changed, for consoles and per console for games, and it's saved. B cancels a reorder.

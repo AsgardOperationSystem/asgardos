@@ -139,7 +139,7 @@ QtObject {
         // Start: the game's settings in a game list; Settings everywhere else, the "Return to game" tile included.
         if (b === "start") { if (gameSettingsHere) bottom.settingsPanel.showGame(current.game); else bottom.settingsPanel.show(); return }
         if (bottom.gameActionsPanel.nav(b)) return
-        // Select: a game's menu (scrape, cheats, details); details anywhere else.
+        // Select: a game's menu (scrape, cheats, its settings and overrides, details); details anywhere else.
         if (b === "select") { if (gameSettingsHere) { bottom.gameActionsPanel.status = ""; bottom.gameActionsPanel.show() } else details = !details; return }
         if (reordering) {
             const rc = cells[sel]
@@ -476,6 +476,7 @@ QtObject {
                 id: gameActionsPanel; anchors.fill: parent; z: 150; anchorRight: parent.width - 24
                 items: [{ icon: "refresh", title: "Scrape this game", keep: true, run: app.scrape },
                         { icon: "sparkle", title: "Cheats", run: () => settingsPanel.showCheats(app.current.game) },
+                        { icon: "gear", title: "Game settings", run: () => settingsPanel.showGame(app.current.game) },
                         { icon: "info", title: "Details", run: () => app.details = !app.details }]
             }
         }

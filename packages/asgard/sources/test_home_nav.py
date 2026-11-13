@@ -71,6 +71,7 @@ with Root() as r:
     game = press(r, "a start")                                        # in a game list: that game's page
     assert game.shows("Emulator options") and game.shows("This game only; unset ones follow GBA console")
     assert press(r, "a select").shows("Scrape this game")             # Select: the game's actions
+    assert press(r, "a select down down a").shows("Emulator options")  # Select > Game settings: its page
     assert [press(r, k).props["tab"] for k in ("rb", "rb rb", "rb rb rb", "lb")] == ["1", "2", "0", "2"]   # LB/RB
     swapped = press(r, "").props["swapped"]
     assert press(r, "lr").props["swapped"] != swapped                 # L+R swaps, and it's saved
@@ -124,7 +125,7 @@ with Root() as r:
     art = {"Tile.qml": [("source: !tile.near ? \"\" : visible ? (tile.game.cover",
                          "Text { text: 'cover=' + parent.source }\n            source: !tile.near ? \"\" : visible ? (tile.game.cover")]}
     assert any(t.startswith("cover=") and t.endswith(f"{media}/covers/Metroid.png") for t in r.run("a", env=qml_copy(r, art)).texts)
-    card = r.run("a select down down a")                              # Select > Details
+    card = r.run("a select down down down a")                         # Select > Details
     assert card.shows("Samus on station.") and card.shows("Played 1 h 30 min")
 
 # ---- HOME-4: tile order, saved; B cancels
