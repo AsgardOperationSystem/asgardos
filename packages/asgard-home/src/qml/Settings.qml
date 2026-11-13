@@ -558,17 +558,18 @@ Item {
                  action("power", "Forget this device", d.name,
                         () => confirm("Forget device", "Forget " + d.name + "? You will need to pair it again.", "Forget",
                                       () => backend.exec("asgardos-bluetooth remove " + d.mac, () => { refresh(); stack = stack.slice(0, -1) })))],
-                ...(d.connected && (d.codec || d.battery)
-                    ? [[...(d.codec ? [btCodecRow(d)] : []),
+                ...(d.connected && (d.codec || d.codecs || d.battery)
+                    ? [[...(d.codec || d.codecs ? [btCodecRow(d)] : []),
                         ...(d.battery ? [info("battery", "Battery", d.battery + "%")] : [])]] : [])]
     }
-    // The codec music plays over; ‹ › switches to the next one the device offers (codecs=, best first)
+    // The codec music plays over; ‹ › switches to the next one the device offers (codecs=, best first). The row stays
+    // while a switch reopens the stream and no codec is reported for a moment.
     function btCodecRow(d) {
         const offered = d.codecs ? d.codecs.split(",") : []
         const k = "btCodec" + d.mac
-        if (offered.length < 2) return info("speaker", "Audio codec", d.codec)
+        if (offered.length < 2) return info("speaker", "Audio codec", d.codec || "…")
         return { kind: "choice", icon: "speaker", title: "Audio codec", sub: live[k] || "Sound quality, or a steadier link",
-                 value: d.codec,
+                 value: d.codec || "…",
                  step: dir => {
                      if (live[k] === "Switching…") return
                      const c = offered[(Math.max(0, offered.indexOf(d.codec)) + dir + offered.length) % offered.length]

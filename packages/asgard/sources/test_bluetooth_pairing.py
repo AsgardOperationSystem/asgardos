@@ -172,16 +172,21 @@ with open(f"{T}/sinks", "w") as f:
     f.write(sinks)
 with open(f"{T}/bin/pactl", "w") as f:
     f.write(f'#!/bin/sh\ncase "$*" in\n  "list sinks") cat {T}/sinks ;;\n  "list cards") cat {T}/cards ;;\n'
-            f'  set-card-profile*) echo "$*" >> {T}/pactl.log ;;\n  *) exit 1 ;;\nesac\n')
+            f'  set-card-profile*) echo "$*" >> {T}/pactl.log; [ -e {T}/stuck ] || sed -i "s/api.bluez5.codec = \\"[a-z_]*\\"/api.bluez5.codec = \\"$(echo $3 | sed "s/^a2dp-sink-//; s/^a2dp-sink$/ldac/")\\"/" {T}/sinks ;;\n'
+            f'  *) exit 1 ;;\nesac\n')
 offered = {m.group(1): m.group(2) for m in re.finditer(r'name="([^"]*)".*codecs="([^"]*)"', bt("list").stdout)}
 assert offered == {"Headphones": "LDAC,AAC,SBC,SBC-XQ", "DualSense": "", "Pro Controller": "", "Off pad": "", "Plain pad": ""}, offered
-res = bt("codec", "11:22:33:44:55:66", "AAC")
+res = bt("codec", "11:22:33:44:55:66", "AAC")                   # returns once the sink plays the new codec
 assert read(f"{T}/pactl.log") == "set-card-profile bluez_card.11_22_33_44_55_66 a2dp-sink-aac\n", res
+assert res.stdout.strip().endswith("Switched 11:22:33:44:55:66 to AAC") and 'codec="AAC"' in bt("list").stdout, res
 res = bt("codec", "11:22:33:44:55:66", "LDAC")
 assert read(f"{T}/pactl.log").splitlines()[-1] == "set-card-profile bluez_card.11_22_33_44_55_66 a2dp-sink", res
 res = bt("codec", "11:22:33:44:55:66", "aptX HD")                 # listed, but not available
 assert res.stderr.strip().splitlines()[-1].startswith("ERROR: aptX HD isn't offered"), res
 assert len(read(f"{T}/pactl.log").splitlines()) == 2
+open(f"{T}/stuck", "w").close()                                     # the stream never comes back on the new codec
+res = bt("codec", "11:22:33:44:55:66", "SBC")
+assert res.stderr.strip().splitlines()[-1] == "ERROR: Switched to SBC, but the sound hasn't started on it", res
 for mac in DEVICES:
     subprocess.run(["rm", "-r", f"{T}/storage/.cache/bluetooth/00:00:00:00:00:00/{mac}"], check=True)
 

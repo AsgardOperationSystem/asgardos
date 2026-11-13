@@ -156,12 +156,22 @@ do_codec() {
         return 1
     fi
     CARD="bluez_card.$(echo "${DEV}" | tr ':' '_')"
-    if timeout 10 pactl set-card-profile "${CARD}" "${PROFILE}"; then
-        log_info "Switched ${DEV} to ${WANT}"
-    else
+    if ! timeout 10 pactl set-card-profile "${CARD}" "${PROFILE}"; then
         log_error "Couldn't switch to ${WANT}"
         return 1
     fi
+    # The stream closes and reopens on the new codec, with no sink for a second or two (on a Thor, 2026-11-13):
+    # return once it's back, so the caller's next list shows the new codec rather than none
+    for _ in 1 2 3 4 5 6 7 8; do
+        SINKS=$(timeout 5 pactl list sinks 2>/dev/null)
+        if [ "$(bt_codec "${DEV}")" = "${WANT}" ]; then
+            log_info "Switched ${DEV} to ${WANT}"
+            return 0
+        fi
+        sleep 1
+    done
+    log_error "Switched to ${WANT}, but the sound hasn't started on it"
+    return 1
 }
 
 # List paired devices
