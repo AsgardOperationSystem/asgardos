@@ -4,7 +4,7 @@
 """Run: python -I test_cheats.py  (no Thor): a game's cheats. asgard-cheats.py against a fake database and state: which
 database file a ROM gets, a cheat switched on and off by name, and what runemu.sh's apply writes for RetroArch (its
 game-specific .cht with the chosen cheats enabled, apply_cheats_after_load for the launch, a user's own file left alone,
-ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled) PPSSPP (the disc ID from an ISO, CSO or PBP; _C1) and melonDS (<rom>.mch).
+ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled) PPSSPP (the disc ID from an ISO, CSO or PBP; _C1) melonDS (<rom>.mch) and Eden (a mod folder per build).
 Then Home, offscreen: Select > Cheats lists them and A switches one through the
 script. That a cheat works in a game is a human check."""
 import json
@@ -226,6 +226,38 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "apply", *ds)
     assert not os.path.exists(f"{tmp}/roms/World Ends with You, The (USA).mch")
     assert "RetroArch (mGBA)" in run(env, "list", "gba", "/r/x.gba", "nanoboyadvance", "nanoboyadvance-sa")["error"]
+
+# ---- Eden: the title ID from the name or an NSP's ticket, a mod folder with only the chosen cheats for every build
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env["ASGARD_CHEATS_EDEN_LOAD"] = f"{tmp}/load"
+    os.makedirs(f"{tmp}/asgard-db/switch")
+    json.dump({"09A15C8259828A41": {"[max rupee]": "[max rupee]\n04000000 0173D27C B91B990A\n",
+                                    "[max hp]": "[max hp]\n04000000 01111111 00000014\nnot a code line\n",
+                                    "notes.txt": ""},
+               "1234567890ABCDEF": {"[max rupee]": "{Master}\n580F0000 00000001\n[max rupee]\n04000000 0AAAAAAA 0000270F\n"}},
+              open(f"{tmp}/asgard-db/switch/01008CF01BAAC000.json", "w"))
+    sw = ("switch", "/r/Zelda Echoes of Wisdom [01008CF01BAAC000][EUR].nsp", "eden", "eden-sa")
+    assert [c["name"] for c in run(env, "list", *sw)["cheats"]] == ["max rupee", "max hp"]   # no notes, no master
+    run(env, "set", *sw, "max hp", "on")
+    run(env, "apply", *sw)
+    mod = f"{tmp}/load/01008CF01BAAC000/Asgard Cheats/cheats"
+    assert os.listdir(mod) == ["09A15C8259828A41.txt"]                                    # only builds with it
+    assert open(f"{mod}/09A15C8259828A41.txt").read() == "[max hp]\n04000000 01111111 00000014\n\n"   # stray line gone
+    run(env, "set", *sw, "max rupee", "on")
+    run(env, "apply", *sw)
+    assert open(f"{mod}/1234567890ABCDEF.txt").read().startswith("{Master}\n580F0000 00000001\n\n[max rupee]")
+    assert "max rupee" in open(f"{mod}/09A15C8259828A41.txt").read()
+    for name in ("max hp", "max rupee"):
+        run(env, "set", *sw, name, "off")
+    run(env, "apply", *sw)
+    assert not os.path.exists(f"{tmp}/load/01008CF01BAAC000/Asgard Cheats")
+    # No ID in the name: an NSP's ticket names it; an update's ID shares the base game's cheats
+    tik = b"01008CF01BAAC0000000000000000000.tik\0"
+    nsp = b"PFS0" + (1).to_bytes(4, "little") + len(tik).to_bytes(4, "little") + bytes(4) + bytes(24) + tik
+    open(f"{tmp}/Echoes.nsp", "wb").write(nsp)
+    assert run(env, "list", "switch", f"{tmp}/Echoes.nsp", "eden-duo", "eden-duo-sa")["source"] == "01008CF01BAAC000.json"
+    assert run(env, "list", "switch", "/r/Echoes [01008CF01BAAC800].nsp", "eden", "eden-sa")["source"] == "01008CF01BAAC000.json"
 
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402

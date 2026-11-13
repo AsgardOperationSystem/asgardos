@@ -5,7 +5,7 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc asgardos-splash turnip-extra asgard-cheats-db"
+PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc asgardos-splash turnip-extra asgard-cheats-db switch-cheats-db"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 

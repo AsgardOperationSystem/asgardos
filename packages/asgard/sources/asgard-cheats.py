@@ -18,12 +18,17 @@ Cheats come from databases shipped in the image (offline):
              UMD_DATA.BIN (a .cso's blocks are inflated as needed) or a PBP's PARAM.SFO; a .chd isn't read yet.
   melonDS    libretro-database's Nintendo DS .cht (Action Replay); written as <rom>.mch beside the ROM (CheatFilePath
              is empty), with EnableCheats switched on in melonDS.toml.
+  Eden       switch-cheats-db's switch/<title ID>.json ({build ID: {"[name]": code}}); written as Eden's mod
+             load/<title ID>/Asgard Cheats/cheats/<build ID>.txt for every build ID, with only the cheats that are on
+             (Eden runs every cheat in a file it loads, and loads only the file for the running build). The title ID
+             is in the file name ([0100...]) or an NSP's ticket name; an XCI without it in the name isn't read.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
 import difflib
 import json
 import os
 import re
+import shutil
 import sys
 import zlib
 
@@ -42,6 +47,8 @@ NO_CHEATS = {
     "nanoboyadvance": "NanoBoyAdvance has no cheats: set this game's emulator to RetroArch (mGBA) for them",
     "mednafen": "No cheats for Mednafen yet: set this game's emulator to RetroArch for them",
 }
+EDEN_LOAD = os.environ.get("ASGARD_CHEATS_EDEN_LOAD", "/storage/.local/share/eden/load")   # Eden and Eden Duo
+EDEN_MOD = "Asgard Cheats"    # our mod folder: everything in it is ours
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
 
 # ES system -> libretro-database cht folder
@@ -429,7 +436,85 @@ class MelonDS:
             pass
 
 
-BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS()}
+# --- Eden (Atmosphère's cheat text: "[name]" or "{master}", then 8-hex-digit words) ---------------------------------
+def title_id_switch(rom):
+    """The base title ID: from the file name's [0100...] tag, else an NSP's ticket (its rights ID starts with it)."""
+    m = re.search(r"\[(01[0-9A-Fa-f]{14})\]", os.path.basename(rom))
+    tid = m.group(1).upper() if m else None
+    if not tid and rom.lower().endswith(".nsp"):
+        try:
+            with open(rom, "rb") as f:
+                head = f.read(16)
+                if head[:4] == b"PFS0":
+                    count, strsize = int.from_bytes(head[4:8], "little"), int.from_bytes(head[8:12], "little")
+                    f.seek(16 + 24 * count)
+                    names = f.read(strsize).split(b"\0")
+                    tik = [n.decode("ascii", "replace") for n in names if n.lower().endswith(b".tik")]
+                    if tik and re.match(r"[0-9A-Fa-f]{16}", tik[0]):
+                        tid = tik[0][:16].upper()
+        except OSError:
+            pass
+    return tid[:-3] + "000" if tid else None    # an update's or DLC's ID shares the base game's cheats
+
+
+def atmo_lines(code):
+    """Only what Eden's parser takes: a stray character elsewhere makes it drop the whole file."""
+    out = []
+    for line in code.splitlines():
+        line = line.strip()
+        if re.fullmatch(r"\[[^\[\]{}]+\]|\{[^\[\]{}]+\}", line) or re.fullmatch(r"[0-9A-Fa-f]{8}( [0-9A-Fa-f]{8})*", line):
+            out.append(line)
+    return out
+
+
+def atmo_cheats(code):
+    """[(name, lines, master)] from one cheat's text, which can hold a {master} section and several [cheats]."""
+    out, cur = [], None
+    for line in atmo_lines(code):
+        if line[0] in "[{":
+            cur = (line[1:-1].strip(), [line], line[0] == "{")
+            out.append(cur)
+        elif cur:
+            cur[1].append(line)
+    return [c for c in out if len(c[1]) > 1]
+
+
+class Eden:
+    def source(self, system, rom):
+        tid = title_id_switch(rom)
+        path = os.path.join(DB, "switch", tid + ".json") if tid else None
+        return path if path and os.path.exists(path) else None
+
+    def builds(self, src):
+        with open(src, encoding="utf-8", errors="replace") as f:
+            data = json.load(f)
+        return {bid: [c for code in cheats.values() for c in atmo_cheats(code)] for bid, cheats in data.items()}
+
+    def cheats(self, src):
+        seen = []
+        for cheats in self.builds(src).values():
+            for name, _, master in cheats:
+                if not master and name not in seen:
+                    seen.append(name)
+        return seen
+
+    def apply(self, system, rom, core, src, on):
+        tid = title_id_switch(rom)
+        if not tid:
+            return
+        mod = os.path.join(EDEN_LOAD, tid, EDEN_MOD)
+        shutil.rmtree(mod, ignore_errors=True)
+        if not src or not on:
+            return
+        for bid, cheats in self.builds(src).items():
+            chosen = [c for c in cheats if not c[2] and c[0] in on]
+            if chosen:   # a build's master code goes with its cheats
+                lines = [l for c in cheats if c[2] for l in c[1] + [""]] + [l for c in chosen for l in c[1] + [""]]
+                write_file(os.path.join(mod, "cheats", bid.upper() + ".txt"), "\n".join(lines) + "\n")
+
+
+BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
+            "eden": Eden(), "eden-duo": Eden()}
 
 
 def backend(emulator):
