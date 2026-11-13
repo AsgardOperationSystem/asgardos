@@ -28,6 +28,8 @@ Item {
 
     // Y on a game: Settings opened straight on that game's page.
     function showGame(g) { show(); cat = 2; stack = [{ title: g.name, build: () => gamePage(g), closeOnBack: true }]; zone = "list" }
+    // Select on a game > Cheats: Settings opened straight on that game's cheats.
+    function showCheats(g) { show(); cat = 2; stack = [{ title: "Cheats · " + g.name, build: () => cheatsPage(g), closeOnBack: true }]; zone = "list" }
     function showPower() { show(); cat = categories.findIndex(c => c.title === "Power"); zone = "list" }
     function show() { open = true; zone = "side"; row = 0; stack = []; dialog.ask = null; keyboard.open = false; refresh(); rev++ }
     // The in-game menu's Wi-Fi and Bluetooth (MENU-6): opened straight on that Network page, as if picked there
@@ -773,12 +775,34 @@ Item {
             rows.push(action("refresh", "Use " + g.sysName + " settings", sysEmu + " / " + sysCore,
                              () => { set(k("emulator"), ""); set(k("core"), "") }))
         const st = backend.playStats(g.path)
+        rows.push(link("sparkle", "Cheats", "On at the next launch", () => cheatsPage(g)))
         const cacheKey = "shaderCache:" + g.path   // asgard-shader-cache.sh's answer: what it deleted, or why not
         return [rows, [info("info", "Played", st.playtime ? Math.round(st.playtime / 60) + " min" : "Never"),
                        link("chip", "Emulator options", "This game only; unset ones follow " + g.sysName,
                             () => optionsPage(g.sys + '["' + file + '"]', emu, get(k("core"), sysCore), g.sys)),
                        action("broom", "Delete shader cache", live[cacheKey] || "Rebuilt on the next launch; fixes a black screen at start",
                               () => sh(cacheKey, "/usr/share/asgard/asgard-shader-cache.sh " + q(g.sys) + " " + q(g.path) + " 2>&1"))]]
+    }
+
+    // A game's cheats (asgard-cheats.py): a row per cheat in the database for its emulator, on or off, applied when the
+    // game next starts. The emulator and core are the game's, as the page above resolves them.
+    function cheatsPage(g) {
+        const file = g.path.split("/").pop()
+        const k = key => g.sys + '["' + file + '"].' + key
+        const emu = get(k("emulator"), get(g.sys + ".emulator", g.emulator))
+        const core = get(k("core"), get(g.sys + ".core", g.core))
+        const key = "cheats:" + g.path
+        const args = [g.sys, g.path, emu, core].map(q).join(" ")
+        const parse = o => { try { return JSON.parse(o) } catch (e) { return { cheats: [], error: "Couldn't read the cheats" } } }
+        if (live[key] === undefined) { note(key, null); sh(key, "python3 /usr/share/asgard/asgard-cheats.py list " + args, parse) }
+        const r = live[key]
+        if (!r) return [[info("refresh", "Looking for cheats…", "")]]
+        if (r.error || !r.cheats.length) return [[info("info", r.error || "No cheats in this game's list", emu)]]
+        const on = r.cheats.filter(c => c.on).length
+        return [[info("info", on ? on + " on" : "All off", "From " + r.source + " · applied when the game next starts")],
+                r.cheats.map(c => ({ kind: "toggle", icon: "sparkle", title: c.name, sub: "", on: c.on,
+                                     activate: () => sh(key, "python3 /usr/share/asgard/asgard-cheats.py set " + args + " "
+                                                        + q(c.name) + " " + (c.on ? "off" : "on"), parse) }))]
     }
 
     // ROCKNIX's per-emulator options (es_features.cfg), read through thor_settings.py --features as JSON.

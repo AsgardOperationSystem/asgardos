@@ -124,7 +124,7 @@ with Root() as r:
     art = {"Tile.qml": [("source: !tile.near ? \"\" : visible ? (tile.game.cover",
                          "Text { text: 'cover=' + parent.source }\n            source: !tile.near ? \"\" : visible ? (tile.game.cover")]}
     assert any(t.startswith("cover=") and t.endswith(f"{media}/covers/Metroid.png") for t in r.run("a", env=qml_copy(r, art)).texts)
-    card = r.run("a select down a")                                   # Select > Details
+    card = r.run("a select down down a")                              # Select > Details
     assert card.shows("Samus on station.") and card.shows("Played 1 h 30 min")
 
 # ---- HOME-4: tile order, saved; B cancels

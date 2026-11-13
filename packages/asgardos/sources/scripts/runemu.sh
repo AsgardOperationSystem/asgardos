@@ -414,6 +414,9 @@ fi
 ### Asgard: per-system / per-game CPU caps, cores and fan (the emulator options); undone after the game below
 /usr/share/asgard/asgard-perf-profile.sh apply "${PLATFORM}" "${ROMNAME##*/}"
 
+### Asgard: the game's cheats (Select on a game > Cheats) into its emulator's own cheat file, for this launch
+python3 /usr/share/asgard/asgard-cheats.py apply "${PLATFORM}" "${ROMNAME}" "${EMULATOR}" "${CORE}" >/dev/null 2>&1
+
 ### Display mode for emulation
 DISPLAY_MODE=$(get_setting "display_mode" "${PLATFORM}" "${ROMNAME##*/}")
 if [ ! -z "${DISPLAY_MODE}" ] && [ "${DISPLAY_MODE}" != "default" ]
