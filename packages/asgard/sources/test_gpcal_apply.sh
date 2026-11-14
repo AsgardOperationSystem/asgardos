@@ -13,7 +13,7 @@ echo 5 > /sys/module/rsinput/parameters/not_in_this_driver
 echo 1 > /sys/module/rsinput/parameters/update_params
 touch /tmp/should-not-run; systemctl restart inputplumber
 G
-GPCAL_AUTOSTART="$T/autostart/GPcal.sh" GPCAL_SAVED="$T/asgard/gpcal.sh" RSINPUT_PARAMS="$T/params" \
+ASGARD_CONFIG=true GPCAL_AUTOSTART="$T/autostart/GPcal.sh" GPCAL_SAVED="$T/asgard/gpcal.sh" RSINPUT_PARAMS="$T/params" \
   sh "$(dirname "$0")/asgard-gpcal-apply.sh"
 [ ! -e "$T/autostart/GPcal.sh" ] && [ -f "$T/asgard/gpcal.sh" ]
 [ "$(cat "$T/params/axis_leftx_min")" = -1002 ] && [ "$(cat "$T/params/axis_leftx_center")" = 109 ]

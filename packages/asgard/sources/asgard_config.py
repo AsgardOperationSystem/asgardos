@@ -6,14 +6,18 @@ image default, or still what this script applied last time (APPLIED). Change a v
 and the yml never touches it again; edit the yml and the new value reaches every key you haven't changed.
 
 Keys are ROCKNIX system.cfg keys written as YAML (wifi: {ssid: x} -> wifi.ssid=x), except
-ssh.authorized_keys (a list), whose lines are appended to /storage/.ssh/authorized_keys.
+ssh.authorized_keys (a list), whose lines are appended to /storage/.ssh/authorized_keys, and
+asgard.stick_calibration (rsinput parameter: integer), which becomes the stick calibration file when the device has
+none of its own (--stick-calibration, run before InputPlumber starts: SPEC CAL-3).
 Values are written verbatim. Quote a value that contains " #" or starts with a quote.
 
 Usage: asgard_config.py            apply the first yml found in SOURCES
+       asgard_config.py --stick-calibration [FILE]   write its stick calibration (asgard-gpcal-apply.sh runs this)
        asgard_config.py --test     self-check
 """
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -24,6 +28,9 @@ APPLIED = "/storage/.config/asgard/applied.json"
 SYS_CFG = "/storage/.config/system/configs/system.cfg"
 SYS_DEFAULT = "/usr/config/system/configs/system.cfg"
 AUTH_KEYS = "/storage/.ssh/authorized_keys"
+GPCAL_SAVED = "/storage/.config/asgard/gpcal.sh"  # asgard-gpcal-apply.sh's saved calibration (CAL-2)
+GPCAL_MARK = "# from asgard.yml: asgard.stick_calibration"
+STICK_KEY = "asgard.stick_calibration"
 
 
 # --- YAML subset: nested mappings, scalars, block lists of scalars, # comments ------------------------------------
@@ -147,6 +154,8 @@ def apply(conf):
     wrote, updates = {}, {}
     sys_cur, sys_def = read_cfg(SYS_CFG), read_cfg(SYS_DEFAULT)
     for key, val in flatten(conf).items():
+        if key.startswith(STICK_KEY + "."):
+            continue  # a file, not system.cfg keys: stick_calibration()
         if key == "ssh.authorized_keys":
             add_keys(val if isinstance(val, list) else [val])
             continue
@@ -175,12 +184,44 @@ def add_keys(keys):
     os.chmod(AUTH_KEYS, 0o600) if os.path.exists(AUTH_KEYS) else None
 
 
-def main():
+def stick_calibration(yml):
+    """CAL-3: write the yml's calibration as GPCAL_SAVED, in GPcal's own line format, unless the device has its own
+    (a file without our mark: made on the device, so it wins). Returns True if the file was written."""
+    section = yml.get("asgard")
+    cal = section.get("stick_calibration") if isinstance(section, dict) else None
+    if not isinstance(cal, dict) or not cal:
+        return False
+    try:
+        with open(GPCAL_SAVED, encoding="utf-8") as f:
+            old = f.read()
+    except FileNotFoundError:
+        old = None
+    if old is not None and not old.startswith(GPCAL_MARK + "\n"):
+        return False
+    lines = [GPCAL_MARK]
+    for name, val in cal.items():
+        if not re.fullmatch(r"[a-z_]+", str(name)) or name == "update_params" or not re.fullmatch(r"-?[0-9]+", str(val)):
+            raise ValueError(f"{STICK_KEY}.{name}: expected an rsinput parameter name and a whole number")
+        lines.append(f"echo {int(val)} > /sys/module/rsinput/parameters/{name}")
+    lines.append("echo 1 > /sys/module/rsinput/parameters/update_params")
+    text = "\n".join(lines) + "\n"
+    if text == old:
+        return False
+    os.makedirs(os.path.dirname(GPCAL_SAVED), exist_ok=True)
+    _atomic(GPCAL_SAVED, text)
+    return True
+
+
+def main(stick=False):
     src = next((p for p in SOURCES if os.path.exists(p)), None)
     if not src:
         return
     try:
         conf = parse_yaml(open(src, encoding="utf-8").read())
+        if stick:
+            if stick_calibration(conf):
+                print(f"asgard-config: {src}: stick calibration written")
+            return
     except ValueError as e:
         print(f"asgard-config: {src}: {e}; nothing applied")
         return
@@ -244,4 +285,10 @@ empty:
 
 
 if __name__ == "__main__":
-    test() if sys.argv[1:] == ["--test"] else main()
+    if sys.argv[1:] == ["--test"]:
+        test()
+    elif sys.argv[1:2] == ["--stick-calibration"]:
+        GPCAL_SAVED = sys.argv[2] if len(sys.argv) > 2 else GPCAL_SAVED  # the caller's $SAVED
+        main(stick=True)
+    else:
+        main()

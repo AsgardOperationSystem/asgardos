@@ -11,6 +11,8 @@ PARAMS=${RSINPUT_PARAMS:-/sys/module/rsinput/parameters}
 if [ -f "$SRC" ]; then              # a new calibration (or the one from before Asgard did this)
   mkdir -p "$(dirname "$SAVED")" && mv -f "$SRC" "$SAVED"
 fi
+# No calibration made on the device: asgard.yml's asgard.stick_calibration, if any, becomes $SAVED (CAL-3).
+${ASGARD_CONFIG:-python3 /usr/share/asgard/asgard_config.py} --stick-calibration "$SAVED" || true
 [ -f "$SAVED" ] || exit 0
 
 sed -n "s#^echo \(-\{0,1\}[0-9]\{1,\}\) > /sys/module/rsinput/parameters/\([a-z_]\{1,\}\)\$#\1 \2#p" "$SAVED" |

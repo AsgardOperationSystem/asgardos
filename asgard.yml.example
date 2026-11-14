@@ -41,3 +41,7 @@ asgard:
     mid: 75
     prime: 75
   gpu_cap: 100            # the GPU's clock cap in Asgard Home, 25-100 %
+  stick_calibration:      # your unit's sticks on a fresh install, until you calibrate on the device (that wins).
+    axis_leftx_min: -1350 # rsinput parameter: value, as in /storage/.config/asgard/gpcal.sh's "echo V > .../NAME"
+    axis_leftx_max: 1390
+    axis_leftx_center: 12
