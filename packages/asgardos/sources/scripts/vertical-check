@@ -6,16 +6,15 @@ ARCADEROMS_XML="/usr/config/emulationstation/resources/arcaderoms.xml"
 BOTTOM_SCREEN_UI_DIR="/usr/share/lowerdeck"
 BOTTOM_SCREEN_PID_FILE="/run/lowerdeck.pid"
 
-RUNEMU_LINE=$(ps aux | grep '[r]unemu.sh' | head -n 1)
-CURRENT_CORE=$(echo "${RUNEMU_LINE}" | sed -n 's/.*--core=\([^ ]*\).*/\1/p')
-PLATFORM=$(echo "${RUNEMU_LINE}" | sed -n 's/.* -P *\([^ ]*\).*/\1/p')
-ROM_PATH=$(echo "${RUNEMU_LINE}" | sed '
-    s|.*runemu\.sh ||
-    s/\\ /__ESC_SP__/g
-    s/ .*//
-    s/__ESC_SP__/ /g
-    s/\\\(.\)/\1/g
-')
+# runemu.sh's own arguments, one per line, read from the process running it (runemu.sh is its first or second
+# argument). Asgard: `ps aux | grep runemu.sh` found Asgard Home's launch shell first, whose script text holds
+# `--core="$3"`, so no DS core ever matched below; ps also joins the arguments, which cut ROM paths at a space.
+RUNEMU_ARGS=$(for CMDLINE in /proc/[0-9]*/cmdline; do
+    tr '\0' '\n' <"${CMDLINE}" 2>/dev/null | awk 'NR <= 2 && /(^|\/)runemu\.sh$/ {found = 1; next} found {print} END {exit !found}' && break
+done)
+ROM_PATH=$(printf '%s\n' "${RUNEMU_ARGS}" | head -n 1)
+CURRENT_CORE=$(printf '%s\n' "${RUNEMU_ARGS}" | sed -n 's/^--core=//p' | head -n 1)
+PLATFORM=$(printf '%s\n' "${RUNEMU_ARGS}" | awk 'p {print; exit} $0 == "-P" {p = 1} /^-P./ {print substr($0, 3); exit}')
 
 if [ -z "${CURRENT_CORE}" ] || [ -z "${ROM_PATH}" ]; then
     exit 0
