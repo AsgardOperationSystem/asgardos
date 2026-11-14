@@ -29,18 +29,24 @@ Cheats come from databases shipped in the image (offline):
   ARMSX2     ps2-cheats-db's ps2/[<serial>_]<ELF CRC>.pnach; written as ARMSX2's cheats/<serial>_ASGARD.pnach with only
              the chosen cheats, unlabelled (always applied), and EnableCheats switched on in PCSX2.ini. The serial and
              the CRC (XOR of the boot ELF's words) come from the disc (.iso, raw .bin, .cso; not .chd yet).
+  Mednafen   libretro-database's .cht for the system, decoded as Mednafen's own cheat dialog does (Game Genie,
+             GameShark, Pro Action Replay, raw RAM writes, GBA Code Breaker; a cheat with a code it can't run isn't
+             listed) into cheats/<module>.cht, as a section "[<game's MD5>] Asgard cheats..." (snes_faust: SHA-1).
+             A section the user made in Mednafen for the game is left alone. gb gba nes snes_faust md sms gg pce.
   AetherSX2  the same, written as its cheats/<ELF CRC>.pnach (it applies every line in it); a user's own is left alone.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
 import array
 import difflib
 import functools
+import hashlib
 import json
 import operator
 import os
 import re
 import shutil
 import sys
+import zipfile
 import zlib
 
 STATE = os.environ.get("ASGARD_CHEATS_STATE", "/storage/.config/asgard/cheats")
@@ -56,7 +62,6 @@ MELONDS_TOML = os.environ.get("ASGARD_CHEATS_MELONDS_TOML", "/storage/.config/me
 # Emulators with no cheat engine, or none Asgard writes yet: what the list says instead
 NO_CHEATS = {
     "nanoboyadvance": "NanoBoyAdvance has no cheats: set this game's emulator to RetroArch (mGBA) for them",
-    "mednafen": "No cheats for Mednafen yet: set this game's emulator to RetroArch for them",
 }
 EDEN_LOAD = os.environ.get("ASGARD_CHEATS_EDEN_LOAD", "/storage/.local/share/eden/load")   # Eden and Eden Duo
 EDEN_MOD = "Asgard Cheats"    # our mod folder: everything in it is ours
@@ -66,6 +71,7 @@ DOLPHIN_OUT = os.environ.get("ASGARD_CHEATS_DOLPHIN_OUT", "/storage/.config/dolp
 PS2_INI = os.environ.get("ASGARD_CHEATS_PS2_INI", "/storage/.config/ARMSX2/inis/PCSX2.ini")
 PS2_INI_IMAGE = os.environ.get("ASGARD_CHEATS_PS2_INI_IMAGE", "/usr/config/ARMSX2/inis/PCSX2.ini")
 PS2_OUT = os.environ.get("ASGARD_CHEATS_PS2_OUT", "/storage/.config/ARMSX2/cheats")
+MEDNAFEN_OUT = os.environ.get("ASGARD_CHEATS_MEDNAFEN_OUT", "/storage/.config/mednafen/cheats")    # <module>.cht
 AETHER = os.environ.get("ASGARD_CHEATS_AETHER", "/storage/.config/aethersx2")          # cheats/, inis/PCSX2.ini
 ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
@@ -801,8 +807,226 @@ class AetherSX2(ARMSX2):
         return os.path.join(AETHER, "inis", "PCSX2.ini"), "/usr/config/aethersx2/inis/PCSX2.ini"
 
 
+# --- Mednafen (cheats/<module>.cht: "[<md5>] <name>", then "<type> A|I <len> L|B 0 <addr> <value> [compare] <name>"
+# lines, each followed by a (here empty) conditions line). It keeps decoded patches only, so the database's codes are
+# decoded here, as Mednafen's own cheat dialog does; a cheat with a code that doesn't decode isn't listed.
+GG_NES = "APZLGITYEOXUKSVN"
+
+
+def nes_gg(code):
+    if len(code) not in (6, 8) or any(c not in GG_NES for c in code):
+        return None
+    t = [GG_NES.index(c) for c in code]
+    a, v, c = 0x8000, (t[0] & 7) | ((t[0] & 8) << 4) | ((t[1] & 7) << 4), 0
+    a |= ((t[1] & 8) << 4) | ((t[2] & 7) << 4) | ((t[3] & 7) << 12) | (t[3] & 8) | (t[4] & 7) | ((t[4] & 8) << 8)
+    a |= (t[5] & 7) << 8
+    if len(code) == 6:
+        return ("S", 1, a, v | (t[5] & 8), None)
+    c = (t[5] & 8) | (t[6] & 7) | ((t[6] & 8) << 4) | ((t[7] & 7) << 4)
+    return ("C", 1, a, v | (t[7] & 8), c)
+
+
+def gb_gg(code):
+    raw = code.replace("-", "")
+    if len(raw) not in (6, 9) or not re.fullmatch(r"[0-9A-F]+", raw):
+        return None
+    n = [int(x, 16) for x in raw]
+    addr, val = ((n[5] << 12) | (n[2] << 8) | (n[3] << 4) | n[4]) ^ 0xF000, (n[0] << 4) | n[1]
+    if len(raw) == 6:
+        return ("S", 1, addr, val, None)
+    cmp = (n[6] << 4) | n[8]
+    return ("C", 1, addr, val, (((cmp >> 2) | (cmp << 6)) & 0xFF) ^ 0xBA)
+
+
+def gb_gs(code):
+    if not re.fullmatch(r"[0-9A-F]{8}", code):
+        return None
+    bank, la = int(code[:2], 16), int(code[6:8] + code[4:6], 16)
+    addr = 0x10000 | ((bank & 7) << 12) | (la & 0xFFF) if 0xD000 <= la <= 0xDFFF else la
+    return ("R", 1, addr, int(code[2:4], 16), None)
+
+
+def snes_gg(code):
+    if not re.fullmatch(r"[0-9A-F]{4}-[0-9A-F]{4}", code):
+        return None
+    sub = [0x4, 0x6, 0xD, 0xE, 0x2, 0x7, 0x8, 0x3, 0xB, 0x5, 0xC, 0x9, 0xA, 0x0, 0xF, 0x1]
+    ev = 0
+    for ch in code.replace("-", ""):
+        ev = (ev << 4) | sub[int(ch, 16)]
+    bm = [6, 7, 8, 9, 16, 17, 18, 19, 14, 15, 0, 1, 20, 21, 22, 23, 2, 3, 4, 5, 10, 11, 12, 13]
+    return ("S", 1, sum(((ev >> b) & 1) << i for i, b in enumerate(bm)), ev >> 24, None)
+
+
+def raw_write(code, lo=0, hi=0xFFFFFFFF, rom=None, big=False):
+    """"AAAAAA:VV" or "AAAAAA:VVVV": a RAM write (R) in [lo, hi]; at or above `rom`, a ROM read substitution (S)."""
+    m = re.fullmatch(r"([0-9A-F]{4,8}):([0-9A-F]{2}|[0-9A-F]{4})", code)
+    if not m:
+        return None
+    addr, val, size = int(m.group(1), 16), int(m.group(2), 16), len(m.group(2)) // 2
+    if rom is not None and addr >= rom and size == 1:
+        return ("S", 1, addr, val, None)
+    if not lo <= addr <= hi:
+        return None
+    return ("R", size, addr, val, None, big)
+
+
+def nes_decode(code):
+    return nes_gg(code) or raw_write(code, 0, 0x7FFF, rom=0x8000)
+
+
+def gb_decode(code):
+    return gb_gs(code) or gb_gg(code)
+
+
+def snes_decode(code):
+    if re.fullmatch(r"[0-9A-F]{8}", code):
+        return ("R", 1, int(code[:6], 16), int(code[6:], 16), None)
+    return snes_gg(code) or raw_write(code)
+
+
+def sms_decode(code):        # Pro Action Replay "00AA-AAVV": a RAM write
+    m = re.fullmatch(r"00([0-9A-F]{2})-([0-9A-F]{2})([0-9A-F]{2})", code)
+    return ("R", 1, int(m.group(1) + m.group(2), 16), int(m.group(3), 16), None) if m else None
+
+
+def gba_decode(parts):
+    """Code Breaker, unencrypted: "3AAAAAAA+00VV" an 8-bit write, "8AAAAAAA+VVVV" a 16-bit one."""
+    out = []
+    if len(parts) % 2:
+        return None
+    for i in range(0, len(parts), 2):
+        a, v = parts[i], parts[i + 1]
+        if not re.fullmatch(r"[38][0-9A-F]{7}", a) or not re.fullmatch(r"[0-9A-F]{4}", v):
+            return None
+        size = 1 if a[0] == "3" else 2
+        out.append(("R", size, int(a[1:], 16), int(v, 16) & (0xFF if size == 1 else 0xFFFF), None))
+    return out
+
+
+MEDNAFEN = {   # module: (decoder of one code part, big-endian, ROM extensions)
+    "gb": (gb_decode, False), "gba": (None, False), "nes": (nes_decode, False), "snes_faust": (snes_decode, False),
+    "md": (lambda c: raw_write(c, 0xFF0000, 0xFFFFFF, big=True), True), "sms": (sms_decode, False),
+    "gg": (sms_decode, False), "pce": (lambda c: raw_write(c, 0x1F0000, 0x1F7FFF), False),
+    "pce_fast": (lambda c: raw_write(c, 0x1F0000, 0x1F7FFF), False),
+}
+
+
+def rom_bytes(rom):
+    """The ROM's data, out of a .zip as Mednafen does (its first file that isn't text)."""
+    if rom.lower().endswith(".zip"):
+        with zipfile.ZipFile(rom) as z:
+            names = [n for n in z.namelist() if not n.endswith("/") and not n.lower().endswith((".txt", ".nfo", ".diz"))]
+            return z.read(names[0]) if names else b""
+    with open(rom, "rb") as f:
+        return f.read()
+
+
+def mednafen_id(module, rom):
+    """The ID Mednafen keys a game's cheats by (its MDFNGameInfo->MD5), or None."""
+    try:
+        data = rom_bytes(rom)
+    except (OSError, zipfile.BadZipFile, KeyError):
+        return None
+    if module == "gb":
+        if len(data) < 0x150 or data[0x148] > 8:
+            return None
+        size = 0x8000 << data[0x148]
+        data = data[:size].ljust(size, b"\xff")
+    elif module == "nes":
+        if data[:4] != b"NES\x1a":
+            return None
+        prg, chr_ = (data[4] or 256) * 0x4000, data[5] * 0x2000
+        start = 16 + (512 if data[6] & 4 else 0)
+        data = data[start:start + prg + chr_]
+    elif module == "snes_faust":     # the first 16 bytes of the SHA-1, after a copier header
+        data = data[512:] if len(data) & 0x7FFF == 512 else data
+        return hashlib.sha1(data).hexdigest()[:32]
+    elif module in ("sms", "gg", "pce", "pce_fast"):
+        data = data[512:] if len(data) & 512 else data
+    elif module not in ("gba", "md"):
+        return None
+    return hashlib.md5(data).hexdigest()
+
+
+def mednafen_lines(module, code):
+    """A cheat's patches [(type, length, addr, value, compare, big)], or None if any part doesn't decode."""
+    dec, big = MEDNAFEN[module]
+    parts = [p.strip().upper() for p in re.split(r"[+;,]", code) if p.strip()]
+    if not parts:
+        return None
+    if module == "gba":
+        out = gba_decode(parts)
+        return [p + (False,) for p in out] if out else None
+    out = []
+    for p in parts:
+        d = dec(p)
+        if not d:
+            return None
+        out.append(d if len(d) == 6 else d + (big,))
+    return out
+
+
+class Mednafen:
+    def module(self, core):
+        return core if core in MEDNAFEN else None
+
+    def coded(self, src, module):
+        out = []
+        for c in cht_read(src):
+            lines = mednafen_lines(module, c["values"].get(f"cheat{c['i']}_code", ""))
+            if lines and not any(n == c["name"] for n, _ in out):
+                out.append((c["name"], lines))
+        return out
+
+    def source(self, system, rom):
+        folder = RA_SYSTEMS.get(system)
+        return best_file(os.path.join(RA_DB, folder), rom) if folder else None
+
+    def listing(self, src, core):
+        module = self.module(core)
+        return [n for n, _ in self.coded(src, module)]
+
+    def apply(self, system, rom, core, src, on):
+        module = self.module(core)
+        gid = mednafen_id(module, rom) if module else None
+        if not gid:
+            return False
+        path = os.path.join(MEDNAFEN_OUT, module + ".cht")
+        try:
+            with open(path, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError:
+            text = ""
+        blocks = [[]]                     # [lines before any section], then one list per section
+        for line in text.splitlines(keepends=True):
+            if line.startswith("["):
+                blocks.append([])
+            blocks[-1].append(line)
+        mine = f"[{gid}] {MEDNAFEN_MARK}"
+        if any(b and b[0].lower().startswith(f"[{gid}]") and not b[0].startswith(mine) for b in blocks[1:]):
+            return False                  # the user's own cheats for this game, from Mednafen's dialog
+        blocks = [b for b in blocks if not (b and b[0].startswith(mine))]
+        chosen = [(n, l) for n, l in self.coded(src, module) if n in on] if src else []
+        if chosen:
+            sec = [mine + "\n"]
+            for name, patches in chosen:
+                for t, size, addr, val, cmp, big in patches:
+                    fmt = "%02x" if size == 1 else "%04x"
+                    vals = (fmt % val) + (" " + fmt % cmp if t == "C" else "")
+                    sec += [f"{t} A {size} {'B' if big else 'L'} 0 {addr:08x} {vals} {name}\n", "\n"]
+            blocks.append(sec)
+        new = "".join("".join(b) for b in blocks)
+        if new != text:
+            write_file(path, new)
+        return bool(chosen)
+
+
+MEDNAFEN_MARK = "Asgard cheats: written at launch from the game's Cheats list"
+
+
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
-            "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2()}
+            "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2(),
+            "mednafen": Mednafen()}
 
 
 def backend(emulator):
@@ -837,11 +1061,16 @@ def listing(system, rom, emulator, core):
     b = backend(emulator)
     if not b:
         return {"source": "", "cheats": [], "error": NO_CHEATS.get(emulator, f"No cheats for {emulator} yet")}
+    if hasattr(b, "module") and not b.module(core):
+        return {"source": "", "cheats": [], "error": f"No cheats for {emulator}'s {core} yet: set this game's emulator to RetroArch for them"}
     src = b.source(system, rom)
     if not src:
         return {"source": "", "cheats": [], "error": "No cheats found for this game"}
     on = set(load_on(system, rom))
-    return {"source": os.path.basename(src), "cheats": [{"name": n, "on": n in on} for n in b.cheats(src)]}
+    names = b.listing(src, core) if hasattr(b, "listing") else b.cheats(src)
+    if not names and hasattr(b, "listing"):
+        return {"source": "", "cheats": [], "error": f"No cheats for this game that {emulator} can run"}
+    return {"source": os.path.basename(src), "cheats": [{"name": n, "on": n in on} for n in names]}
 
 
 def main(argv):

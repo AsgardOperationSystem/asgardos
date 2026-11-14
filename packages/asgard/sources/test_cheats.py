@@ -392,6 +392,55 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "apply", *aeth)
     assert open(f"{tmp}/aether/cheats/10203040.pnach").read() == "patch=1,EE,mine\n"
 
+# ---- Mednafen: libretro's codes decoded into cheats/<module>.cht, a section keyed by the MD5 Mednafen computes
+import hashlib  # noqa: E402
+import zipfile  # noqa: E402
+
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env["ASGARD_CHEATS_MEDNAFEN_OUT"] = f"{tmp}/mcheats"
+    gbdir, nesdir = f"{tmp}/db/Nintendo - Game Boy", f"{tmp}/db/Nintendo - Nintendo Entertainment System"
+    os.makedirs(gbdir)
+    os.makedirs(nesdir)
+    open(f"{gbdir}/Tetris (World).cht", "w").write(
+        'cheats = 4\ncheat0_desc = "Codes"\ncheat1_desc = "Lives"\ncheat1_code = "010F1AC0"\n'
+        'cheat2_desc = "Level"\ncheat2_code = "00A-17B-C49+010F1AC0"\ncheat3_desc = "Bad"\ncheat3_code = "ZZZZ"\n')
+    open(f"{nesdir}/Super Mario Bros. (World).cht", "w").write(
+        'cheats = 2\ncheat0_desc = "Infinite Lives"\ncheat0_code = "SXIOPO"\ncheat1_desc = "Coins"\ncheat1_code = "075E:09"\n')
+    gb = bytearray(0x8000)                           # header 0x148 = 0: 32 KiB; a short file is padded with FF
+    os.makedirs(f"{tmp}/roms")
+    open(f"{tmp}/roms/Tetris (World).gb", "wb").write(bytes(gb[:0x6000]))
+    gbmd5 = hashlib.md5(bytes(gb[:0x6000]).ljust(0x8000, b"\xff")).hexdigest()
+    tet = ("gb", f"{tmp}/roms/Tetris (World).gb", "mednafen", "gb")
+    assert [c["name"] for c in run(env, "list", *tet)["cheats"]] == ["Lives", "Level"]    # no header, no bad code
+    run(env, "set", *tet, "Level", "on")
+    run(env, "apply", *tet)
+    cht = open(f"{tmp}/mcheats/gb.cht").read()
+    assert cht.startswith(f"[{gbmd5}] Asgard cheats")
+    assert "C A 1 L 0 00004a17 00 c8 Level\n\nR A 1 L 0 0000c01a 0f Level\n\n" in cht, cht
+    # Another game's section stays; a section the user made for this game is theirs
+    open(f"{tmp}/mcheats/gb.cht", "a").write("[0123456789abcdef0123456789abcdef] Other\nR A 1 L 0 00000001 01 x\n\n")
+    run(env, "set", *tet, "Level", "off")
+    run(env, "apply", *tet)
+    assert open(f"{tmp}/mcheats/gb.cht").read() == "[0123456789abcdef0123456789abcdef] Other\nR A 1 L 0 00000001 01 x\n\n"
+    open(f"{tmp}/mcheats/gb.cht", "a").write(f"[{gbmd5}] Tetris\nR A 1 L 0 00000002 02 mine\n\n")
+    run(env, "set", *tet, "Lives", "on")
+    run(env, "apply", *tet)
+    assert "Asgard" not in open(f"{tmp}/mcheats/gb.cht").read()
+    # NES: the MD5 of PRG+CHR without the iNES header, read from a .zip; Game Genie and a RAM write
+    prg = bytes(range(256)) * 64
+    with zipfile.ZipFile(f"{tmp}/roms/Super Mario Bros. (World).zip", "w") as z:
+        z.writestr("readme.txt", "hi")
+        z.writestr("smb.nes", b"NES\x1a\x01\x00" + bytes(10) + prg)
+    smb = ("nes", f"{tmp}/roms/Super Mario Bros. (World).zip", "mednafen", "nes")
+    for name in ("Infinite Lives", "Coins"):
+        run(env, "set", *smb, name, "on")
+    run(env, "apply", *smb)
+    cht = open(f"{tmp}/mcheats/nes.cht").read()
+    assert cht.startswith(f"[{hashlib.md5(prg).hexdigest()}] Asgard")
+    assert "S A 1 L 0 000091d9 ad Infinite Lives\n\nR A 1 L 0 0000075e 09 Coins\n" in cht, cht
+    assert "RetroArch" in run(env, "list", "atarilynx", "/r/x.lnx", "mednafen", "lynx")["error"]
+
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402
 from home_harness import Root  # noqa: E402
