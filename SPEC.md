@@ -85,7 +85,7 @@ A game behaves the same whichever emulator runs it: the same launch, quit, crash
 - **GAME-6** Back to Home freezes the game (SIGSTOP, windows in sway's scratchpad). Returning continues it (SIGCONT, windows restored), and audio and input come back.
 - **GAME-7** After a sleep the game carries on from where it was within a couple of seconds and doesn't replay the time asleep. Home only unpauses what it paused itself.
 - **GAME-9** Games see InputPlumber's virtual DualSense. The raw Thor pad is hidden from them.
-- **GAME-10** The main window is full screen on the top screen. With nothing to show on the bottom screen, it goes off shortly after launch.
+- **GAME-10** The main window is full screen on the top screen. With nothing to show on the bottom screen, it goes off shortly after launch. A window that reaches into the bottom panel counts as something to show, such as RetroArch spanning both screens for a DS game (COMP-5).
 
 ### Home button and in-game menu
 

@@ -142,6 +142,18 @@ for window, want in (("", ["output DSI-1 power off"]), ('{"pid":2}', [])):
     subprocess.run(["sh", f"{HERE}/thor-bottom-idle-off.sh", "0"], check=False, env=env)
     assert calls(d) == want, (window, calls(d))
     d.cleanup()
+# A visible window on the top screen's workspace that reaches into the bottom panel keeps it on: RetroArch spanning both for a DS
+# game (COMP-5), with DSI-1 placed below DSI-2. One that only touches its edge, or a hidden one, doesn't.
+SPAN = ('{"type":"root","nodes":[{"type":"output","name":"__i3","rect":{"x":0,"y":0,"width":3160,"height":2160},"nodes":[%s]},'
+        '{"type":"output","name":"DSI-2","rect":{"x":0,"y":0,"width":1920,"height":1080},"nodes":[{"type":"workspace",'
+        '"floating_nodes":[%s]}]},{"type":"output","name":"DSI-1","rect":{"x":340,"y":1080,"width":1240,"height":1080},"nodes":[]}]}')
+RA = '{"pid":3,"visible":%s,"rect":{"x":240,"y":0,"width":1440,"height":%d}}'
+for scratch, window, want in (("", RA % ("true", 2160), []), ("", RA % ("true", 1080), ["output DSI-1 power off"]),
+                              ("", RA % ("false", 2160), ["output DSI-1 power off"]), (RA % ("true", 2160), "", ["output DSI-1 power off"])):
+    d, env = with_swaymsg(SPAN % (scratch, window))
+    subprocess.run(["sh", f"{HERE}/thor-bottom-idle-off.sh", "0"], check=False, env=env)
+    assert calls(d) == want, (scratch, window, calls(d))
+    d.cleanup()
 source = open(f"{PACKAGES}/asgard-home/src/backend.cpp").read()
 run_body = source[source.index("void Backend::run("):source.index("// --- in-game menu")]
 assert re.search(r'^\s*"swaymsg .*thor-bottom-idle-off\.sh 3', run_body, re.M), "Home no longer arms the bottom screen's off"
