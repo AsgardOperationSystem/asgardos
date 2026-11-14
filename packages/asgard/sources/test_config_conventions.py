@@ -66,7 +66,9 @@ OTHERS = {"asgard", "thor", "autostart", "azahar", "gmu", "gpu-drivers", "mako",
           "retroarch", "sway", "system", "wireguard", "zerotier", "zerotier-networks",
           # the emulators asgard-screen-filter.sh writes the screen filter into (VID-1)
           "ARMSX2", "aethersx2", "dolphin-emu", "eden", "flycast", "nanoboyadvance", "ppsspp", "rpcs3", "xemu",
-          "Cemu", "melonDS", "Vita3K", "scummvm"}
+          "Cemu", "melonDS", "Vita3K", "scummvm",
+          # the emulators asgard-cheats.py writes a game's cheats into (CHEAT-1)
+          "mednafen", "drastic", "duckstation"}
 used = {}
 for path in FILES:
     for name in re.findall(r"/storage/\.config/([\w.-]+)", read(path)):
