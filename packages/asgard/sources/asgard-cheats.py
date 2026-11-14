@@ -33,6 +33,8 @@ Cheats come from databases shipped in the image (offline):
              GameShark, Pro Action Replay, raw RAM writes, GBA Code Breaker; a cheat with a code it can't run isn't
              listed) into cheats/<module>.cht, as a section "[<game's MD5>] Asgard cheats..." (snes_faust: SHA-1).
              A section the user made in Mednafen for the game is left alone. gb gba nes snes_faust md sms gg pce.
+  Flycast    libretro-database's Dreamcast .cht (already its format), written to a folder of ours that apply adds to
+             emu.cfg's Dreamcast.CheatPath, as <rom file name>.cht with the chosen cheats enabled.
   AetherSX2  the same, written as its cheats/<ELF CRC>.pnach (it applies every line in it); a user's own is left alone.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
@@ -72,6 +74,8 @@ PS2_INI = os.environ.get("ASGARD_CHEATS_PS2_INI", "/storage/.config/ARMSX2/inis/
 PS2_INI_IMAGE = os.environ.get("ASGARD_CHEATS_PS2_INI_IMAGE", "/usr/config/ARMSX2/inis/PCSX2.ini")
 PS2_OUT = os.environ.get("ASGARD_CHEATS_PS2_OUT", "/storage/.config/ARMSX2/cheats")
 MEDNAFEN_OUT = os.environ.get("ASGARD_CHEATS_MEDNAFEN_OUT", "/storage/.config/mednafen/cheats")    # <module>.cht
+FLYCAST_CFG = os.environ.get("ASGARD_CHEATS_FLYCAST_CFG", "/storage/.config/flycast/emu.cfg")
+FLYCAST_OUT = os.environ.get("ASGARD_CHEATS_FLYCAST_OUT", "/storage/.config/flycast/asgard-cheats")
 AETHER = os.environ.get("ASGARD_CHEATS_AETHER", "/storage/.config/aethersx2")          # cheats/, inis/PCSX2.ini
 ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
@@ -147,10 +151,10 @@ def cht_read(path):
     return [{"i": i, "name": values.get(f"cheat{i}_desc", f"Cheat {i + 1}"), "values": values} for i in range(count)]
 
 
-def cht_write(src, dst, on):
+def cht_write(src, dst, on, mark=MARK):
     """src with cheatN_enable set from `on` (names), everything else as it was."""
     cheats = {c["i"]: c["name"] for c in cht_read(src)}
-    out = [MARK + "\n"]
+    out = [mark + "\n"]
     with open(src, encoding="utf-8", errors="replace") as f:
         for line in f:
             m = re.match(r"\s*cheat(\d+)_enable\s*=", line)
@@ -1021,12 +1025,54 @@ class Mednafen:
         return bool(chosen)
 
 
+# --- Flycast (RetroArch's .cht, decoded entries: cheatN_address/_value/...; libretro's Dreamcast files are that) -----
+FLYCAST_MARK = ";" + MARK.lstrip("#")     # a ";" line is a comment to Flycast's ini parser
+
+
+def flycast_cheat_path(cfg):
+    """emu.cfg's Dreamcast.CheatPath with our folder in it (Flycast looks for <rom file name>.cht in each)."""
+    lines = cfg.splitlines()
+    for i, line in enumerate(lines):
+        m = re.match(r"\s*Dreamcast\.CheatPath\s*=\s*(.*)$", line)
+        if m:
+            if FLYCAST_OUT in m.group(1):
+                return cfg
+            lines[i] = f"Dreamcast.CheatPath = {m.group(1) + ';' if m.group(1).strip() else ''}{FLYCAST_OUT}"
+            return "\n".join(lines) + "\n"
+    for i, line in enumerate(lines):
+        if line.strip() == "[config]":
+            lines.insert(i + 1, f"Dreamcast.CheatPath = {FLYCAST_OUT}")
+            return "\n".join(lines) + "\n"
+    return cfg + f"\n[config]\nDreamcast.CheatPath = {FLYCAST_OUT}\n"
+
+
+class Flycast(RetroArch):
+    """The game's file in a folder of ours on Flycast's cheat path, as <rom file name>.cht. Flycast then remembers
+    it for the game (emu.cfg's [cheats]); a file the user picks in Flycast replaces that, and wins."""
+    def apply(self, system, rom, core, src, on):
+        dst = os.path.join(FLYCAST_OUT, os.path.basename(rom) + ".cht")
+        if not src or not on:
+            if os.path.exists(dst):
+                os.remove(dst)
+            return False
+        cht_write(src, dst, set(on), FLYCAST_MARK)
+        try:
+            with open(FLYCAST_CFG, encoding="utf-8", errors="replace") as f:
+                cfg = f.read()
+        except OSError:
+            cfg = ""
+        new = flycast_cheat_path(cfg)
+        if new != cfg:
+            write_file(FLYCAST_CFG, new)
+        return True
+
+
 MEDNAFEN_MARK = "Asgard cheats: written at launch from the game's Cheats list"
 
 
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
             "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2(),
-            "mednafen": Mednafen()}
+            "mednafen": Mednafen(), "flycast": Flycast()}
 
 
 def backend(emulator):

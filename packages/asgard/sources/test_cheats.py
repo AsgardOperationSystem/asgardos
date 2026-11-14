@@ -441,6 +441,30 @@ with tempfile.TemporaryDirectory() as tmp:
     assert "S A 1 L 0 000091d9 ad Infinite Lives\n\nR A 1 L 0 0000075e 09 Coins\n" in cht, cht
     assert "RetroArch" in run(env, "list", "atarilynx", "/r/x.lnx", "mednafen", "lynx")["error"]
 
+# ---- Flycast: libretro's Dreamcast .cht in a folder of ours on its CheatPath, <rom file name>.cht
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env.update(ASGARD_CHEATS_FLYCAST_CFG=f"{tmp}/emu.cfg", ASGARD_CHEATS_FLYCAST_OUT=f"{tmp}/fc")
+    open(f"{tmp}/emu.cfg", "w").write("[audio]\nbackend = pulse\n\n[config]\npvr.AutoSkipFrame = 2\n")
+    os.makedirs(f"{tmp}/db/Sega - Dreamcast")
+    open(f"{tmp}/db/Sega - Dreamcast/Crazy Taxi (USA).cht", "w").write(
+        'cheats = 2\ncheat0_desc = "Time"\ncheat0_address = "1691412"\ncheat0_value = "99"\ncheat0_enable = "false"\n'
+        'cheat1_desc = "Money"\ncheat1_address = "1691416"\ncheat1_value = "9999"\ncheat1_enable = "false"\n')
+    dc = ("dreamcast", "/r/Crazy Taxi (USA).chd", "flycast", "flycast-sa")
+    assert [c["name"] for c in run(env, "list", *dc)["cheats"]] == ["Time", "Money"]
+    run(env, "set", *dc, "Money", "on")
+    run(env, "apply", *dc)
+    cht = open(f"{tmp}/fc/Crazy Taxi (USA).chd.cht").read()
+    assert cht.startswith(";") and "cheat1_enable = true" in cht and "cheat0_enable = false" in cht
+    cfg = open(f"{tmp}/emu.cfg").read()
+    assert f"[config]\nDreamcast.CheatPath = {tmp}/fc\n" in cfg
+    open(f"{tmp}/emu.cfg", "w").write("[config]\nDreamcast.CheatPath = /mine\n")
+    run(env, "apply", *dc)
+    assert f"Dreamcast.CheatPath = /mine;{tmp}/fc\n" in open(f"{tmp}/emu.cfg").read()
+    run(env, "set", *dc, "Money", "off")
+    run(env, "apply", *dc)
+    assert not os.path.exists(f"{tmp}/fc/Crazy Taxi (USA).chd.cht")
+
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402
 from home_harness import Root  # noqa: E402
