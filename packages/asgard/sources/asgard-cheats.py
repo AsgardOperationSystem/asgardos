@@ -26,10 +26,17 @@ Cheats come from databases shipped in the image (offline):
              default); written as "$name" lines in [*_Enabled] of the user's GameSettings/<game ID>.ini, which also holds
              the game's other settings, so only those lines change. The game ID is the disc's first 6 bytes (.iso, .rvz,
              .wbfs, .ciso, .gcz). The start script switches Dolphin's EnableCheats on while ON_FLAG exists.
+  ARMSX2     ps2-cheats-db's ps2/[<serial>_]<ELF CRC>.pnach; written as ARMSX2's cheats/<serial>_ASGARD.pnach with only
+             the chosen cheats, unlabelled (always applied), and EnableCheats switched on in PCSX2.ini. The serial and
+             the CRC (XOR of the boot ELF's words) come from the disc (.iso, raw .bin, .cso; not .chd yet).
+  AetherSX2  the same, written as its cheats/<ELF CRC>.pnach (it applies every line in it); a user's own is left alone.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
+import array
 import difflib
+import functools
 import json
+import operator
 import os
 import re
 import shutil
@@ -56,6 +63,10 @@ EDEN_MOD = "Asgard Cheats"    # our mod folder: everything in it is ours
 DOLPHIN_DB = os.environ.get("ASGARD_CHEATS_DOLPHIN_DB", "/usr/config/dolphin-emu/GameSettings")    # the image's copy
 DOLPHIN_OUT = os.environ.get("ASGARD_CHEATS_DOLPHIN_OUT", "/storage/.config/dolphin-emu/GameSettings")
 # Set while the game starting has cheats on: for start scripts that rewrite their emulator's master switch (Dolphin)
+PS2_INI = os.environ.get("ASGARD_CHEATS_PS2_INI", "/storage/.config/ARMSX2/inis/PCSX2.ini")
+PS2_INI_IMAGE = os.environ.get("ASGARD_CHEATS_PS2_INI_IMAGE", "/usr/config/ARMSX2/inis/PCSX2.ini")
+PS2_OUT = os.environ.get("ASGARD_CHEATS_PS2_OUT", "/storage/.config/ARMSX2/cheats")
+AETHER = os.environ.get("ASGARD_CHEATS_AETHER", "/storage/.config/aethersx2")          # cheats/, inis/PCSX2.ini
 ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
 
@@ -270,6 +281,10 @@ class Image:
         self.f = open(path, "rb")
         head = self.f.read(0x18)
         self.cso = head[:4] == b"CISO"
+        self.raw = None                  # a raw CD .bin: 2352-byte sectors, the 2048 data bytes at 16 (mode 1) or 24
+        if head[:12] == b"\0" + b"\xff" * 10 + b"\0":
+            self.f.seek(16 * 2352 + 15)
+            self.raw = 24 if self.f.read(1) == b"\x02" else 16
         if self.cso:
             total, self.block, self.align = int.from_bytes(head[8:16], "little"), int.from_bytes(head[16:20], "little"), head[21]
             n = (total + self.block - 1) // self.block + 1
@@ -277,6 +292,16 @@ class Image:
             self.index = [int.from_bytes(raw[i:i + 4], "little") for i in range(0, len(raw), 4)]
 
     def read(self, offset, size):
+        if self.raw:
+            out = b""
+            while size > 0:
+                sector, inner = divmod(offset, 2048)
+                self.f.seek(sector * 2352 + self.raw + inner)
+                chunk = self.f.read(min(size, 2048 - inner))
+                if not chunk:
+                    break
+                out, offset, size = out + chunk, offset + len(chunk), size - len(chunk)
+            return out
         if not self.cso:
             self.f.seek(offset)
             return self.f.read(size)
@@ -299,22 +324,28 @@ class Image:
 
 
 def iso_file(img, name):
-    """A file in the ISO9660 root directory, or None."""
+    """A file in an ISO9660 image ("UMD_DATA.BIN", "DATA/SLUS_200.62"), or None."""
     pvd = img.read(16 * 2048, 2048)
     if pvd[1:6] != b"CD001":
         return None
     lba, size = int.from_bytes(pvd[158:162], "little"), int.from_bytes(pvd[166:170], "little")
-    d, i = img.read(lba * 2048, size), 0
-    while i < len(d):
-        n = d[i]
-        if n == 0:                       # records don't cross a sector: on to the next one
-            i = (i // 2048 + 1) * 2048
-            continue
-        ident = d[i + 33:i + 33 + d[i + 32]].decode("ascii", "replace").split(";")[0]
-        if ident.upper() == name:
-            return img.read(int.from_bytes(d[i + 2:i + 6], "little") * 2048, int.from_bytes(d[i + 10:i + 14], "little"))
-        i += n
-    return None
+    parts = [p for p in name.upper().replace("\\", "/").split("/") if p]
+    for depth, part in enumerate(parts):
+        d, i, found = img.read(lba * 2048, size), 0, None
+        while i < len(d):
+            n = d[i]
+            if n == 0:                   # records don't cross a sector: on to the next one
+                i = (i // 2048 + 1) * 2048
+                continue
+            ident = d[i + 33:i + 33 + d[i + 32]].decode("ascii", "replace").split(";")[0]
+            if ident.upper() == part:
+                found = int.from_bytes(d[i + 2:i + 6], "little"), int.from_bytes(d[i + 10:i + 14], "little")
+                break
+            i += n
+        if not found:
+            return None
+        lba, size = found
+    return img.read(lba * 2048, size)
 
 
 def sfo_value(sfo, key):
@@ -668,8 +699,110 @@ class Dolphin:
         return bool(now)
 
 
+# --- ARMSX2 (pnach: "[name]" groups of "patch=1,EE,<addr>,<type>,<value>" lines) -----------------------------------
+def ps2_game(rom):
+    """(serial, ELF CRC) of a PS2 disc (.iso, raw .bin, .cso): SYSTEM.CNF's BOOT2 names the ELF, and the CRC PCSX2
+    keys cheats by is the XOR of its 32-bit words. (None, None) for what isn't read (.chd, .gz, .zso)."""
+    try:
+        img = Image(rom)
+        cnf = iso_file(img, "SYSTEM.CNF")
+        m = re.search(rb"BOOT2\s*=\s*cdrom0?:\\?([^;\r\n]+)", cnf or b"")
+        if not m:
+            return None, None
+        path = m.group(1).decode("ascii", "replace").strip()
+        elf = iso_file(img, path)
+        if not elf:
+            return None, None
+        words = array.array("I", elf[:len(elf) // 4 * 4])
+        if sys.byteorder != "little":
+            words.byteswap()
+        crc = functools.reduce(operator.xor, words, 0)
+        stem = path.replace("\\", "/").split("/")[-1].upper()
+        serial = stem.replace("_", "-").replace(".", "") if re.fullmatch(r"[A-Z]{4}_\d{3}\.\d{2}", stem) else None
+        return serial, "%08X" % crc
+    except (OSError, ValueError, zlib.error, IndexError):
+        return None, None
+
+
+def pnach_groups(path):
+    """[(name, [patch lines])], groups of one name (a cheat in several parts) joined."""
+    groups, cur = {}, None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            m = re.fullmatch(r"\[(.+)\]", line)
+            if m:
+                cur = groups.setdefault(m.group(1).strip(), [])
+            elif cur is not None and line.startswith("patch="):
+                cur.append(line)
+    return [(n, lines) for n, lines in groups.items() if lines]
+
+
+class ARMSX2:
+    def source(self, system, rom):
+        _, crc = ps2_game(rom)
+        folder = os.path.join(DB, "ps2")
+        try:
+            names = sorted(f for f in os.listdir(folder) if re.fullmatch(r"(?:.*_)?%s\.pnach" % crc, f, re.I))
+        except OSError:
+            names = []
+        return os.path.join(folder, names[0]) if crc and names else None
+
+    def cheats(self, src):
+        return [n for n, _ in pnach_groups(src)]
+
+    def file(self, rom):
+        serial, _ = ps2_game(rom)
+        return os.path.join(PS2_OUT, serial + "_ASGARD.pnach") if serial else None
+
+    def ini(self):
+        return PS2_INI, PS2_INI_IMAGE
+
+    def apply(self, system, rom, core, src, on):
+        """Our own pnach, <serial>_ASGARD.pnach (ARMSX2 loads every <serial>_*.pnach in cheats/), holding only the
+        chosen cheats' lines, unlabelled: those always apply, with no enable list in the game's settings."""
+        dst = self.file(rom)
+        if not dst:
+            return False
+        exists, mine = ours(dst, MARK.replace("#", "//", 1))
+        if exists and not mine:
+            return False                 # AetherSX2's <CRC>.pnach the user made
+        if mine:
+            os.remove(dst)
+        chosen = [(n, lines) for n, lines in pnach_groups(src) if n in on] if src else []
+        if not chosen:
+            return False
+        text = [MARK.replace("#", "//", 1), "gametitle=" + os.path.basename(rom)]
+        for name, lines in chosen:
+            text += ["", "// " + name] + lines
+        write_file(dst, "\n".join(text) + "\n")
+        ini, image = self.ini()
+        if not os.path.exists(ini) and os.path.exists(image):
+            os.makedirs(os.path.dirname(ini), exist_ok=True)
+            shutil.copy(image, ini)      # what the start script would copy at its first run
+        try:
+            with open(ini) as f:
+                text = f.read()
+            new = re.sub(r"(?m)^(\s*EnableCheats\s*=\s*)false\s*$", r"\1true", text)
+            if new != text:
+                write_file(ini, new)
+        except OSError:
+            pass
+        return True
+
+
+class AetherSX2(ARMSX2):
+    """An older PCSX2: it loads cheats/<ELF CRC>.pnach and applies every patch line in it, labelled or not."""
+    def file(self, rom):
+        _, crc = ps2_game(rom)
+        return os.path.join(AETHER, "cheats", crc + ".pnach") if crc else None
+
+    def ini(self):
+        return os.path.join(AETHER, "inis", "PCSX2.ini"), "/usr/config/aethersx2/inis/PCSX2.ini"
+
+
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
-            "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin()}
+            "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2()}
 
 
 def backend(emulator):

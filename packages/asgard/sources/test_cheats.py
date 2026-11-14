@@ -324,6 +324,74 @@ with tempfile.TemporaryDirectory() as tmp:
     assert not os.path.exists(f"{tmp}/on")
     assert run(env, "list", "gamecube", f"{tmp}/sys/GM4E01.ini", "dolphin", "dolphin-sa-gc")["error"]   # not a disc
 
+# ---- ARMSX2: serial and ELF CRC from SYSTEM.CNF's BOOT2; <serial>_ASGARD.pnach with only the chosen, unlabelled
+def iso_files(files):
+    """An ISO9660 with these files in its root, in sectors 19 on."""
+    sectors, recs, lba = [], b"", 19
+    for name, data in files:
+        ident = (name + ";1").encode()
+        rec = bytearray(33 + len(ident) + (len(ident) + 1) % 2)
+        rec[0], rec[32] = len(rec), len(ident)
+        rec[2:6], rec[10:14] = lba.to_bytes(4, "little"), len(data).to_bytes(4, "little")
+        rec[33:33 + len(ident)] = ident
+        recs += bytes(rec)
+        n = max(1, (len(data) + 2047) // 2048)
+        sectors.append(data.ljust(n * 2048, b"\0"))
+        lba += n
+    img = bytearray(16 * 2048) + bytearray(2048) + bytearray(2048) + bytes([34]).ljust(34, b"\0") + recs
+    img[16 * 2048:16 * 2048 + 6] = b"\x01CD001"
+    img[16 * 2048 + 158:16 * 2048 + 162] = (18).to_bytes(4, "little")
+    img[16 * 2048 + 166:16 * 2048 + 170] = (2048).to_bytes(4, "little")
+    return bytes(img.ljust(19 * 2048, b"\0")) + b"".join(sectors)
+
+
+def raw_bin(iso, mode=2):
+    out = b""
+    for i in range(0, len(iso), 2048):
+        head = b"\0" + b"\xff" * 10 + b"\0" + bytes([0, 2, 0, mode])
+        out += head + (bytes(8) if mode == 2 else b"") + iso[i:i + 2048] + bytes(2352 - 2048 - len(head) - (8 if mode == 2 else 0))
+    return out
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env.update(ASGARD_CHEATS_PS2_OUT=f"{tmp}/cheats", ASGARD_CHEATS_PS2_INI=f"{tmp}/inis/PCSX2.ini",
+               ASGARD_CHEATS_PS2_INI_IMAGE=f"{tmp}/PCSX2.ini", ASGARD_CHEATS_ON_FLAG=f"{tmp}/on")
+    open(f"{tmp}/PCSX2.ini", "w").write("[EmuCore]\nEnablePatches = true\nEnableCheats = false\n")
+    elf = (0x11223344).to_bytes(4, "little") + (0x01020304).to_bytes(4, "little") + b"\x7f"    # CRC 0x10203040
+    cnf = b"BOOT2 = cdrom0:\\SLUS_208.88;1\r\nVER = 1.00\r\n"
+    disc = iso_files([("SLUS_208.88", elf), ("SYSTEM.CNF", cnf)])
+    os.makedirs(f"{tmp}/asgard-db/ps2")
+    open(f"{tmp}/asgard-db/ps2/SLUS-20888_10203040.pnach", "w").write(
+        "gametitle=Front Mission 4 [SLUS-20888] [10203040]\n\n[Infinite Health]\nauthor=x\n// Infinite Health\n"
+        "patch=1,EE,9012D8C4,extended,0C04C9D4\n\n[Infinite Funds]\npatch=1,EE,103B6200,extended,0000FFFF\n\n"
+        "[Infinite Funds]\npatch=1,EE,103B7224,extended,0000FFFF\n\n[Empty]\nauthor=x\n")
+    for name, data in (("FM4.iso", disc), ("FM4.bin", raw_bin(disc)), ("FM4 m1.bin", raw_bin(disc, 1)), ("FM4.cso", cso(disc))):
+        open(f"{tmp}/{name}", "wb").write(data)
+        listed = run(env, "list", "ps2", f"{tmp}/{name}", "armsx2", "armsx2-sa")
+        assert [c["name"] for c in listed["cheats"]] == ["Infinite Health", "Infinite Funds"], (name, listed)
+    ps2 = ("ps2", f"{tmp}/FM4.bin", "armsx2", "armsx2-sa")
+    run(env, "set", *ps2, "Infinite Funds", "on")
+    run(env, "apply", *ps2)
+    pnach = open(f"{tmp}/cheats/SLUS-20888_ASGARD.pnach").read()
+    assert "[" not in pnach and "patch=1,EE,103B6200" in pnach and "patch=1,EE,103B7224" in pnach and "9012D8C4" not in pnach
+    assert "EnableCheats = true" in open(f"{tmp}/inis/PCSX2.ini").read() and os.path.exists(f"{tmp}/on")
+    run(env, "set", *ps2, "Infinite Funds", "off")
+    run(env, "apply", *ps2)
+    assert not os.path.exists(f"{tmp}/cheats/SLUS-20888_ASGARD.pnach") and not os.path.exists(f"{tmp}/on")
+    # AetherSX2: the same cheats as cheats/<CRC>.pnach; one the user made there is theirs
+    env["ASGARD_CHEATS_AETHER"] = f"{tmp}/aether"
+    os.makedirs(f"{tmp}/aether/inis")
+    open(f"{tmp}/aether/inis/PCSX2.ini", "w").write("EnableCheats = false\n")
+    aeth = ("ps2", f"{tmp}/FM4.iso", "aethersx2", "aethersx2-sa")
+    run(env, "set", *aeth, "Infinite Health", "on")
+    run(env, "apply", *aeth)
+    assert "9012D8C4" in open(f"{tmp}/aether/cheats/10203040.pnach").read()
+    assert "EnableCheats = true" in open(f"{tmp}/aether/inis/PCSX2.ini").read()
+    open(f"{tmp}/aether/cheats/10203040.pnach", "w").write("patch=1,EE,mine\n")
+    run(env, "apply", *aeth)
+    assert open(f"{tmp}/aether/cheats/10203040.pnach").read() == "patch=1,EE,mine\n"
+
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402
 from home_harness import Root  # noqa: E402
