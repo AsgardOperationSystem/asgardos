@@ -1081,6 +1081,32 @@ EOF
     fi
 }
 
+### Asgard: on the Thor, vertical-check spans RetroArch's window over both panels for the DS cores (COMP-5): 1240x2160
+### for melonDS and DeSmuME, with the bottom panel centred below the top one. Top/bottom with a 31 px gap puts each DS
+### screen at 1240x930 in the middle of its panel, and touch input makes the bottom panel the DS touch screen. The image's
+### melonDS default (Left/Right, joystick touch) drew a strip across the panels' seam. melonDS DS is set above.
+### Any other aspect or integer scaling misplaces the screens, so those are pinned too.
+function set_ds_span_opts() {
+    [ "${QUIRK_DEVICE}" = "AYN Thor" ] || return 0
+    local DIR OPTS OPT
+    case "${CORE}" in
+        melonds)   DIR="melonDS"; OPTS="melonds_screen_layout=Top/Bottom melonds_screen_gap=31 melonds_touch_mode=Touch" ;;
+        desmume)   DIR="DeSmuME"; OPTS="desmume_screens_layout=top/bottom desmume_screens_gap=31 desmume_pointer_type=touch" ;;
+        melondsds) add_setting "none" "video_scale_integer" "false"; return 0 ;;
+        *)         return 0 ;;
+    esac
+    local FILE="${RETROARCH_PATH}/config/${DIR}/${DIR}.opt"
+    mkdir -p "${RETROARCH_PATH}/config/${DIR}"
+    ### RetroArch reads the shared file while a core has no file of its own: start from that core's lines in it
+    [ -f "${FILE}" ] || grep "^${CORE}_" "${RETROARCH_PATH}/retroarch-core-options.cfg" >"${FILE}" 2>/dev/null
+    for OPT in ${OPTS}
+    do
+        set_melondsds_opt "${FILE}" "${OPT%%=*}" "${OPT#*=}"
+    done
+    add_setting "none" "aspect_ratio_index" "22"
+    add_setting "none" "video_scale_integer" "false"
+}
+
 function set_atari() {
     log "Set up Atari (FIXME)..."
     if [ "${CORE}" = "atari800" ]
@@ -1348,6 +1374,7 @@ set_dreamcastopts &
 ### a single process when all forks complete.
 wait
 set_melondsdsopts
+set_ds_span_opts
 flush_settings
 
 cleanup

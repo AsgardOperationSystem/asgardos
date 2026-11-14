@@ -117,7 +117,7 @@ Puts the second screen to use during a game: for a second display, controls or a
 - **COMP-2** Eden Duo shows live companion windows on the bottom screen.
 - **COMP-3** RetroArch games can have save-state and brightness controls on the bottom screen (ROCKNIX's lowerdeck), with focus kept on the top. The setting `asgardos.bottomscreen.type` turns them on (`vc`, the default) or off.
 - **COMP-4** Asgard has window rules for ports the user installs in `/storage`, which aren't in the image: the Wind Waker HD GamePad window, Dusklight's second screen, Gen1 Recomp's secondary display, and Lumi-Dex, a Pokédex companion that opens with Brilliant Diamond.
-- **COMP-5** A DS game in RetroArch (melonDS, melonDS DS or DeSmuME) uses both screens: RetroArch's one window spans them, with the bottom panel placed below the top one (ROCKNIX's `vertical-check`), so the DS's top screen is on the top panel and its touch screen on the bottom one. These games don't get COMP-3's controls.
+- **COMP-5** A DS game in RetroArch (melonDS, melonDS DS or DeSmuME) uses both screens: RetroArch's one window spans them, with the bottom panel placed below the top one (ROCKNIX's `vertical-check`), so the DS's top screen is on the top panel and its touch screen on the bottom one. These games don't get COMP-3's controls. Each launch sets the core to match: melonDS DS's viewport by ROCKNIX, and for melonDS and DeSmuME top/bottom, a 31 px gap and touch input, with RetroArch's aspect from the core and no integer scaling.
 
 ### Text prompts
 
