@@ -465,6 +465,41 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "apply", *dc)
     assert not os.path.exists(f"{tmp}/fc/Crazy Taxi (USA).chd.cht")
 
+# ---- mupen64plus: its mupencheat.txt by the header's CRCs (any byte order), else libretro's; a one-game file
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env.update(ASGARD_CHEATS_N64_DB=f"{tmp}/mupencheat.txt", ASGARD_CHEATS_N64_OUT=f"{tmp}/n64.txt",
+               ASGARD_CHEATS_ON_FLAG=f"{tmp}/on")
+    open(f"{tmp}/mupencheat.txt", "w").write(
+        "crc 11111111-22222222-C:4A\ngn Other\n cn Nope\n  80000000 0001\n"
+        "crc 80F41131-384645F6-C:4A\ngn AeroGauge (J)\n//----\n cn No Damage\\Player 1\n  50000402 0000\n  8113D058 0000\n"
+        " cn Laps\n  cd How many\n  8013CD0E ???? 0001:\"1 Lap\",0002:\"2 Laps\"\n")
+    z64 = bytes.fromhex("80371240") + bytes(12) + bytes.fromhex("80F41131384645F6") + bytes(0x26) + b"J\0"
+    v64 = b"".join(z64[i + 1:i + 2] + z64[i:i + 1] for i in range(0, 0x40, 2))
+    n64 = b"".join(z64[i:i + 4][::-1] for i in range(0, 0x40, 4))
+    for name, data in (("Aero.z64", z64), ("Aero.v64", v64), ("Aero.n64", n64)):
+        open(f"{tmp}/{name}", "wb").write(data)
+        names = [c["name"] for c in run(env, "list", "n64", f"{tmp}/{name}", "mupen64plus", "mupen64plus-sa")["cheats"]]
+        assert names == ["No Damage\\Player 1", "Laps: 1 Lap", "Laps: 2 Laps"], (name, names)
+    aero = ("n64", f"{tmp}/Aero.v64", "mupen64plus", "mupen64plus-sa")
+    run(env, "set", *aero, "Laps: 2 Laps", "on")
+    run(env, "apply", *aero)
+    assert open(f"{tmp}/n64.txt").read() == "crc 80F41131-384645F6-C:4A\ngn Aero.v64\n cn Laps: 2 Laps\n  8013CD0E 0002\n"
+    assert os.path.exists(f"{tmp}/on")
+    # Not in mupen64plus's database: libretro's N64 file by name
+    os.makedirs(f"{tmp}/db/Nintendo - Nintendo 64")
+    open(f"{tmp}/db/Nintendo - Nintendo 64/Mario Kart 64 (USA).cht", "w").write(
+        'cheats = 1\ncheat0_desc = "Lives"\ncheat0_code = "81103B66 0021;50000D01 0000"\n')
+    mk = bytes.fromhex("80371240") + bytes(12) + bytes.fromhex("3E5055B6") + bytes(0x2A) + b"E\0"
+    open(f"{tmp}/Mario Kart 64 (USA).z64", "wb").write(mk)
+    mk64 = ("n64", f"{tmp}/Mario Kart 64 (USA).z64", "mupen64plus", "mupen64plus-sa")
+    run(env, "set", *mk64, "Lives", "on")
+    run(env, "apply", *mk64)
+    assert open(f"{tmp}/n64.txt").read().endswith(" cn Lives\n  81103B66 0021\n  50000D01 0000\n")
+    run(env, "set", *mk64, "Lives", "off")
+    run(env, "apply", *mk64)
+    assert not os.path.exists(f"{tmp}/n64.txt") and not os.path.exists(f"{tmp}/on")
+
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402
 from home_harness import Root  # noqa: E402
@@ -502,6 +537,9 @@ with Root() as r:
 # runemu.sh applies them before every launch
 runemu = open(os.path.join(HERE, "../../asgardos/sources/scripts/runemu.sh")).read()
 assert 'asgard-cheats.py apply "${PLATFORM}" "${ROMNAME}" "${EMULATOR}" "${CORE}"' in runemu
+# mupen64plus's start script hands over the one-game file
+m64 = open(os.path.join(HERE, "../../emulators/standalone/mupen64plus-sa/mupen64plus-sa-core/scripts/start_mupen64plus.sh")).read()
+assert "cp /tmp/asgard-mupencheat.txt ${TMP}/mupencheat.txt" in m64 and '${SET_PARAMS} ${CHEATS} "${TMP}/${ROM}"' in m64
 # and Dolphin's start scripts, which rewrite EnableCheats, keep it on while the game has cheats on
 for script in ("start_dolphin_gc.sh", "start_dolphin_wii.sh"):
     text = open(os.path.join(HERE, "../../emulators/standalone/dolphin-sa/scripts", script)).read()

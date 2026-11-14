@@ -50,6 +50,12 @@ fi
 
 # Copy files to TMP
 cp ${M64PCONF} ${TMP}
+# Asgard: the game's cheats (asgard-cheats.py apply, just before): a one-game mupencheat.txt, all of it on
+CHEATS=""
+if [ -e /tmp/.asgard-cheats-on ] && [ -f /tmp/asgard-mupencheat.txt ]; then
+    cp /tmp/asgard-mupencheat.txt ${TMP}/mupencheat.txt
+    CHEATS="--cheats all"
+fi
 if [ "${CON}" = "custom" ]; then
     cp ${CUSTOMINP} ${TMP}/InputAutoCfg.ini
 elif [ "${CON}" = "standard" ]; then
@@ -193,4 +199,4 @@ SET_PARAMS+=" --audio mupen64plus-audio-sdl${SIMPLESUFFIX}.so"
 # Echo the command line options to the log for debugging
 echo ${SET_PARAMS}
 
-${EMUPERF} /usr/local/bin/mupen64plus${SIMPLESUFFIX} --configdir ${TMP} ${SET_PARAMS} "${TMP}/${ROM}"
+${EMUPERF} /usr/local/bin/mupen64plus${SIMPLESUFFIX} --configdir ${TMP} ${SET_PARAMS} ${CHEATS} "${TMP}/${ROM}"

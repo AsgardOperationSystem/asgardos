@@ -35,6 +35,9 @@ Cheats come from databases shipped in the image (offline):
              A section the user made in Mednafen for the game is left alone. gb gba nes snes_faust md sms gg pce.
   Flycast    libretro-database's Dreamcast .cht (already its format), written to a folder of ours that apply adds to
              emu.cfg's Dreamcast.CheatPath, as <rom file name>.cht with the chosen cheats enabled.
+  mupen64plus  its own mupencheat.txt section for the ROM (by the header's CRCs; a cheat with options is one entry
+             per option), else libretro-database's N64 .cht; written as a one-game mupencheat.txt (N64_OUT) with only
+             the chosen cheats, which start_mupen64plus.sh puts on mupen64plus's data path, passing --cheats all.
   AetherSX2  the same, written as its cheats/<ELF CRC>.pnach (it applies every line in it); a user's own is left alone.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
@@ -76,6 +79,8 @@ PS2_OUT = os.environ.get("ASGARD_CHEATS_PS2_OUT", "/storage/.config/ARMSX2/cheat
 MEDNAFEN_OUT = os.environ.get("ASGARD_CHEATS_MEDNAFEN_OUT", "/storage/.config/mednafen/cheats")    # <module>.cht
 FLYCAST_CFG = os.environ.get("ASGARD_CHEATS_FLYCAST_CFG", "/storage/.config/flycast/emu.cfg")
 FLYCAST_OUT = os.environ.get("ASGARD_CHEATS_FLYCAST_OUT", "/storage/.config/flycast/asgard-cheats")
+N64_DB = os.environ.get("ASGARD_CHEATS_N64_DB", "/usr/local/share/mupen64plus/mupencheat.txt")
+N64_OUT = os.environ.get("ASGARD_CHEATS_N64_OUT", "/tmp/asgard-mupencheat.txt")    # start_mupen64plus.sh copies it
 AETHER = os.environ.get("ASGARD_CHEATS_AETHER", "/storage/.config/aethersx2")          # cheats/, inis/PCSX2.ini
 ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
@@ -1067,12 +1072,101 @@ class Flycast(RetroArch):
         return True
 
 
+# --- mupen64plus (mupencheat.txt: "crc <CRC1>-<CRC2>-C:<country>", " cn <name>", "  <code>" lines; a "????" code
+# picks a value from its options) ----------------------------------------------------------------------------------
+def n64_section(rom):
+    """mupencheat.txt's key for a ROM, from its header in any byte order (.z64, .v64, .n64; or in a .zip)."""
+    try:
+        if rom.lower().endswith(".zip"):
+            with zipfile.ZipFile(rom) as z:
+                names = [n for n in z.namelist() if not n.endswith("/")]
+                head = z.open(names[0]).read(0x40) if names else b""
+        else:
+            with open(rom, "rb") as f:
+                head = f.read(0x40)
+    except (OSError, zipfile.BadZipFile, KeyError):
+        return None
+    if len(head) < 0x40:
+        return None
+    if head[:4] == bytes.fromhex("37804012"):
+        head = b"".join(head[i + 1:i + 2] + head[i:i + 1] for i in range(0, 0x40, 2))
+    elif head[:4] == bytes.fromhex("40123780"):
+        head = b"".join(head[i:i + 4][::-1] for i in range(0, 0x40, 4))
+    elif head[:4] != bytes.fromhex("80371240"):
+        return None
+    return "%08X-%08X-C:%X" % (int.from_bytes(head[0x10:0x14], "big"), int.from_bytes(head[0x14:0x18], "big"), head[0x3E])
+
+
+def mupen_cheats(path, section):
+    """[(name, [code lines])] of the ROM's section; a cheat with options is one entry per option ("name: option")."""
+    out, take, cur = [], False, None
+    with open(path, encoding="utf-8", errors="replace") as f:
+        for line in f:
+            line = line.strip()
+            if line.startswith("crc "):
+                take = line[4:].strip().upper() == section
+                cur = None
+            elif take and line.startswith("cn "):
+                cur = [line[3:].strip(), []]
+                out.append(cur)
+            elif take and cur and re.match(r"[0-9A-Fa-f]{8} ", line):
+                cur[1].append(line)
+    flat = []
+    for name, lines in out:
+        var = [l for l in lines if "????" in l]
+        if not var:
+            flat.append((name, lines))
+            continue
+        for value, label in re.findall(r'([0-9A-Fa-f]{2,4}):"([^"]*)"', var[0]):
+            fixed = [l.split("????")[0] + value if l is var[0] else l for l in lines]
+            flat.append((f"{name}: {label}", fixed))
+    return [(n, l) for n, l in flat if l]
+
+
+class Mupen64Plus:
+    """The ROM's cheats from mupen64plus's own database (by the header's CRCs), else libretro's N64 .cht (by name).
+    Written as a one-game mupencheat.txt holding only the chosen ones; the start script hands it to mupen64plus
+    with --cheats all."""
+    def source(self, system, rom):
+        section = n64_section(rom)
+        if section and os.path.exists(N64_DB) and mupen_cheats(N64_DB, section):
+            return f"{N64_DB}|{section}"
+        return best_file(os.path.join(RA_DB, "Nintendo - Nintendo 64"), rom)
+
+    def coded(self, src):
+        if "|" in src:
+            return mupen_cheats(*src.split("|"))
+        out = []
+        for c in cht_read(src):
+            lines = [l.strip() for l in c["values"].get(f"cheat{c['i']}_code", "").split(";")]
+            if lines and all(re.fullmatch(r"[0-9A-Fa-f]{8} [0-9A-Fa-f]{4}", l) for l in lines):
+                out.append((c["name"], lines))
+        return out
+
+    def cheats(self, src):
+        return [n for n, _ in self.coded(src)]
+
+    def apply(self, system, rom, core, src, on):
+        if os.path.exists(N64_OUT):
+            os.remove(N64_OUT)
+        section = n64_section(rom)
+        chosen = [(n, l) for n, l in self.coded(src) if n in on] if src and section else []
+        if not chosen:
+            return False
+        text = [f"crc {section}", "gn " + os.path.basename(rom)]
+        for name, lines in chosen:
+            text += [" cn " + name.replace("\\", "/")] + ["  " + l for l in lines]
+        write_file(N64_OUT, "\n".join(text) + "\n")
+        return True
+
+
 MEDNAFEN_MARK = "Asgard cheats: written at launch from the game's Cheats list"
 
 
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
             "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2(),
-            "mednafen": Mednafen(), "flycast": Flycast()}
+            "mednafen": Mednafen(), "flycast": Flycast(),
+            "mupen64plus": Mupen64Plus()}
 
 
 def backend(emulator):
