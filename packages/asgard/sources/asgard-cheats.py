@@ -41,6 +41,10 @@ Cheats come from databases shipped in the image (offline):
   mupen64plus  its own mupencheat.txt section for the ROM (by the header's CRCs; a cheat with options is one entry
              per option), else libretro-database's N64 .cht; written as a one-game mupencheat.txt (N64_OUT) with only
              the chosen cheats, which start_mupen64plus.sh puts on mupen64plus's data path, passing --cheats all.
+  DuckStation  libretro-database's PlayStation .cht (GameShark), as its cheats/<serial>.cht with only the chosen
+             cheats, and "Enable = <name>" in [Cheats] plus EnableCheats in [Console] of the game's gamesettings ini,
+             where only those lines change (the names Asgard switched on are on a comment line). The serial is in
+             the disc's SYSTEM.CNF (.bin/.cue, .iso, .m3u; not .chd or .pbp).
   AetherSX2  the same, written as its cheats/<ELF CRC>.pnach (it applies every line in it); a user's own is left alone.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
@@ -85,6 +89,7 @@ FLYCAST_OUT = os.environ.get("ASGARD_CHEATS_FLYCAST_OUT", "/storage/.config/flyc
 N64_DB = os.environ.get("ASGARD_CHEATS_N64_DB", "/usr/local/share/mupen64plus/mupencheat.txt")
 N64_OUT = os.environ.get("ASGARD_CHEATS_N64_OUT", "/tmp/asgard-mupencheat.txt")    # start_mupen64plus.sh copies it
 DRASTIC_OUT = os.environ.get("ASGARD_CHEATS_DRASTIC_OUT", "/storage/.config/drastic/cheats")   # <rom name>.cht
+DUCK = os.environ.get("ASGARD_CHEATS_DUCK", "/storage/.config/duckstation")     # cheats/, gamesettings/
 AETHER = os.environ.get("ASGARD_CHEATS_AETHER", "/storage/.config/aethersx2")          # cheats/, inis/PCSX2.ini
 ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
@@ -1219,6 +1224,119 @@ class Mupen64Plus:
         return True
 
 
+# --- DuckStation (cheats/<serial>.cht: "[name]", "Type = Gameshark", "Activation = EndFrame", code lines; the ones on
+# are "Enable = <name>" lines in [Cheats] of the game's gamesettings/<serial>.ini, with EnableCheats on) ------------
+def disc_track(rom):
+    """The data file of a .cue or .m3u (its first entry), else the file itself."""
+    for _ in range(3):
+        low = rom.lower()
+        if not low.endswith((".cue", ".m3u")):
+            return rom
+        try:
+            with open(rom, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError:
+            return rom
+        if low.endswith(".cue"):
+            m = re.search(r'FILE\s+"([^"]+)"', text) or re.search(r"FILE\s+(\S+)", text)
+        else:
+            m = re.search(r"^\s*([^#\s].*?)\s*$", text, re.M)
+        if not m:
+            return rom
+        rom = os.path.join(os.path.dirname(rom), m.group(1))
+    return rom
+
+
+def psx_serial(rom):
+    """SLUS-00508 from SYSTEM.CNF's BOOT line (.bin/.cue, .iso, .m3u; not .chd or .pbp)."""
+    try:
+        cnf = iso_file(Image(disc_track(rom)), "SYSTEM.CNF")
+    except (OSError, ValueError, zlib.error, IndexError):
+        return None
+    m = re.search(rb"BOOT\s*=\s*cdrom:\\?([A-Z]{4})_(\d{3})\.(\d{2})", cnf or b"")
+    return "%s-%s%s" % tuple(g.decode() for g in m.groups()) if m else None
+
+
+DUCK_MARK = "; Asgard cheats on: "      # in the game's settings ini: the names Asgard switched on
+
+
+class DuckStation:
+    """libretro-database's PlayStation .cht (GameShark codes), as DuckStation's cheats/<serial>.cht; the chosen ones
+    switched on in the game's settings ini, beside the user's own settings and cheats."""
+    def source(self, system, rom):
+        return best_file(os.path.join(RA_DB, "Sony - PlayStation"), rom) if psx_serial(rom) else None
+
+    def coded(self, src):
+        out = []
+        for c in cht_read(src):
+            words = [w.strip() for w in re.split(r"[+\s]+", c["values"].get(f"cheat{c['i']}_code", "")) if w.strip()]
+            if words and len(words) % 2 == 0 and all(re.fullmatch(r"[0-9A-Fa-f]{8}", words[i]) and
+                                                     re.fullmatch(r"[0-9A-Fa-f]{4}", words[i + 1])
+                                                     for i in range(0, len(words), 2)):
+                name = re.sub(r"[\[\]\r\n]", "", c["name"]).strip()
+                if name and not any(n == name for n, _ in out):
+                    out.append((name, [f"{words[i]} {words[i + 1]}" for i in range(0, len(words), 2)]))
+        return out
+
+    def cheats(self, src):
+        return [n for n, _ in self.coded(src)]
+
+    def apply(self, system, rom, core, src, on):
+        serial = psx_serial(rom)
+        if not serial:
+            return False
+        cht = os.path.join(DUCK, "cheats", serial + ".cht")
+        ini_path = os.path.join(DUCK, "gamesettings", serial + ".ini")
+        try:
+            with open(ini_path, encoding="utf-8", errors="replace") as f:
+                sections = ini_sections(f.read())
+        except OSError:
+            sections = [(None, [])]
+        before = []
+        for line in sections[0][1]:
+            if line.startswith(DUCK_MARK):
+                try:
+                    before = json.loads(line[len(DUCK_MARK):])
+                except ValueError:
+                    pass
+        exists, mine = ours(cht, MARK.replace("#", ";", 1))
+        chosen = [(n, l) for n, l in self.coded(src) if n in on] if src else []
+        if exists and not mine:
+            chosen = []                  # a cheat file the user made: theirs, and so are its switches
+        if not chosen and not before:
+            return False
+        if mine:
+            os.remove(cht)
+        if chosen:
+            text = [MARK.replace("#", ";", 1)]
+            for name, lines in chosen:
+                text += ["", f"[{name}]", "Type = Gameshark", "Activation = EndFrame"] + lines
+            write_file(cht, "\n".join(text) + "\n")
+        heads = [h for h, _ in sections]
+        names = [n for n, _ in chosen]
+        for head, keep in (("Cheats", names), ("Console", None)):
+            if head not in heads:
+                if not names:
+                    continue
+                sections.append((head, []))
+                heads.append(head)
+            body = sections[heads.index(head)][1]
+            if head == "Cheats":
+                body[:] = [l for l in body if not re.match(r"\s*Enable\s*=\s*(.*?)\s*$", l) or
+                           re.match(r"\s*Enable\s*=\s*(.*?)\s*$", l).group(1) not in set(before) | set(names)]
+                body[:] = [l for l in body if l.strip()] + [f"Enable = {n}" for n in names] + [""]
+            elif names:
+                body[:] = [l for l in body if not re.match(r"\s*EnableCheats\s*=", l) and l.strip()] + \
+                          ["EnableCheats = true", ""]
+        pre = [l for l in sections[0][1] if not l.startswith(DUCK_MARK)]
+        sections[0] = (None, ([DUCK_MARK + json.dumps(names)] if names else []) + pre)
+        out = []
+        for head, lines in sections:
+            out += ([f"[{head}]"] if head is not None else []) + lines
+        write_file(ini_path, "\n".join(out).strip("\n") + "\n")
+        return bool(names)
+
+
 MEDNAFEN_MARK = "Asgard cheats: written at launch from the game's Cheats list"
 
 
@@ -1226,7 +1344,7 @@ BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "m
             "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2(),
             "mednafen": Mednafen(), "flycast": Flycast(),
             "mupen64plus": Mupen64Plus(), "drastic": DraStic(),
-            "skyemu": SkyEmu()}
+            "skyemu": SkyEmu(), "duckstation": DuckStation()}
 
 
 def backend(emulator):

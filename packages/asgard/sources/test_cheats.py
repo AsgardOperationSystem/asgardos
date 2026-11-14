@@ -529,6 +529,34 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "apply", *mk64)
     assert not os.path.exists(f"{tmp}/n64.txt") and not os.path.exists(f"{tmp}/on")
 
+# ---- DuckStation: the serial from SYSTEM.CNF (through a .cue), libretro's PSX GameShark codes as cheats/<serial>.cht,
+# switched on by name in the game's settings ini
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env.update(ASGARD_CHEATS_DUCK=f"{tmp}/duck", ASGARD_CHEATS_ON_FLAG=f"{tmp}/on")
+    os.makedirs(f"{tmp}/db/Sony - PlayStation")
+    open(f"{tmp}/db/Sony - PlayStation/Crash Bandicoot (USA).cht", "w").write(
+        'cheats = 3\ncheat0_desc = "Lives"\ncheat0_code = "80061B3C 0063"\ncheat1_desc = "Masks [x]"\n'
+        'cheat1_code = "D0012345 0001+80061B40 0002"\ncheat2_desc = "Odd"\ncheat2_code = "ZZ"\n')
+    disc = raw_bin(iso_files([("SYSTEM.CNF", b"BOOT = cdrom:\\SCUS_949.00;1\r\nTCB = 4\r\n")]))
+    open(f"{tmp}/Crash Bandicoot (USA).bin", "wb").write(disc)
+    open(f"{tmp}/Crash Bandicoot (USA).cue", "w").write('FILE "Crash Bandicoot (USA).bin" BINARY\n  TRACK 01 MODE2/2352\n')
+    psx = ("psx", f"{tmp}/Crash Bandicoot (USA).cue", "duckstation", "duckstation-sa")
+    assert [c["name"] for c in run(env, "list", *psx)["cheats"]] == ["Lives", "Masks x"]
+    os.makedirs(f"{tmp}/duck/gamesettings")
+    open(f"{tmp}/duck/gamesettings/SCUS-94900.ini", "w").write("[Display]\nAspectRatio = 16:9\n\n[Cheats]\nEnable = Mine\n")
+    run(env, "set", *psx, "Masks x", "on")
+    run(env, "apply", *psx)
+    cht = open(f"{tmp}/duck/cheats/SCUS-94900.cht").read()
+    assert "[Masks x]\nType = Gameshark\nActivation = EndFrame\nD0012345 0001\n80061B40 0002\n" in cht and "Lives" not in cht
+    ini = open(f"{tmp}/duck/gamesettings/SCUS-94900.ini").read()
+    assert "AspectRatio = 16:9" in ini and "[Cheats]\nEnable = Mine\nEnable = Masks x\n" in ini and "[Console]\nEnableCheats = true" in ini, ini
+    assert os.path.exists(f"{tmp}/on")
+    run(env, "set", *psx, "Masks x", "off")
+    run(env, "apply", *psx)
+    ini = open(f"{tmp}/duck/gamesettings/SCUS-94900.ini").read()
+    assert "Enable = Mine" in ini and "Masks" not in ini and not os.path.exists(f"{tmp}/duck/cheats/SCUS-94900.cht"), ini
+
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402
 from home_harness import Root  # noqa: E402
