@@ -19,6 +19,8 @@ Cheats come from databases shipped in the image (offline):
   melonDS    libretro-database's Nintendo DS .cht (Action Replay); written as <rom>.mch beside the ROM (CheatFilePath
              is empty), with EnableCheats switched on in melonDS.toml.
   DraStic    the same codes as melonDS, written as DraStic's custom cheats/<rom name>.cht ("[name]+" is on).
+  SkyEmu     DS: the same codes as melonDS; GB/GBC: libretro's GameShark codes it runs (A000-DFFF writes); written as
+             <rom>.code beside the ROM. GBA: none (it takes encrypted Action Replay v3 only).
   Eden       switch-cheats-db's switch/<title ID>.json ({build ID: {"[name]": code}}); written as Eden's mod
              load/<title ID>/Asgard Cheats/cheats/<build ID>.txt for every build ID, with only the cheats that are on
              (Eden runs every cheat in a file it loads, and loads only the file for the running build). The title ID
@@ -507,6 +509,43 @@ class DraStic(MelonDS):
         chosen = [(n, l) for n, l in self.coded(src) if n in on] if src else []
         if chosen:
             write_file(dst, "".join([self.MARK + "\n\n"] + [f"[{n}]+\n" + "".join(x + "\n" for x in l) + "\n" for n, l in chosen]))
+        return bool(chosen)
+
+
+class SkyEmu(MelonDS):
+    """<rom>.code beside the ROM: one cheat a line, 'on "name" "hex words"', at most 32, names cut at 31 characters.
+    DS games: libretro's Action Replay codes, as melonDS. GB/GBC: GameShark codes that write A000-DFFF (SkyEmu runs
+    no others). GBA: SkyEmu takes encrypted Action Replay v3 only, which libretro's database doesn't hold."""
+    MARK = '0 "Asgard cheats" ""'       # a first entry with no code: ours. SkyEmu keeps it when it saves the file.
+    GB = {"gb", "gbc", "gbh", "gbch"}
+
+    def source(self, system, rom):
+        if system in self.GB:
+            return RetroArch().source(system, rom)
+        return super().source(system, rom) if system == "nds" else None
+
+    def coded(self, src):
+        if os.path.basename(os.path.dirname(src)) == self.FOLDER:
+            return [(n, [w for l in lines for w in l.split()]) for n, lines in super().coded(src)]
+        out = []
+        for c in cht_read(src):
+            words = [w.strip().upper() for w in c["values"].get(f"cheat{c['i']}_code", "").split("+")]
+            if words[0] and all(re.fullmatch(r"[0-9A-F]{8}", w) and 0xA000 <= int(w[6:8] + w[4:6], 16) <= 0xDFFF
+                                for w in words):
+                out.append((c["name"], words))
+        return out
+
+    def apply(self, system, rom, core, src, on):
+        dst = os.path.splitext(rom)[0] + ".code"
+        exists, mine = ours(dst, self.MARK)
+        if exists and not mine:
+            return False
+        if mine:
+            os.remove(dst)
+        chosen = [(n, w) for n, w in self.coded(src) if n in on][:31] if src else []
+        if chosen:
+            lines = [self.MARK] + ['1 "%s" "%s"' % (n.replace('"', "'")[:31], " ".join(w)) for n, w in chosen]
+            write_file(dst, "\n".join(lines) + "\n")
         return bool(chosen)
 
 
@@ -1186,7 +1225,8 @@ MEDNAFEN_MARK = "Asgard cheats: written at launch from the game's Cheats list"
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
             "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2(),
             "mednafen": Mednafen(), "flycast": Flycast(),
-            "mupen64plus": Mupen64Plus(), "drastic": DraStic()}
+            "mupen64plus": Mupen64Plus(), "drastic": DraStic(),
+            "skyemu": SkyEmu()}
 
 
 def backend(emulator):

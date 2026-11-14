@@ -243,6 +243,20 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "set", *dr, "Debug Menu", "on")
     run(env, "apply", *dr)
     assert open(f"{tmp}/drastic/World Ends with You, The (USA).cht").read().startswith("[Mine]")
+    # SkyEmu: DS codes as <rom>.code beside the ROM; GB GameShark codes it can run; GBA none
+    sky = ("nds", f"{tmp}/roms/World Ends with You, The (USA).nds", "skyemu", "skyemu-sa")
+    run(env, "apply", *sky)
+    assert open(f"{tmp}/roms/World Ends with You, The (USA).code").read() == \
+        '0 "Asgard cheats" ""\n1 "Debug Menu" "920AE5F0 00000AB1 D2000000 00000000"\n'
+    run(env, "set", *sky, "Debug Menu", "off")
+    run(env, "apply", *sky)
+    assert not os.path.exists(f"{tmp}/roms/World Ends with You, The (USA).code")
+    os.makedirs(f"{tmp}/db/Nintendo - Game Boy")
+    open(f"{tmp}/db/Nintendo - Game Boy/Zelda (USA).cht", "w").write(
+        'cheats = 3\ncheat0_desc = "Rupees"\ncheat0_code = "01FF5BDB"\ncheat1_desc = "ROM"\ncheat1_code = "00A-17B-C49"\n'
+        'cheat2_desc = "Low"\ncheat2_code = "01FF0080"\n')
+    assert [c["name"] for c in run(env, "list", "gb", "/r/Zelda (USA).gb", "skyemu", "skyemu-sa")["cheats"]] == ["Rupees"]
+    assert run(env, "list", "gba", "/r/Metroid Fusion (USA).gba", "skyemu", "skyemu-sa")["error"]
 
 # ---- Eden: the title ID from the name or an NSP's ticket, a mod folder with only the chosen cheats for every build
 with tempfile.TemporaryDirectory() as tmp:
