@@ -18,6 +18,7 @@ Cheats come from databases shipped in the image (offline):
              UMD_DATA.BIN (a .cso's blocks are inflated as needed) or a PBP's PARAM.SFO; a .chd isn't read yet.
   melonDS    libretro-database's Nintendo DS .cht (Action Replay); written as <rom>.mch beside the ROM (CheatFilePath
              is empty), with EnableCheats switched on in melonDS.toml.
+  DraStic    the same codes as melonDS, written as DraStic's custom cheats/<rom name>.cht ("[name]+" is on).
   Eden       switch-cheats-db's switch/<title ID>.json ({build ID: {"[name]": code}}); written as Eden's mod
              load/<title ID>/Asgard Cheats/cheats/<build ID>.txt for every build ID, with only the cheats that are on
              (Eden runs every cheat in a file it loads, and loads only the file for the running build). The title ID
@@ -81,6 +82,7 @@ FLYCAST_CFG = os.environ.get("ASGARD_CHEATS_FLYCAST_CFG", "/storage/.config/flyc
 FLYCAST_OUT = os.environ.get("ASGARD_CHEATS_FLYCAST_OUT", "/storage/.config/flycast/asgard-cheats")
 N64_DB = os.environ.get("ASGARD_CHEATS_N64_DB", "/usr/local/share/mupen64plus/mupencheat.txt")
 N64_OUT = os.environ.get("ASGARD_CHEATS_N64_OUT", "/tmp/asgard-mupencheat.txt")    # start_mupen64plus.sh copies it
+DRASTIC_OUT = os.environ.get("ASGARD_CHEATS_DRASTIC_OUT", "/storage/.config/drastic/cheats")   # <rom name>.cht
 AETHER = os.environ.get("ASGARD_CHEATS_AETHER", "/storage/.config/aethersx2")          # cheats/, inis/PCSX2.ini
 ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
@@ -488,6 +490,24 @@ class MelonDS:
                 write_file(MELONDS_TOML, new)
         except OSError:
             pass
+
+
+class DraStic(MelonDS):
+    """The same Action Replay codes, as DraStic's custom cheat file cheats/<rom name>.cht: "[name]+" (on), code lines.
+    Our file starts with a "[...]" entry without "+" or codes, which DraStic ignores: the mark."""
+    MARK = "[" + MARK.lstrip("# ") + "]"
+
+    def apply(self, system, rom, core, src, on):
+        dst = os.path.join(DRASTIC_OUT, os.path.splitext(os.path.basename(rom))[0] + ".cht")
+        exists, mine = ours(dst, self.MARK)
+        if exists and not mine:
+            return False
+        if mine:
+            os.remove(dst)
+        chosen = [(n, l) for n, l in self.coded(src) if n in on] if src else []
+        if chosen:
+            write_file(dst, "".join([self.MARK + "\n\n"] + [f"[{n}]+\n" + "".join(x + "\n" for x in l) + "\n" for n, l in chosen]))
+        return bool(chosen)
 
 
 # --- Eden (Atmosphère's cheat text: "[name]" or "{master}", then 8-hex-digit words) ---------------------------------
@@ -1166,7 +1186,7 @@ MEDNAFEN_MARK = "Asgard cheats: written at launch from the game's Cheats list"
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
             "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin(), "armsx2": ARMSX2(), "aethersx2": AetherSX2(),
             "mednafen": Mednafen(), "flycast": Flycast(),
-            "mupen64plus": Mupen64Plus()}
+            "mupen64plus": Mupen64Plus(), "drastic": DraStic()}
 
 
 def backend(emulator):

@@ -228,6 +228,21 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "apply", *ds)
     assert not os.path.exists(f"{tmp}/roms/World Ends with You, The (USA).mch")
     assert "RetroArch (mGBA)" in run(env, "list", "gba", "/r/x.gba", "nanoboyadvance", "nanoboyadvance-sa")["error"]
+    # DraStic: the same codes as its custom cheats/<rom name>.cht, "+" on the chosen ones; the user's file is theirs
+    env["ASGARD_CHEATS_DRASTIC_OUT"] = f"{tmp}/drastic"
+    dr = ("nds", f"{tmp}/roms/World Ends with You, The (USA).nds", "drastic", "drastic-sa")
+    assert [c["name"] for c in run(env, "list", *dr)["cheats"]] == ["Debug Menu"]
+    run(env, "set", *dr, "Debug Menu", "on")
+    run(env, "apply", *dr)
+    cht = open(f"{tmp}/drastic/World Ends with You, The (USA).cht").read()
+    assert cht.startswith("[Asgard") and "\n[Debug Menu]+\n920AE5F0 00000AB1\nD2000000 00000000\n" in cht
+    run(env, "set", *dr, "Debug Menu", "off")
+    run(env, "apply", *dr)
+    assert not os.path.exists(f"{tmp}/drastic/World Ends with You, The (USA).cht")
+    open(f"{tmp}/drastic/World Ends with You, The (USA).cht", "w").write("[Mine]+\n12345678 00000000\n")
+    run(env, "set", *dr, "Debug Menu", "on")
+    run(env, "apply", *dr)
+    assert open(f"{tmp}/drastic/World Ends with You, The (USA).cht").read().startswith("[Mine]")
 
 # ---- Eden: the title ID from the name or an NSP's ticket, a mod folder with only the chosen cheats for every build
 with tempfile.TemporaryDirectory() as tmp:
