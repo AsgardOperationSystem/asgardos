@@ -228,6 +228,7 @@ with tempfile.TemporaryDirectory() as tmp:
     run(env, "apply", *ds)
     assert not os.path.exists(f"{tmp}/roms/World Ends with You, The (USA).mch")
     assert "RetroArch (mGBA)" in run(env, "list", "gba", "/r/x.gba", "nanoboyadvance", "nanoboyadvance-sa")["error"]
+    assert "pause menu" in run(env, "list", "nds", "/r/x.nds", "dsperate", "dsperate-sa")["error"]
     # DraStic: the same codes as its custom cheats/<rom name>.cht, "+" on the chosen ones; the user's file is theirs
     env["ASGARD_CHEATS_DRASTIC_OUT"] = f"{tmp}/drastic"
     dr = ("nds", f"{tmp}/roms/World Ends with You, The (USA).nds", "drastic", "drastic-sa")

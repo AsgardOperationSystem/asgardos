@@ -74,6 +74,19 @@ MELONDS_TOML = os.environ.get("ASGARD_CHEATS_MELONDS_TOML", "/storage/.config/me
 # Emulators with no cheat engine, or none Asgard writes yet: what the list says instead
 NO_CHEATS = {
     "nanoboyadvance": "NanoBoyAdvance has no cheats: set this game's emulator to RetroArch (mGBA) for them",
+    "yabasanshiro": "Yaba Sanshiro is built here without its cheat loader: set this game's emulator to RetroArch for them",
+    "bigpemu": "BigPEmu has no cheat codes (only script mods): set this game's emulator to RetroArch for them",
+    "daedalusx64": "DaedalusX64 can't load its cheat file as built: set this game's emulator to mupen64plus or RetroArch",
+    "gopher64": "gopher64 keeps its own cheat list, in its menu: set this game's emulator to mupen64plus for these",
+    "ares": "ares only takes raw address:value cheats, in its own menu: set this game's emulator to RetroArch for these",
+    "dsperate": "DSperate has its own cheats (usrcheat.dat), switched on in its pause menu",
+    "rpcs3": "RPCS3 has no cheat codes: its game patches are in its own Patch Manager",
+    "cemu": "Cemu has no cheat codes: its graphic packs, in its own menu, hold some game mods",
+    "gzdoom": "GZDoom's cheats are typed in its console (iddqd, idkfa...)",
+    "vita3k": "Vita3K has no cheat engine", "xemu": "xemu has no cheat engine", "amiberry": "Amiberry has no cheat engine",
+    "vicesa": "VICE has no cheat engine", "hatarisa": "Hatari has no cheat engine", "scummvm-sa": "ScummVM has no cheats",
+    "supermodel": "Supermodel has no cheat engine", "OpenBOR": "OpenBOR has no cheat engine",
+    "hypseus-singe": "Hypseus Singe has no cheat engine", "touchhle": "touchHLE has no cheat engine",
 }
 EDEN_LOAD = os.environ.get("ASGARD_CHEATS_EDEN_LOAD", "/storage/.local/share/eden/load")   # Eden and Eden Duo
 EDEN_MOD = "Asgard Cheats"    # our mod folder: everything in it is ours
