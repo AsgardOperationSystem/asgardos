@@ -22,6 +22,10 @@ Cheats come from databases shipped in the image (offline):
              load/<title ID>/Asgard Cheats/cheats/<build ID>.txt for every build ID, with only the cheats that are on
              (Eden runs every cheat in a file it loads, and loads only the file for the running build). The title ID
              is in the file name ([0100...]) or an NSP's ticket name; an XCI without it in the name isn't read.
+  Dolphin    the codes in the image's GameSettings/<game ID>.ini ([ActionReplay], [Gecko]; not the ones it enables by
+             default); written as "$name" lines in [*_Enabled] of the user's GameSettings/<game ID>.ini, which also holds
+             the game's other settings, so only those lines change. The game ID is the disc's first 6 bytes (.iso, .rvz,
+             .wbfs, .ciso, .gcz). The start script switches Dolphin's EnableCheats on while ON_FLAG exists.
 A cheat file the user made in the emulator itself (no MARK line at the top) is never replaced or removed.
 """
 import difflib
@@ -49,6 +53,10 @@ NO_CHEATS = {
 }
 EDEN_LOAD = os.environ.get("ASGARD_CHEATS_EDEN_LOAD", "/storage/.local/share/eden/load")   # Eden and Eden Duo
 EDEN_MOD = "Asgard Cheats"    # our mod folder: everything in it is ours
+DOLPHIN_DB = os.environ.get("ASGARD_CHEATS_DOLPHIN_DB", "/usr/config/dolphin-emu/GameSettings")    # the image's copy
+DOLPHIN_OUT = os.environ.get("ASGARD_CHEATS_DOLPHIN_OUT", "/storage/.config/dolphin-emu/GameSettings")
+# Set while the game starting has cheats on: for start scripts that rewrite their emulator's master switch (Dolphin)
+ON_FLAG = os.environ.get("ASGARD_CHEATS_ON_FLAG", "/tmp/.asgard-cheats-on")
 MARK = "# Asgard cheats: written at launch from the game's Cheats list; edits here are replaced"
 
 # ES system -> libretro-database cht folder
@@ -513,8 +521,155 @@ class Eden:
                 write_file(os.path.join(mod, "cheats", bid.upper() + ".txt"), "\n".join(lines) + "\n")
 
 
+# --- Dolphin (its per-game ini: "$name" + code lines in [ActionReplay] and [Gecko], "$name" in [<section>_Enabled]) -
+def game_id_dolphin(rom):
+    """The 6-character game ID (GALE01) from a GameCube/Wii disc: plain .iso/.gcm, .rvz/.wia, .wbfs, .ciso, .gcz."""
+    try:
+        with open(rom, "rb") as f:
+            head = f.read(0x60)
+            if head[:4] in (b"RVZ\x01", b"WIA\x01"):
+                gid = head[0x58:0x5E]                     # the disc header's copy after the file and disc structs
+            elif head[:4] == b"WBFS":
+                f.seek(1 << head[8])                      # the first disc's header copy, one HD sector in
+                gid = f.read(6)
+            elif head[:4] == b"CISO":
+                f.seek(0x8000)                            # block 0 follows the 32 KiB block map
+                gid = f.read(6)
+            elif head[:4] == bytes.fromhex("01C00BB1"):   # GCZ: block 0, zlib unless its pointer's top bit is set
+                count = int.from_bytes(head[0x1C:0x20], "little")
+                f.seek(0x20)
+                ptrs = f.read(16)
+                p0, p1 = int.from_bytes(ptrs[:8], "little"), int.from_bytes(ptrs[8:16], "little") & ~(1 << 63)
+                f.seek(0x20 + 12 * count + (p0 & ~(1 << 63)))
+                block = f.read(p1 - (p0 & ~(1 << 63)) if count > 1 else 0x8000)
+                gid = block[:6] if p0 >> 63 else zlib.decompressobj().decompress(block)[:6]
+            else:
+                gid = head[:6]
+    except (OSError, zlib.error):
+        return None
+    gid = gid.decode("ascii", "replace")
+    return gid if re.fullmatch(r"[A-Z0-9]{6}", gid) else None
+
+
+def ini_sections(text):
+    """[(header or None for the lines before the first section, [lines])] in file order."""
+    out = [(None, [])]
+    for line in text.splitlines():
+        m = re.match(r"^\[([^\]]*)\]", line)
+        if m:
+            out.append((m.group(1), []))
+        else:
+            out[-1][1].append(line)
+    return out
+
+
+def dolphin_name(section, line):
+    """A code's name as Dolphin matches it in _Enabled: a Gecko name stops at its "[author]"."""
+    name = line[1:]
+    return name.split("[")[0].strip() if section == "Gecko" else name
+
+
+def dolphin_codes(text):
+    """{section: [(name, lines)]} for ActionReplay and Gecko, and the names enabled in each by default."""
+    codes, enabled = {"ActionReplay": [], "Gecko": []}, set()
+    for head, lines in ini_sections(text):
+        if head in codes:
+            for line in lines:
+                if line.startswith("$"):
+                    codes[head].append((dolphin_name(head, line), [line]))
+                elif codes[head] and line.strip() and not line.startswith("#"):
+                    codes[head][-1][1].append(line)
+        elif head in ("ActionReplay_Enabled", "Gecko_Enabled"):
+            enabled |= {(head[:-8], l[1:]) for l in lines if l.startswith("$")}
+    return {s: [c for c in v if len(c[1]) > 1 and (s, c[0]) not in enabled] for s, v in codes.items()}
+
+
+DOLPHIN_MARK = "# Asgard cheats on: "    # before the first section, which Dolphin ignores; the names we switched on
+
+
+class Dolphin:
+    def source(self, system, rom):
+        gid = game_id_dolphin(rom)
+        path = os.path.join(DOLPHIN_DB, gid + ".ini") if gid else None
+        if not path or not os.path.exists(path):
+            return None
+        with open(path, encoding="utf-8", errors="replace") as f:
+            return path if any(dolphin_codes(f.read()).values()) else None
+
+    def cheats(self, src):
+        with open(src, encoding="utf-8", errors="replace") as f:
+            codes = dolphin_codes(f.read())
+        seen = []
+        for name, _ in codes["ActionReplay"] + codes["Gecko"]:
+            if name not in seen:
+                seen.append(name)
+        return seen
+
+    def apply(self, system, rom, core, src, on):
+        """Only the enable lines of the database's cheats change, in the game's ini, which holds the user's other
+        settings too. A cheat the user switched on in Dolphin itself stays on: only ours (the mark) are switched off."""
+        gid = game_id_dolphin(rom)
+        if not gid:
+            return False
+        dst = os.path.join(DOLPHIN_OUT, gid + ".ini")
+        try:
+            with open(dst, encoding="utf-8", errors="replace") as f:
+                text = f.read()
+        except OSError:
+            text = None
+        sections = ini_sections(text) if text is not None else None
+        before = []
+        if sections:
+            for line in sections[0][1]:
+                if line.startswith(DOLPHIN_MARK):
+                    try:
+                        before = json.loads(line[len(DOLPHIN_MARK):])
+                    except ValueError:
+                        pass
+        db = {"ActionReplay": [], "Gecko": []}
+        if src:
+            with open(src, encoding="utf-8", errors="replace") as f:
+                shipped = f.read()
+            db = dolphin_codes(shipped)
+            if sections is None:
+                sections = ini_sections(shipped)          # what Dolphin's first start would have copied
+        if sections is None or (not before and not on):
+            return False
+        now = [n for s in db.values() for n, _ in s if n in on]
+        heads = [h for h, _ in sections]
+        for sec in ("ActionReplay", "Gecko"):
+            want = [n for n, _ in db[sec] if n in on]
+            for name, lines in db[sec]:
+                if name in want:
+                    if sec not in heads:
+                        sections.append((sec, []))
+                        heads.append(sec)
+                    body = sections[heads.index(sec)][1]
+                    if not any(l.startswith("$") and dolphin_name(sec, l) == name for l in body):
+                        body += lines
+            for suffix, keep in (("_Enabled", False), ("_Disabled", True)):
+                head = sec + suffix
+                if head not in heads:
+                    if suffix == "_Disabled" or not want:
+                        continue
+                    sections.append((head, []))
+                    heads.append(head)
+                body = sections[heads.index(head)][1]
+                drop = set(before) | set(want)    # ours, re-added below; and none of ours stays in _Disabled
+                body[:] = [l for l in body if not (l.startswith("$") and l[1:] in drop)]
+                if not keep:
+                    body[:] = [l for l in body if l.strip()] + ["$" + n for n in want] + [""]
+        pre = [l for l in sections[0][1] if not l.startswith(DOLPHIN_MARK)]
+        sections[0] = (None, ([DOLPHIN_MARK + json.dumps(now)] if now else []) + pre)
+        out = []
+        for head, lines in sections:
+            out += ([f"[{head}]"] if head is not None else []) + lines
+        write_file(dst, "\n".join(out).rstrip("\n") + "\n")
+        return bool(now)
+
+
 BACKENDS = {"retroarch": RetroArch(), "azahar": Azahar(), "ppsspp": PPSSPP(), "melonds": MelonDS(),
-            "eden": Eden(), "eden-duo": Eden()}
+            "eden": Eden(), "eden-duo": Eden(), "dolphin": Dolphin()}
 
 
 def backend(emulator):
@@ -571,9 +726,12 @@ def main(argv):
         print(json.dumps(listing(system, rom, emulator, core)))
     else:
         b = backend(emulator)
+        if os.path.exists(ON_FLAG):
+            os.remove(ON_FLAG)
         if b:
             on = load_on(system, rom)
-            b.apply(system, rom, core, b.source(system, rom) if on else None, on)
+            if b.apply(system, rom, core, b.source(system, rom) if on else None, on):
+                open(ON_FLAG, "w").close()
 
 
 if __name__ == "__main__":

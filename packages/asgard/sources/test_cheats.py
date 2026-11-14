@@ -4,7 +4,8 @@
 """Run: python -I test_cheats.py  (no Thor): a game's cheats. asgard-cheats.py against a fake database and state: which
 database file a ROM gets, a cheat switched on and off by name, and what runemu.sh's apply writes for RetroArch (its
 game-specific .cht with the chosen cheats enabled, apply_cheats_after_load for the launch, a user's own file left alone,
-ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled) PPSSPP (the disc ID from an ISO, CSO or PBP; _C1) melonDS (<rom>.mch) and Eden (a mod folder per build).
+ours removed when nothing is on), and for Azahar (the title ID from the ROM's header, Citra's *citra_enabled) PPSSPP (the disc ID from an ISO, CSO or PBP; _C1) melonDS (<rom>.mch), Eden (a mod folder per build) and
+Dolphin (the [*_Enabled] lines of its game ini).
 Then Home, offscreen: Select > Cheats lists them and A switches one through the
 script. That a cheat works in a game is a human check."""
 import json
@@ -124,6 +125,7 @@ with tempfile.TemporaryDirectory() as tmp:
     assert run(env, "list", "3ds", f"{tmp}/plain.3ds", "azahar", "azahar-sa")["error"]
 
 # ---- PPSSPP: the disc ID from an ISO, a CSO or a PBP; cheat.db's block, or the game's shipped ini; _C1 on the ones on
+import re  # noqa: E402
 import zlib  # noqa: E402
 
 
@@ -259,6 +261,69 @@ with tempfile.TemporaryDirectory() as tmp:
     assert run(env, "list", "switch", f"{tmp}/Echoes.nsp", "eden-duo", "eden-duo-sa")["source"] == "01008CF01BAAC000.json"
     assert run(env, "list", "switch", "/r/Echoes [01008CF01BAAC800].nsp", "eden", "eden-sa")["source"] == "01008CF01BAAC000.json"
 
+# ---- Dolphin: the game ID from the disc, the image's GameSettings codes, only [*_Enabled] lines changed in the user's ini
+GM4 = """# GM4E01 - Mario Kart: Double Dash!!
+
+[OnFrame]
+[ActionReplay]
+# Add action replay cheats here.
+$Everything Unlocked
+023BC1C0 0003FFFF
+$Tiny Karts
+043D45A4 3F000000
+[Gecko]
+$Fix Something [Dolphin]
+04000000 00000000
+$Moon Jump [kiwi]
+*Hold B
+C2000000 00000001
+60000000 00000000
+[Gecko_Enabled]
+$Fix Something
+"""
+with tempfile.TemporaryDirectory() as tmp:
+    env = setup(tmp)
+    env.update(ASGARD_CHEATS_DOLPHIN_DB=f"{tmp}/sys", ASGARD_CHEATS_DOLPHIN_OUT=f"{tmp}/user",
+               ASGARD_CHEATS_ON_FLAG=f"{tmp}/on")
+    os.makedirs(f"{tmp}/sys")
+    open(f"{tmp}/sys/GM4E01.ini", "w").write(GM4)
+    disc = b"GM4E01" + bytes(0x16) + bytes.fromhex("C2339F3D")
+    rvz = b"RVZ\x01".ljust(0x58, b"\0") + b"GM4E01"
+    wbfs = b"WBFS" + bytes(4) + bytes([9]) + bytes(0x200 - 9) + b"GM4E01"
+    ciso = b"CISO".ljust(0x8000, b"\0") + b"GM4E01"
+    block = zlib.compress(disc.ljust(0x8000, b"\0"))
+    gcz = (bytes.fromhex("01C00BB1") + bytes(0x18) + (2).to_bytes(4, "little") + (0).to_bytes(8, "little")
+           + len(block).to_bytes(8, "little") + bytes(8) + block + b"x")
+    for name, data in (("MKDD.iso", disc), ("MKDD.rvz", rvz), ("MKDD.wbfs", wbfs), ("MKDD.ciso", ciso), ("MKDD.gcz", gcz)):
+        open(f"{tmp}/{name}", "wb").write(data)
+        listed = run(env, "list", "gamecube", f"{tmp}/{name}", "dolphin", "dolphin-sa-gc")
+        assert [c["name"] for c in listed["cheats"]] == ["Everything Unlocked", "Tiny Karts", "Moon Jump"], (name, listed)
+    gc = ("gamecube", f"{tmp}/MKDD.rvz", "dolphin", "dolphin-sa-gc")
+    # No user ini yet: Dolphin's first-start copy of the image's, with ours enabled; the start script's flag set
+    run(env, "set", *gc, "Moon Jump", "on")
+    run(env, "apply", *gc)
+    ini = open(f"{tmp}/user/GM4E01.ini").read()
+    assert "[Gecko_Enabled]\n$Fix Something\n$Moon Jump\n" in ini and "$Tiny Karts\n043D45A4" in ini, ini
+    assert "[ActionReplay_Enabled]" not in ini and os.path.exists(f"{tmp}/on")
+    # The user's ini, with their own settings and a cheat they switched on in Dolphin: both stay
+    open(f"{tmp}/user/GM4E01.ini", "w").write("[Video_Settings]\nSafeTextureCacheSize = 0\n"
+                                              "[ActionReplay_Enabled]\n$Everything Unlocked\n[ActionReplay_Disabled]\n$Tiny Karts\n")
+    run(env, "set", *gc, "Tiny Karts", "on")
+    run(env, "apply", *gc)
+    ini = open(f"{tmp}/user/GM4E01.ini").read()
+    assert "SafeTextureCacheSize = 0" in ini and "[ActionReplay_Enabled]\n$Everything Unlocked\n$Tiny Karts\n" in ini, ini
+    assert "[ActionReplay_Disabled]\n$Tiny" not in ini and "$Tiny Karts\n043D45A4 3F000000" in ini         # code added
+    assert "$Moon Jump [kiwi]\n*Hold B\nC2000000" in ini and "[Gecko_Enabled]\n$Moon Jump" in ini
+    # Off: ours go, theirs stay, and no flag
+    for name in ("Tiny Karts", "Moon Jump"):
+        run(env, "set", *gc, name, "off")
+    run(env, "apply", *gc)
+    ini = open(f"{tmp}/user/GM4E01.ini").read()
+    enabled = re.findall(r"\[(\w+_Enabled)\]\n((?:\$.*\n)*)", ini)
+    assert enabled == [("ActionReplay_Enabled", "$Everything Unlocked\n"), ("Gecko_Enabled", "")] and "Asgard" not in ini, ini
+    assert not os.path.exists(f"{tmp}/on")
+    assert run(env, "list", "gamecube", f"{tmp}/sys/GM4E01.ini", "dolphin", "dolphin-sa-gc")["error"]   # not a disc
+
 # ---- Home: Select > Cheats, and A on a cheat runs the script's set
 import home_harness as hh  # noqa: E402
 from home_harness import Root  # noqa: E402
@@ -296,4 +361,8 @@ with Root() as r:
 # runemu.sh applies them before every launch
 runemu = open(os.path.join(HERE, "../../asgardos/sources/scripts/runemu.sh")).read()
 assert 'asgard-cheats.py apply "${PLATFORM}" "${ROMNAME}" "${EMULATOR}" "${CORE}"' in runemu
+# and Dolphin's start scripts, which rewrite EnableCheats, keep it on while the game has cheats on
+for script in ("start_dolphin_gc.sh", "start_dolphin_wii.sh"):
+    text = open(os.path.join(HERE, "../../emulators/standalone/dolphin-sa/scripts", script)).read()
+    assert '[ "$ENBCHEATS" = "1" ] || [ -e /tmp/.asgard-cheats-on ]; then' in text, script
 print("OK")

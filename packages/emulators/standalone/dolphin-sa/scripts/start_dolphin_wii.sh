@@ -221,7 +221,8 @@ fi
   fi
 
   # Enable Cheats
-  if [ "$ENBCHEATS" = "1" ]; then
+  # or Asgard has cheats on for this game (asgard-cheats.py apply, just before)
+  if [ "$ENBCHEATS" = "1" ] || [ -e /tmp/.asgard-cheats-on ]; then
     sed -i '/EnableCheats/c\EnableCheats = True' ${CONF_DIR}/${DOLPHIN_INI}
   else
     sed -i '/EnableCheats/c\EnableCheats = False' ${CONF_DIR}/${DOLPHIN_INI}
