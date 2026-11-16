@@ -55,7 +55,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | Per-game settings | ✅ | Emulator, core, the same options, CPU/fan profile and gyro, per game. |
 | GPU driver | ✅ | Turnip version selector. The image's Mesa 26.2.6 carries two upstream Turnip fixes from Mesa main: a GPU-hang register value for the A740 and flushes lost across split render passes 🧪. |
 | Calibration | ✅ | Touch and sticks. |
-| Stick calibration with InputPlumber stopped | 🧪 | GPcal crashed at start since InputPlumber hides and grabs the raw pad; it now runs with InputPlumber stopped, restarted when it ends (CAL-4). Checked on a Thor that GPcal starts that way; a full calibrate-and-save not yet. |
+| Stick calibration tool | 🧪 | Asgard's own stick and trigger calibration in the Settings style replaces GPcal: the pad drives it, Home exits from any screen (CAL-4). Host-tested; not checked on a Thor yet. |
 | Stick calibration from `asgard.yml` | 🧪 | `asgard.stick_calibration` puts a unit's stick calibration on a fresh install from the first boot; one made on the device wins (CAL-3). Host-tested; not checked on a Thor yet. |
 | `asgard.yml` | ✅ | Personal config outside the image (see below). Applied on a real boot 2026-10-28. |
 | **Thor Panel and overlays** | | |

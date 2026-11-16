@@ -228,7 +228,7 @@ Touch and sticks vary between units, so a user can correct their own on the devi
 - **CAL-1** Touch is calibrated per panel with 5 targets and then a test screen: A keeps it, Y redoes it, B puts the old one back. The pad drives every step, so a bad calibration can't lock out touch. It's kept in `asgard.touch.<screen>`, re-applied at boot, and can be reset.
 - **CAL-2** Stick calibration applies before InputPlumber starts, so the pad never drops after boot. Only the rsinput parameter lines of GPcal's file are run.
 - **CAL-3** `asgard.yml`'s `asgard.stick_calibration` (rsinput parameter: whole number) carries a unit's stick calibration onto a fresh install. It's written as the saved calibration and applied with CAL-2, so it's in place on the first boot. A calibration made on the device wins and is never overwritten by the yml. Its keys aren't `system.cfg` keys.
-- **CAL-4** Stick calibration (GPcal) runs with InputPlumber stopped, because InputPlumber hides and grabs the raw pad that GPcal reads. InputPlumber is restarted however GPcal ends.
+- **CAL-4** Stick and trigger calibration is Asgard's own tool, in the Settings menus' style. The pad drives every screen, B steps back, and Home leaves from any screen and puts back the calibration that was in place. Each control is measured, applied live and tested before it's kept; Save writes it as the saved calibration (CAL-2). It runs with InputPlumber stopped, because InputPlumber hides and grabs the raw pad it reads, and InputPlumber is restarted however it ends.
 
 ### Other input
 

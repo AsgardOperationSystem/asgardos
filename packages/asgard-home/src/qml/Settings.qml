@@ -346,8 +346,8 @@ Item {
                  action("refresh", "Reset touch calibration", "Both screens back to the default",
                         () => confirm("Reset touch calibration", "Both touch screens go back to the default.", "Reset",
                                       () => backend.shell("python3 /usr/share/asgard/thor_touchcal.py reset")))],
-                [action("gamepad", "Sticks", "Center, range and deadzone (GPcal; exit with its Quit button)",
-                        () => { close(); backend.runTool("/usr/share/asgard/thor-gpcal.sh") })]]
+                [action("gamepad", "Sticks and triggers", "Center, range and deadzone; Home exits",
+                        () => { close(); backend.runTool("/usr/share/asgard/thor-stickcal.sh") })]]
     }
     function debugPage() {
         return [[toggle("moon", "Sleep audit", "One line per sleep in /storage/sleep-audit.csv: drain and what slept",

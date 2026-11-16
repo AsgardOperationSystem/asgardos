@@ -150,6 +150,9 @@ class UI:
         # grab_pad: take the pad for ourselves (EVIOCGRAB) so the frontend and the running game don't also act on
         # the presses meant for this window; we then read it from evdev, as SDL no longer sees it. Released on exit.
         self.pad_fd = open_pad_grabbed() if grab_pad else None
+        # A caller that reads another pad (thor_stickcal.py: rsinput's raw pad) sets pad_fd and these: its button codes,
+        # d-pad buttons (BTN_DPAD_*), on_abs(code, value) for its axes, and on_home() for its Home button.
+        self.ev_btn, self.ev_dpad, self.on_abs, self.on_home = EV_BTN, {}, None, None
         self.bg = None
         if bg_png and os.path.exists(bg_png):
             surf = img.IMG_Load(bg_png.encode())
@@ -227,13 +230,14 @@ class UI:
 
     def help_bar(self, hints):
         s, gh = self.s, int(30 * self.s)
-        items = [(g, t) for g, t in hints if g in GLYPH] if hints else []
-        widths = [gh + int(8 * s) + self.text_w(t, "m_help") for _, t in items]
+        items = [(g, t) for g, t in hints if g in GLYPH or g is None] if hints else []  # None: text only
+        widths = [(gh + int(8 * s) if g else 0) + self.text_w(t, "m_help") for g, t in items]
         total = sum(widths) + int(26 * s) * max(0, len(items) - 1)
         x, y = (self.w - total) // 2, int(self.h - 52 * s)
         for (g, t), wdt in zip(items, widths):
-            self.icon(GLYPH[g], x, y - gh // 2, gh, gh, M_HELP)
-            self.text(t, x + gh + int(8 * s), y, "m_help", M_HELP, vcenter=True)
+            if g:
+                self.icon(GLYPH[g], x, y - gh // 2, gh, gh, M_HELP)
+            self.text(t, x + (gh + int(8 * s) if g else 0), y, "m_help", M_HELP, vcenter=True)
             x += wdt + int(26 * s)
 
     def panel(self, title, n_rows, footer=0):
@@ -324,8 +328,22 @@ class UI:
                 self.pad_fd = None
                 return None
             _, _, etype, code, value = struct.unpack("llHHi", data)
-            if etype == 1 and value == 1 and code in EV_BTN:
-                return ACTION[EV_BTN[code]]
+            if etype == 1 and value == 1 and self.ev_btn.get(code) == "home" and self.on_home:
+                self.on_home()
+            if etype == 1 and value == 1 and code in self.ev_btn and self.ev_btn[code] in ACTION:
+                return ACTION[self.ev_btn[code]]
+            if etype == 1 and code in self.ev_dpad:
+                if value == 0:
+                    self.held = None
+                    continue
+                if value == 1:
+                    act = self.ev_dpad[code]
+                    self.held = (act, time.monotonic() + REPEAT_DELAY)
+                    return act
+                continue
+            if etype == 3 and self.on_abs and code not in (16, 17):
+                self.on_abs(code, value)
+                continue
             if etype == 3 and code in (16, 17):  # ABS_HAT0X / ABS_HAT0Y: the d-pad
                 if value == 0:
                     self.held = None
