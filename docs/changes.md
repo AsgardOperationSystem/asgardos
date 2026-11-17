@@ -8,6 +8,7 @@ The numbers below, such as `0001` or `9018`, are the old patch files. Each is no
 
 | Change | Why |
 |---|---|
+| GPU power votes from 7.4 (2026-11-17) | Two 7.4 fixes picked onto 7.3.5: the GMU's RPMH dependency votes were resolved against the GMU's OPP table instead of the GPU's, and the GX secondary-rail (MX) vote was matched to the requested level instead of the quantized primary one. Both tables are built on the a740. `test_kernel_outcomes` checks they stay until the stable base has them. |
 | Kernel 7.3.5 (2026-11-17) | Rebased from 7.3.1 onto 7.3.5 (2,321 stable fixes). The only conflict: 7.3.5's `pmic_glink` suspend fix moves the altmode worker to `system_freezable_wq`, which `9005` already did; that half of `9005` is now upstream's. |
 | Kernel 7.3.1 (2026-10-30) | Rebased from 7.2 as commits (pushed to `asgardos/linux`). Dropped, already in 7.3: `9007`, `9039`, the QCE runtime-PM series, 7.2 `0011` (adc-tm5) and `0016` (DP audio_prepare). ICNA35XX, CH13726A and SY7758 are upstream now in their own forms; ours are kept (60/120 Hz, Ultra Black, compatibles). Watch: 7.3 sets the DSP's MI2S mclk/bclk on sm8550 (speakers); suspend now uses 7.3's own geni UART and LPASS macro power-down. |
 | ROCKNIX PR #3126 (SM8550 suspend/resume) | Upstream `next` has no working sleep on the Thor; the open PR does. |

@@ -54,6 +54,11 @@ HAS = [
     ("KERN-8", "drivers/power/supply/qcom_battmgr.c", r"return qcom_battmgr_set_charge_current\(battmgr, pval->intval\)", "9020: the charge current can be set"),
     ("KERN-8", "drivers/power/supply/qcom_battmgr.c", r"le32_to_cpu\(resp->intval\.result\) \? -EIO : 0", "9021: a refused set is an error"),
 ]
+# Upstream fixes picked ahead of our stable base (not a spec outcome): drop a row once the base carries the fix.
+PICKED = [
+    ("drivers/gpu/drm/msm/adreno/a6xx_gmu.c", r"a6xx_gmu_rpmh_dep_votes_init\(&gpu->pdev->dev,", "7.4 eab0aff8965e: GPU dependency votes resolve against the GPU's OPP table"),
+    ("drivers/gpu/drm/msm/adreno/a6xx_gmu.c", r"if \(sec\[j\] >= pri\[pindex\]\)", "7.4 128a0edde507: the secondary rail matches the quantized primary level"),
+]
 # Outside the kernel: the build config that uses them, and this tree's rule and command line.
 CONFIG = [("KERN-1", f"CONFIG_{c}=y") for c in ("DRM_PANEL_CHIPONE_ICNA35XX", "DRM_PANEL_DDIC_CH13726A", "BACKLIGHT_SY7758", "TOUCHSCREEN_EDT_FT5X06")]
 CONFIG += [("KERN-2", "CONFIG_JOYSTICK_RSINPUT=y"), ("KERN-2", "CONFIG_LEDS_HTR3212=y"), ("KERN-2", "CONFIG_INPUT_QCOM_HV_HAPTICS=y"),
@@ -78,6 +83,10 @@ for rule, name, want, why in HAS:
     hit = re.search(want.lstrip("!"), text, re.S)
     if bool(hit) == absent:
         failed.append(f"{rule}: {name}: {why}")
+
+for name, want, why in PICKED:
+    if not re.search(want, code(os.path.join(KSRC, name)), re.S):
+        failed.append(f"picked fix lost: {name}: {why}")
 
 conf = open(os.path.join(ROOT, "device/linux/linux.aarch64.conf")).read().splitlines()
 failed += [f"{rule}: {want} isn't set" for rule, want in CONFIG if want not in conf]
