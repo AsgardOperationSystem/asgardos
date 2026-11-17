@@ -27,7 +27,8 @@ RECIPE_OUTSIDE_PACKAGES = {"config/docker/package.mk"}  # the docker tool's own,
 # Against DEV-17, and in SPEC's known gaps: this stops new ones, and test_gap_service_languages.sh holds the rule.
 IMPORTS_NOT_IN_SPEC = {("packages/asgard/sources/asgard-motiond.py", "dbussy")}
 COMPILED_NOT_IN_SPEC = {"packages/asgard/gamma/asgard-gamma.c"}  # asgard-gamma.service; the same gap file holds the rule
-COMPILED_NOT_SERVICES = {"packages/asgard/eq/asgard-limiter.c"}  # a LADSPA plugin PipeWire loads
+COMPILED_NOT_SERVICES = {"packages/asgard/eq/asgard-limiter.c",  # a LADSPA plugin PipeWire loads
+                         "packages/asgard/wireplumber/asgard-one-volume.lua"}  # a hook WirePlumber runs (AUD-3)
 NOT_SERVICES = {"packages/asgard/eq/gen-speaker-ir.py"}  # a desktop tool that makes a file in the tree; it isn't installed
 problems = []
 

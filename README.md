@@ -82,6 +82,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | CPU cap, performance profiles | ✅ | Per core type, 25–100 %; per-game profiles. |
 | **Audio** | | |
 | Output follows the headphone jack | ✅ | |
+| One volume on every output | 🧪 | Bluetooth headphones, the jack and boot come up at the volume the keys step from, not a level saved for that output (AUD-3, 2026-11-17). Host-tested; not checked on a Thor. |
 | Speaker EQ | ✅ | Thor tuning (Android's preset), Joey's preset, or off. |
 | Headphone EQ (AutoEQ) | ✅ | Pick a profile by headphone model (~8,850); saved per headphone. |
 | Sound in the game menu, bass / mid / treble | 🧪 | EQ profile and ±6 dB tone per output, changed live from the menu or Settings with no gap (SND-7). Built, host-tested; not checked on a Thor. |

@@ -39,6 +39,9 @@ then
   VOLUME=50
 fi
 
+### Asgard (AUD-3): the level every output appears at, read by WirePlumber's asgard-one-volume.lua.
+pw-metadata 0 asgard.volume ${VOLUME} >/dev/null 2>&1
+
 ### Asgard: the EQ filters (thor_dsp_speaker/_headphones) pass through at 100 %; set the device they play to.
 ### At boot hdmi_sense has just cleared the default, so @DEFAULT_SINK@ is the first sink listed: the filter.
 SINK=$(pactl get-default-sink 2>/dev/null)

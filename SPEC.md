@@ -243,6 +243,7 @@ The speakers sound thin and harsh without tuning, and headphones differ widely. 
 
 - **AUD-1** The default output follows the headphone jack.
 - **AUD-2** EQ filter nodes stay at 100 %, and volume is set on the real sink. Every EQ chain ends in the limiter, so no preset's boost, nor bass, mid and treble on top of it, can clip.
+- **AUD-3** There's one volume. Every output plays at it as it appears (headphones connecting, the jack, boot), not at a level WirePlumber saved for that output, so a volume key steps from what's heard.
 - **SND-1** Speaker EQ offers Thor tuning, Joey's preset and off. Headphone EQ offers Thor tuning, AutoEQ and off.
 - **SND-2** AutoEQ finds a profile by headphone model, which needs internet. A downloaded profile stays usable offline.
 - **SND-3** A game's EQ override lasts until the game ends and leaves the saved setting alone. It's set on the running EQ, as SND-7's changes are.

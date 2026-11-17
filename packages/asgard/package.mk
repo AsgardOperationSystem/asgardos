@@ -67,6 +67,9 @@ makeinstall_target() {
   # Headphones outrank the speaker so the default output follows the jack (thor_dsp_* smart filters follow it).
   mkdir -p ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d
   cp ${PKG_DIR}/wireplumber/*.conf ${INSTALL}/usr/share/wireplumber/wireplumber.conf.d/
+  # AUD-3: one volume on every output (63-asgard-one-volume.conf loads it).
+  mkdir -p ${INSTALL}/usr/share/wireplumber/scripts
+  cp ${PKG_DIR}/wireplumber/asgard-one-volume.lua ${INSTALL}/usr/share/wireplumber/scripts/
 }
 
 post_install() {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# spec: AUD-1 AUD-2 SND-1
+# spec: AUD-1 AUD-2 AUD-3 SND-1
 # requires: cmd:bash cmd:awk cmd:flock
 """Tree and script checks for the sound setup: the rule that puts headphones first (that the output moves when a jack is
 plugged is a human check), every EQ filter pinned at 100 % with `volume` setting the real sink (run with a stub pactl),
@@ -70,10 +70,14 @@ case "$1" in
   --) shift; echo "$*" >> {t}/set.log ;;
 esac
 """)
-        for tool in ("sleep", "pactl"):
+        with open(f"{t}/usr/bin/pw-metadata", "w") as f:
+            f.write(f'#!/bin/sh\necho "$*" >> {t}/meta.log\n')
+        for tool in ("sleep", "pactl", "pw-metadata"):
             os.chmod(f"{t}/usr/bin/{tool}", stat.S_IRWXU)
         assert subprocess.run(["bash", f"{t}/usr/bin/volume", arg], capture_output=True, timeout=30).returncode == 0
         log = open(f"{t}/set.log").read().splitlines() if os.path.exists(f"{t}/set.log") else []
+        meta = open(f"{t}/meta.log").read().splitlines() if os.path.exists(f"{t}/meta.log") else []
+        assert meta == [f"0 asgard.volume {arg}"], meta   # AUD-3: the level outputs appear at
         return log, open(f"{t}/storage/.config/system/configs/system.cfg").read()
 
 
