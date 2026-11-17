@@ -32,6 +32,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 |---|---|---|
 | **Frontend** | | |
 | Asgard Home | ✅ | Dual-screen frontend in iiSU's style: grid on top, detail card below, L+R swaps them. Replaces EmulationStation. |
+| Settings button | 🧪 | A gear beside the power button in the top bar opens Settings by touch (HOME-6). Host-tested; not checked on a Thor yet. |
 | Library and art | ✅ | System art, backdrops, covers, screenshots, play time, Recently played tile. |
 | Tile reordering | ✅ | Y or a long press, for consoles and games (saved per console). |
 | Trophies (RetroAchievements) | ✅ | Progress per game; ROMs hashed like RA does. Sign-in in Settings. |

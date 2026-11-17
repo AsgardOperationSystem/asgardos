@@ -59,7 +59,7 @@ the swap is saved. It's the only frontend: it's what boots and where games start
 - **HOME-3** The library comes from `es_systems.cfg`, the ROM directories and ES-DE-format media. Tiles show art, and game cards show details and play time.
 - **HOME-4** Tile order can be changed, for consoles and per console for games, and it's saved. B cancels a reorder.
 - **HOME-5** Starting another game while one waits in the background asks first and warns that unsaved progress is lost.
-- **HOME-6** The on-screen power button opens a menu with Sleep, Restart and Power off.
+- **HOME-6** The on-screen power button opens a menu with Sleep, Restart and Power off. A settings button of the same size sits beside it and opens Settings.
 - **HOME-7** Home and everything it starts run in a UTF-8 locale. The interface is English only.
 - **TRO-1** Trophies show RetroAchievements progress per game, with ROMs hashed as RetroAchievements does.
 - **SCRAPE-1** Select → Scrape this game uses ScreenScraper when a developer ID is set, and otherwise libretro thumbnails with no account. Results go in ES-DE's layout.

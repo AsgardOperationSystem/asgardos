@@ -160,7 +160,7 @@ with Root() as r:
     assert not cancelled.shows("unsaved progress is lost") and "QUIT" not in cancelled.log and "launch " not in cancelled.log
     assert "QUIT" in r.run("a a a", env=env).log                      # "Close it" closes the waiting game first
 
-# ---- HOME-6: the on-screen power button opens Sleep, Restart and Power off
+# ---- HOME-6: the on-screen power button opens Sleep, Restart and Power off; the gear beside it opens Settings
 with Root() as r:
     r.library()
     assert not r.run("").shows("Power off")
@@ -172,6 +172,13 @@ with Root() as r:
     menu = r.run("", env=env)
     assert all(menu.shows(item) for item in ("Sleep", "Restart", "Power off")), menu.log
     assert "shell: systemctl suspend" in r.run("a", env=env).log
+    # The gear button beside it opens Settings.
+    assert not r.run("").shows("Device name")
+    gear = {"Main.qml": [("TapHandler { onTapped: { backend.sound(\"open\"); settingsPanel.show() } }",
+                          "TapHandler { id: settingsTap; onTapped: { backend.sound(\"open\"); settingsPanel.show() } }"),
+                         ("Component.onCompleted: if (debugInput) console.log(\"input: debug logging on (bottom window)\")",
+                          "Component.onCompleted: settingsTap.tapped(undefined, Qt.LeftButton)")]}
+    assert r.run("", env=qml_copy(r, gear)).shows("Device name")
 
 shutil.rmtree(bin_dir)
 print("ok")

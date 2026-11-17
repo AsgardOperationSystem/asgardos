@@ -381,6 +381,16 @@ QtObject {
                 }
                 TapHandler { onTapped: { backend.sound("open"); powerMenuPanel.anchorRight = powerButton.x + powerButton.width; powerMenuPanel.show() } }
             }
+            // Settings: the same round button, left of power; opens Settings (Start does too).
+            Pill {
+                id: settingsButton
+                x: powerButton.x - width - 24; y: 28; width: 150; height: 150
+                Image {
+                    anchors.centerIn: parent; width: 76; height: 76
+                    source: "icons/settings-gear.svg"; sourceSize: Qt.size(152, 152)
+                }
+                TapHandler { onTapped: { backend.sound("open"); settingsPanel.show() } }
+            }
             // ASGARD_DEBUG_INPUT: log every touch/pointer press the bottom window receives (passive, blocks nothing).
             Component.onCompleted: if (debugInput) console.log("input: debug logging on (bottom window)")
             PointHandler {

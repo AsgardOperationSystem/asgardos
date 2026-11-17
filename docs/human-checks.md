@@ -19,6 +19,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 | DEV-21 | In review of a new file copied from ROCKNIX or JELOS: its notice came with it. test_tree_layout.py covers files that existed at the fork. | |
 | UPD-3 | On an idle Thor, stage a build and confirm nothing changes until the next reboot; then reboot and confirm it installs. Needs the owner's go for that reboot (TEST-6). During a game, staging only needs SSH: the game keeps running. | |
 | HOME-1 | Hold L and R together and let go: the two screens swap once and no tab changes. Press A and B: A is the east button, B the south one, as printed. | |
+| HOME-6 | Tap the gear beside the power button: Settings opens; B closes it. Tap the power button: its menu still opens. Swap the screens and repeat. | |
 | CAL-4 | Settings > Hardware > Calibration: calibrate each stick and trigger with the pad alone. The dot follows the stick and each step's bar fills only while it's held. Keep it, reboot, and Test controls still shows it. Open a control and press Home: you're back on the page and the pad drives Home again. | |
 | LOOK-1 | In Home, Settings, the panel and the tools, compare with `docs/screenshots/`: dark translucent pills with a light rim, lavender glass panels, a selection glow, Nunito throughout. New UI's colours should come from `Theme.qml`, which is read in review. | |
 | LOOK-4 | When a change adds on-device UI: open it, compare with `docs/screenshots/`, and use all of it with the pad alone. | |
