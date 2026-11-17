@@ -36,7 +36,7 @@ It adds three things to ROCKNIX:
 |---|---|
 | Hardware | AYN Thor: Snapdragon 8 Gen 2 (SM8550), Adreno 740, top screen 1920×1080 (`DSI-2`), bottom touch screen 1240×1080 (`DSI-1`), UFS 4.0, microSD |
 | Boot | OpenABL through Boot Loader Spec: `/flash/loader/entries/asgardos.conf` boots `/flash/KERNEL`, an EFI kernel with a built-in initramfs, and the device tree |
-| Kernel | Linux stable plus Asgard's patches and device trees, 7.3.1 as of 2026-11-01 |
+| Kernel | Linux stable plus Asgard's patches and device trees, 7.3.5 as of 2026-11-17 |
 | Root filesystem | Read-only. User state lives in `/storage`, boot files in `/flash` |
 | Display | sway 1.11, patched to count frames per window, with Mesa 26.2.6 (Turnip and freedreno) |
 | Input | InputPlumber presents the pad to games as a virtual DualSense |

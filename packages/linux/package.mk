@@ -17,7 +17,7 @@ PKG_STAMP="${KERNEL_TARGET} ${KERNEL_MAKE_EXTRACMD}"
 
 # Our kernel fork, the submodule src/ (gitlab asgardos/linux, branch asgard): Linux stable plus
 # the Asgard patches and device trees as commits. Rebuilds when src/ changes (it's hashed with PKG_DIR).
-PKG_VERSION="7.3.1"
+PKG_VERSION="7.3.5"
 PKG_PATCH_DIRS=""
 
 PKG_KERNEL_CFG_FILE=$(kernel_config_path) || die
