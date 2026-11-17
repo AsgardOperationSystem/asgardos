@@ -1,7 +1,8 @@
 #!/bin/sh
 # spec: PWR-4
 # Stub check for sleep.d/asgard-charge-fix's game freeze: the game's process tree is stopped before sleep,
-# continued on a normal wake, and kept stopped (re-suspend timer armed) on a cable wake with the lid shut.
+# continued on a wake with the lid open, and kept stopped on any wake with the lid shut (a cable wake also arms the
+# re-suspend timer; an aborted sleep doesn't), until the asgard-game-thaw watcher sees the lid open.
 set -e
 T=$(mktemp -d); trap 'rm -rf $T' EXIT
 H=$(dirname "$(readlink -f "$0")")/../sleep.d/asgard-charge-fix
@@ -10,7 +11,13 @@ W=$T/sys/bus/auxiliary/devices/pmic_glink.ucsi.0/power/wakeup_active_count
 # 100 = launching shell, 101 runemu.sh, 102 emulator (child of 101), 200 unrelated, 1 init
 printf '#!/bin/sh\nprintf "1 0\\n100 1\\n101 100\\n102 101\\n200 1\\n"\n' > $T/bin/ps
 printf '#!/bin/sh\necho "$@" >> %s/kill.log\n' $T > $T/bin/kill
-printf '#!/bin/sh\necho "$@" >> %s/run.log\n' $T > $T/bin/systemd-run
+# systemd-run: logged, and the asgard-game-thaw command kept so the test can run it
+cat > $T/bin/systemd-run <<S
+#!/bin/sh
+echo "\$@" >> $T/run.log
+case "\$*" in *asgard-game-thaw*) for a; do :; done; printf '%s' "\$a" > $T/thaw.sh ;; esac
+S
+printf '#!/bin/sh\n' > $T/bin/sleep
 printf '#!/bin/sh\necho "b $(cat %s/lid)"\n' $T > $T/bin/busctl
 chmod +x $T/bin/*
 mkdir -p $T/sys/class/power_supply/battery $T/sys/class/power_supply/qcom-battmgr-usb $T/sys/class/rtc/rtc0
@@ -32,6 +39,18 @@ grep -q '^-CONT' $T/kill.log && [ ! -e $T/run/.asgard-frozen ] || { echo "FAIL: 
 run post   # cable wake, lid shut: still stopped, re-suspend armed
 ! grep -q CONT $T/kill.log && grep -q 'systemctl suspend' $T/run.log || { echo "FAIL: cable wake"; cat $T/kill.log $T/run.log; exit 1; }
 tail -1 $T/log | grep -q 'usb-c wake.*; 1200000 uA, 4200000 uV, ocv 4050000 uV$' || { echo "FAIL: battery state, cable wake"; cat $T/log; exit 1; }
+grep -q asgard-game-thaw $T/run.log || { echo "FAIL: no thaw watcher on the cable wake"; cat $T/run.log; exit 1; }
+
+# A suspend that aborted before sleeping (no cable, no alarm), lid shut: still stopped, no re-suspend timer (logind's),
+# the watcher armed; it continues the game once the lid opens. (Until 2026-11-17 this continued the game.)
+: > $T/kill.log; : > $T/run.log; rm -f $T/thaw.sh; echo false > $T/lid; run pre; echo true > $T/lid
+run post
+! grep -q CONT $T/kill.log && ! grep -q 'systemctl suspend' $T/run.log && [ -s $T/run/.asgard-frozen ] ||
+  { echo "FAIL: aborted sleep with the lid shut continued the game"; cat $T/kill.log $T/run.log; exit 1; }
+tail -1 $T/log | grep -q 'other wake or aborted sleep with lid closed' || { echo "FAIL: log, other wake"; cat $T/log; exit 1; }
+[ -s $T/thaw.sh ] || { echo "FAIL: no thaw watcher"; cat $T/run.log; exit 1; }
+echo false > $T/lid; PATH=$T/bin:$PATH sh -c "$(cat $T/thaw.sh)"
+grep -q '^-CONT' $T/kill.log && [ ! -e $T/run/.asgard-frozen ] || { echo "FAIL: lid open didn't continue the game"; cat $T/kill.log; exit 1; }
 
 # Charge limit asleep: on the charger at 50 % (limit 80), 2000 mA -> 30 % of 6000 mAh = 1800 mAh = 3240 s, halved
 : > $T/run.log; rm -f $T/run/thor-playing.txt; echo 1 > $P/qcom-battmgr-usb/online; echo false > $T/lid

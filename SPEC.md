@@ -261,7 +261,7 @@ Close the lid and come back later to the same moment in the game, having lost as
 - **PWR-1** Sleep is s2idle with the game still loaded. CX, AOSS and DDR collapse for the sleep (`/sys/kernel/debug/qcom_stats/`).
 - **PWR-2** Sleep drain stays at or under the 30 mA baseline, and lower is always better. It's measured over an unplugged sleep of an hour or more, starting at 4.13 V or lower, because readings just after a charge are gauge artifacts.
 - **PWR-3** After a wake the pad, Wi-Fi, audio and storage work, with no reboot. The power button and the RTC both wake it.
-- **PWR-4** A lid-closed cable wake keeps the game stopped and goes back to sleep.
+- **PWR-4** With the lid closed the game stays stopped through any wake, including a sleep that aborted, and continues only when the lid opens. A lid-closed cable or charge-limit wake goes back to sleep.
 - **PWR-6** The fan's rail is off in sleep: fan mode 1 becomes 3 for the sleep and comes back after it.
 - **PWR-8** The gyro service runs only while asked for, per game or by `asgard.motion`, because it keeps the ADSP awake.
 - **PWR-9** Background work doesn't wake the SoC in sleep or redraw when nothing changed, unless there's a stated reason.

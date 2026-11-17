@@ -2,8 +2,12 @@
 # Thor: a USB-C attach/detach wakes the Thor (kernel patch 9005, so a charger plugged into a sleeping Thor
 # charges). Woken that way with the lid shut, it goes back to sleep after 15 s.
 # The running game (playlog.py's /run/thor-playing.txt: the launching shell's pid) is SIGSTOPped before every
-# sleep and only continued once the lid is open, so a cable wake with the lid shut doesn't play a second of the
-# game's audio. The kernel freezes it in suspend anyway; this just extends that over the 15 s cable wake.
+# sleep and only continued once the lid is open, so no wake with the lid shut plays the game's audio. The kernel
+# freezes it in suspend anyway; this extends that over every lid-shut wake, whatever caused it: a lid-shut post
+# leaves it stopped and starts asgard-game-thaw, which continues it when the lid opens. Until 2026-11-17 only a
+# cable or charge-alarm wake kept it stopped; a suspend that aborted before sleeping (3-5 s sleep-audit rows with
+# no wake source, e.g. 2026-11-16 00:25 at 79 % on the charger) continued it, and the game played with the lid
+# shut until logind's 10 s holdoff suspended it again.
 # Until 2026-10-11 this hook also rebound UCSI 75 s after every wake when it looked stuck (discharging, no
 # partner). Unplugged looks the same, so it fired on nearly every wake; the stuck state came from 0502 masking
 # the IPCC mailbox, which 9005 undoes on the Thor (Kettle Linux and Armada reached the same fix). Removed.
@@ -32,14 +36,21 @@ batt() { echo "$(cat $B/current_now 2>/dev/null) uA, $(cat $B/voltage_now 2>/dev
 
 # wakeup_active_count, not wakeup_count: the latter only counts when userspace arms /sys/power/wakeup_count.
 WC=$S/bus/auxiliary/devices/pmic_glink.ucsi.0/power/wakeup_active_count
-# Back to sleep in 15 s if the lid is still shut, else continue the game. systemd-suspend kills leftover children
-# when it exits, so hand the delay to a transient timer. logind often re-suspends on the shut lid first
-# ("suspend already in progress"): not a failure.
+LID='busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null | grep -q true'
+# Back to sleep in 15 s if the lid is still shut. systemd-suspend kills leftover children when it exits, so hand
+# the delay to a transient timer. logind often re-suspends on the shut lid first ("suspend already in progress"):
+# not a failure.
 resleep() {
   systemd-run --no-block --on-active=15 --unit="thor-charge-resleep-$(date +%s)" \
-    /bin/sh -c "if $LID; then systemctl suspend 2>/dev/null || true; else kill -CONT \$(cat $FROZEN 2>/dev/null) 2>/dev/null; rm -f $FROZEN; fi" >/dev/null 2>&1
+    /bin/sh -c "if $LID; then systemctl suspend 2>/dev/null || true; fi" >/dev/null 2>&1
 }
-LID='busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null | grep -q true'
+# Continue the game once the lid opens. One fixed unit: a watcher left from an earlier lid-shut wake is frozen with
+# everything else in the next sleep and carries on after it, reading the frozen list only when the lid opens.
+# Polls once a second, and only while the Thor is awake with the lid shut (logind suspends it again within ~10 s).
+thaw_on_open() {
+  systemd-run --no-block --unit=asgard-game-thaw \
+    /bin/sh -c "while $LID; do sleep 1; done; $KILL -CONT \$(cat $FROZEN 2>/dev/null) 2>/dev/null; rm -f $FROZEN" >/dev/null 2>&1
+}
 
 case "$1" in
   pre)
@@ -67,8 +78,8 @@ case "$1" in
     fi
     ;;
   post)
-    # Woken by the cable with the lid shut: let PD settle, then go back to sleep (charging continues asleep).
-    # The game stays stopped; the timer continues it instead if the lid was opened in those 15 s.
+    # Woken by the cable or the charge alarm with the lid shut: let PD settle, then go back to sleep (charging
+    # continues asleep). Whatever woke it, the game stays stopped while the lid is shut.
     fired=
     if [ -r $ALARM ]; then
       read t0 c0 < $ALARM; dt=$(( $(date +%s) - t0 )); dc=$(( $(cat $B/charge_counter) - c0 ))
@@ -83,9 +94,16 @@ case "$1" in
     elif [ -n "$fired" ] && eval "$LID"; then
       echo "$(date '+%F %T') charge-limit wake at $(cat $B/capacity) % with lid closed, re-suspending; $(batt)" >> "$LOG"
       resleep
-    elif [ -s $FROZEN ]; then
-      $KILL -CONT $(cat $FROZEN) 2>/dev/null
-      rm -f $FROZEN
+    elif eval "$LID"; then
+      echo "$(date '+%F %T') other wake or aborted sleep with lid closed; $(batt)" >> "$LOG"
+    fi
+    if [ -s $FROZEN ]; then
+      if eval "$LID"; then
+        thaw_on_open
+      else
+        $KILL -CONT $(cat $FROZEN) 2>/dev/null
+        rm -f $FROZEN
+      fi
     fi
     ;;
 esac
