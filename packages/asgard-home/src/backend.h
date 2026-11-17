@@ -43,7 +43,7 @@ public:
     QList<QVariantMap> allGames() const { return m_byPath.values(); }
     Q_INVOKABLE void launch(const QVariantMap &game);
     Q_INVOKABLE void openSettings(const QVariantMap &game = {}, const QString &page = {});  // classic Thor Settings
-    Q_INVOKABLE void runTool(const QString &script, const QStringList &args = {});  // a fullscreen tool (e.g. GPcal) in place of the frontend
+    Q_INVOKABLE void runTool(const QString &script, const QStringList &args = {});  // a fullscreen tool (e.g. touch calibration) in place of the frontend
     Q_INVOKABLE QVariantMap playStats(const QString &path) const;  // {playtime (s), lastPlayed (epoch s)}
     Q_INVOKABLE QString getSetting(const QString &key, const QString &fallback = {}) const;  // system.cfg
     Q_INVOKABLE void setSetting(const QString &key, const QString &value);                  // "" removes the key
@@ -61,6 +61,13 @@ public:
     Q_INVOKABLE void retroarch(const QString &cmd);       // RetroArch network command, e.g. "PAUSE_TOGGLE"
     Q_INVOKABLE void padChord(const QStringList &buttons); // InputPlumber, past its profile: "Gamepad:Button:Guide"
     Q_INVOKABLE QVariantMap osInfo() const;   // /etc/os-release
+    // Stick calibration (Settings > Hardware > Calibration, StickCal.qml, CAL-4). rsinput's parameters, read and written
+    // live (writing sets update_params, so the driver re-reads its ranges); the saved calibration (CAL-2); and
+    // stickcal(on): InputPlumber stopped while the raw pad is read (pad.setRaw), restarted after.
+    Q_INVOKABLE QVariantMap rsinput() const;
+    Q_INVOKABLE void setRsinput(const QVariantMap &params);
+    Q_INVOKABLE void saveRsinput(const QString &text);
+    Q_INVOKABLE void stickcal(bool on);
 
 signals:
     void libraryChanged();
@@ -110,12 +117,22 @@ private:
 class Gamepad : public QObject
 {
     Q_OBJECT
+    // Raw mode (stick calibration, with InputPlumber stopped): rsinput's own pad, grabbed. Its buttons drive Home as the
+    // virtual pad's do, and its sticks and triggers are here as the driver reports them: [x, y, z, rx, ry, rz].
+    Q_PROPERTY(bool raw READ raw NOTIFY rawChanged)
+    Q_PROPERTY(QVariantList axes READ axes NOTIFY axesChanged)
 public:
     // grab: the pad is ours alone (EVIOCGRAB): Home and a paused game don't see the presses (Thor Panel)
     explicit Gamepad(bool disabled = false, bool grab = false, QObject *parent = nullptr);
+    Q_INVOKABLE void setRaw(bool on);
+    bool raw() const { return m_raw; }
+    QVariantList axes() const;
 signals:
     void pressed(const QString &button);   // up down left right a b x y lb rb lt rt select start guide
+    void rawChanged();
+    void axesChanged();
 private:
+    void close();
     void open();
     void lost();
     void read();
@@ -127,4 +144,8 @@ private:
     QString m_held;
     bool m_lb = false, m_rb = false, m_combo = false;   // shoulder state for the LB+RB combo
     bool m_grab = false;
+    bool m_disabled = false;
+    bool m_raw = false;
+    int m_axes[6] = {};
+    QTimer m_axesTimer;  // axis changes reach QML at most every 30 ms
 };

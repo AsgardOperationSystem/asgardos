@@ -1,4 +1,5 @@
 import QtQuick
+import "stickcal.js" as StickCalJs
 
 // Settings on the bottom screen, in iiSU's layout: a light glass panel, categories on the left, grouped cards of
 // rows on the right (icon, title, subtitle, then a chevron, a switch or a value). D-pad + A/B or touch.
@@ -346,8 +347,17 @@ Item {
                  action("refresh", "Reset touch calibration", "Both screens back to the default",
                         () => confirm("Reset touch calibration", "Both touch screens go back to the default.", "Reset",
                                       () => backend.shell("python3 /usr/share/asgard/thor_touchcal.py reset")))],
-                [action("gamepad", "Sticks and triggers", "Center, range and deadzone; Home exits",
-                        () => { close(); backend.runTool("/usr/share/asgard/thor-stickcal.sh") })]]
+                [action("gamepad", "Left stick", "Center, range and deadzone", () => stickCal.open("stick", "left")),
+                 action("gamepad", "Right stick", "Center, range and deadzone", () => stickCal.open("stick", "right")),
+                 action("gamepad", "Left trigger", "Rest and full press", () => stickCal.open("trigger", "left")),
+                 action("gamepad", "Right trigger", "Rest and full press", () => stickCal.open("trigger", "right")),
+                 action("gamepad", "Test controls", "Sticks and triggers as games see them", () => stickCal.open("all")),
+                 action("refresh", "Reset sticks and triggers", "rsinput's own range, no deadzone",
+                        () => confirm("Reset sticks and triggers", "The sticks and triggers go back to the driver's defaults.",
+                                      "Reset", () => {
+                            const p = StickCalJs.defaults()
+                            backend.setRsinput(p); backend.saveRsinput(StickCalJs.savedText(p))
+                            backend.shell("systemctl restart inputplumber") }))]]
     }
     function debugPage() {
         return [[toggle("moon", "Sleep audit", "One line per sleep in /storage/sleep-audit.csv: drain and what slept",
@@ -969,6 +979,7 @@ Item {
     // Returns true if the button was used.
     function nav(b) {
         if (!open) return false
+        if (stickCal.nav(b)) return true
         if (keyboard.nav(b)) return true
         if (dialog.nav(b)) return true
         if (b === "start" || (b === "b" && zone === "side" && !stack.length)) { close(); return true }
@@ -1181,4 +1192,5 @@ Item {
     }
     Confirm { id: dialog; anchors.fill: parent }
     Keyboard { id: keyboard; anchors.fill: parent }
+    StickCal { id: stickCal; anchors.fill: parent }
 }

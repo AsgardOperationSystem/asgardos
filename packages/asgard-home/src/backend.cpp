@@ -31,6 +31,10 @@ static const char *PLAYLOG = "/storage/.config/thor/playtime.jsonl";  // shared 
 static const QStringList IMAGE_EXT = {"png", "jpg", "jpeg", "webp"};
 
 // For the host tests' fake emulator (docs/testing.md, TEST-8): the launcher, the kill data and the command FIFO elsewhere.
+static const char *RSINPUT = "/sys/module/rsinput/parameters";
+static const char *STICKCAL_FLAG = "/run/asgard-stickcal";            // InputPlumber is stopped for stick calibration
+static const char *STICKCAL_SAVED = "/storage/.config/asgard/gpcal.sh"; // asgard-gpcal-apply.sh's file (CAL-2)
+
 static QString killDataPath() { return qEnvironmentVariable("ASGARD_KILL_DATA", "/tmp/.process-kill-data"); }
 
 Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
@@ -40,6 +44,8 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     readPlaytime();
     readStatus();
     topScreenOn();
+    if (QFile::exists(m_root + STICKCAL_FLAG))
+        stickcal(false);   // we stopped mid-calibration: InputPlumber back (it re-applies the saved calibration)
     if (QFile::exists("/usr/bin/runemu.sh") && !qEnvironmentVariableIsSet("ASGARD_SHOT")) {
         // A keyboard of our own for emulator hotkeys (made now, so sway knows it before the first press).
         m_keys = ::open("/dev/uinput", O_WRONLY | O_NONBLOCK | O_CLOEXEC);
@@ -721,6 +727,64 @@ void Backend::setSetting(const QString &key, const QString &value)
     emit settingsChanged();
 }
 
+QVariantMap Backend::rsinput() const
+{
+    QVariantMap p;
+    const QDir dir(m_root + RSINPUT);
+    for (const QString &name : dir.entryList(QDir::Files)) {
+        if (name == "update_params" || !(name.startsWith("axis_") || name.startsWith("trigger_")))
+            continue;
+        QFile f(dir.filePath(name));
+        if (f.open(QIODevice::ReadOnly))
+            p[name] = QString::fromUtf8(f.readAll()).trimmed().toInt();
+    }
+    return p;
+}
+
+void Backend::setRsinput(const QVariantMap &params)
+{
+    static const QRegularExpression name("^(axis|trigger)_[a-z_]+$");
+    const QDir dir(m_root + RSINPUT);
+    for (auto it = params.begin(); it != params.end(); ++it) {
+        QFile f(dir.filePath(it.key()));
+        if (name.match(it.key()).hasMatch() && f.exists() && f.open(QIODevice::WriteOnly))
+            f.write(QByteArray::number(it.value().toInt()));
+    }
+    QFile u(dir.filePath("update_params"));
+    if (u.open(QIODevice::WriteOnly))
+        u.write("1");
+}
+
+void Backend::saveRsinput(const QString &text)
+{
+    const QString path = m_root + STICKCAL_SAVED;
+    QDir().mkpath(QFileInfo(path).path());
+    QFile f(path + ".tmp");
+    if (!f.open(QIODevice::WriteOnly))
+        return;
+    f.write(text.toUtf8());
+    f.close();
+    f.setPermissions(QFileDevice::ReadOwner | QFileDevice::WriteOwner | QFileDevice::ExeOwner | QFileDevice::ReadGroup
+                     | QFileDevice::ExeGroup | QFileDevice::ReadOther | QFileDevice::ExeOther);
+    QFile::remove(path);
+    f.rename(path);
+}
+
+void Backend::stickcal(bool on)
+{
+    // The flag outlives a crash: the next start sees it and brings InputPlumber back (see the constructor).
+    QFile flag(m_root + STICKCAL_FLAG);
+    if (on) {
+        QDir().mkpath(QFileInfo(flag).path());
+        if (flag.open(QIODevice::WriteOnly))
+            flag.close();
+        shell("systemctl stop inputplumber");
+    } else {
+        flag.remove();
+        shell("systemctl restart inputplumber");
+    }
+}
+
 QVariantMap Backend::osInfo() const
 {
     QVariantMap info;
@@ -813,9 +877,49 @@ QVariantMap Backend::playStats(const QString &path) const
 // --- Gamepad --------------------------------------------------------------------------------------------------------
 
 static const char *PAD_NAME = "Sony Interactive Entertainment DualSense Wireless Controller";
+static const char *RAW_NAME = "AYN Odin2 Gamepad";   // rsinput's own pad (the Thor's DT names it after the Odin 2)
 
-Gamepad::Gamepad(bool disabled, bool grab, QObject *parent) : QObject(parent), m_grab(grab)
+void Gamepad::setRaw(bool on)
 {
+    if (on == m_raw)
+        return;
+    m_raw = on;
+    std::fill(std::begin(m_axes), std::end(m_axes), 0);
+    emit rawChanged();
+    emit axesChanged();
+    if (m_disabled)
+        return;
+    close();
+    open();   // not there yet (InputPlumber still stopping or starting): the retry finds it
+}
+
+QVariantList Gamepad::axes() const
+{
+    QVariantList out;
+    for (int v : m_axes)
+        out << v;
+    return out;
+}
+
+void Gamepad::close()
+{
+    if (m_notifier) {
+        m_notifier->setEnabled(false);
+        m_notifier->deleteLater();  // we may be inside its activated() signal
+        m_notifier = nullptr;
+    }
+    if (m_fd >= 0)
+        ::close(m_fd);
+    m_fd = -1;
+    m_repeat.stop();
+    m_held.clear();
+}
+
+Gamepad::Gamepad(bool disabled, bool grab, QObject *parent) : QObject(parent), m_grab(grab), m_disabled(disabled)
+{
+    m_axesTimer.setSingleShot(true);
+    m_axesTimer.setInterval(30);
+    connect(&m_axesTimer, &QTimer::timeout, this, &Gamepad::axesChanged);
     if (disabled)
         return;
     m_repeat.setInterval(90);
@@ -839,7 +943,7 @@ void Gamepad::open()
         for (const QString &line : QString::fromUtf8(f.readAll()).split('\n')) {
             if (line.startsWith("N: Name="))
                 name = line.mid(9).chopped(1);
-            else if (line.startsWith("H: Handlers=") && name == PAD_NAME && m_fd < 0)
+            else if (line.startsWith("H: Handlers=") && name == (m_raw ? RAW_NAME : PAD_NAME) && m_fd < 0)
                 for (const QString &h : line.mid(12).split(' '))
                     if (h.startsWith("event"))
                         m_fd = ::open(qPrintable("/dev/input/" + h), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
@@ -849,8 +953,16 @@ void Gamepad::open()
         return;
     }
     m_retry.stop();
-    if (m_grab)
+    if (m_grab || m_raw)
         ioctl(m_fd, EVIOCGRAB, 1);   // released when the fd closes (exit, or the pad going away)
+    if (m_raw) {
+        for (int code = 0; code < 6; code++) {
+            input_absinfo info{};
+            if (ioctl(m_fd, EVIOCGABS(code), &info) == 0)
+                m_axes[code] = info.value;
+        }
+        emit axesChanged();
+    }
     qInfo("gamepad: opened %s", qPrintable(QFileInfo(QString("/proc/self/fd/%1").arg(m_fd)).symLinkTarget()));
     m_notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
     connect(m_notifier, &QSocketNotifier::activated, this, &Gamepad::read);
@@ -858,13 +970,7 @@ void Gamepad::open()
 
 void Gamepad::lost()
 {
-    m_notifier->setEnabled(false);
-    m_notifier->deleteLater();  // we're inside its activated() signal
-    m_notifier = nullptr;
-    ::close(m_fd);
-    m_fd = -1;
-    m_repeat.stop();
-    m_held.clear();
+    close();
     m_retry.start();
 }
 
@@ -882,9 +988,17 @@ void Gamepad::hold(const QString &dir, bool down)
 
 void Gamepad::read()
 {
-    static const QHash<int, QString> buttons = {
+    static const QHash<int, QString> virtualButtons = {
         {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_NORTH, "x"}, {BTN_WEST, "y"},
         {BTN_TL2, "lt"}, {BTN_TR2, "rt"}, {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
+    // rsinput's raw codes, as InputPlumber's ayn_mcu map reads them: BTN_WEST is the north button (X), BTN_NORTH the
+    // west one (Y). Its d-pad is buttons, its triggers axes.
+    static const QHash<int, QString> rawButtons = {
+        {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_WEST, "x"}, {BTN_NORTH, "y"},
+        {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
+    static const QHash<int, QString> rawDpad = {
+        {BTN_DPAD_UP, "up"}, {BTN_DPAD_DOWN, "down"}, {BTN_DPAD_LEFT, "left"}, {BTN_DPAD_RIGHT, "right"}};
+    const QHash<int, QString> &buttons = m_raw ? rawButtons : virtualButtons;
     input_event ev;
     ssize_t n;
     while ((n = ::read(m_fd, &ev, sizeof ev)) == sizeof ev) {
@@ -905,6 +1019,13 @@ void Gamepad::read()
             }
         } else if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
             emit pressed(buttons[ev.code]);
+        else if (m_raw && ev.type == EV_KEY && ev.value != 2 && rawDpad.contains(ev.code))
+            hold(rawDpad[ev.code], ev.value == 1);
+        else if (m_raw && ev.type == EV_ABS && ev.code < 6) {
+            m_axes[ev.code] = ev.value;
+            if (!m_axesTimer.isActive())
+                m_axesTimer.start();
+        }
         else if (ev.type == EV_ABS && ev.code == ABS_HAT0X) {
             hold("left", ev.value < 0);
             hold("right", ev.value > 0);
