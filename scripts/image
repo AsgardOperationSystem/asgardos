@@ -151,6 +151,10 @@ fi
 
 echo "${TARGET_VERSION}" >${INSTALL}/etc/release
 
+# The shipped emulators' versions, for Settings > About > Emulators (SET-6)
+mkdir -p ${INSTALL}/usr/share/asgard
+${ROOT}/scripts/emulator-versions ${STAMPS_INSTALL} >${INSTALL}/usr/share/asgard/emulator-versions
+
 # Create /etc/os-release
 cat <<EOF >${INSTALL}/etc/os-release
 OS_NAME="${DISTRONAME}"

@@ -1,4 +1,4 @@
-# spec: SET-1 SET-3 SET-4 SET-5 NET-1 NET-2 LOOK-2 LOOK-3 OLED-2 SND-4
+# spec: SET-1 SET-6 SET-3 SET-4 SET-5 NET-1 NET-2 LOOK-2 LOOK-3 OLED-2 SND-4
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_settings.py  (no Thor): Settings on the host, offscreen, driven by pad presses. On a host commands
 are logged, not run, and a QML copy answers backend.exec with canned output, so this checks what is offered and what it
@@ -81,7 +81,7 @@ def cfg(root, key):
 
 # ---- SET-1: what Settings offers
 OFFERS = {GENERAL: ["Device name", "Date & time", "Emulator options"], APPEARANCE: ["Accent colour", "Animations"],
-          LIBRARY: ["Rescan library"], ACHIEVEMENTS: ["Account", "Hardcore mode"], ABOUT: ["Asgard OS", "Updates", "Debug"],
+          LIBRARY: ["Rescan library"], ACHIEVEMENTS: ["Account", "Hardcore mode"], ABOUT: ["Asgard OS", "Linux", "Emulators", "Updates", "Debug"],
           POWER: ["Sleep", "Restart", "Power off"]}
 with Root() as r:
     r.library()
@@ -115,7 +115,7 @@ with Root() as r:
     press(r, keys(cat(ACHIEVEMENTS), row(1)))
     assert cfg(r, "global.retroachievements.hardcore") == "1"
     # Debug, sleep
-    assert press(r, keys(cat(ABOUT), row(4))).shows("Sleep audit")
+    assert press(r, keys(cat(ABOUT), row(6))).shows("Sleep audit")
     assert "shell: systemctl suspend" in press(r, keys(cat(POWER), row(0))).log
 
 # ---- SET-3: restart and power off ask first. The update row: only with something to install, and it asks too.
@@ -130,9 +130,20 @@ with Root() as r:
     assert not press(r, cat(ABOUT)).shows("Install update")
     update = {"ls /storage/.update": "/storage/.update/AsgardOS.tar"}
     assert press(r, cat(ABOUT), update).shows("Install update")
-    asked = press(r, keys(cat(ABOUT), row(3)), update)
+    asked = press(r, keys(cat(ABOUT), row(5)), update)
     assert asked.shows("installs AsgardOS.tar") and "systemctl reboot" not in asked.log
-    assert "shell: systemctl reboot" in press(r, keys(cat(ABOUT), row(3), "a"), update).log
+    assert "shell: systemctl reboot" in press(r, keys(cat(ABOUT), row(5), "a"), update).log
+
+# ---- SET-6: About shows the kernel and, on its own page, each shipped emulator's version from the image's list
+with Root() as r:
+    r.library()
+    versions = {"uname -r": "7.3.1-asgard", "emulator-versions": "Azahar\t2126.2\nEden\tv0.2.1\nmelonDS\tcommit 906e9eb"}
+    about = press(r, cat(ABOUT), versions)
+    assert about.shows("7.3.1-asgard") and about.shows("3 emulators and their versions")
+    emus = press(r, keys(cat(ABOUT), row(4)), versions)
+    for text in ("Azahar", "2126.2", "Eden", "v0.2.1", "melonDS", "commit 906e9eb"):
+        assert emus.shows(text), text
+    assert press(r, keys(cat(ABOUT), row(4))).shows("Versions unknown")    # an image without the list
 
 # ---- LOOK-2: the accents, aurora by default. SET-4: they apply at once. LOOK-3: timings, and the Animations switch.
 with Root() as r:

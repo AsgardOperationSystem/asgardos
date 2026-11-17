@@ -80,6 +80,9 @@ Item {
         sh("update", "ls /storage/.update/*.tar 2>/dev/null | head -1")
         sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
         sh("chargeRecal", "cat /run/asgard-charge-recal 2>/dev/null")
+        sh("kernel", "uname -r")
+        sh("emuVersions", "cat /usr/share/asgard/emulator-versions 2>/dev/null",   // scripts/emulator-versions, at image time
+           o => o.split("\n").filter(l => l.includes("\t")).map(l => l.split("\t")))
         if (get("bluetooth.enabled") === "1") sh("bt", "asgardos-bluetooth list", parseBt)
         storageRefresh()
     }
@@ -274,9 +277,14 @@ Item {
              link("shield", "WireGuard", "Tunnels from .conf files", wireguardPage, wgRefresh)]]
         case "About": {
             const os = backend.osInfo()
-            return [[info("info", "Asgard OS", "AsgardOS " + (os.VERSION || "") + "  ·  built " + (os.BUILD_DATE || "")),
+            const emus = live.emuVersions || []
+            return [[info("info", "Asgard OS", ["Version " + (os.OS_VERSION || "unknown"), (os.BUILD_ID || "").slice(0, 7),
+                                                os.BUILD_DATE ? "built " + os.BUILD_DATE : ""].filter(x => x).join("  ·  ")),
+                     info("terminal", "Linux", live.kernel || "…"),
                      info("chip", "Device", "AYN Thor  ·  " + (os.HW_DEVICE || "SM8550")),
-                     info("gamepad", "Library", backend.systems.length + " systems")],
+                     info("gamepad", "Library", backend.systems.length + " systems"),
+                     link("list", "Emulators", emus.length ? emus.length + " emulators and their versions" : "Versions unknown",
+                          emulatorVersionsPage)],
                     [live.update
                      ? action("refresh", "Install update", live.update.split("/").pop() + "  ·  restarts to install",
                               () => confirm("Install update", "The Thor restarts and installs " + live.update.split("/").pop() + ".",
@@ -358,6 +366,11 @@ Item {
                             const p = StickCalJs.defaults()
                             backend.setRsinput(p); backend.saveRsinput(StickCalJs.savedText(p))
                             backend.shell("systemctl restart inputplumber") }))]]
+    }
+    function emulatorVersionsPage() {
+        const emus = live.emuVersions || []
+        return [emus.length ? emus.map(e => info("gamepad", e[0], e[1]))
+                            : [info("info", "Versions unknown", "This build has no /usr/share/asgard/emulator-versions")]]
     }
     function debugPage() {
         return [[toggle("moon", "Sleep audit", "One line per sleep in /storage/sleep-audit.csv: drain and what slept",

@@ -1,0 +1,49 @@
+#!/bin/bash
+# Asgard OS: the emulators an image ships and their versions, for Settings > About > Emulators (SET-6).
+#   scripts/emulator-versions [<stamps dir>]
+# Prints "<name><TAB><version>" lines, sorted by name. With a stamps dir (the image step's $STAMPS_INSTALL), only the
+# packages installed into the image; without one, every standalone emulator and RetroArch.
+# The version comes from PKG_VERSION in the package.mk (EMU-6), never from running a binary. A pinned commit with the tag
+# in a trailing comment (`PKG_VERSION="<sha>" # tag v0.2.1`) shows the tag; a bare commit shows "commit <7 chars>".
+set -euo pipefail
+cd "$(dirname "$0")/.."
+STAMPS=${1:-}
+
+name() {
+  case $1 in
+    aethersx2-sa) echo AetherSX2 ;;     amiberry) echo Amiberry ;;         ares-sa) echo ares ;;
+    armsx2-sa) echo ARMSX2 ;;           azahar-sa) echo Azahar ;;          bigpemu-sa) echo BigPEmu ;;
+    cemu-sa) echo Cemu ;;               daedalusx64-sa) echo DaedalusX64 ;; dolphin-sa) echo Dolphin ;;
+    drastic-sa) echo DraStic ;;         dsperate-sa) echo DSperate ;;      duckstation-sa) echo DuckStation ;;
+    eden-duo-sa) echo "Eden Duo" ;;     eden-sa) echo Eden ;;              flycast-sa) echo Flycast ;;
+    gopher64-sa) echo gopher64 ;;       gzdoom-sa) echo GZDoom ;;          hatarisa) echo Hatari ;;
+    hypseus-singe) echo "Hypseus Singe" ;; mednafen) echo Mednafen ;;      melonds-sa) echo melonDS ;;
+    mupen64plus-sa) echo Mupen64Plus ;; nanoboyadvance-sa) echo NanoBoyAdvance ;; openbor) echo OpenBOR ;;
+    ppsspp-sa) echo PPSSPP ;;           retroarch) echo RetroArch ;;       rpcs3-sa) echo RPCS3 ;;
+    scummvm-sa) echo ScummVM ;;         skyemu-sa) echo SkyEmu ;;          supermodel-sa) echo Supermodel ;;
+    touchhle-sa) echo touchHLE ;;       vice-sa) echo VICE ;;              vita3k-sa) echo Vita3K ;;
+    xemu-sa) echo xemu ;;               yabasanshiro-sa) echo YabaSanshiro ;;
+    *) echo "${1%-sa}" ;;
+  esac
+}
+
+version() {  # version <package.mk>
+  local line ver comment tag
+  line=$(command grep -m1 '^PKG_VERSION=' "$1")
+  ver=$(sed 's/^PKG_VERSION="\([^"]*\)".*/\1/' <<<"$line")
+  comment=$(sed -n 's/^PKG_VERSION="[^"]*"[[:space:]]*#[[:space:]]*\(.*\)/\1/p' <<<"$line")
+  tag=$(command grep -oE '(^|[[:space:]])[vV]?[0-9][^[:space:]()]*' <<<"$comment" | head -1 | tr -d '[:space:]' || true)
+  if [ -n "$tag" ]; then echo "$tag"
+  elif [[ $ver =~ ^[0-9a-f]{40}$ ]]; then echo "commit ${ver:0:7}"
+  else echo "$ver"
+  fi
+}
+
+for mk in packages/emulators/standalone/*/package.mk packages/emulators/libretro/retroarch/package.mk; do
+  pkg=$(basename "$(dirname "$mk")")
+  case $pkg in heroic|steam) continue ;; esac   # launchers, not emulators
+  [ -z "$STAMPS" ] || [ -d "$STAMPS/$pkg" ] || continue
+  # mupen64plus-sa is a meta package; its core carries the version
+  [ "$pkg" = mupen64plus-sa ] && mk=packages/emulators/standalone/mupen64plus-sa/mupen64plus-sa-core/package.mk
+  printf '%s\t%s\n' "$(name "$pkg")" "$(version "$mk")"
+done | LC_ALL=C sort -f

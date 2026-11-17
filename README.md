@@ -91,6 +91,7 @@ Asgard Home on the Thor, top screen (1920×1080) and bottom screen (1240×1080):
 | **Storage** | | |
 | SD card (UHS-I SDR104, 76 MB/s) | 👀 | Android keeps UHS off as unstable; watch for mmc errors after sleep. |
 | UFS (HS-G5, 2.6–2.8 GB/s) | ✅ | |
+| About page in Settings | 🧪 | Settings > About: the Asgard version, commit and build date, the Linux kernel's version, and Emulators, each shipped emulator's version taken from its package when the image is built (SET-6). Host-tested; not checked on a Thor yet. |
 | Storage page in Settings | 🧪 | Hardware > Storage: free, total and used space inside and on the SD card, where the games folder is, the system partition (SET-5). Built, host-tested; not checked on a Thor yet. |
 | **Logs** | | |
 | Event log, freeze reports, crash logs | ✅ | In `/storage/.config/thor/`: warnings, errors, kernel oopses, Wi-Fi and sleep events; a report for any boot that never shut down. Sway seat changes aren't logged. |
