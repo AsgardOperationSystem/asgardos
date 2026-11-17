@@ -11,6 +11,12 @@ var HOLD_MS = 600              // a position counts once it has held this long
 var STEADY = 30                // ... within this many raw units
 var PUSHED = 0.4 * AXIS_DEFAULT    // this far from rest is pushed
 var AT_REST = 0.25 * AXIS_DEFAULT  // this close to centre is at rest
+// A trigger's travel isn't known until it's measured (raw 0 at the bottom isn't a given), so its steps go by what it does:
+// pressed is this far past its rest and held at the deepest point it reached, let go is back near its rest (that step
+// only checks it was released: a trigger needn't settle exactly where it rested before).
+var TRIGGER_PRESSED = 0.15 * TRIGGER_DEFAULT
+var TRIGGER_BOTTOM = 0.1           // of the travel so far: within this of the deepest reading is still at the bottom
+var TRIGGER_LET_GO = 0.25          // ... and within this of the rest reading is let go
 
 var STICKS = { left: ["axis_leftx", "axis_lefty", 0, 1], right: ["axis_rightx", "axis_righty", 3, 4] }  // + ABS codes
 var TRIGGERS = { left: ["trigger_left", 2], right: ["trigger_right", 5] }
@@ -103,8 +109,31 @@ function inPlace(kind, side, step, axes, got) {
         return { right: x, left: -x, down: y, up: -y }[step] > PUSHED
     }
     var v = axes[TRIGGERS[side][1]]
-    if (step === "press") return got.rest !== undefined && v - got.rest > PUSHED
-    return got.rest === undefined || v - got.rest < 2 * STEADY
+    if (got.rest === undefined) return step === "rest"
+    var travel = Math.max(got.peak === undefined ? 0 : got.peak, got.full === undefined ? 0 : got.full) - got.rest
+    if (step === "press")
+        return v - got.rest > TRIGGER_PRESSED && v >= got.rest + travel - Math.max(2 * STEADY, TRIGGER_BOTTOM * travel)
+    return v - got.rest < Math.max(2 * STEADY, TRIGGER_LET_GO * travel)
+}
+
+// A trigger's deepest reading so far, kept in the readings while it's measured (what "press" holds at, and what the
+// gauge fills against).
+function track(kind, side, axes, got) {
+    if (kind !== "trigger" || got.rest === undefined) return got
+    var v = axes[TRIGGERS[side][1]]
+    if (got.peak !== undefined && v <= got.peak) return got
+    var g = JSON.parse(JSON.stringify(got))
+    g.peak = v
+    return g
+}
+
+// A trigger's gauge while it's measured (0..1): raw against the measuring max until its rest is known, then its travel
+// from rest against the deepest press so far, so pressing all the way fills it whatever the trigger's raw range.
+function triggerGauge(axes, side, got) {
+    var v = axes[TRIGGERS[side][1]]
+    if (got.rest === undefined) return v / TRIGGER_MEASURE
+    var travel = Math.max(got.peak === undefined ? 0 : got.peak, got.full === undefined ? 0 : got.full) - got.rest
+    return (v - got.rest) / Math.max(travel, TRIGGER_PRESSED)
 }
 
 // The values a step watches, and what it records once they've held: returns the updated readings.

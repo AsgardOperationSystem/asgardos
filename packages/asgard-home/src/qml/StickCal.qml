@@ -58,6 +58,7 @@ Item {
         closed()
     }
     function tick() {
+        got = SC.track(kind, side, axes, got)
         const vals = SC.watched(kind, side, axes)
         const h = SC.hold(holdState, vals, SC.inPlace(kind, side, stepName, axes, got), Date.now())
         holdState = h.state
@@ -232,7 +233,7 @@ Item {
     }
     function triggerFrac(which) {
         const t = SC.TRIGGERS[which], v = axes[t[1]]
-        return mode === "measure" ? v / SC.TRIGGER_MEASURE : Math.max(0, SC.fraction(params, t[0], v))
+        return mode === "measure" ? SC.triggerGauge(axes, which, got) : Math.max(0, SC.fraction(params, t[0], v))
     }
 
     // A stick's gate: a round well, its crosshair, the direction to push, and the dot.

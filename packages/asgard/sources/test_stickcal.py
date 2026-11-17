@@ -32,6 +32,34 @@ for (const step of SC.STICK_STEPS) {
 }
 out.steps = steps
 out.stick = SC.result("stick", "left", got)
+// A right trigger measured step by step, one that doesn't bottom out at raw 0: raw 1544 at rest, 1100 pressed (a travel
+// shorter than a stick's push), coming back to 1470 when let go. The driver reports TRIGGER_MEASURE - raw.
+const raw = { rest: 1544, press: 1100 }, back = 1470
+got = {}; state = { ref: null, since: 0 }; out.tsteps = 0; out.gauge = []
+for (const [i, step] of SC.TRIGGER_STEPS.entries()) {
+    const r = step === "press" ? raw.press : i === 0 ? raw.rest : back
+    const path = step === "press" ? [1500, 1400, 1300, 1200, r] : [r]   // pressed down gradually
+    for (const x of path) {
+        const axes = [0, 0, 0, 0, 0, SC.TRIGGER_MEASURE - x]
+        got = SC.track("trigger", "right", axes, got)
+        const ok = SC.inPlace("trigger", "right", step, axes, got)
+        if (x !== r) { state = SC.hold(state, SC.watched("trigger", "right", axes), ok, now += 33).state; continue }
+        if (!ok) throw new Error("trigger not in place: " + step)
+        for (let t = 0; t <= SC.HOLD_MS + 40; t += 33) {
+            const vals = SC.watched("trigger", "right", axes)
+            const h = SC.hold(state, vals, ok, now += 33)
+            state = h.state
+            if (h.progress >= 1) {
+                if (step === "press") out.gauge.push(SC.triggerGauge(axes, "right", got))
+                got = SC.record("trigger", step, vals, got); state = { ref: null, since: 0 }; out.tsteps++; break
+            }
+        }
+    }
+}
+out.pressGauge = SC.triggerGauge([0, 0, 0, 0, 0, SC.TRIGGER_MEASURE - raw.press], "right", got)
+out.halfGauge = SC.triggerGauge([0, 0, 0, 0, 0, SC.TRIGGER_MEASURE - 1322], "right", got)
+out.halfPress = SC.inPlace("trigger", "right", "press", [0, 0, 0, 0, 0, SC.TRIGGER_MEASURE - 1500], got)
+out.trig = SC.result("trigger", "right", got)
 // Moving more than STEADY starts the hold again; leaving the place resets it.
 let s = SC.hold({ ref: null, since: 0 }, [0, 0], true, 0).state
 out.jitter = SC.hold(s, [20, -20], true, SC.HOLD_MS).progress
@@ -47,7 +75,7 @@ def run_js():
     src = open(JS).read().replace(".pragma library", "")
     code = "const SC = (function () {\n" + src + "\nreturn { " + ", ".join(
         n for n in ("AXIS_DEFAULT", "TRIGGER_MEASURE", "HOLD_MS", "STICK_STEPS", "axisParams", "triggerParams", "inPlace",
-                    "watched", "record", "hold", "result", "savedText", "defaults", "paramNames")) + " } })()\n" + CASES
+                    "watched", "record", "hold", "track", "triggerGauge", "TRIGGER_STEPS", "result", "savedText", "defaults", "paramNames")) + " } })()\n" + CASES
     return json.loads(subprocess.run(["node", "-e", code], check=True, capture_output=True, text=True).stdout)
 
 
@@ -82,6 +110,13 @@ assert stick(100, x) == 0 and stick(-40, y) == 0, (x, y)
 assert stick(1100, x) >= x["max"] - x["antideadzone"] and stick(-900, x) <= -(x["max"] - x["antideadzone"]), x
 assert stick(1000, y) >= y["max"] - y["antideadzone"] and stick(-1080, y) <= -(y["max"] - y["antideadzone"]), y
 assert 0 < r["jitter"] and r["moved"] == 0 and r["notThere"] is False, r
+
+# A trigger measured step by step whatever its raw range: three steps, the gauge full at the bottom and half way at half
+# travel, a light press not taken for pressed, and the result reading 0 at rest.
+assert r["tsteps"] == 3 and r["gauge"] == [1] and r["pressGauge"] == 1 and r["halfGauge"] == 0.5, r
+assert r["halfPress"] is False, r
+tr = {k[len("trigger_right_"):]: v for k, v in r["trig"].items()}
+assert tr["max"] == 1544 and trigger(1544, tr) == 0 and trigger(1530, tr) == 0, tr
 
 # Saved in GPcal's format: asgard-gpcal-apply.sh applies every parameter of it (CAL-2).
 with tempfile.TemporaryDirectory() as d:
