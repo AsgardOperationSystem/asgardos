@@ -146,6 +146,7 @@ private:
     bool m_grab = false;
     bool m_disabled = false;
     bool m_raw = false;
+    bool m_fdRaw = false;   // m_fd is rsinput's pad: in raw mode, or standing in until InputPlumber's pad is back
     int m_axes[6] = {};
     QTimer m_axesTimer;  // axis changes reach QML at most every 30 ms
 };

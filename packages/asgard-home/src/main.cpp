@@ -200,7 +200,8 @@ int main(int argc, char *argv[])
         return code;
     }
     Backend backend(gameEnv);
-    Gamepad pad(!shot.isEmpty());  // screenshot runs ignore the physical pad (ASGARD_KEYS replays instead)
+    // Screenshot runs ignore the physical pad (ASGARD_KEYS replays instead), unless a test gives one (ASGARD_INPUT).
+    Gamepad pad(!shot.isEmpty() && !qEnvironmentVariableIsSet("ASGARD_INPUT"));
     Achievements achievements(&backend);
     QQmlApplicationEngine engine;  // after backend/pad: destroyed first, so QML never sees them gone
     CachedNetwork network;

@@ -889,6 +889,13 @@ void Gamepad::setRaw(bool on)
     emit axesChanged();
     if (m_disabled)
         return;
+    if (!on && m_fdRaw && m_fd >= 0) {
+        // InputPlumber needs a few seconds to bring its virtual pad back: until it's there, rsinput's pad drives Home,
+        // released so InputPlumber can grab it (its grab then silences ours). The retry swaps to the virtual pad.
+        ioctl(m_fd, EVIOCGRAB, 0);
+        m_retry.start();
+        return;
+    }
     close();
     open();   // not there yet (InputPlumber still stopping or starting): the retry finds it
 }
@@ -911,6 +918,7 @@ void Gamepad::close()
     if (m_fd >= 0)
         ::close(m_fd);
     m_fd = -1;
+    m_fdRaw = false;
     m_repeat.stop();
     m_held.clear();
 }
@@ -937,21 +945,30 @@ Gamepad::Gamepad(bool disabled, bool grab, QObject *parent) : QObject(parent), m
 void Gamepad::open()
 {
     // /proc/bus/input/devices: find the event node of the exact pad name (not its Motion/Touchpad siblings).
-    QFile f("/proc/bus/input/devices");
-    QString name;
+    // ASGARD_INPUT (host tests): a directory with a "devices" list and the event nodes it names.
+    const QString input = qEnvironmentVariable("ASGARD_INPUT");
+    QFile f(input.isEmpty() ? "/proc/bus/input/devices" : input + "/devices");
+    QString name, node;
     if (f.open(QIODevice::ReadOnly))
         for (const QString &line : QString::fromUtf8(f.readAll()).split('\n')) {
             if (line.startsWith("N: Name="))
                 name = line.mid(9).chopped(1);
-            else if (line.startsWith("H: Handlers=") && name == (m_raw ? RAW_NAME : PAD_NAME) && m_fd < 0)
+            else if (line.startsWith("H: Handlers=") && name == (m_raw ? RAW_NAME : PAD_NAME) && node.isEmpty())
                 for (const QString &h : line.mid(12).split(' '))
-                    if (h.startsWith("event"))
-                        m_fd = ::open(qPrintable("/dev/input/" + h), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
+                    if (h.startsWith("event") && node.isEmpty())
+                        node = (input.isEmpty() ? "/dev/input" : input) + "/" + h;
         }
+    if (node.isEmpty()) {   // still reading rsinput's pad after calibration, if it's open (setRaw)
+        m_retry.start();
+        return;
+    }
+    close();
+    m_fd = ::open(qPrintable(node), O_RDONLY | O_NONBLOCK | O_CLOEXEC);
     if (m_fd < 0) {
         m_retry.start();
         return;
     }
+    m_fdRaw = m_raw;
     m_retry.stop();
     if (m_grab || m_raw)
         ioctl(m_fd, EVIOCGRAB, 1);   // released when the fd closes (exit, or the pad going away)
@@ -998,7 +1015,7 @@ void Gamepad::read()
         {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
     static const QHash<int, QString> rawDpad = {
         {BTN_DPAD_UP, "up"}, {BTN_DPAD_DOWN, "down"}, {BTN_DPAD_LEFT, "left"}, {BTN_DPAD_RIGHT, "right"}};
-    const QHash<int, QString> &buttons = m_raw ? rawButtons : virtualButtons;
+    const QHash<int, QString> &buttons = m_fdRaw ? rawButtons : virtualButtons;
     input_event ev;
     ssize_t n;
     while ((n = ::read(m_fd, &ev, sizeof ev)) == sizeof ev) {
@@ -1019,12 +1036,14 @@ void Gamepad::read()
             }
         } else if (ev.type == EV_KEY && ev.value == 1 && buttons.contains(ev.code))
             emit pressed(buttons[ev.code]);
-        else if (m_raw && ev.type == EV_KEY && ev.value != 2 && rawDpad.contains(ev.code))
+        else if (m_fdRaw && ev.type == EV_KEY && ev.value != 2 && rawDpad.contains(ev.code))
             hold(rawDpad[ev.code], ev.value == 1);
-        else if (m_raw && ev.type == EV_ABS && ev.code < 6) {
-            m_axes[ev.code] = ev.value;
-            if (!m_axesTimer.isActive())
-                m_axesTimer.start();
+        else if (m_fdRaw && ev.type == EV_ABS) {
+            if (m_raw && ev.code < 6) {   // after calibration (setRaw) its sticks are no one's
+                m_axes[ev.code] = ev.value;
+                if (!m_axesTimer.isActive())
+                    m_axesTimer.start();
+            }
         }
         else if (ev.type == EV_ABS && ev.code == ABS_HAT0X) {
             hold("left", ev.value < 0);
