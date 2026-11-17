@@ -42,6 +42,7 @@ HAS = [
     ("KERN-5", "drivers/clk/qcom/gcc-sm8550.c", r"pcie_1_gdsc = \{(?:(?!static struct).)*?\.pwrsts = PWRSTS_OFF_ON", "9050: PCIe 1's GDSC powers off"),
     ("KERN-5", "drivers/pci/controller/pci-host-common.c", r"if \(endpoint_d3cold\)", "9051: only endpoints veto D3cold"),
     ("KERN-6", "drivers/gpu/drm/msm/adreno/a6xx_gmu.c", r"dev_pm_opp_set_opp\(&gpu->pdev->dev, bw_index \? NULL : opp\)", "9009: the boot bus vote goes"),
+    ("KERN-6", COMMON, r"&crypto \{\s*status = \"disabled\";", "crypto engine off: no driver since 7.3, its vote blocks DDR collapse"),
     ("KERN-7", "sound/soc/qcom/sc8280xp.c", r"card->suspend_post = sc8280xp_snd_suspend_post", "9047: the I2S clock drops in sleep"),
     ("KERN-7", "sound/soc/codecs/lpass-rx-macro.c", FORCE_PM, "9047: RX macro"),
     ("KERN-7", "sound/soc/codecs/lpass-tx-macro.c", FORCE_PM, "9047: TX macro"),

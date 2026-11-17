@@ -347,7 +347,7 @@ is which and why. A patch is there to deliver one of these outcomes, and a rebas
 - **KERN-3** UFS runs at HS-G5 and resumes without PHY calibration failures. SD cards run at UHS-I SDR104.
 - **KERN-4** USB resumes cleanly and releases its DDR vote when idle. A USB-C attach can wake the Thor, and charger updates don't wake it from s2idle.
 - **KERN-5** The Wi-Fi PCIe link powers down in sleep and retrains on resume.
-- **KERN-6** The GPU holds no DDR vote in sleep.
+- **KERN-6** Neither the GPU nor the unused crypto engine holds a DDR vote in sleep.
 - **KERN-7** The audio block (LPASS) is released in sleep, so CX can collapse, and audio resumes afterwards.
 - **KERN-8** The fan's tach and RPM timer don't wake s2idle. Charge current is controllable, which is what the charge limit relies on.
 
