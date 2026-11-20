@@ -7,6 +7,9 @@ that adds:
 - **Thor support** ROCKNIX lacks: working sleep, both screens, touch, gyro, a charge limit and tuned audio.
 - **Settings, an in-game menu and tools** on the device, so the Thor never needs a keyboard or SSH.
 
+**📖 [Read the Asgard OS wiki](https://github.com/AsgardOperationSystem/asgardos/wiki)**: install, every feature with
+screenshots, troubleshooting.
+
 > **Experimental.** Asgard is built and tested by one person on one AYN Thor Pro. Installing it replaces the Thor's
 > bootloader with OpenABL: read the [Install guide](https://github.com/AsgardOperationSystem/asgardos/wiki/Install)
 > whole before you start.
