@@ -53,7 +53,7 @@ The merge requests of the old GitLab project, copied here before it was deleted 
 <a id="mr-1"></a>
 ## !1: Carry ROCKNIX PR #3126: SM8550 deep suspend/resume
 
-Merged 2026-10-09 from `rocknix-pr3126`, commit [`ea081967a1`](https://github.com/AsgardOperationSystem/asgardos/commit/ea081967a1c98f33279febf740d27b5f8b483a80).
+Merged 2026-10-09 from `rocknix-pr3126`, commit [`11f8ea1177`](https://github.com/AsgardOperationSystem/asgardos/commit/11f8ea1177b8c7a018a8957d8c62e1bc0c001204).
 
 #### Problem
 ROCKNIX `next` has no working suspend/resume on SM8550: the gamepad MCU, UFS, Wi-Fi and the USB role break or hang around sleep.
@@ -67,7 +67,7 @@ Once #3126 is merged and the `rocknix` pin moves past it.
 <a id="mr-2"></a>
 ## !2: SM8550 cmdline: s2idle and fw_devlink sync_state timeout
 
-Merged 2026-10-09 from `sm8550-s2idle-cmdline`, commit [`ef412aa62d`](https://github.com/AsgardOperationSystem/asgardos/commit/ef412aa62da162640cddd5457a98e8eff7f6a4e6).
+Merged 2026-10-09 from `sm8550-s2idle-cmdline`, commit [`fd4aa76947`](https://github.com/AsgardOperationSystem/asgardos/commit/fd4aa76947b3fa1f19aae7136f8d41c1d9f389ed).
 
 #### Problem
 - With PSCI `deep` the last CPU never reached `cluster_sleep_1`.
@@ -82,7 +82,7 @@ Merged 2026-10-09 from `sm8550-s2idle-cmdline`, commit [`ef412aa62d`](https://gi
 <a id="mr-3"></a>
 ## !3: Thor quirk: re-enable CPU0 idle state1
 
-Merged 2026-10-09 from `thor-cpu0-idle`, commit [`1c0e467b3c`](https://github.com/AsgardOperationSystem/asgardos/commit/1c0e467b3c91e9b799fea93574ff26e557056059).
+Merged 2026-10-09 from `thor-cpu0-idle`, commit [`9466bbb755`](https://github.com/AsgardOperationSystem/asgardos/commit/9466bbb7554c240497984027651bd18197c13ad8).
 
 #### Problem
 ROCKNIX quirk `096-cpuidle` disables CPU0 idle state1 ("GMU issues"). With CPU0 stuck in WFI the cluster never powers down: s2idle never reaches `cluster_sleep_1`, watchdogs kill logind/journald at resume, and Wi-Fi stays blocked.
@@ -99,7 +99,7 @@ GPU hangs / `fenced register write (0x8a1)`, the reason ROCKNIX added 096.
 <a id="mr-4"></a>
 ## !4: Apply regulator suspend states in s2idle; keep L15B in LPM
 
-Merged 2026-10-09 from `s2idle-regulator-mem-state`, commit [`df953b9c5c`](https://github.com/AsgardOperationSystem/asgardos/commit/df953b9c5c3ac60fdd8c961d96ad96ddc2b072a3).
+Merged 2026-10-09 from `s2idle-regulator-mem-state`, commit [`4619c47223`](https://github.com/AsgardOperationSystem/asgardos/commit/4619c47223ae66a53bedccd1b67328f5d23a55f8).
 
 #### Problem
 The regulator core applies DT `regulator-state-mem` only for s2ram, but the Thor sleeps with s2idle, so no rail changed state in sleep.
@@ -114,7 +114,7 @@ This makes PR #3126's `bob2` off-in-suspend real: the gamepad MCU powers off in 
 <a id="mr-5"></a>
 ## !5: PCIe: keep a minimal DDR/LLCC vote in s2idle (suspend OPP)
 
-Merged 2026-10-09 from `pcie-suspend-opp`, commit [`6b3d6b29e4`](https://github.com/AsgardOperationSystem/asgardos/commit/6b3d6b29e492ba325148ba1a644ad55156ab6e6c).
+Merged 2026-10-09 from `pcie-suspend-opp`, commit [`f98eb85e15`](https://github.com/AsgardOperationSystem/asgardos/commit/f98eb85e158b7ac4e49ce14937019063abe2c0db).
 
 #### Problem
 Dropping the PCIe interconnect vote completely in sleep lets AOP sleep but the firmware never returns to Linux (hang on wake, seen on the Thor and RP6). Leaving the full vote keeps DDR up.
@@ -128,7 +128,7 @@ Kernel `0220` + `0221` from [Thorch #19](https://github.com/thorch-os/thorch/pul
 <a id="mr-6"></a>
 ## !6: SM8550: runtime-autosuspend the primary USB controller
 
-Merged 2026-10-09 from `usb-autosuspend`, commit [`120b71941a`](https://github.com/AsgardOperationSystem/asgardos/commit/120b71941a23be9ff154f2ef1c025191328828ae).
+Merged 2026-10-09 from `usb-autosuspend`, commit [`10ed5d4d0f`](https://github.com/AsgardOperationSystem/asgardos/commit/10ed5d4d0f905b6848a4c386f6220b0a9797e199).
 
 #### Problem
 `a600000.usb` stayed runtime-active while idle and held a 1 GB/s USB→DDR interconnect vote.
@@ -139,7 +139,7 @@ udev rule: `power/control=auto` for it (from [Thorch #19](https://github.com/tho
 <a id="mr-7"></a>
 ## !7: ADSP smp2p sleepstate: tell the ADSP when the CPUs sleep (experimental)
 
-Merged 2026-10-09 from `adsp-smp2p-sleepstate`, commit [`aa9deb87cc`](https://github.com/AsgardOperationSystem/asgardos/commit/aa9deb87cccb92f140888f9654b4a6b086641eb0).
+Merged 2026-10-09 from `adsp-smp2p-sleepstate`, commit [`93f6dbf38d`](https://github.com/AsgardOperationSystem/asgardos/commit/93f6dbf38d3a936124d4cbd97a932938c44363fe).
 
 #### Problem
 Even with PR #3126 the SoC rails never collapse in sleep (`aosd`/`cxsd`/`ddr` stay 0, ~4–5 %/h). Android signals CPU sleep to the ADSP over smp2p `sleepstate`; mainline has no driver.
@@ -154,7 +154,7 @@ Experimental: effect on sleep current unmeasured.
 <a id="mr-8"></a>
 ## !8: rsinput: parse oversized RX chunks (gamepad dead after resume)
 
-Merged 2026-10-09 from `rsinput-oversized-rx`, commit [`c5453b9254`](https://github.com/AsgardOperationSystem/asgardos/commit/c5453b925466796f828076afc413ebc02f6b2046).
+Merged 2026-10-09 from `rsinput-oversized-rx`, commit [`70958a794d`](https://github.com/AsgardOperationSystem/asgardos/commit/70958a794d40923d9cb97f4bf17b886c18cb0282).
 
 #### Problem
 Gamepad dead after resume: `rsinput_resume returns -110` (3/3 handshakes) with `RX buffer overflow` ~1/s. After resume the UART hands the driver >1024 bytes at once, and it dropped the whole chunk, version reply included.
@@ -168,7 +168,7 @@ Handshake first try on resume, 0 overflows; menu and mid-game sleep pass.
 <a id="mr-9"></a>
 ## !9: Thor DT: enable UHS-I SDR104 on the SD slot
 
-Merged 2026-10-09 from `sd-uhs-sdr104`, commit [`76b95ef449`](https://github.com/AsgardOperationSystem/asgardos/commit/76b95ef44999cf3152adab359773ad9954fc72c7).
+Merged 2026-10-09 from `sd-uhs-sdr104`, commit [`9ee8738c6c`](https://github.com/AsgardOperationSystem/asgardos/commit/9ee8738c6cbd71a1656233e8a693b1e49a85e87d).
 
 #### Problem
 `sdhci-caps-mask = <0x3 0x0>` masked SDR50/SDR104, so the card ran 3.3 V high-speed: **16.6 MB/s**.
@@ -185,7 +185,7 @@ Thorch keeps the mask on purpose ("unstable UHS modes"); watch for mmc errors af
 <a id="mr-10"></a>
 ## !10: UFS: map SM8550's 300 MHz UniPro clock to HS-G5
 
-Merged 2026-10-09 from `ufs-hs-g5`, commit [`8ce3096272`](https://github.com/AsgardOperationSystem/asgardos/commit/8ce30962724afe1b4279956d39cad30a7708152a).
+Merged 2026-10-09 from `ufs-hs-g5`, commit [`c422be2f8e`](https://github.com/AsgardOperationSystem/asgardos/commit/c422be2f8ef5876a2f40fa218593a48486b5c461).
 
 #### Problem
 SM8550's 300 MHz UniPro clock was mapped to HS-G4, so the UFS 4.0 storage never ran at G5.
@@ -199,7 +199,7 @@ Kernel `1024` (from Thorch's custom-kernel work).
 <a id="mr-11"></a>
 ## !11: ICNA3520 panel: enable Ultra Black
 
-Merged 2026-10-09 from `oled-ultra-black`, commit [`6c62b4e54e`](https://github.com/AsgardOperationSystem/asgardos/commit/6c62b4e54e91806989a0cfc416290c33199d8997).
+Merged 2026-10-09 from `oled-ultra-black`, commit [`be552f0539`](https://github.com/AsgardOperationSystem/asgardos/commit/be552f0539eee88359948e5e05a72cf68c7e895f).
 
 #### Problem
 Dark backgrounds on the top OLED show colour shift/mura at low brightness. Android fixes this with AYN's hidden "OLED Ultra Black Mode"; Linux never sent it.
@@ -210,7 +210,7 @@ Kernel `9001`: the ICNA3520 driver sends AYN's enhance_color sequence (9F/B7/B8)
 <a id="mr-12"></a>
 ## !12: qcom_battmgr: AYN Thor charge limit (not working yet)
 
-Merged 2026-10-09 from `charge-limit`, commit [`a10f48096d`](https://github.com/AsgardOperationSystem/asgardos/commit/a10f48096d4fd288e967aaaaa303aebdf152bbe3).
+Merged 2026-10-09 from `charge-limit`, commit [`c8ebf8a8f6`](https://github.com/AsgardOperationSystem/asgardos/commit/c8ebf8a8f6a24484c8a502caac8a0d1a0dc9b2b9).
 
 #### Goal
 An 80 % charge limit like AYN's Android setting.
@@ -224,7 +224,7 @@ Kernel `9003`: send AYN's battery property 16 request (what Android's charger mo
 <a id="mr-13"></a>
 ## !13: Azahar 2126.0 → 2126.2 (HD texture pack crash / hard lock)
 
-Merged 2026-10-09 from `azahar-2126.2`, commit [`902cd48ce3`](https://github.com/AsgardOperationSystem/asgardos/commit/902cd48ce3d0d66543101f748a49be104fc373c1).
+Merged 2026-10-09 from `azahar-2126.2`, commit [`55b017dead`](https://github.com/AsgardOperationSystem/asgardos/commit/55b017deada11121777cad99549a3eea713300a1).
 
 > **Correction (2026-10-10):** 2126.2 does **not** fix the Alpha Sapphire freeze. The device notes had already found that azahar#2407 isn't the fix: it's a resolution-dependent GPU/display hang below Azahar (`dpu_encoder_frame_done_timeout`), still present on 2126.2 at auto resolution. Workaround: that game at 2× (per-game `resolution_scale`). 2126.2 is kept by choice. See the README's Status section.
 
@@ -236,7 +236,7 @@ Bump to 2126.2 (azahar#2407, texture-cache use-after-free) and rebase ROCKNIX's 
 <a id="mr-14"></a>
 ## !14: SM8550: drop Steam from the image (FEX thunks don't build)
 
-Merged 2026-10-09 from `drop-steam`, commit [`fe0080b49f`](https://github.com/AsgardOperationSystem/asgardos/commit/fe0080b49f8479fc3be1eb373155c0a00506656c).
+Merged 2026-10-09 from `drop-steam`, commit [`f6896dae2b`](https://github.com/AsgardOperationSystem/asgardos/commit/f6896dae2bc9291c02245f592d6d66734e166ed2).
 
 #### Problem
 FEX-Emu's 32-bit thunks fail with GCC 16.2 (`'long double' does not match '__float128'`), failing the SM8550 image build.
@@ -247,7 +247,7 @@ Leave `steam` out of the SM8550 emulator list until FEX builds again.
 <a id="mr-15"></a>
 ## !15: melonDS: hide the Qt menu bar in two-window layouts
 
-Merged 2026-10-09 from `melonds-menu-bar`, commit [`e27684b115`](https://github.com/AsgardOperationSystem/asgardos/commit/e27684b1159f40bc5b8b937c521bd2066a3807d5).
+Merged 2026-10-09 from `melonds-menu-bar`, commit [`5cfc770e9d`](https://github.com/AsgardOperationSystem/asgardos/commit/5cfc770e9d4ad3e6550bbbff119306e47b1ffa25).
 
 #### Problem
 In two-window layouts melonDS shows its Qt menu bar on the window it doesn't fullscreen; there's no setting, and F11 doesn't react to uinput.
@@ -258,7 +258,7 @@ A stylesheet collapsing `QMenuBar`, passed with `-stylesheet` from `start_melond
 <a id="mr-16"></a>
 ## !16: Add the asgard package: Thor boot tuning
 
-Merged 2026-10-09 from `asgard-package-boot-tuning`, commit [`289356282f`](https://github.com/AsgardOperationSystem/asgardos/commit/289356282f8d3fe35714a79f0bd94fa81228e32f).
+Merged 2026-10-09 from `asgard-package-boot-tuning`, commit [`5ec0ab40aa`](https://github.com/AsgardOperationSystem/asgardos/commit/5ec0ab40aa9df8990b55685d961a269e2021d6b6).
 
 #### What
 - Patch `0008`: a new `asgard` package in the SM8550 image (scripts, services, apps of this OS).
@@ -270,7 +270,7 @@ ROCKNIX never sets a hostname from its own setting nor caps clocks; idle sat at 
 <a id="mr-17"></a>
 ## !17: asgard.yml: personal settings outside the image
 
-Merged 2026-10-09 from `asgard-yml`, commit [`40ce3483bd`](https://github.com/AsgardOperationSystem/asgardos/commit/40ce3483bdacc7ce7f284fe1b1425ba86c37536f).
+Merged 2026-10-09 from `asgard-yml`, commit [`b06c75e040`](https://github.com/AsgardOperationSystem/asgardos/commit/b06c75e040b10ab0b95b0c9122fba34fb0e1ae69).
 
 #### Problem
 ROCKNIX preconfigures images with `LOCAL_WIFI_SSID`/`LOCAL_WIFI_KEY`/`LOCAL_SSH_KEYS_FILE`, which bake secrets into the image.
@@ -286,7 +286,7 @@ ROCKNIX preconfigures images with `LOCAL_WIFI_SSID`/`LOCAL_WIFI_KEY`/`LOCAL_SSH_
 <a id="mr-18"></a>
 ## !18: Display sleep hook: restore only the screens that were on
 
-Merged 2026-10-09 from `display-sleep-hook`, commit [`ca41afc8c6`](https://github.com/AsgardOperationSystem/asgardos/commit/ca41afc8c6bb16a1360332e79526e6fa69590d68).
+Merged 2026-10-09 from `display-sleep-hook`, commit [`8b8e4143cd`](https://github.com/AsgardOperationSystem/asgardos/commit/8b8e4143cd96ded705178837767eff4f15af9fac).
 
 #### Problem
 After resume the bottom panel came back on (black) even if it was off before sleep.
@@ -300,7 +300,7 @@ After resume the bottom panel came back on (black) even if it was off before sle
 <a id="mr-19"></a>
 ## !19: Bottom screen: landscape rotation and dual-screen window rules
 
-Merged 2026-10-09 from `bottom-screen-rotation`, commit [`a3b1713d45`](https://github.com/AsgardOperationSystem/asgardos/commit/a3b1713d454393bdfde6a836d949780052a3b9bc).
+Merged 2026-10-09 from `bottom-screen-rotation`, commit [`4173774487`](https://github.com/AsgardOperationSystem/asgardos/commit/417377448759a8be50ab14ca65d1b33bb64a7847).
 
 #### Problem
 - The bottom panel (DSI-1) stayed portrait 1080x1240.
@@ -312,7 +312,7 @@ A `sway.service` drop-in runs `thor-sway-rotate.sh`, which appends the rotation 
 <a id="mr-20"></a>
 ## !20: OLED guard: screens off after 5 minutes without input
 
-Merged 2026-10-09 from `oled-idle-blank`, commit [`16866e22c7`](https://github.com/AsgardOperationSystem/asgardos/commit/16866e22c788b5c65ac399637d184eb48c0ce324).
+Merged 2026-10-09 from `oled-idle-blank`, commit [`f3b5e0eefe`](https://github.com/AsgardOperationSystem/asgardos/commit/f3b5e0eefe30129a31ffc275b96596a240725aab).
 
 #### Problem
 Both screens are OLED; a static menu left on burns in.
@@ -323,7 +323,7 @@ Both screens are OLED; a static menu left on burns in.
 <a id="mr-21"></a>
 ## !21: Battery logger for sleep drain and charging diagnostics
 
-Merged 2026-10-09 from `battery-logger`, commit [`481f16ceac`](https://github.com/AsgardOperationSystem/asgardos/commit/481f16ceacb075213a1da4ebb5d99c577b5412f7).
+Merged 2026-10-09 from `battery-logger`, commit [`b72c56edab`](https://github.com/AsgardOperationSystem/asgardos/commit/b72c56edab43c5ebedd5cd1e7f3a678c0bf65916).
 
 #### Problem
 No way to measure sleep drain, and a not-charging-after-sleep case left no data (journal is in RAM).
@@ -334,7 +334,7 @@ No way to measure sleep drain, and a not-charging-after-sleep case left no data 
 <a id="mr-22"></a>
 ## !22: Speaker DSP: the Android "Thor Speakers" EQ as a PipeWire filter chain
 
-Merged 2026-10-09 from `speaker-dsp`, commit [`e8db6816bf`](https://github.com/AsgardOperationSystem/asgardos/commit/e8db6816bf24611e8570a6d6b5beddd6c9c2d2d9).
+Merged 2026-10-09 from `speaker-dsp`, commit [`b924802db5`](https://github.com/AsgardOperationSystem/asgardos/commit/b924802db5ea7defe8c546e71a6b446ed7bf4fcb).
 
 #### Problem
 Without Android's JamesDSP preset the speakers sounded thin and harsh.
@@ -345,7 +345,7 @@ PipeWire filter chains: the "Thor Speakers" 15-band EQ for the speakers, a loudn
 <a id="mr-23"></a>
 ## !23: Thor Settings: the system menus, controller-driven
 
-Merged 2026-10-09 from `thor-settings`, commit [`e867a96fc3`](https://github.com/AsgardOperationSystem/asgardos/commit/e867a96fc3fc84793d859ffc675981861e67b525).
+Merged 2026-10-09 from `thor-settings`, commit [`dafdefdb63`](https://github.com/AsgardOperationSystem/asgardos/commit/dafdefdb63ced5bfd34443d0f768f8c31063fa8b).
 
 #### Problem
 ROCKNIX keeps every system setting inside its EmulationStation, which Asgard replaces.
@@ -359,7 +359,7 @@ Thor Settings: Game/System Options (from ROCKNIX's `es_features.cfg`), Wi-Fi, Bl
 <a id="mr-24"></a>
 ## !24: AYN button → Thor Panel; Home tap opens the emulator menu
 
-Merged 2026-10-09 from `ayn-button-thor-panel`, commit [`0aa8e69acf`](https://github.com/AsgardOperationSystem/asgardos/commit/0aa8e69acf5fe3e2f1fd5c8d191be3f78e28901a).
+Merged 2026-10-09 from `ayn-button-thor-panel`, commit [`0bbb8f5f0e`](https://github.com/AsgardOperationSystem/asgardos/commit/0bbb8f5f0e819664550056ca4259b83da9c5f060).
 
 #### Problem
 The AYN key did nothing on Linux, and there was no one-button way into an emulator's menu.
@@ -370,7 +370,7 @@ The AYN key did nothing on Linux, and there was no one-button way into an emulat
 <a id="mr-25"></a>
 ## !25: Asgard Home: iiSU-style dual-screen frontend
 
-Merged 2026-10-09 from `asgard-home`, commit [`45c1bc3b41`](https://github.com/AsgardOperationSystem/asgardos/commit/45c1bc3b4182764ec072cd2523cbd54db4f33613).
+Merged 2026-10-09 from `asgard-home`, commit [`ef9e419041`](https://github.com/AsgardOperationSystem/asgardos/commit/ef9e419041345ddae2ea7a31d226fdf3937cd990).
 
 #### Why
 ROCKNIX ES looks dated and isn't built for the Thor's two screens. Asgard Home is our own frontend, styled after iiSU's dual-screen home (own code and artwork).
@@ -386,7 +386,7 @@ Trophies/profile/apps tabs, Details/Menu/favourites, sounds, system artwork, our
 <a id="mr-26"></a>
 ## !26: Boot into Asgard Home; drop ROCKNIX ES
 
-Merged 2026-10-09 from `boot-asgard-home`, commit [`fbfef75dc7`](https://github.com/AsgardOperationSystem/asgardos/commit/fbfef75dc78a96f03e5ad10b883447bd5d8f04e2).
+Merged 2026-10-09 from `boot-asgard-home`, commit [`12127eadfc`](https://github.com/AsgardOperationSystem/asgardos/commit/12127eadfc5eef64eff76ce9a7fc18193223a35f).
 
 #### What
 - Patch `0009`: no ROCKNIX ES / es-themes in the image.
@@ -399,7 +399,7 @@ Locale generation for `system.language`; ROCKNIX's sway rules keyed to ES's app_
 <a id="mr-27"></a>
 ## !27: Thor DT: FastRPC remote heap for the ADSP sensors PD
 
-Merged 2026-10-09 from `thor-dt-fastrpc-heap`, commit [`38e445ca37`](https://github.com/AsgardOperationSystem/asgardos/commit/38e445ca3713ada477c0fb2ed01755ebd5a31259).
+Merged 2026-10-09 from `thor-dt-fastrpc-heap`, commit [`7c0ce63dec`](https://github.com/AsgardOperationSystem/asgardos/commit/7c0ce63dec821e68722c3fb8d509802fbe5c2e10).
 
 #### Problem
 Gyro, step 2: the Thor's IMU (SH5001) is behind the ADSP's sensor core. With a FastRPC server attached, the sensors PD rewrote its registry but its QMI service (svc 400) never registered: `no reserved DMA memory for FASTRPC`.
@@ -413,7 +413,7 @@ Patch `0010`: a 16 MiB reusable `shared-dma-pool` below 4 GiB (`fastrpc_mem`) as
 <a id="mr-28"></a>
 ## !28: Gyro step 2: ADSP sensors PD server (hexagonrpcd)
 
-Merged 2026-10-09 from `adsp-sensors-pd`, commit [`2a8cdec727`](https://github.com/AsgardOperationSystem/asgardos/commit/2a8cdec72783fe9ef4a18b2cd0f47b56c8637e68).
+Merged 2026-10-09 from `adsp-sensors-pd`, commit [`efaee11adb`](https://github.com/AsgardOperationSystem/asgardos/commit/efaee11adb63bee1322564a45e6603442e770a1c).
 
 #### Problem
 Gyro step 2: the SH5001 gyro/accel live in the ADSP's sensor core, whose QMI service (svc 400) only starts when a userspace FastRPC server serves the sensors PD its files (Android's `sscrpcd`). Nothing did that on Linux.
@@ -433,7 +433,7 @@ With the FastRPC heap (!27): svc 400 on node 5 within seconds.
 <a id="mr-29"></a>
 ## !29: README: status (working / in progress / broken)
 
-Merged 2026-10-09 from `readme-status`, commit [`54ad54bbdc`](https://github.com/AsgardOperationSystem/asgardos/commit/54ad54bbdc7aacb19dab20c1e43e458b3ff536ed).
+Merged 2026-10-09 from `readme-status`, commit [`a440522953`](https://github.com/AsgardOperationSystem/asgardos/commit/a4405229536cc374386f380efab13bb24ed99685).
 
 Adds a **Status** section to the README: verified on the Thor / in progress or untested / known broken. No Asgard image has booted yet, so "verified" means on the ROCKNIX PR #3126 build with the same changes applied by hand.
 
@@ -442,14 +442,14 @@ Also corrects the Azahar row: 2126.2 does **not** fix the Alpha Sapphire freeze 
 <a id="mr-30"></a>
 ## !30: README: move the sensors root over on the first Asgard boot
 
-Merged 2026-10-09 from `readme-sensors-migration`, commit [`7ceafe5b90`](https://github.com/AsgardOperationSystem/asgardos/commit/7ceafe5b908f67597026d9555815e26c0f133523).
+Merged 2026-10-09 from `readme-sensors-migration`, commit [`c1b4e50a84`](https://github.com/AsgardOperationSystem/asgardos/commit/c1b4e50a84353e752d8c943145d371d3d0f6d9f9).
 
 Adds the one-time migration step to the README's gyro section: copy the Thor's existing root (`/storage/.config/thor/sensors/root2`) to `/storage/.config/asgard/sensors-root` on the first Asgard boot, then start `thor-sensorspd`.
 
 <a id="mr-31"></a>
 ## !31: Trophies tab: RetroAchievements
 
-Merged 2026-10-09 from `trophies`, commit [`1a6c5581ec`](https://github.com/AsgardOperationSystem/asgardos/commit/1a6c5581ecfb4244fe601e219fb941d846375430).
+Merged 2026-10-09 from `trophies`, commit [`ec96d748a1`](https://github.com/AsgardOperationSystem/asgardos/commit/ec96d748a153c3cf0a2f36fe6bef4be530c77521).
 
 #### What
 The **Trophies** tab: RetroAchievements progress for the games on the device.
@@ -470,7 +470,7 @@ GameCube `.rvz` can't be hashed (rcheevos); RA has no 3DS sets.
 <a id="mr-32"></a>
 ## !32: Thor Settings: charge limit 80 % / Off
 
-Merged 2026-10-10 from `charge-limit-choice`, commit [`43eaba37d0`](https://github.com/AsgardOperationSystem/asgardos/commit/43eaba37d0c7fb41b17fb6ef6f0b49ef53a83c96).
+Merged 2026-10-10 from `charge-limit-choice`, commit [`1f50b19510`](https://github.com/AsgardOperationSystem/asgardos/commit/1f50b19510e8ef244e130f9c9a970f3ae22aaf29).
 
 Thor Settings → System → **Charge limit**: 80 % (default, battery longevity) or Off (charge to 100 %). Stores `asgard.charge_limit` (applied at boot by `090-asgard-tuning`, also settable from asgard.yml) and writes the threshold immediately.
 
@@ -479,7 +479,7 @@ Thor Settings → System → **Charge limit**: 80 % (default, battery longevity)
 <a id="mr-33"></a>
 ## !33: First boot fixes: sound, boot suspend, d-pad, game screens, services; X screens off, touch, faster trophies
 
-Merged 2026-10-10 from `boot-fixes`, commit [`0321bde6ac`](https://github.com/AsgardOperationSystem/asgardos/commit/0321bde6ac960932e641e41f8819f667772a7054).
+Merged 2026-10-10 from `boot-fixes`, commit [`95852cd3ff`](https://github.com/AsgardOperationSystem/asgardos/commit/95852cd3ffcdf6e7a9bc37a9c9f75ef7b5e857d4).
 
 #### What the first boot of Asgard OS found, and the fixes (verified on the Thor after reinstalling)
 
@@ -500,7 +500,7 @@ After reinstalling: 0 suspends at boot, sound card present, all services active,
 <a id="mr-34"></a>
 ## !34: Frontend polish: system art, Start/Select, emulator choice, Thor Panel fan control
 
-Merged 2026-10-10 from `frontend-polish`, commit [`14f920dd7f`](https://github.com/AsgardOperationSystem/asgardos/commit/14f920dd7f925c4a6285d8f78314e4c185301ebb).
+Merged 2026-10-10 from `frontend-polish`, commit [`5f45db1bc5`](https://github.com/AsgardOperationSystem/asgardos/commit/5f45db1bc5bcd1e143d226340d97d4e81191a95e).
 
 Frontend polish asked for while testing the first Asgard boot; installed and checked on the Thor.
 
@@ -516,7 +516,7 @@ Not in here: touch still unconfirmed on the device (needs a recorded test), and 
 <a id="mr-35"></a>
 ## !35: Top screen stays lit: window placement and screens-off recovery
 
-Merged 2026-10-10 from `window-placement`, commit [`4aaed260ad`](https://github.com/AsgardOperationSystem/asgardos/commit/4aaed260ad420929fd76434936597327f5c35afc).
+Merged 2026-10-10 from `window-placement`, commit [`c2f335229c`](https://github.com/AsgardOperationSystem/asgardos/commit/c2f335229cdb2638ea91ca4501bb7810bba67f0d).
 
 #### Top screen dark, bottom lit
 Two ways to end up there, both checked on the Thor:
@@ -528,7 +528,7 @@ Also: `dev.sh thor` uploads beside the running binary (it failed silently over a
 <a id="mr-36"></a>
 ## !36: Volume/brightness slider OSD
 
-Merged 2026-10-10 from `volume-osd`, commit [`3e73221ff5`](https://github.com/AsgardOperationSystem/asgardos/commit/3e73221ff56eb7ea8f1b6920321202f0d7864d53).
+Merged 2026-10-10 from `volume-osd`, commit [`c399ede3d3`](https://github.com/AsgardOperationSystem/asgardos/commit/c399ede3d3491e227f6ea1e267b0bd37b8c9265c).
 
 Volume and brightness keys now show a slider (a mako progress bar) instead of the "Volume: 70%" text toast. Holding a key moves the same bar instead of stacking notifications.
 
@@ -542,7 +542,7 @@ Tested live on the Thor with a bind-mounted `input_sense`.
 <a id="mr-37"></a>
 ## !37: Asgard boot splash
 
-Merged 2026-10-10 from `boot-splash`, commit [`f161e4398e`](https://github.com/AsgardOperationSystem/asgardos/commit/f161e4398e853a0c999c4f9fca70181e0d346ed1).
+Merged 2026-10-10 from `boot-splash`, commit [`4451611a88`](https://github.com/AsgardOperationSystem/asgardos/commit/4451611a8834ab1a5d183a97df5247190ef9b1b0).
 
 Boot splash draws "ASGARD" (Nunito Black, OFL) in the aurora purple instead of the ROCKNIX logo.
 
@@ -556,7 +556,7 @@ Patch applies and compiles on the host; shows on the next image build.
 <a id="mr-38"></a>
 ## !38: Thor Panel on top of the frontend
 
-Merged 2026-10-10 from `thor-panel-on-top`, commit [`c2fd9f734e`](https://github.com/AsgardOperationSystem/asgardos/commit/c2fd9f734ee11c46a677a9c0a82c04ccf87bfa45).
+Merged 2026-10-10 from `thor-panel-on-top`, commit [`9af6e2c5b1`](https://github.com/AsgardOperationSystem/asgardos/commit/9af6e2c5b1d943e7924653dd66bc91bfc31fc2a2).
 
 Thor Panel opened as a half-width tiled window behind Asgard Home's fullscreen bottom window, so the AYN button looked like it did nothing. A sway rule fullscreens it.
 
@@ -567,7 +567,7 @@ Verified live on the Thor (rule applied at runtime; the panel showed on top at 1
 <a id="mr-39"></a>
 ## !39: Fixed fan speed survives game launches
 
-Merged 2026-10-10 from `fan-manual`, commit [`f4035eb417`](https://github.com/AsgardOperationSystem/asgardos/commit/f4035eb41733c774fe3ce0c047c9c6aa6c5723de).
+Merged 2026-10-10 from `fan-manual`, commit [`d6bba592a2`](https://github.com/AsgardOperationSystem/asgardos/commit/d6bba592a2d6472b47173a402979fd67a863e0f4).
 
 A fixed fan speed chosen in Thor Panel was dropped on every game launch: `runemu.sh` restarts fancontrol, which went back to its curve (the panel showed 75%, the fan sat at 0%).
 
@@ -581,7 +581,7 @@ Verified on the Thor with a runtime drop-in: `systemctl restart fancontrol` -> s
 <a id="mr-40"></a>
 ## !40: Azahar: HD texture packs on by default
 
-Merged 2026-10-10 from `azahar-textures`, commit [`e482bbb89a`](https://github.com/AsgardOperationSystem/asgardos/commit/e482bbb89a5f0fb7ad2282a692eeabcf0ccacf65).
+Merged 2026-10-10 from `azahar-textures`, commit [`5bc97abf4f`](https://github.com/AsgardOperationSystem/asgardos/commit/5bc97abf4fc2c977c9155aa466c3622d977ac618).
 
 Azahar custom textures (HD packs in `load/textures`) are now set on every launch, on by default; `3ds.custom_textures=0` (per system or per game) turns them off. The image default config had them off.
 
@@ -593,7 +593,7 @@ Azahar custom textures (HD packs in `load/textures`) are now set on every launch
 <a id="mr-41"></a>
 ## !41: Fewer modesets around game launches
 
-Merged 2026-10-10 from `screen-modesets`, commit [`fc6ee6ffd7`](https://github.com/AsgardOperationSystem/asgardos/commit/fc6ee6ffd73f88a2c841518a675700e652e0c6d9).
+Merged 2026-10-10 from `screen-modesets`, commit [`fecf474c32`](https://github.com/AsgardOperationSystem/asgardos/commit/fecf474c32653ec9875ed7f126baacf343b81978).
 
 The top panel hung again (`dpu_encoder_frame_done_timeout`, garbled until reboot) as a GBC game started. In about a second: Asgard Home powered the bottom panel off, ROCKNIX powered it back on for lowerdeck, and a sway rule re-rotated it 1.5 s later, while the game's top window committed.
 
@@ -607,7 +607,7 @@ Both dry-run on the Thor (no-ops in the normal state). The hang is intermittent,
 <a id="mr-42"></a>
 ## !42: build.sh stage: copy the update safely
 
-Merged 2026-10-10 from `safe-stage`, commit [`bfa48bd62a`](https://github.com/AsgardOperationSystem/asgardos/commit/bfa48bd62af1673206724df3f63b5c5abe1acb5d).
+Merged 2026-10-10 from `safe-stage`, commit [`92fcbdb004`](https://github.com/AsgardOperationSystem/asgardos/commit/92fcbdb00493019f5c2312edcd106f0cdecec21b).
 
 A copy of the update cut short by a reboot was taken for an update (the installer rejected it on md5, then that boot hung on the splash). `./build.sh stage` copies to `<name>.tar.part`, checks sha256 on the device, then renames; ROCKNIX's installer only picks up `*.tar`.
 
@@ -616,7 +616,7 @@ A copy of the update cut short by a reboot was taken for an update (the installe
 <a id="mr-43"></a>
 ## !43: README: status as of 2026-10-10
 
-Merged 2026-10-10 from `readme-status`, commit [`9b44436517`](https://github.com/AsgardOperationSystem/asgardos/commit/9b444365170948273d42e2021b5dee9d22eed521).
+Merged 2026-10-10 from `readme-status`, commit [`58fc81d5c7`](https://github.com/AsgardOperationSystem/asgardos/commit/58fc81d5c7e7db94758a5cf8387c03babc3f85b5).
 
 Status section rewritten for the current state: what is verified on the Thor, what is on the device waiting for a try, what is in progress (Steam research, scraper, Thor Panel), and known limitations.
 
@@ -625,7 +625,7 @@ Status section rewritten for the current state: what is verified on the Thor, wh
 <a id="mr-44"></a>
 ## !44: README: status 2026-10-10 (afternoon)
 
-Merged 2026-10-10 from `readme-2026-10-10b`, commit [`37f89f3666`](https://github.com/AsgardOperationSystem/asgardos/commit/37f89f36665bce4358d696555b6db6b3b9e5aabe).
+Merged 2026-10-10 from `readme-2026-10-10b`, commit [`947e941766`](https://github.com/AsgardOperationSystem/asgardos/commit/947e941766ee681f1b458742434b131eead4ec24).
 
 Status update for the work since the morning builds:
 
@@ -640,7 +640,7 @@ Status update for the work since the morning builds:
 <a id="mr-45"></a>
 ## !45: README: confirmed items, new ones to try
 
-Merged 2026-10-10 from `readme-confirmed`, commit [`d7eef3c3df`](https://github.com/AsgardOperationSystem/asgardos/commit/d7eef3c3df8fda76de4a79ca8328d386a1f40527).
+Merged 2026-10-10 from `readme-confirmed`, commit [`38a293b497`](https://github.com/AsgardOperationSystem/asgardos/commit/38a293b497044737465a11f0431e0f03b7bcd8a3).
 
 Status after testing on the Thor:
 

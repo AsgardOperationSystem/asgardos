@@ -75,7 +75,7 @@ None of these has a test. Each should get a rule or a fix.
 
 ## Still to check on a Thor
 
-- Rerun `./test-device.sh root@<thor>` after a sleep. 79 checks passed on 2026-11-01 on image `1e10fb2`, and 9 skipped: 8 need a sleep this boot, and one needs bypass charging on.
+- Rerun `./test-device.sh root@<thor>` after a sleep. 79 checks passed on 2026-11-01 on image `f514dc7`, and 9 skipped: 8 need a sleep this boot, and one needs bypass charging on.
 - `docs/human-checks.md` hasn't been done.
 - Not yet on a device, because they weren't in that image: PWR-11, PWR-10, BAT-2's alarm, GAME-2's Quit, CFG-4's writer, UPD-4's merge, GPU-3's freedreno choice, CFG-11, LOG-2's short report and the screens-on command. Each is ✅-eligible only after that (TEST-5).
 - GPU-3: compare a few OpenGL games on Zink and freedreno before changing the default.
