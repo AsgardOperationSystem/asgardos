@@ -1,0 +1,79 @@
+# Features: what works today
+
+Every feature of Asgard OS and how far it is checked. A feature is ✅ only after it was checked on a real Thor;
+built, or tested on a computer or against a fake, is 🧪. Emulators, ports and tools are in [emulators.md](emulators.md).
+User guides for each feature are in the [wiki](https://github.com/AsgardOperationSystem/asgardos/wiki).
+
+✅ works · 🧪 built, not yet tested on the device · ⚠️ partial or with a workaround · ❌ missing or broken ·
+⏸️ deferred · 👀 works, being watched
+
+| Feature | Status | Notes |
+|---|---|---|
+| **Frontend** | | |
+| Asgard Home | ✅ | Dual-screen frontend in iiSU's style: grid on top, detail card below, L+R swaps them. Replaces EmulationStation. |
+| Settings button | 🧪 | A gear beside the power button in the top bar opens Settings by touch (HOME-6). Host-tested; not checked on a Thor yet. |
+| Library and art | ✅ | System art, backdrops, covers, screenshots, play time, Recently played tile. |
+| Tile reordering | ✅ | Y or a long press, for consoles and games (saved per console). |
+| Trophies (RetroAchievements) | ✅ | Progress per game; ROMs hashed like RA does. Sign-in in Settings. |
+| Scraping | ⚠️ | Select → Scrape this game (libretro thumbnails). ScreenScraper is off until a developer ID is set; our own scraper is planned. |
+| Cheats | 🧪 | Select → Cheats (or the game's settings page): the game's cheats, on or off per game, applied at its next launch. RetroArch games, from libretro's cheat database in the image; 3DS (Azahar) from Sharkive; PSP (PPSSPP) from its CWCheat database, `.iso`/`.cso`/`.pbp` (not `.chd` yet); DS (melonDS, DraStic, SkyEmu) from libretro's; SkyEmu's GB/GBC from libretro's GameShark codes (none for its GBA). NanoBoyAdvance has no cheats (use RetroArch's mGBA), and the page says the same, with what to use instead, for every other emulator without cheats Asgard can drive; Mednafen (GB/GBC, GBA, NES, SNES, Mega Drive, Master System, Game Gear, PC Engine) from libretro's, decoded; Dreamcast (Flycast) from libretro's; N64 (mupen64plus) from its own database, else libretro's; PS1 (DuckStation) from libretro's, `.bin`/`.cue`/`.iso`/`.m3u` (not `.chd`); Switch (Eden, Eden Duo) from switch-cheats-db, for games whose title ID is in the file name or an NSP's ticket; GameCube/Wii (Dolphin) from Dolphin's own game inis; PS2 (ARMSX2, AetherSX2) from pcsx2_cheats_collection, `.iso`/`.bin`/`.cso` (not `.chd` yet). |
+| Back to Home | ✅ | Leave a game without quitting it (frozen, hidden); the first tile returns to it. |
+| In-game menu (Home) | ✅ | On the bottom screen: quick save/load, screenshot, restart, quit, plus each emulator's own items (see the emulator table). |
+| In-game Wi-Fi and Bluetooth | 🧪 | The menu's Wi-Fi and Bluetooth tile opens Settings' pages drawn as the menu: its header, big tiles, B back (MENU-6). Built, host-tested (offscreen screenshots); not checked on a Thor. |
+| In-game Performance tile | ✅ | A game's CPU cap per core type and GPU cap from its in-game menu, saved to the game and applied on leaving the page. Checked on a Thor with the GPU cap in Brilliant Diamond (Eden): raised in game, applied without a restart, and kept in the game's overrides. The CPU rows use the same path but weren't tried there. PPSSPP, ARMSX2, AetherSX2 and Flycast use their own menus, so they don't have it yet. |
+| Start on Recently played → Settings | 🧪 | |
+| Language | ❌ | English only: Asgard Home has no translations. Since 2026-10-28 Home and everything it starts run in a UTF-8 locale (C.UTF-8). |
+| **Settings** | | |
+| Wi-Fi | ✅ | Scan, join, on-screen keyboard. |
+| Bluetooth | ✅ | Pair a new device scans and lists what's nearby. Checked on a Thor (2026-11-02) with a WH-1000XM4: forgotten, paired again from the page, connected over LDAC, and sound heard after an earlier pairing of it. Pairing a controller from the page hasn't been tried. With the lid closed, music stayed in the headphones without stutter when set to keep Bluetooth on; set off, Bluetooth comes back with the lid and the headphones reconnect with no press (checked by the user, 2026-11-13). After headphones drop during a game, its sound moves to the speaker (checked by the user in Eden, 2026-11-13). |
+| Bluetooth device battery | ✅ | Settings > Network > Bluetooth (and the in-game menu's) shows a connected device's battery: BlueZ's for headphones (over HFP: PipeWire's native backend and the kernel's RFCOMM) and BLE pads, the kernel's for DualSense, DualShock 4 and Switch Pro pads (NET-1). Checked on a Thor (2026-11-13) with a WH-1000XM4; pads haven't been tried. |
+| Bluetooth audio codec | ✅ | Settings > Network > Bluetooth (and the in-game menu's) shows the codec connected headphones or speakers play over (LDAC, aptX HD, AAC, SBC, or mSBC/CVSD for calls), read from PipeWire, and the device's page switches it with ‹ › between the ones it offers (NET-1). Checked on a Thor (2026-11-13) with a WH-1000XM4: LDAC shown, switching changed the codec and the sound came back on it, the row stays put during a switch, and the choice is kept after the headphones reconnect. |
+| VPN | 🧪 | Tailscale (sign-in link on screen), ZeroTier (join by network ID), WireGuard (`.conf` files from the Samba "config" share). Back ends checked 2026-10-28 (tailscaled up and asking for a login, ZeroTier online, a `.conf` imported); the sign-in and join flows from Settings are untested. |
+| USB mode, SSH, Samba, Syncthing | ✅ | |
+| Date and time, device name | ✅ | |
+| Per-emulator settings | ✅ | Default emulator and core per console, ROCKNIX's emulator options (shaders, aspect ratio, Azahar's resolution and layouts...) as settings rows. |
+| Per-game settings | ✅ | Emulator, core, the same options, CPU/fan profile and gyro, per game. |
+| GPU driver | ✅ | Turnip version selector. The image's Mesa 26.2.6 carries two upstream Turnip fixes from Mesa main: a GPU-hang register value for the A740 and flushes lost across split render passes 🧪. |
+| Calibration | ✅ | Touch and sticks. |
+| Stick and trigger calibration in Settings | 🧪 | Settings > Hardware > Calibration measures each stick and trigger in Asgard Home itself, then tests it before keeping it; Home exits from any step (CAL-4). GPcal is gone. A trigger's steps follow its own travel (a press no longer has to go a stick's distance). Settings answers the pad straight after closing it (no dead seconds while InputPlumber restarts). Host-tested; not checked on a Thor yet. |
+| Stick calibration from `asgard.yml` | 🧪 | `asgard.stick_calibration` puts a unit's stick calibration on a fresh install from the first boot; one made on the device wins (CAL-3). Host-tested; not checked on a Thor yet. |
+| `asgard.yml` | ✅ | Personal config outside the image (see below). Applied on a real boot 2026-10-28. |
+| **Thor Panel and overlays** | | |
+| Thor Panel (AYN button) | 🧪 | Status tiles, quick toggles, fan modes, gauges; volume and per-screen brightness with a link lock. The game is frozen while it's open. Rebuilt in Asgard Home's style (`asgard-panel`, 2026-10-28); touch and live toggles not yet checked on the device. |
+| Volume/brightness overlay | ✅ | Drawn above games in Asgard Home's style. |
+| **Screens and input** | | |
+| Dual screens | ✅ | Landscape bottom screen, games placed on the right screen, quiet boot, "ASGARD OS" splash on the top screen. |
+| 120 Hz on both screens | ⚠️ | Settings > Display, per screen. The top is fine. The bottom's colours wash out at 120 Hz (about 1.8× brighter, roughly half the saturation) until its panel commands are known, so it defaults to 60. Switch games default to 60 Hz on the top too (no Switch game runs faster, and it halves the top's redraws) 🧪. |
+| Full top brightness range | ✅ | The top panel goes to its 12-bit maximum (ROCKNIX stopped ~40 % short). |
+| Matched screen colours | ✅ | Per-screen white balance in the display hardware (`asgard-gamma`); the bottom defaults to tint +3, contrast +3, chosen by eye to sit close to the top while keeping shadow detail. It isn't an exact match: matching the top's white measured at tint +10. Adjustable per screen in Settings > Display. |
+| OLED Ultra Black, idle blank | ✅ | Ultra Black is on the top panel only and applies after the screen cycles. Burn-in protection: screens off after a timeout, and X turns both off. |
+| Touch on both screens | ✅ | Calibrated for the rotated panels. |
+| Top screen hang at game launch | ⚠️ | Intermittent. Fewer modesets at launch make it rarer, not proven gone. |
+| Bottom screen flicker | ⚠️ | Android's panel timings (`9046`) didn't cure it. |
+| Stick lights, fan | ✅ | Fan modes and fixed speeds survive game launches. |
+| Gyro (DSU / cemuhook) | ✅ | From the ADSP sensor core; Azahar uses it (aiming in Ocarina of Time 3D works). On per game: it keeps the DSP awake. |
+| Gyro for Steam and SDL games | 🧪 | On InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
+| **Power** | | |
+| Sleep (s2idle) | ✅ | Full SoC sleep (CX, AOSS, DDR), 20–30 mA (~0.3 %/h). Pad, Wi-Fi, audio and storage resume. Emulators don't replay the time asleep. A lid opened again while it's going down cancels the sleep (checked 2026-11-06). 🧪 The game stays silent through every lid-shut wake, aborted sleeps included (host-tested; not yet checked on a Thor). |
+| Sleep drain below ~23 mA | ⏸️ | Same ~22 mA floor on 7.2 and 7.3. Suspects: audio codec rails, devices on vph_pwr. See [docs/sleep.md](sleep.md). |
+| Charge limit | ✅ | Stops at the limit, starts again 5 % below. Bypass charging. |
+| Charge limit recalibration | 🧪 | Under the limit the gauge drifts (its full capacity up about 50 mAh a day, so 80 % holds more each day); once it's 5 % past the last full charge, the next charge goes to 100 % once, and Settings' Charge limit row says so (PWR-5). Host-tested; not checked on a Thor yet. |
+| Battery report | ✅ | What used the battery since the last unplug (sleep, Home, each emulator), time left. |
+| CPU cap, performance profiles | ✅ | Per core type, 25–100 %; per-game profiles. |
+| **Audio** | | |
+| Output follows the headphone jack | ✅ | |
+| One volume on every output | 🧪 | Bluetooth headphones, the jack and boot come up at the volume the keys step from, not a level saved for that output (AUD-3, 2026-11-17). Host-tested; not checked on a Thor. |
+| Speaker EQ | ✅ | Thor tuning (Android's preset), Joey's preset, or off. |
+| Headphone EQ (AutoEQ) | ✅ | Pick a profile by headphone model (~8,850); saved per headphone. |
+| Sound in the game menu, bass / mid / treble | 🧪 | EQ profile and ±6 dB tone per output, changed live from the menu or Settings with no gap (SND-7). Built, host-tested; not checked on a Thor. |
+| Menu sounds, charger chimes | ✅ | No lag after a pause: outputs stay open 60 s after a sound (checked 2026-11-06). |
+| **Storage** | | |
+| SD card (UHS-I SDR104, 76 MB/s) | 👀 | Android keeps UHS off as unstable; watch for mmc errors after sleep. |
+| UFS (HS-G5, 2.6–2.8 GB/s) | ✅ | |
+| SD card next to an internal install | 🧪 | A card boots its own partitions (`ASGARDSD`, `STORAGESD`), not the internal install's, and internal doesn't pick up the card's; updates keep each one's labels (UPD-8). Host-tested; not checked on a Thor yet. |
+| About page in Settings | 🧪 | Settings > About: the Asgard version, commit and build date, the Linux kernel's version, and Emulators, each shipped emulator's version taken from its package when the image is built (SET-6). Host-tested; not checked on a Thor yet. |
+| Storage page in Settings | 🧪 | Hardware > Storage: free, total and used space inside and on the SD card, where the games folder is, the system partition (SET-5). Built, host-tested; not checked on a Thor yet. |
+| **Logs** | | |
+| Event log, freeze reports, crash logs | ✅ | In `/storage/.config/thor/`: warnings, errors, kernel oopses, Wi-Fi and sleep events; a report for any boot that never shut down. Sway seat changes aren't logged. |
+| GPU `fenced register write` | 👀 | Occasional; no hang seen. |
+

@@ -139,4 +139,4 @@ name.
 - Every checklist item above checked, or noted as not applicable, in the emulator's commit message.
 - Sleep test (4) passed.
 - A crash test: `kill -SEGV` its process while a game runs. A log should appear in `crashes/` and a core in `coredumpctl`.
-- `docs/changes.md` and the README's emulator table updated, and the status table in 4 updated.
+- `docs/changes.md` and `docs/emulators.md` updated, and the status table in 4 updated.

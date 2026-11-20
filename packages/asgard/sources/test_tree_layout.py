@@ -10,7 +10,7 @@
 #   DEV-13  the build applies patches with `patch -p1` and fuzz on, and `git apply` only for what patch can't do.
 #   DEV-17  Python imports stay in the standard library, and there's no pip; Home is on Qt 6.
 #   DEV-19  every /storage, /run and /flash path SPEC names is still in the code.
-#   DEV-20  status lives only in the README, rule definitions only in SPEC.md, and the other homes exist.
+#   DEV-20  status lives only in docs/features.md and docs/emulators.md, rule definitions only in SPEC.md, and the other homes exist.
 #   DEV-21  files from the fork point keep their copyright lines; Asgard's own recipes are GPL-2.0.
 import ast
 import os
@@ -203,10 +203,11 @@ def check_named_paths():
 def check_homes(files):
     """DEV-20"""
     if re.search("[✅\U0001F9EA]", read("SPEC.md")):
-        problems.append("SPEC.md carries status marks: what works today goes in the README (DEV-20)")
-    if not re.search("[✅\U0001F9EA]", read("README.md")):
-        problems.append("the README has no status marks (DEV-20)")
-    for path in ("SPEC.md", "README.md", "docs/changes.md", "docs/testing.md"):
+        problems.append("SPEC.md carries status marks: what works today goes in docs/features.md (DEV-20)")
+    for path in ("docs/features.md", "docs/emulators.md"):
+        if not re.search("[✅\U0001F9EA]", read(path)):
+            problems.append(f"{path} has no status marks (DEV-20)")
+    for path in ("SPEC.md", "README.md", "docs/features.md", "docs/emulators.md", "docs/changes.md", "docs/testing.md"):
         if path not in files:
             problems.append(f"{path} is gone (DEV-20)")
     if not any(f.startswith("docs/plans/") for f in files):

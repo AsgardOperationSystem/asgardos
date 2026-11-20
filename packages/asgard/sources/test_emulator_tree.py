@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # spec: EMU-1 EMU-3 EMU-4 EMU-5 EMU-6 GAME-8 GAME-9 GPU-2 PORT-1
-# Tree checks over SPEC.md's emulator tables and the metapackage. EMU-1: the spec's and README's defaults match add_emu_core (the
+# Tree checks over SPEC.md's emulator tables and the metapackage. EMU-1: the spec's and docs/emulators.md's defaults match add_emu_core (the
 # systems kept from ROCKNIX: test_emulator_fork_systems.py). EMU-3: every package has its package.mk; names: test_emulator_names.py.
 # EMU-4: what the spec lists is in PKG_EMUS and LIBRETRO_CORES, and PKG_EMUS's are in the spec. GAME-8: the file holds each checklist topic (the process: human).
 # GAME-9: InputPlumber's Thor profile (that the raw pad is hidden: device check). GPU-2: the recipe and its version; the built tree: image.
@@ -16,7 +16,7 @@ def read(path):
         return f.read()
 
 
-SPEC, README = read("SPEC.md"), read("README.md")
+SPEC, README = read("SPEC.md"), read("docs/emulators.md")
 META = read("packages/virtual/emulators/package.mk")
 STANDALONE, LIBRETRO = "packages/emulators/standalone", "packages/emulators/libretro"
 
@@ -68,7 +68,7 @@ spec_cores = {c.strip().rstrip(".") for c in paragraph.replace("\n", " ").split(
 meta_cores = {c.removesuffix("-lr").removesuffix("_lr") for c in cores + [e for e in emus32 if e.endswith("-lr")]}
 assert spec_cores <= meta_cores, f"SPEC.md's cores not in the metapackage: {sorted(spec_cores - meta_cores)}"   # the reverse: test_emulator_core_list.py
 
-# EMU-1: a default in SPEC.md's table and the README's emulator table is the one add_emu_core registers, so changing one has to
+# EMU-1: a default in SPEC.md's table and docs/emulators.md's table is the one add_emu_core registers, so changing one has to
 # touch both. Package and core names differ a little: dolphin-sa-gc is dolphin-sa's, OpenBOR is openbor's.
 SYSTEMS = {"Nintendo 3DS": ["3ds"], "Nintendo Switch": ["switch"], "GameCube, Wii, Triforce": ["gamecube", "wii", "triforce"],
            "Wii U": ["wiiu"], "Nintendo DS": ["nds"], "PlayStation 2": ["ps2"], "PlayStation 3": ["ps3"], "PSP": ["psp"],
@@ -90,7 +90,7 @@ for row, cell in {**standalone_rows, **platform_rows}.items():
         emu, core = defaults[system]
         names = {emu.lower(), core.lower(), core.lower().rsplit("-", 1)[0]}
         assert bold in names or bold.removesuffix("-sa") in names, (row, system, bold, emu, core)
-# The README's table says it in words, so the words each default has to show.
+# docs/emulators.md's table says it in words, so the words each default has to show.
 README_DEFAULTS = {"Game Boy / Color": [("gb", "gambatte"), ("gbc", "gambatte")], "Game Boy Advance": [("gba", "mgba")],
                    "NES / SNES": [("nes", "nestopia"), ("snes", "snes9x")], "Nintendo 64": [("n64", "mupen64plus_next")],
                    "Nintendo DS": [("nds", "melonds-sa")], "Nintendo 3DS": [("3ds", "azahar-sa")],
@@ -98,9 +98,9 @@ README_DEFAULTS = {"Game Boy / Color": [("gb", "gambatte"), ("gbc", "gambatte")]
                    "PlayStation 2": [("ps2", "armsx2-sa")], "PSP": [("psp", "ppsspp-sa")], "Dreamcast": [("dreamcast", "flycast-sa")],
                    "**Steam**": [("steam", "steam")]}
 for row, pairs in README_DEFAULTS.items():
-    assert re.search(rf"^\| {re.escape(row)} \|", README, re.M), f"README's emulator table lost its row: {row}"
+    assert re.search(rf"^\| {re.escape(row)} \|", README, re.M), f"docs/emulators.md lost its row: {row}"
     for system, core in pairs:
-        assert defaults[system][1] == core, f"{system}'s default is {defaults[system]}: update the README's row {row} and this table"
+        assert defaults[system][1] == core, f"{system}'s default is {defaults[system]}: update docs/emulators.md's row {row} and this table"
 
 # EMU-3, EMU-6: each standalone package and core has its recipe with a version. That the plan covers each: test_emulator_versions_plan.py.
 plan = read("docs/plans/emulator-versions.md")

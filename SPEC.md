@@ -1,7 +1,7 @@
 # Asgard OS specification
 
-What Asgard OS is, what it does, what it ships, and the constraints it's developed under. What works today is in the
-`README.md`, and the reason behind each past change is in `docs/changes.md`. Rule IDs are stable, so tests and commits
+What Asgard OS is, what it does, what it ships, and the constraints it's developed under. What works today is in
+`docs/features.md` and `docs/emulators.md`, and the reason behind each past change is in `docs/changes.md`. Rule IDs are stable, so tests and commits
 can cite them.
 
 ## 1. What Asgard OS is
@@ -427,7 +427,7 @@ same_cdi, sameboy, sameduck, scummvm, skyemu, smsplus-gx, snes9x, snes9x2002, sn
 supersnes9x, swanstation, tgbdual, theodore, tic80, uae4arm, uzem, vba-next, vbam, vecx, vice, vircon32,
 virtualjaguar, wasm4, xmil, yabasanshiro.
 
-- **EMU-1** Every ROCKNIX system stays in the image. Changing a system's default emulator is a deliberate change, recorded in the README's emulator table.
+- **EMU-1** Every ROCKNIX system stays in the image. Changing a system's default emulator is a deliberate change, recorded in `docs/emulators.md`.
 
 ## 15. Development constraints
 
@@ -474,7 +474,7 @@ These keep one person able to maintain a fork of a large distribution and keep u
 - **DEV-17** Asgard Home is C++ and QML on the image's Qt 6. Asgard's services are shell and Python using the standard library and `ctypes`, with no pip dependencies.
 - **DEV-18** New logic that runs without hardware gets a `test_*` file next to its source, with paths overridable through the environment so it can run against a fake sysfs. Those files don't ship in the image. `./test.sh` runs them.
 - **DEV-19** Paths and setting names are interfaces: scripts, configs and installed systems rely on them.
-- **DEV-20** Each kind of fact has one home: this file for what must be true, the README for what works today, `docs/changes.md` and commit messages for why, `docs/plans/` for what's planned, `docs/testing.md` for how it's tested, and the project wiki for user guides (install, recovery). A change that alters an install or recovery step updates the wiki with it, and the wiki links to these files instead of restating their rules.
+- **DEV-20** Each kind of fact has one home: this file for what must be true, `docs/features.md` and `docs/emulators.md` for what works today (the README summarises and links them), `docs/changes.md` and commit messages for why, `docs/plans/` for what's planned, `docs/testing.md` for how it's tested, and the project wiki for user guides (install, recovery). A change that alters an install or recovery step updates the wiki with it, and the wiki links to these files instead of restating their rules.
 - **DEV-21** Original ROCKNIX and JELOS code keeps its copyright notices. Asgard's own packages are GPL-2.0.
 
 ## 16. Known gaps

@@ -15,7 +15,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 | DEV-16 | Before a release: `git ls-files` and the image hold no unit's calibration (`/storage/.config/thor` values) and no Android dump from `thor/`. Read new files under `packages/*/config`, `device/` and `usr/lib/firmware` in the file list diff. | |
 | DEV-18 | In review of a commit adding logic that runs without hardware: it adds a `test_*`, and its paths can be overridden through the environment. | |
 | DEV-19 | In review of a commit that renames a path or a setting: it converts what installed systems already hold (UPD-4), or the rename is dropped. test_tree_layout.py only covers paths SPEC names. | |
-| DEV-20 | Per release, read the README, SPEC, `docs/changes.md` and `docs/testing.md`: why is in changes, not SPEC; plans are in `docs/plans/`. test_tree_layout.py only covers status marks and rule definitions. | |
+| DEV-20 | Per release, read the README, `docs/features.md`, SPEC, `docs/changes.md` and `docs/testing.md`: why is in changes, not SPEC; plans are in `docs/plans/`. test_tree_layout.py only covers status marks and rule definitions. | |
 | DEV-21 | In review of a new file copied from ROCKNIX or JELOS: its notice came with it. test_tree_layout.py covers files that existed at the fork. | |
 | UPD-3 | On an idle Thor, stage a build and confirm nothing changes until the next reboot; then reboot and confirm it installs. Needs the owner's go for that reboot (TEST-6). During a game, staging only needs SSH: the game keeps running. | |
 | HOME-1 | Hold L and R together and let go: the two screens swap once and no tab changes. Press A and B: A is the east button, B the south one, as printed. | |
@@ -62,7 +62,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 | PORT-1 | Open Ports in Home: PortMaster starts, and a port it installed starts and quits from Home. | |
 | PORT-2 | Add a `.desktop` file with `X-Asgard-Kill=` naming its real process, start it from the PC system: the in-game menu's Quit game stops it. Then one with no `X-Asgard-Kill=`. | |
 | PORT-3 | Start Gen1 Recomp: it opens, takes the pad (as an XWayland window: `swaymsg -t get_tree` shows a `class`, no `app_id`), and no `libtheoradec` error is in `/var/log/exec.log`. | |
-| EMU-1 | When a system's default emulator changes: its row in the README's emulator table says so, and the commit gives the reason. | |
+| EMU-1 | When a system's default emulator changes: its row in `docs/emulators.md` says so, and the commit gives the reason. | |
 | BAT-3 | On a music game with Lid / power button set to Screens off, headphones in: close the lid. Screens go off, music keeps playing, and it doesn't suspend. Open it: both screens back, and the game's still where it was. | |
 | CFG-7 | After a fresh install or factory reset, with no `asgard.yml` and no `sensors-root/`: Thor boots to Home; open every Settings page, each row shows a value with no error; turn Gyro on in Settings and nothing hangs or complains; a game launches. | |
 | PERF-3 | Start a game with the menu's caps left at their defaults, and read over SSH (read-only) while it plays: `cat /sys/devices/system/cpu/cpufreq/policy{0,3,7}/scaling_max_freq` are each `cpuinfo_max_freq`, and `/sys/devices/system/cpu/online` is `0-7`. Quit: they're back at about 90, 75 and 75 %. | |
