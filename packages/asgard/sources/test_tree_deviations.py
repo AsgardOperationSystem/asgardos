@@ -22,7 +22,11 @@ NOT_CODE = [":!*.md", ":!docs", ":!packages/asgard/sources/test_*", ":!test-devi
 problems = []
 
 # DEV-15. SPEC 16: the Makefile's build image (the URLs moved to GitHub 2026-11-20).
-LAN = r"lan\.example|asgardos-owner|192\.168\.50\.|/mnt/(ConfigDisk|ServerDisk|SmallDisk)|Projects/asgard"
+LAN = r"asgardos-owner|192\.168\.50\.|/mnt/(ConfigDisk|ServerDisk|SmallDisk)|Projects/asgard"
+# Private host names stay out of the public tree: one regex per line in the git-ignored personal-patterns.local.
+LOCAL_PATTERNS = os.path.join(ROOT, "personal-patterns.local")
+if os.path.exists(LOCAL_PATTERNS):
+    LAN = "|".join([LAN] + [l.strip() for l in open(LOCAL_PATTERNS) if l.strip() and not l.startswith("#")])
 LAN_ALLOWED = {
     "Makefile": r"^docker-%: DOCKER_IMAGE := ",
     "test-device.sh": r"^#",  # not a build input: its usage line
@@ -42,7 +46,7 @@ ROCKNIX_DOWNLOADS = {
 }
 
 # DEV-11. Git-ignored things a person or a tool outside the build keeps at the root, and what a build leaves there.
-ROOT_LOCAL = {"build", "thor", "asgard.yml", "CLAUDE.local.md", ".git"}
+ROOT_LOCAL = {"build", "thor", "asgard.yml", "CLAUDE.local.md", "personal-patterns.local", ".git"}
 ROOT_BUILD_LEFTOVERS = {
     ".cache", ".config",  # SPEC 16: a Go package's build
     "target",  # SPEC 16: scripts/image's RELEASE_DIR, empty after a build. Reported.
@@ -125,9 +129,9 @@ def tree_files():
 
 def check_lan_hosts():
     """DEV-15"""
-    hits = grep(LAN)
-    if not any(path == "Makefile" for path, _ in hits):
+    if not grep(r"^docker-%: DOCKER_IMAGE := ", "Makefile"):   # a scan that finds nothing proves nothing
         problems.append("the scan didn't find what it knows is there (DEV-15)")
+    hits = grep(LAN)
     for path, text in hits:
         allowed = LAN_ALLOWED.get(path)
         if not allowed or not re.search(allowed, text):
