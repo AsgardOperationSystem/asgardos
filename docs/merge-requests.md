@@ -1,6 +1,6 @@
 # Merge requests (2026-10-09 to 10-10)
 
-The merge requests of the old project `asgardos/asgardos`, copied here before it was deleted (2026-10-30). Each one is a change on top of ROCKNIX: what was broken, why, and what changed. The commit links go to the merge commit in this repo. Later changes are ordinary commits; their messages carry the same.
+The merge requests of the old GitLab project, copied here before it was deleted (2026-10-30). Each one is a change on top of ROCKNIX: what was broken, why, and what changed. The commit links go to the merge commit in this repo. Later changes are ordinary commits; their messages carry the same.
 
 | ! | Title | Merged |
 |---|---|---|

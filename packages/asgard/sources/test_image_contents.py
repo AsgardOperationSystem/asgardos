@@ -17,8 +17,8 @@ import sys
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
 IMAGE = os.environ.get("ASGARD_IMAGE_SYSTEM",
                        os.path.join(ROOT, "build", "AsgardOS-SM8550.aarch64", "image", "system"))
-PERSONAL = [r"asgardos-owner", r"192\.168\.50\.", r"/mnt/(ConfigDisk|ServerDisk|SmallDisk)", r"Projects/asgard"]
-# Private host names stay out of the public tree: one regex per line in the git-ignored personal-patterns.local.
+PERSONAL = [r"192\.168\.50\.", r"/mnt/(ConfigDisk|ServerDisk|SmallDisk)", r"Projects/asgard"]
+# Private names (hosts, the owner's handle) stay out of the public tree: one regex per line in the git-ignored personal-patterns.local.
 LOCAL_PATTERNS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "personal-patterns.local")
 if os.path.exists(LOCAL_PATTERNS):
     PERSONAL += [l.strip() for l in open(LOCAL_PATTERNS) if l.strip() and not l.startswith("#")]

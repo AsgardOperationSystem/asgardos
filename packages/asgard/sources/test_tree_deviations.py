@@ -21,14 +21,13 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 NOT_CODE = [":!*.md", ":!docs", ":!packages/asgard/sources/test_*", ":!test-device.sh", ":!tools/test"]
 problems = []
 
-# DEV-15. SPEC 16: the Makefile's build image (the URLs moved to GitHub 2026-11-20).
-LAN = r"asgardos-owner|192\.168\.50\.|/mnt/(ConfigDisk|ServerDisk|SmallDisk)|Projects/asgard"
-# Private host names stay out of the public tree: one regex per line in the git-ignored personal-patterns.local.
+# DEV-15.
+LAN = r"192\.168\.50\.|/mnt/(ConfigDisk|ServerDisk|SmallDisk)|Projects/asgard"
+# Private names (hosts, the owner's handle) stay out of the public tree: one regex per line in the git-ignored personal-patterns.local.
 LOCAL_PATTERNS = os.path.join(ROOT, "personal-patterns.local")
 if os.path.exists(LOCAL_PATTERNS):
     LAN = "|".join([LAN] + [l.strip() for l in open(LOCAL_PATTERNS) if l.strip() and not l.startswith("#")])
 LAN_ALLOWED = {
-    "Makefile": r"^docker-%: DOCKER_IMAGE := ",
     "test-device.sh": r"^#",  # not a build input: its usage line
 }
 

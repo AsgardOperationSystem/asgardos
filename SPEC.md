@@ -483,7 +483,7 @@ Where the tree doesn't meet this spec today. These aren't precedents. When one i
 
 | Rule | Gap | Plan |
 |---|---|---|
-| DEV-9, DEV-15 | The `Makefile`'s build image is our copy on a LAN registry, so outside the LAN a clean checkout can't build. | Replace at the public move |
+| DEV-9, DEV-15 | The `Makefile`'s build image, our copy at `ghcr.io/asgardoperationsystem/build`, is still private, so a clean checkout elsewhere can't pull it. | Replace at the public move |
 | DEV-9 | Ten packages (thirteen, counting `emulationstation`, `textviewer` and `rocknix-joypad`) and `DISTRO_MIRROR` still download from ROCKNIX's GitHub. If ROCKNIX moves a file, a clean build breaks. | `docs/plans/rocknix-sources.md` |
 | VID-1 | Screen filter isn't on Amiberry (`amiberry.scaling_method`, set up in several launch paths) or VICE (an SDL filter per video chip). gopher64 and Yaba Sanshiro hard-code nearest, ares only scales through a shader, DuckStation's key in this build is unknown, and SkyEmu, OpenBOR and BigPEmu keep it in binary settings. | Amiberry and VICE next; then patches or shaders for the rest. `test_gap_screen_filter.py` |
 | DEV-11 | A Go package's build writes `.cache/` and `.config/` to the tree root (git-ignored). | `docs/plans/autotdp.md`, side note |
