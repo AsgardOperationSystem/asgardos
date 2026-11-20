@@ -8,7 +8,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 |---|---|---|
 | DEV-1 | Before a ROCKNIX fix goes in: it's one `git cherry-pick <sha>` per fix (the commit message names the sha), and no `rocknix` remote branch was merged. test_repo_history.py catches a merge afterwards, not a batch of picks. | |
 | DEV-6 | After a kernel rebase, read `git log --oneline vNEW..asgard` in `packages/linux/src`: each patch is one commit with its own subject, nothing squashed together. | |
-| DEV-7 | In GitLab, Settings > Repository > Protected branches for `asgardos/asgardos` and `asgardos/linux`: force-push is allowed on `asgard` only. | |
+| DEV-7 | On GitHub, the branch rules of `AsgardOperationSystem/asgardos` and `AsgardOperationSystem/linux`: force-push is allowed on `asgard` only. | |
 | DEV-9 | From a machine on the LAN, in a fresh `git clone --recurse-submodules` with an empty `build/`: `./build.sh` finishes with no other setup. Before a release, and whenever a known gap in SPEC 16 for DEV-9 changes. | |
 | DEV-12 | The same clean build, read for failures that a retry or a different `CONCURRENCY_MAKE_LEVEL` makes go away: that's a package using something it doesn't declare. Check optional dependencies in review of a recipe change. | |
 | DEV-14 | While `./build.sh` runs, nobody edits the tree: agree it before starting a long build. test_build_window.py sees only a file's last change. | |

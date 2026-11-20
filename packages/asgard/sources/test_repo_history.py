@@ -86,8 +86,8 @@ def check_kernel_repo(commit):
     """DEV-6"""
     with open(os.path.join(ROOT, ".gitmodules")) as f:
         modules = f.read()
-    if not re.search(r"path = packages/linux/src\n\s*url = \S*asgardos/linux(\.git)?\n\s*branch = asgard\b", modules):
-        problems.append(f"the submodule isn't asgardos/linux on branch asgard (SPEC DEV-6): {modules}")
+    if not re.search(r"path = packages/linux/src\n\s*url = https://github\.com/AsgardOperationSystem/linux(\.git)?\n\s*branch = asgard\b", modules):
+        problems.append(f"the submodule isn't github.com/AsgardOperationSystem/linux on branch asgard (SPEC DEV-6): {modules}")
     version = re.search(r'^PKG_VERSION="([^"]+)"', pkg_mk(), re.M)
     tag = f"v{version.group(1)}" if version else None
     if not version or git("merge-base", "--is-ancestor", tag, commit, cwd=KERNEL).returncode != 0:

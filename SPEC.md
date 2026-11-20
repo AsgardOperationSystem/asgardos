@@ -443,7 +443,7 @@ These keep one person able to maintain a fork of a large distribution and keep u
 
 ### The kernel
 
-- **DEV-6** The kernel is a submodule, `packages/linux/src`, on its own repo (`asgardos/linux`, branch `asgard`): Linux stable plus each patch as one commit, and the device trees as one commit. That's what makes kernel upgrades easy: moving to a new version is `git rebase --onto vNEW vOLD asgard`, conflicts appear per patch, and patches that went upstream are simply dropped.
+- **DEV-6** The kernel is a submodule, `packages/linux/src`, on its own repo (`AsgardOperationSystem/linux` on GitHub, branch `asgard`): Linux stable plus each patch as one commit, and the device trees as one commit. That's what makes kernel upgrades easy: moving to a new version is `git rebase --onto vNEW vOLD asgard`, conflicts appear per patch, and patches that went upstream are simply dropped.
 - **DEV-7** There are no kernel patch files or tarballs. The build copies the submodule as it is. A change is a commit in the submodule, pushed, followed by a pointer bump here. An upgrade also sets `PKG_VERSION` in `packages/linux/package.mk`. Force-push is allowed on `asgard` only, because rebasing needs it.
 - **DEV-8** The submodule keeps its own git objects, with no alternates or `--reference`, because the build container only sees the tree at `/work`.
 

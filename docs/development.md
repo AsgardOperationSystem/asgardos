@@ -13,7 +13,7 @@ inject-config.sh  put your asgard.yml on an image's boot partition
 distribution/     Asgard OS itself: options, kernel_options, logos, image tools, extra package patches
 device/           the board (SM8550): options, config.xml (DTB list), bootloader, rootfs overlay, kernel .config
 packages/         every package recipe; ours: asgard/, asgard-home/ (src/), asgardos/;
-                  linux/src is the kernel, a submodule (asgardos/linux)
+                  linux/src is the kernel, a submodule (AsgardOperationSystem/linux)
 config/ scripts/  the build system (from LibreELEC by way of ROCKNIX, ours now)
 tools/            build helpers; tools/turnip/ builds extra Turnip (Vulkan) drivers
 docs/             changes, sleep work, adding an emulator, the supported emulators, screenshots
