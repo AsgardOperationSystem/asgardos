@@ -13,6 +13,11 @@
 IMG_TMP=$(mktemp -d -p ${TARGET_IMG})
 SAVE_ERROR="${IMG_TMP}/save_error"
 
+# AsgardOS: the image's partitions carry their own labels (UPD-8), so a card and an internal install never mount each
+# other's. The system image's boot entry keeps the installed labels (DISTRO_*); the card's entries name these.
+IMAGE_BOOTLABEL="${IMAGE_BOOTLABEL:-${DISTRO_BOOTLABEL}}"
+IMAGE_DISKLABEL="${IMAGE_DISKLABEL:-${DISTRO_DISKLABEL}}"
+
 if [ -z "${SYSTEM_SIZE}" -o -z "${SYSTEM_PART_START}" ]; then
   echo "mkimage: SYSTEM_SIZE and SYSTEM_PART_START must be configured!"
   exit 1
@@ -98,7 +103,7 @@ dd if="${DISK}" of="${IMG_TMP}/part2.ext4" bs=512 count=0 seek="${STORAGE_PART_C
 # create filesystem on part2
 echo "image: creating filesystem on part2..."
 mke2fs -F -q -t ext4 -T ext4 -O ^orphan_file -m 0 "${IMG_TMP}/part2.ext4"
-tune2fs -L "${DISTRO_DISKLABEL}" -U ${UUID_STORAGE} "${IMG_TMP}/part2.ext4" >"${SAVE_ERROR}" 2>&1 || show_error
+tune2fs -L "${IMAGE_DISKLABEL}" -U ${UUID_STORAGE} "${IMG_TMP}/part2.ext4" >"${SAVE_ERROR}" 2>&1 || show_error
 e2fsck -n "${IMG_TMP}/part2.ext4" >"${SAVE_ERROR}" 2>&1 || show_error
 sync
 
@@ -135,7 +140,7 @@ alias mmd='mmd -i "${IMG_TMP}/part1.fat"'
 echo "image: creating filesystem on part1..."
 
 if [ "${BOOTLOADER}" = "syslinux" -o "${BOOTLOADER}" = "bcm2835-bootloader" -o "${BOOTLOADER}" = "u-boot" -o "${BOOTLOADER}" = "arm-efi" -o "${BOOTLOADER}" = "qcom-abl" ]; then
-  mformat -i "${IMG_TMP}/part1.fat" -v "${DISTRO_BOOTLABEL}" -N "${UUID_SYSTEM//-/}" :: >"${SAVE_ERROR}" 2>&1 || show_error
+  mformat -i "${IMG_TMP}/part1.fat" -v "${IMAGE_BOOTLABEL}" -N "${UUID_SYSTEM//-/}" :: >"${SAVE_ERROR}" 2>&1 || show_error
 fi
 sync
 
@@ -150,7 +155,7 @@ NOESCAPE 1
 
 LABEL run
   KERNEL /${KERNEL_NAME}
-  APPEND boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} portable ${EXTRA_CMDLINE}
+  APPEND boot=LABEL=${IMAGE_BOOTLABEL} disk=LABEL=${IMAGE_DISKLABEL} portable ${EXTRA_CMDLINE}
 EOF
 
   cat << EOF > "${IMG_TMP}/grub.cfg"
@@ -158,7 +163,7 @@ set timeout="0"
 set default="Run"
 menuentry "Run" {
         search --set -f /KERNEL
-        linux /KERNEL boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} grub_portable ${EXTRA_CMDLINE}
+        linux /KERNEL boot=LABEL=${IMAGE_BOOTLABEL} disk=LABEL=${IMAGE_DISKLABEL} grub_portable ${EXTRA_CMDLINE}
 }
 EOF
 

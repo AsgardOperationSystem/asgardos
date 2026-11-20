@@ -243,6 +243,16 @@ mount "${ST_PART_DEV}" "$TMP_STORAGE"
 # 11) Copy files to AsgardOS partition, then sync
 echo "Copying flash files to AsgardOS..."
 cp -a "$FLASH_DIR"/. "$TMP_AsgardOS"/
+# The entry came from the card and names the card's partitions: point it at the ones formatted above (UPD-8).
+ENTRY="$TMP_AsgardOS/loader/entries/asgardos.conf"
+if [ -f "$ENTRY" ]; then
+  sed -i -e "/^options/ s|\([[:space:]]boot=\)[^[:space:]]*|\1LABEL=ASGARDOS|" \
+         -e "/^options/ s|\([[:space:]]disk=\)[^[:space:]]*|\1LABEL=STORAGE|" "$ENTRY"
+  if ! grep -Eq "^options.*[[:space:]]boot=LABEL=ASGARDOS[[:space:]].*disk=LABEL=STORAGE([[:space:]]|$)" "$ENTRY"; then
+    echo "Error: the boot entry on ${RK_PART_DEV} doesn't name ASGARDOS and STORAGE: fix it before rebooting." >&2
+    exit 1
+  fi
+fi
 sync
 
 # 12) Optionally copy /storage to STORAGE partition, then sync

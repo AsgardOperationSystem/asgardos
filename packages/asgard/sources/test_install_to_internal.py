@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# spec: UPD-7
+# spec: UPD-7 UPD-8
 # requires: cmd:bash cmd:awk cmd:sort
 """installtointernal on a fake disk: parted, sgdisk, mount, umount, mkfs and blockdev are stubs over a JSON partition
 table and a mount list, and /flash, /storage and /tmp are rewritten into a temp dir. A reinstall over an earlier
@@ -77,6 +77,8 @@ case "$(basename "$0") $1" in "sgdisk -p") echo "Partition table holds up to 128
 case "$(basename "$0")" in blockdev) echo 0 ;; esac
 '''
 
+CARD_ENTRY = ("title      AsgardOS\nlinux      /KERNEL\ndevicetree /dtbs/qcs8550-ayn-thor.dtb\n"
+              "options    boot=LABEL=ASGARDSD disk=LABEL=STORAGESD quiet rootwait\n")
 USERDATA_START = 1 << 30
 # Ends exactly on a MiB boundary (sector 10346495 on the Thor = 40416 MiB): parted's end is the last byte, inclusive.
 USERDATA_END = 40416 * MIB - 1
@@ -96,6 +98,9 @@ def run(t, parts, mounts=(), busy=(), rm_fails=(), answers="y\nY\nn\n"):
     for d in ("flash", "storage", "tmp", "bin"):
         os.makedirs(f"{t}/{d}", exist_ok=True)
     open(f"{t}/flash/KERNEL", "w").write("kernel")
+    # The card's entry: installtointernal copies it, and must point the copy at the internal labels (UPD-8).
+    os.makedirs(f"{t}/flash/loader/entries", exist_ok=True)
+    open(f"{t}/flash/loader/entries/asgardos.conf", "w").write(CARD_ENTRY)
     json.dump({"size": DISK, "parts": parts, "rm_fails": list(rm_fails)}, open(f"{t}/gpt.json", "w"))
     open(f"{t}/mounts", "w").write("".join(f"{dev} on {mp} type ext4 (rw)\n" for dev, mp in mounts))
     open(f"{t}/busy", "w").write("".join(f"{b}\n" for b in busy))
@@ -132,6 +137,11 @@ with tempfile.TemporaryDirectory() as t:
     # Preserve userdata: userdata kept, the boot partition right after its last byte, no overlap.
     assert parts[17]["end"] == USERDATA_END, "userdata changed"
     assert parts[18]["start"] == USERDATA_END + 1, f"ASGARDOS starts at {parts[18]['start']}, not after userdata"
+    # The internal boot partition's entry names the internal labels, not the card's it was copied from (UPD-8).
+    copied = open(f"{t}/tmp/asgardos/loader/entries/asgardos.conf").read()
+    opts = next(l for l in copied.splitlines() if l.startswith("options")).split()
+    assert "boot=LABEL=ASGARDOS" in opts and "disk=LABEL=STORAGE" in opts, f"internal entry: {opts}"
+    assert "quiet" in opts and "rootwait" in opts, f"internal entry lost options: {opts}"
 
     # The same with no mounts.
     proc, parts, log = run(t, old_install())

@@ -204,6 +204,12 @@
   DISTRO_BOOTLABEL="ASGARDOS"
   DISTRO_DISKLABEL="STORAGE"
 
+# The SD card image's own labels (UPD-8). An internal install keeps the two above (installtointernal formats them),
+  # so a card never mounts an internal install's partitions and internal never mounts a card's. The boot entry in
+  # the system image keeps the internal labels (UPD-5); mkimage writes these into the card's copy of it.
+  IMAGE_BOOTLABEL="ASGARDSD"     # FAT: 11 characters at most
+  IMAGE_DISKLABEL="STORAGESD"
+
 # Settings package name - blank if not required
   DISTRO_PKG_SETTINGS=""
 

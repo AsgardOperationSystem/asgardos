@@ -46,7 +46,7 @@ mkimage_extlinux() {
 LABEL ${DISTRO}
   LINUX /${KERNEL_NAME}
   ${fdt_type} /$(get_fdt)
-  APPEND boot=LABEL=${DISTRO_BOOTLABEL} disk=LABEL=${DISTRO_DISKLABEL} ${EXTRA_CMDLINE}
+  APPEND boot=LABEL=${IMAGE_BOOTLABEL} disk=LABEL=${IMAGE_DISKLABEL} ${EXTRA_CMDLINE}
 EOF
 
     if [[ -n "${fdt_overlays}" ]]; then
@@ -112,6 +112,15 @@ mkimage_abl() {
   for d in dtbs loader logo; do
     [ -d "${RELEASE_DIR}/3rdparty/bootloader/${d}" ] && mcopy -s -o "${RELEASE_DIR}/3rdparty/bootloader/${d}" ::
   done
+  # The entry names the installed labels (UPD-5); the card's copy names the card's own (UPD-8).
+  local entry="${RELEASE_DIR}/3rdparty/bootloader/loader/entries/asgardos.conf"
+  if [ -f "${entry}" ]; then
+    sed -e "/^options/ s|boot=LABEL=[^ ]*|boot=LABEL=${IMAGE_BOOTLABEL}|" \
+        -e "/^options/ s|disk=LABEL=[^ ]*|disk=LABEL=${IMAGE_DISKLABEL}|" "${entry}" > "${IMG_TMP}/asgardos.conf"
+    grep -Eq " boot=LABEL=${IMAGE_BOOTLABEL} .*disk=LABEL=${IMAGE_DISKLABEL}( |$)" "${IMG_TMP}/asgardos.conf" || {
+      echo "image: the card's boot entry doesn't name ${IMAGE_BOOTLABEL}/${IMAGE_DISKLABEL}"; exit 1; }
+    mcopy -o "${IMG_TMP}/asgardos.conf" ::/loader/entries/asgardos.conf
+  fi
 }
 
 mkimage_all
