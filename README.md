@@ -158,7 +158,7 @@ To put Asgard on a Thor, see [Install](https://github.com/AsgardOperationSystem/
 
 ## Kernel
 
-The kernel is its own repo, [asgardos/linux](https://github.com/AsgardOperationSystem/linux) (branch `asgard`): Linux
+The kernel is its own repo, [AsgardOperationSystem/linux](https://github.com/AsgardOperationSystem/linux) (branch `asgard`): Linux
 stable plus every Asgard kernel patch and the SM8550 device trees as one commit each. It's a submodule here; the build
 copies it as is (no patch files, no tarball). To change the kernel, commit in the submodule, push, and commit the new
 submodule pointer here. To move to a new kernel, rebase `asgard` onto the new stable tag (`git rebase --onto v7.3.2

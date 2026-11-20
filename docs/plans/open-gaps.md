@@ -55,7 +55,7 @@ Check these before fixing the tree, because the rule itself looks wrong or too s
 
 | Rule | Waiting on | Test |
 |---|---|---|
-| DEV-9, DEV-15 | The public move replaces the LAN hosts and URLs. | `test_gap_lan_checkout.sh`, `test_gap_lan_urls.sh` |
+| DEV-9, DEV-15 | The public move replaces the LAN build image (the URLs moved to GitHub 2026-11-20). | `test_gap_lan_checkout.sh` |
 | DEV-9 | `docs/plans/rocknix-sources.md`. It now counts thirteen packages, not ten. | `test_gap_rocknix_downloads.sh` |
 | DEV-11 | A Go package's cache directories: `docs/plans/autotdp.md`, side note. | `test_gap_go_cache.sh` |
 

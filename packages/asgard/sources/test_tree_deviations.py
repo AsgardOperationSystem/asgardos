@@ -21,16 +21,10 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 NOT_CODE = [":!*.md", ":!docs", ":!packages/asgard/sources/test_*", ":!test-device.sh", ":!tools/test"]
 problems = []
 
-# DEV-15. SPEC 16: .gitmodules, the Makefile's image, distribution/options, PKG_SITE values, Home's RetroAchievements agent.
+# DEV-15. SPEC 16: the Makefile's build image (the URLs moved to GitHub 2026-11-20).
 LAN = r"lan\.example|asgardos-owner|192\.168\.50\.|/mnt/(ConfigDisk|ServerDisk|SmallDisk)|Projects/asgard"
 LAN_ALLOWED = {
-    ".gitmodules": r"^\s*url = ",
     "Makefile": r"^docker-%: DOCKER_IMAGE := ",
-    "distribution/options": r"^\s*(GIT_ORGANIZATION|HOME_URL|WIKI_URL|BUG_REPORT_URL)=",
-    "packages/asgard/package.mk": r"^PKG_SITE=",
-    "packages/asgard-home/package.mk": r"^PKG_SITE=",
-    "packages/tools/asgardos-splash/package.mk": r"^PKG_SITE=",
-    "packages/asgard-home/src/achievements.cpp": r"USER_AGENT",
     "test-device.sh": r"^#",  # not a build input: its usage line
 }
 
@@ -132,7 +126,7 @@ def tree_files():
 def check_lan_hosts():
     """DEV-15"""
     hits = grep(LAN)
-    if not any(path == ".gitmodules" for path, _ in hits):
+    if not any(path == "Makefile" for path, _ in hits):
         problems.append("the scan didn't find what it knows is there (DEV-15)")
     for path, text in hits:
         allowed = LAN_ALLOWED.get(path)
