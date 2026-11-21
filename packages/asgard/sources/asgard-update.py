@@ -199,8 +199,9 @@ def free(path):
     return st.f_bavail * st.f_frsize
 
 
-def verify(part, name):
-    """None if the download is the release: its sha256 matches the .sha256, which matches its signature. Else why not."""
+def signed(name):
+    """None if the release's .sha256 is for this file and its signature matches the image's release key. Checked
+    before the .tar is downloaded: a release signed with another key costs two small files, not the whole update."""
     sums, sig = f"{WORK}/{name}.sha256", f"{WORK}/{name}.sig"
     if not os.path.exists(KEY):
         return "This image has no release key to check the update with"
@@ -211,7 +212,15 @@ def verify(part, name):
     fields = open(sums).read().split()
     if len(fields) < 2 or fields[1].lstrip("*") != name:
         return "The update's checksum file is for another file"
-    if sha256(part) != fields[0].lower():
+    return None
+
+
+def verify(part, name):
+    """None if the download is the release: the signature still holds and its sha256 matches. Else why not."""
+    why = signed(name)
+    if why:
+        return why
+    if sha256(part) != open(f"{WORK}/{name}.sha256").read().split()[0].lower():
         return "The download doesn't match its checksum"
     return None
 
@@ -250,6 +259,12 @@ def download():
         if r.returncode:
             progress(state="error", error="Couldn't download the update's checksum and signature")
             return 1
+    why = signed(name)
+    if why:
+        if os.path.exists(part):
+            os.remove(part)
+        progress(state="error", error=why)
+        return 1
     for n in range(CURL_TRIES):
         # -C -: resume where the .part ends, so a dropped connection or a sleep doesn't start over. A stall of a minute
         # counts as dropped.

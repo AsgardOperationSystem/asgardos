@@ -166,6 +166,8 @@ for broken, why in ((dict(sums=b"0" * 64 + b"  " + NAME.encode() + b"\n"), "chec
     up.check()
     assert up.download() == 1 and staged() == [], broken                  # no .tar, and no .part to resume from
     assert why in up.read_json(up.PROGRESS)["error"]
+    fetched = [p for p, _ in Server.seen if p == f"/dl/{NAME}"]
+    assert fetched == ([f"/dl/{NAME}"] if why == "checksum" else []), (why, fetched)   # a bad signature: no .tar fetched
 
 publish()
 fresh()
