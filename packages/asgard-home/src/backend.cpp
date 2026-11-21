@@ -878,6 +878,7 @@ QVariantMap Backend::playStats(const QString &path) const
 
 static const char *PAD_NAME = "Sony Interactive Entertainment DualSense Wireless Controller";
 static const char *RAW_NAME = "AYN Odin2 Gamepad";   // rsinput's own pad (the Thor's DT names it after the Odin 2)
+static const char *KBD_NAME = "InputPlumber Keyboard";   // ayn_mcu.yaml maps the back button (BTN_BACK) to its F1
 
 void Gamepad::setRaw(bool on)
 {
@@ -919,8 +920,22 @@ void Gamepad::close()
         ::close(m_fd);
     m_fd = -1;
     m_fdRaw = false;
+    closeKeyboard();
     m_repeat.stop();
     m_held.clear();
+    m_stick[0] = m_stick[1] = 0;
+}
+
+void Gamepad::closeKeyboard()
+{
+    if (m_kbdNotifier) {
+        m_kbdNotifier->setEnabled(false);
+        m_kbdNotifier->deleteLater();
+        m_kbdNotifier = nullptr;
+    }
+    if (m_kbd >= 0)
+        ::close(m_kbd);
+    m_kbd = -1;
 }
 
 Gamepad::Gamepad(bool disabled, bool grab, QObject *parent) : QObject(parent), m_grab(grab), m_disabled(disabled)
@@ -948,7 +963,7 @@ void Gamepad::open()
     // ASGARD_INPUT (host tests): a directory with a "devices" list and the event nodes it names.
     const QString input = qEnvironmentVariable("ASGARD_INPUT");
     QFile f(input.isEmpty() ? "/proc/bus/input/devices" : input + "/devices");
-    QString name, node;
+    QString name, node, kbd;
     if (f.open(QIODevice::ReadOnly))
         for (const QString &line : QString::fromUtf8(f.readAll()).split('\n')) {
             if (line.startsWith("N: Name="))
@@ -957,6 +972,10 @@ void Gamepad::open()
                 for (const QString &h : line.mid(12).split(' '))
                     if (h.startsWith("event") && node.isEmpty())
                         node = (input.isEmpty() ? "/dev/input" : input) + "/" + h;
+            if (line.startsWith("H: Handlers=") && name == KBD_NAME && kbd.isEmpty())
+                for (const QString &h : line.mid(12).split(' '))
+                    if (h.startsWith("event") && kbd.isEmpty())
+                        kbd = (input.isEmpty() ? "/dev/input" : input) + "/" + h;
         }
     if (node.isEmpty()) {   // still reading rsinput's pad after calibration, if it's open (setRaw)
         m_retry.start();
@@ -979,6 +998,22 @@ void Gamepad::open()
                 m_axes[code] = info.value;
         }
         emit axesChanged();
+    } else {
+        for (int code : {ABS_X, ABS_Y}) {
+            input_absinfo info{};
+            if (ioctl(m_fd, EVIOCGABS(code), &info) == 0 && info.maximum > info.minimum) {
+                m_stickMin[code] = info.minimum;
+                m_stickMax[code] = info.maximum;
+            }
+        }
+        // The back button: InputPlumber's keyboard, there with its pad. Not with rsinput's own pad (InputPlumber is
+        // stopped then, and rsinput reports BTN_BACK itself). Grabbed with the pad, so the Thor Panel has it alone.
+        if (!kbd.isEmpty() && (m_kbd = ::open(qPrintable(kbd), O_RDONLY | O_NONBLOCK | O_CLOEXEC)) >= 0) {
+            if (m_grab)
+                ioctl(m_kbd, EVIOCGRAB, 1);
+            m_kbdNotifier = new QSocketNotifier(m_kbd, QSocketNotifier::Read, this);
+            connect(m_kbdNotifier, &QSocketNotifier::activated, this, &Gamepad::readKeyboard);
+        }
     }
     qInfo("gamepad: opened %s", qPrintable(QFileInfo(QString("/proc/self/fd/%1").arg(m_fd)).symLinkTarget()));
     m_notifier = new QSocketNotifier(m_fd, QSocketNotifier::Read, this);
@@ -1003,6 +1038,39 @@ void Gamepad::hold(const QString &dir, bool down)
     }
 }
 
+// The left stick as a d-pad: past 60 % of its travel it presses that direction (held: it repeats), back under 40 %
+// it lets go, so a stick resting near the threshold doesn't chatter.
+void Gamepad::stick(int axis, int value)
+{
+    const double v = 2.0 * (value - m_stickMin[axis]) / (m_stickMax[axis] - m_stickMin[axis]) - 1.0;   // -1 .. 1
+    int dir = m_stick[axis];
+    if (v <= -0.6)
+        dir = -1;
+    else if (v >= 0.6)
+        dir = 1;
+    else if (v > -0.4 && v < 0.4)
+        dir = 0;
+    if (dir == m_stick[axis])
+        return;
+    const char *minus = axis == ABS_X ? "left" : "up", *plus = axis == ABS_X ? "right" : "down";
+    if (m_stick[axis])
+        hold(m_stick[axis] < 0 ? minus : plus, false);
+    m_stick[axis] = dir;
+    if (dir)
+        hold(dir < 0 ? minus : plus, true);
+}
+
+void Gamepad::readKeyboard()
+{
+    input_event ev;
+    ssize_t n;
+    while ((n = ::read(m_kbd, &ev, sizeof ev)) == sizeof ev)
+        if (ev.type == EV_KEY && ev.code == KEY_F1 && ev.value == 1)
+            emit pressed("b");
+    if (n == 0 || (n < 0 && errno != EAGAIN))   // gone with InputPlumber: the pad's retry opens the new one with the new pad
+        closeKeyboard();
+}
+
 void Gamepad::read()
 {
     static const QHash<int, QString> virtualButtons = {
@@ -1012,7 +1080,7 @@ void Gamepad::read()
     // west one (Y). Its d-pad is buttons, its triggers axes.
     static const QHash<int, QString> rawButtons = {
         {BTN_EAST, "a"}, {BTN_SOUTH, "b"}, {BTN_WEST, "x"}, {BTN_NORTH, "y"},
-        {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}};
+        {BTN_SELECT, "select"}, {BTN_START, "start"}, {BTN_MODE, "guide"}, {BTN_BACK, "b"}};
     static const QHash<int, QString> rawDpad = {
         {BTN_DPAD_UP, "up"}, {BTN_DPAD_DOWN, "down"}, {BTN_DPAD_LEFT, "left"}, {BTN_DPAD_RIGHT, "right"}};
     const QHash<int, QString> &buttons = m_fdRaw ? rawButtons : virtualButtons;
@@ -1051,7 +1119,8 @@ void Gamepad::read()
         } else if (ev.type == EV_ABS && ev.code == ABS_HAT0Y) {
             hold("up", ev.value < 0);
             hold("down", ev.value > 0);
-        }
+        } else if (ev.type == EV_ABS && (ev.code == ABS_X || ev.code == ABS_Y))
+            stick(ev.code, ev.value);
     }
     if (n < 0 && errno != EAGAIN)  // the pad was removed (InputPlumber restarted): reopen the new one
         lost();

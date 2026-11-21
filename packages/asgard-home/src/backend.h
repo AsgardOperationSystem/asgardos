@@ -114,6 +114,7 @@ private:
 
 // InputPlumber's virtual DualSense read straight from evdev (Qt 6 has no gamepad module).
 // Emits the Thor's printed button names; the pad is positional, so A = east, B = south, X = north, Y = west.
+// The left stick moves like the d-pad, and the back button (InputPlumber's keyboard F1) is B (HOME-1).
 class Gamepad : public QObject
 {
     Q_OBJECT
@@ -133,12 +134,19 @@ signals:
     void axesChanged();
 private:
     void close();
+    void closeKeyboard();
     void open();
     void lost();
     void read();
+    void readKeyboard();
     void hold(const QString &dir, bool down);
+    void stick(int axis, int value);
     int m_fd = -1;
     QSocketNotifier *m_notifier = nullptr;
+    int m_kbd = -1;      // InputPlumber's keyboard: the back button arrives there as F1
+    QSocketNotifier *m_kbdNotifier = nullptr;
+    int m_stick[2] = {};            // the left stick as a d-pad: -1, 0, 1 for x (left, right) and y (up, down)
+    int m_stickMin[2] = {0, 0}, m_stickMax[2] = {255, 255};   // its range (the DualSense's, until the pad says)
     QTimer m_retry;      // pad not there (yet / any more): look again every 500 ms
     QTimer m_repeat;     // held d-pad direction repeats, like a keyboard
     QString m_held;

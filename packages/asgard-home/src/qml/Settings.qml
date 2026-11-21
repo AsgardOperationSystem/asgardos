@@ -41,6 +41,7 @@ Item {
         stack = [Object.assign({}, stack[0], { closeOnBack: true })]
     }
     function close() { open = false; closed() }
+    readonly property bool calibrating: stickCal.mode !== ""   // StickCal takes every button, Home too
     onOpenChanged: btScanCheck()
     onStackChanged: btScanCheck()
 

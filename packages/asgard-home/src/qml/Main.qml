@@ -131,6 +131,9 @@ QtObject {
         if (backend.gameMenu) { backend.sound(b === "a" ? "select" : b === "b" ? "back" : "move"); (swapped ? top.gameMenuPanel : bottom.gameMenuPanel).nav(b); return }
         if (backend.playing) return
         if (backend.screensOff) { backend.screensOff = false; return }   // any button only wakes the screens
+        // Home (guide): back to the start, the first tab's top with nothing open over it (HOME-1). Not while a stick is
+        // calibrated: there it leaves the calibration, nothing kept.
+        if (b === "guide" && !bottom.settingsPanel.calibrating) { backend.sound("back"); goHome(); return }
         backend.sound(b === "a" ? "select" : b === "b" || b === "x" ? "back" : b === "start" || b === "select"
                       ? (bottom.settingsPanel.open ? "back" : "open") : "move")
         if (bottom.confirmPanel.nav(b)) return
@@ -258,6 +261,15 @@ QtObject {
                       + " swaymsg '[title=\"^Asgard Home .Bottom.$\"] move container to output DSI-1, fullscreen enable'")
     }
 
+    function goHome() {
+        bottom.confirmPanel.ask = null
+        if (bottom.settingsPanel.open) bottom.settingsPanel.close()
+        bottom.powerMenuPanel.open = false
+        bottom.gameActionsPanel.open = false
+        if (reordering) endReorder(false)
+        details = false
+        setTab(0)
+    }
     function setTab(t) {
         tab = t; stack = []; items = tabItems(t); sel = 0; openSys = ""
     }
