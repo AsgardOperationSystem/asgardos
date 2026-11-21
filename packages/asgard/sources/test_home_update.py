@@ -17,7 +17,7 @@ from home_harness import CFG, Root  # noqa: E402
 
 ABOUT, UPDATES = 5, 5        # About is the sixth category; Updates its sixth row
 FOUND = {"checked": 1, "current": "0.0.1", "version": "0.0.2", "name": "AsgardOS-SM8550.aarch64-0.0.2.tar",
-         "size": 1710090240, "prerelease": True, "notes": "• The gyro sets itself up", "download": {}}
+         "size": 1710090240, "prerelease": True, "notes": "• The gyro sets itself up\n• Release numbers", "download": {}}
 TAR = "/storage/.update/AsgardOS-SM8550.aarch64-0.0.2.tar"
 
 
@@ -78,7 +78,7 @@ with Root() as r:
     assert press(r, keys("start", *["down"] * ABOUT, "a"), ASKED).shows("Asgard 0.0.2 is available")
     page = press(r, UPDATES_PAGE, ASKED)
     for text in ("Check for updates", "Asgard 0.0.2 (pre-release) is available", "Download 0.0.2", "1631 MB",
-                 "What's new in 0.0.2", "The gyro sets itself up", "Asgard 0.0.1", "Check at startup", "Pre-releases"):
+                 "What's new in 0.0.2", "The gyro sets itself up", "Release numbers", "Asgard 0.0.1", "Check at startup", "Pre-releases"):
         assert page.shows(text), text
     assert "asgard-update.py check" in press(r, keys(UPDATES_PAGE, "a"), ASKED).log
     started = press(r, keys(UPDATES_PAGE, down(1)), ASKED)

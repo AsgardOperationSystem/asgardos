@@ -142,7 +142,9 @@ Item {
                                      note("ota", Object.assign({}, o, { download: { state: "downloading", version: o.version } })) }))
         if (live.update) rows.push(installRow())
         const out = [rows]
-        if (o.version && o.notes) out.push([info("list", "What's new in " + o.version, o.notes)])
+        // One row a note: a row is one line high, so several lines in one row overflow it.
+        if (o.version && o.notes)
+            out.push(o.notes.split("\n").map((l, i) => info("sparkle", l.replace(/^• /, ""), i ? "" : "What's new in " + o.version)))
         out.push([info("info", "Installed", "Asgard " + (o.current || backend.osInfo().OS_VERSION || "unknown")),
                   toggle("refresh", "Check at startup", "Ask GitHub once each time the Thor starts", "asgard.update.check_at_boot", "1"),
                   toggle("refresh", "Pre-releases", "Offer test releases too", "asgard.update.prerelease", "1"),
