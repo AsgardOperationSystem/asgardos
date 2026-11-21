@@ -121,6 +121,25 @@ def eden():
                 failures.append(f"Eden player {player} motion{side}: {motion!r} isn't asgard-motiond's DSU server")
 
 
+def retroarch_n64():
+    """Mupen64Plus-Next (RetroArch's N64 default) reads the N64's A from RetroPad B and its B from RetroPad Y. Its remap
+    makes the Thor's A (RetroPad A) act as B and the Thor's B act as Y, so A is A and B is B as printed, and no other
+    button also presses them. setsettings.sh seeds it where the user has no remap of their own."""
+    B, Y, A, X = 0, 1, 8, 9   # RetroPad ids
+    rmp = keys(open(os.path.join(ROOT, "packages", "emulators", "libretro", "retroarch", "sources", "SM8550",
+                                 "Mupen64Plus-Next.rmp")).read())
+    acts = {pad: int(rmp.get(f"input_player1_btn_{pad}", '"%d"' % own).strip('"'))
+            for pad, own in (("a", A), ("b", B), ("x", X), ("y", Y))}
+    expect("RetroArch N64: the Thor's A acts as", acts["a"], B)
+    expect("RetroArch N64: the Thor's B acts as", acts["b"], Y)
+    for pad in ("x", "y"):
+        if acts[pad] in (B, Y):
+            failures.append(f"RetroArch N64: the Thor's {pad.upper()} also presses the N64's A or B")
+    seed = open(os.path.join(ROOT, "packages", "asgardos", "sources", "scripts", "setsettings.sh")).read()
+    if not re.search(r'cp "/usr/config/retroarch/Mupen64Plus-Next\.rmp" "/storage/remappings/Mupen64Plus-Next/', seed):
+        failures.append("RetroArch N64: setsettings.sh doesn't seed the remap")
+
+
 def dolphin_gc():
     """GameCube (Dolphin, SDL gamepad names by position): with no profile set, A is the Thor's A (east). The Wii
     launcher's GameCube pad (its hotkeys) uses the same profile."""
@@ -182,7 +201,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, dolphin_gc, dolphin_wii):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, dolphin_gc, dolphin_wii):
         try:
             check()
         except (KeyError, OSError) as e:

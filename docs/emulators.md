@@ -12,7 +12,7 @@ in a game.
 | Game Boy / Color | RetroArch (Gambatte) | mednafen, SameBoy, mGBA, SkyEmu, ares... | ✅ | Full | |
 | Game Boy Advance | RetroArch (mGBA) | NanoBoyAdvance, mednafen, gpSP, SkyEmu... | ✅ | Full | lowerdeck (bottom-screen companion) touch fix 🧪. |
 | NES / SNES | RetroArch (Nestopia / Snes9x) | Mesen, FCEUmm, bsnes, mednafen, ares... | ✅ | Full | |
-| Nintendo 64 | RetroArch (Mupen64Plus-Next) | gopher64 1.1.42, mupen64plus, ares | ✅ | Full | |
+| Nintendo 64 | RetroArch (Mupen64Plus-Next) | gopher64 1.1.42, mupen64plus, ares | ✅ | Full | N64 A on the Thor's A and B on its B (a remap) 🧪. |
 | Nintendo DS | melonDS | DraStic, DSperate 3.0.5, RetroArch cores | ✅ | Resume / Quit | One window per screen, no menu bar. RetroArch's DS cores span both screens ✅ (checked on a Thor 2026-11-14; more testing to come). DraStic and SkyEmu draw one window, on the top screen. DraStic's Start, Select, d-pad and touch press fixed for the virtual DualSense 🧪. |
 | Nintendo 3DS | Azahar 2126.2 | | ⚠️ | Full | Screens, layout, HD textures, Force 60 Hz, gyro. Alpha Sapphire at auto resolution freezes the Thor (use 2×). Instant menu 🧪. No geometry shaders on Turnip, as on Android (lighter GPU load, lighting slightly less exact) 🧪. |
 | GameCube / Wii | Dolphin 2609 | RetroArch (Dolphin) | ✅ | Resume / Quit | Wii remote motion from the game's Gyro override (DSU) 🧪. GameCube A on the Thor's A (east profile by default) 🧪. NoGUI on Wayland has no pause of its own: the in-game menu freezes it instead (GAME-5; not checked on a Thor yet). |

@@ -906,6 +906,13 @@ function set_tatemode() {
 
 function set_n64opts() {
     log "Set up N64..."
+    # Asgard: Mupen64Plus-Next puts the N64's A on RetroPad B and its B on Y (the bottom and left buttons); this remap
+    # puts A on the Thor's A and B on its B, as printed (GAME-11). Seeded once: a remap the user saves stays theirs.
+    if [ "${CORE}" = "mupen64plus_next" ] && [ ! -e "/storage/remappings/Mupen64Plus-Next/Mupen64Plus-Next.rmp" ]
+    then
+        mkdir -p "/storage/remappings/Mupen64Plus-Next"
+        cp "/usr/config/retroarch/Mupen64Plus-Next.rmp" "/storage/remappings/Mupen64Plus-Next/Mupen64Plus-Next.rmp"
+    fi
     if [ "${CORE}" = "parallel_n64" ]
     then
         local PARALLELN64DIR="${RETROARCH_PATH}/config/ParaLLEl N64"
