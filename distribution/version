@@ -3,4 +3,4 @@
 
 # OS_VERSION: the Asgard release, major.minor.patch (Settings > About, the image's file name). Raise it for each release;
 # builds between releases share it and differ by BUILD_ID (the commit) and BUILD_DATE.
-  OS_VERSION="0.0.3"
+  OS_VERSION="0.0.4"
