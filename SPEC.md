@@ -137,7 +137,7 @@ are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files a
 - **SET-3** Restart, power off and installing an update ask for confirmation first. An update is offered only when a `.tar` is in `/storage/.update`.
 - **SET-4** A change takes effect without a restart where it can. A setting that needs one says so on its row.
 - **SET-5** Storage shows the free, total and used space of the internal storage and the SD card (or that no card is in), whether the games folder is on the card or inside, and the system partition.
-- **SET-6** About shows the Asgard version, build and date, the Linux kernel's version, and a page with each shipped emulator's version. The image step writes that list (`scripts/emulator-versions`) from each installed package's `PKG_VERSION` (EMU-6), a tag in its trailing comment before a bare commit; no emulator binary is run to read it.
+- **SET-6** About shows the Asgard version (the release number, major.minor.patch, from `OS_VERSION` in `distribution/version`), build and date, the Linux kernel's version, and a page with each shipped emulator's version. The image step writes that list (`scripts/emulator-versions`) from each installed package's `PKG_VERSION` (EMU-6), a tag in its trailing comment before a bare commit; no emulator binary is run to read it.
 - **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting, and a connected device's battery when it reports one and its audio codec while it plays, which can be switched to another the device offers; USB mode; and SSH, Samba and Syncthing.
 - **NET-2** VPN offers Tailscale (sign-in link on screen), ZeroTier (join by network ID) and WireGuard (`.conf` files).
 

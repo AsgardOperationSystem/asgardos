@@ -112,7 +112,8 @@ usb_trigger() {
 #############################################
 g_cdc="/sys/kernel/config/usb_gadget/cdc"
 verbose=${verbose:-0}
-devversion=0x$(echo $OS_VERSION | cut -b 3-6)   # 0xYYMM; 20241025 -> 0x2410
+# bcdDevice from the release: 0.0.1 -> 0x0001, 1.2.3 -> 0x0123; an old date version 20241025 -> 0x2410 (0xYYMM)
+devversion=$(echo "$OS_VERSION" | awk -F. 'NF==3 {printf "0x%02x%x%x\n", $1 % 256, $2 % 16, $3 % 16; exit} {print "0x" substr($0, 3, 4)}')
 
 prepare_usb_network() {
     set -e

@@ -10,7 +10,7 @@ STEP=${1:-build}
 
 if [ "$STEP" = stage ]; then
   HOST=${2:-${THOR:?pass user@host or set THOR=user@host}}
-  TAR=$(ls -1 build/target/*.tar | head -1)
+  TAR=$(ls -1t build/target/*.tar | head -1)   # the newest build: names carry the release (0.0.1), not a date
   NAME=$(basename "$TAR")
   SUM=$(cut -d' ' -f1 "$TAR.sha256")
   # Copied under a temporary name and renamed only once its checksum matches on the device: a copy cut short
