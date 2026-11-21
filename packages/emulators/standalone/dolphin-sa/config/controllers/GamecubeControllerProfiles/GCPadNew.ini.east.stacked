@@ -32,5 +32,5 @@ Triggers/R = `Trigger R`
 Triggers/L-Analog = `Trigger L`
 Triggers/R-Analog = `Trigger R`
 Rumble/Motor = Motor
-Triforce/Coin = `Guide`
+Triforce/Coin = `Guide` & `Back`
 Triforce/Service = `Shoulder L`

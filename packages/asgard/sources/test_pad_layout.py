@@ -5,6 +5,7 @@
 # the Thor's printed A (east), B is B (south), X is X (north), Y is Y (west); a PlayStation's Cross is south. Home alone
 # is Asgard's (MENU-1), so nothing binds it alone. A config numbered for the raw Thor pad (AYN Odin2 Gamepad: Select b6,
 # Start b7, Home b8, d-pad b11-b14) binds the wrong buttons here.
+import glob
 import os
 import re
 import sys
@@ -209,6 +210,23 @@ def dolphin_wii():
                        f"`DSUClient/0/{entry.group(1)}:{source} {control}`")
 
 
+def home_alone():
+    """Home tapped alone opens Asgard's in-game menu (MENU-1), so no emulator binds it alone as well: the tap would
+    press the game's own HOME, PS or coin button too. Dolphin's take Home+Select; Azahar and RPCS3 can't bind a
+    combo, so theirs are unbound."""
+    for folder, kind in (("WiiControllerProfiles", "*.ini"), ("GamecubeControllerProfiles", "GCPadNew.ini.*")):
+        for path in glob.glob(os.path.join(SA, "dolphin-sa", "config", "controllers", folder, kind)):
+            for k, v in keys(open(path).read()).items():
+                if v == "`Guide`":
+                    failures.append(f"Dolphin {os.path.basename(path)}: {k} is Home alone")
+    for k, v in keys(read("azahar-sa", "config", "InputPlumber", "qt-config.ini")).items():
+        if re.search(rf'(^|[",])button:{HOME}[,"]', v):
+            failures.append(f"Azahar: {k} is Home alone")
+    rpcs3 = read("rpcs3-sa", "config", "InputPlumber", "global", "Default.yml")
+    if re.search(r"^\s*[^:#]+:\s*Guide\s*$", rpcs3, re.M):
+        failures.append("RPCS3: a PS3 button is Home alone")
+
+
 def drastic():
     """DraStic numbers joystick buttons 1024 + n. The d-pad is a hat, which reaches it as keys from gptokeyb."""
     cfg = keys(read("drastic-sa", "config", "SM8550", "drastic.cfg"))
@@ -233,7 +251,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, mupen64plus, dolphin_gc, dolphin_hotkey, dolphin_wii):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, mupen64plus, dolphin_gc, dolphin_hotkey, dolphin_wii, home_alone):
         try:
             check()
         except (KeyError, OSError) as e:

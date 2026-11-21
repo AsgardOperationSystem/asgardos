@@ -45,8 +45,14 @@ CONVERTED = {
         "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button S`\nClassic/Buttons/B = `Button E`\nClassic/Buttons/X = `Button E`\n",
         "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button E`\nClassic/Buttons/B = `Button S`\nClassic/Buttons/X = `Button E`\n"),
     ".config/dolphin-emu/WiiControllerProfiles/hremote.ini": (
-        "[Wiimote1]\nDevice = SDL/0/mine\nButtons/A = `b`\n",
-        "[Wiimote1]\nDevice = SDL/0/mine\nIMUGyroscope/Yaw Left = `g`\nButtons/A = `b`\n"),
+        "[Wiimote1]\nDevice = SDL/0/mine\nButtons/A = `b`\nButtons/Home = `Guide`\n",
+        "[Wiimote1]\nDevice = SDL/0/mine\nIMUGyroscope/Yaw Left = `g`\nButtons/A = `b`\nButtons/Home = `Guide` & `Back`\n"),
+    ".config/azahar/qt-config.ini": (
+        '[Controls]\nprofiles\\1\\button_home="button:10,engine:sdl,guid:0300fd574c050000e60c000011810000,port:0"\n'
+        'profiles\\1\\button_home\\default=false\n',
+        '[Controls]\nprofiles\\1\\button_home="engine:null"\nprofiles\\1\\button_home\\default=false\n'),
+    ".config/rpcs3/input_configs/global/Default.yml": ("Player 1 Input:\n  Config:\n    PS Button: Guide\n",
+                                                       'Player 1 Input:\n  Config:\n    PS Button: ""\n'),
 }
 
 IMAGE = {
