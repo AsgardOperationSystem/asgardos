@@ -35,6 +35,9 @@ CONVERTED = {
         '"engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
         'player_8_motionright="engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
         'player_0_motionleft="engine:sdl,motion:0"\n'),
+    ".config/dolphin-emu/WiiControllerProfiles/classic.ini": (
+        "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button S`\nClassic/Buttons/B = `Button E`\nClassic/Buttons/X = `Button E`\n",
+        "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button E`\nClassic/Buttons/B = `Button S`\nClassic/Buttons/X = `Button E`\n"),
     ".config/dolphin-emu/WiiControllerProfiles/hremote.ini": (
         "[Wiimote1]\nDevice = SDL/0/mine\nButtons/A = `b`\n",
         "[Wiimote1]\nDevice = SDL/0/mine\nIMUGyroscope/Yaw Left = `g`\nButtons/A = `b`\n"),

@@ -142,6 +142,9 @@ def dolphin_wii():
     if not entry or not port or entry.group(2) != port.group(1):
         failures.append("Dolphin Wii: the launcher doesn't point Dolphin's DSU client at asgard-motiond")
         return
+    classic = section(read("dolphin-sa", "config", "controllers", "WiiControllerProfiles", "classic.ini"), "Wiimote1")
+    for button, side in (("A", "E"), ("B", "S"), ("X", "N"), ("Y", "W")):
+        expect(f"Dolphin Wii Classic {button}", classic[f"Classic/Buttons/{button}"], f"`Button {side}`")
     for name in ("classic", "hremote", "nunchuck", "vremote"):
         profile = section(read("dolphin-sa", "config", "controllers", "WiiControllerProfiles", f"{name}.ini"), "Wiimote1")
         for group, controls, source in (

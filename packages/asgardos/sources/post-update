@@ -168,6 +168,13 @@ for cfg in /storage/.config/eden/qt-config.ini /storage/.config/eden/sdl2-config
   done
 done
 
+# Dolphin's Classic Controller profile had the Xbox layout (A on the Thor's B): now the printed letters (GAME-11).
+for c in A:S:E B:E:S X:W:N Y:N:W; do
+  IFS=: read -r button old new <<<"${c}"
+  convert_value /storage/.config/dolphin-emu/WiiControllerProfiles/classic.ini "Classic/Buttons/${button}" "\`Button ${old}\`" \
+    "\`Button ${new}\`"
+done
+
 # Dolphin's Wii remote had no motion bound: the shipped profiles gained IMU lines on asgard-motiond's DSU server. An
 # install's copies of them (not custom.ini, the user's own) get the lines the image's copy has, if they have none.
 for profile in classic hremote nunchuck vremote; do
