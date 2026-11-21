@@ -3,7 +3,7 @@
 
 PKG_NAME="asgard-library-manager"
 PKG_VERSION="b9c85d49b0bd91d330d887732ac0c5f5ff7103d5" # main, 2026-11-21
-PKG_SHA256="" # set from the first download: GitHub makes the archive once the repo is pushed
+PKG_SHA256="d4e6d7b00f3f3848969c23bdf3456541f52a5144b4ad138d04ce588175e2f50c"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgard-library-manager"
 PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
