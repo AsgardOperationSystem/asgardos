@@ -3,20 +3,31 @@
 # Scrape missing runs it once per game without a cover). Prints JSON.
 #   asgard-scrape.py <system> <rom path> <stem>
 #   asgard-scrape.py --index <libretro-database tree> <out dir>    (at image build time: writes INDEX)
-# ScreenScraper first when system.cfg has a developer ID (screenscraper.devid / .devpassword; user account
-# screenscraper.username / .password optional): description, developer, date, genre, cover, screenshot, marquee,
-# matched by checksum. Otherwise, or when it finds nothing, libretro (SCRAPE-1): the game is found in an index of
+# Sources, first that finds the game (SCRAPE-1):
+# 1. ScreenScraper's API directly, when system.cfg has an Asgard developer ID (screenscraper.devid / .devpassword; none
+#    yet: written against its documented API v2, untested).
+# 2. ScreenScraper through Skyscraper, when the user signed in (Settings > Library > ScreenScraper account:
+#    screenscraper.username / .password). Skyscraper carries its own developer ID. Description, developer, publisher,
+#    date, genre, players, cover, screenshot, marquee; Switch too. It writes into a scratch folder and only this game's
+#    entry and art are copied over, since it rewrites a whole gamelist.
+# 3. libretro, for a game the others didn't find or gave no cover: the game is found in an index of
 # libretro-database shipped in the image (by CRC, else by name), which gives its exact No-Intro/Redump name and its
 # details (developer, publisher, genre, date, players; a description for PS1/PS2) offline; the cover and screenshot
 # come from libretro-thumbnails on GitHub by that name. thumbnails.libretro.com, used before, serves nothing since 2026-11.
-# ScreenScraper stays off until a developer ID is set (none yet): written against its documented API v2, untested.
-import json, os, re, sys, urllib.error, urllib.parse, urllib.request, zipfile, zlib
+import json, os, re, shutil, subprocess, sys, tempfile, urllib.error, urllib.parse, urllib.request, zipfile, zlib
 import xml.etree.ElementTree as ET
 
 ROOT = "/storage/ES-DE"
 CFG = "/storage/.config/system/configs/system.cfg"
 INDEX = os.environ.get("ASGARD_SCRAPE_INDEX", "/usr/share/asgard/scrape-index")
 THUMBS = "https://raw.githubusercontent.com/libretro-thumbnails/"
+SKYSCRAPER = os.environ.get("ASGARD_SKYSCRAPER", "/usr/bin/Skyscraper")
+SKY_ARTWORK = "/etc/skyscraper/asgard-artwork.xml"
+# ROCKNIX system names Skyscraper calls something else; the rest are the same
+SKY_PLATFORMS = {"gamecube": "gc", "genesis": "megadrive", "megadrive-japan": "megadrive", "sfc": "snes", "famicom": "nes",
+                 "megacd": "segacd", "tg16": "pcengine", "tg16cd": "pcenginecd", "neocd": "neogeocd",
+                 "colecovision": "coleco", "fbn": "fba"}
+SKY_FIELDS = ("name", "desc", "developer", "publisher", "genre", "releasedate", "players")
 # ES system -> (libretro playlist, ScreenScraper systemeid; None where unchecked)
 SYSTEMS = {
     "nes": ("Nintendo - Nintendo Entertainment System", 3), "snes": ("Nintendo - Super Nintendo Entertainment System", 4),
@@ -320,6 +331,52 @@ def screenscraper(system, rom, stem, media):
     return {"source": "ScreenScraper", "matched": meta["name"], "media": got, "details": sorted(k for k, v in meta.items() if v)}
 
 
+def skyscraper(system, rom, stem, media):
+    """ScreenScraper through Skyscraper, signed in as the user: gather this ROM into Skyscraper's cache, generate ES-DE
+    output for it into a scratch folder, then copy its entry and art over (ROOT's gamelist keeps every other game)."""
+    user, password = setting("screenscraper.username"), setting("screenscraper.password")
+    if not (user and password and os.access(SKYSCRAPER, os.X_OK)):
+        return None
+    platform = SKY_PLATFORMS.get(system, system)
+    ext = os.path.splitext(rom)[1] if os.path.isfile(rom) else ""
+    rel = stem + ext
+    romdir = rom[:len(rom) - len(rel)].rstrip("/") or "/"
+    with tempfile.TemporaryDirectory(prefix="asgard-scrape.") as tmp:
+        cfg = f"{tmp}/config.ini"   # the login goes in a private file, not on a command line others can read
+        with open(os.open(cfg, os.O_WRONLY | os.O_CREAT, 0o600), "w") as f:
+            f.write(f'[main]\nunattend="true"\nverbosity="0"\n[screenscraper]\nuserCreds="{user}:{password}"\n')
+        run = lambda *args: subprocess.run([SKYSCRAPER, "-c", cfg, "-p", platform, "-i", romdir, *args, rom],
+                                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=600)
+        try:
+            run("-s", "screenscraper")
+            run("-f", "esde", "-g", f"{tmp}/gamelist", "-o", f"{tmp}/media", "-a", SKY_ARTWORK)
+        except (OSError, subprocess.SubprocessError):
+            return None
+        try:
+            entry = next((g for g in ET.parse(f"{tmp}/gamelist/gamelist.xml").getroot().iter("game")
+                          if g.findtext("path") == "./" + rel), None)
+        except (OSError, ET.ParseError):
+            entry = None
+        if entry is None:
+            return None
+        meta = {k: (entry.findtext(k) or "").strip() for k in SKY_FIELDS}
+        meta = {k: v for k, v in meta.items() if v and v != "T000000"}
+        got = []
+        for kind in ("covers", "screenshots", "marquees"):
+            src = f"{tmp}/media/{kind}/{stem}.png"
+            if os.path.isfile(src):
+                os.makedirs(os.path.dirname(f"{media}/{kind}/{stem}.png"), exist_ok=True)
+                shutil.copyfile(src, f"{media}/{kind}/{stem}.png")
+                got.append(kind)
+    if not got and not meta:
+        return None
+    name = meta.pop("name", "")
+    gamelist(system, rel, meta)                       # ScreenScraper's details replace older ones
+    if name:
+        gamelist(system, rel, {"name": name}, keep=True)   # a name the user set stays
+    return {"source": "ScreenScraper", "matched": name, "media": got, "details": sorted(meta)}
+
+
 def gamelist(system, rel, meta, keep=False):
     """Add or update this game's entry in ES-DE's gamelist.xml (Home reads name, desc, developer, date, genre).
     keep: only fill fields the entry doesn't have yet (what the user or a richer scraper wrote stays)."""
@@ -354,10 +411,23 @@ def main(argv):
         return {"error": "usage: asgard-scrape.py <system> <rom path> <stem>"}
     system, rom, stem = argv[1], argv[2], argv[3]
     media = f"{ROOT}/downloaded_media/{system}"
-    if not SYSTEMS.get(system, (None, None))[0] and not (SYSTEMS.get(system, (None, None))[1] and setting("screenscraper.devid")):
+    signed_in = setting("screenscraper.username") and os.access(SKYSCRAPER, os.X_OK)
+    if not SYSTEMS.get(system, (None, None))[0] and not signed_in and \
+            not (SYSTEMS.get(system, (None, None))[1] and setting("screenscraper.devid")):
         return {"error": "No scraping source for this system yet"}
     try:
-        r = screenscraper(system, rom, stem, media) or libretro(system, rom, stem, media)
+        r = screenscraper(system, rom, stem, media) or skyscraper(system, rom, stem, media)
+        if not r or "covers" not in r["media"]:   # libretro for what ScreenScraper didn't have
+            try:
+                lr = libretro(system, rom, stem, media)
+            except Offline:
+                if not r:
+                    raise
+                lr = None
+            if lr and r:
+                r = dict(r, media=sorted(set(r["media"]) | set(lr["media"])), details=sorted(set(r["details"]) | set(lr["details"])),
+                         source=r["source"] + " and libretro")
+            r = r or lr
     except Offline:
         return {"error": "No internet connection: scraping needs it"}
     if r and not r["media"] and not r.get("details"):

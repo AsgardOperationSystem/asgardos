@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Asgard (asgard-scrape.py): each kind of art as the source has it, in ES-DE's folders, for Asgard Home. -->
+<artwork>
+  <output type="cover" resource="cover"/>
+  <output type="screenshot" resource="screenshot"/>
+  <output type="marquee" resource="wheel"/>
+</artwork>

@@ -170,7 +170,9 @@ Item {
             [link("gamepad", "Consoles", "Emulator and core for each system", consolesPage)],
             [action("refresh", "Rescan library", backend.systems.length + " systems", () => backend.rescan()),
              action("refresh", "Scrape missing", live.scrape || "Art and details for every game without a cover; A again stops",
-                    scrapeMissing)]]
+                    scrapeMissing),
+             action("user", "ScreenScraper account", (get("screenscraper.username") || "Not signed in") +
+                    "  ·  descriptions and Switch art; free at screenscraper.fr", ssSignIn)]]
         case "Achievements": return [
             [toggle("trophy", "RetroAchievements", "In supported emulators", "global.retroachievements", "0"),
              toggle("trophy", "Hardcore mode", "No savestates, rewind or cheats; earns hardcore unlocks",
@@ -965,6 +967,17 @@ Item {
         })
     }
 
+    // ScreenScraper sign-in (SCRAPE-1): asgard-scrape.py passes it to Skyscraper. An empty password keeps the saved one;
+    // an empty username signs out.
+    function ssSignIn() {
+        keyboard.ask("ScreenScraper username", get("screenscraper.username"), false, u => {
+            if (u === undefined || u === null) return
+            if (!u.trim()) { set("screenscraper.username", ""); set("screenscraper.password", ""); return }
+            set("screenscraper.username", u.trim())
+            keyboard.ask("ScreenScraper password", "", true, p => { if (p) set("screenscraper.password", p) })
+        })
+    }
+
     function raSignIn() {
         keyboard.ask("RetroAchievements username", get("global.retroachievements.username"), false, u => {
             if (!u) return
@@ -978,8 +991,7 @@ Item {
     function profilePage() {
         return [[info("user", "Name", backend.hostname + "  (system.hostname in asgard.yml)"),
                  action("trophy", "RetroAchievements", get("global.retroachievements.username") || "Not signed in", raSignIn),
-                 info("list", "ScreenScraper", !get("screenscraper.devid") ? "Off until a developer ID is set (screenscraper.devid in asgard.yml); scraping uses libretro"
-                                              : get("screenscraper.username") || "Developer ID set, no account (asgard.yml)")]]
+                 action("list", "ScreenScraper", get("screenscraper.username") || "Not signed in", ssSignIn)]]
     }
     function consolesPage() {
         return [backend.systems.map(s => link("gamepad", s.fullname,

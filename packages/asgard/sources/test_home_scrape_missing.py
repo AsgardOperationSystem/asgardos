@@ -2,7 +2,8 @@
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_scrape_missing.py  (no Thor): Settings > Library > Scrape missing, offscreen. A QML copy answers
 backend.exec with canned asgard-scrape.py output, so this checks which games it scrapes, in turn, and what it says; the
-scraper itself is test_asgard_scrape.py, and real art arriving on a Thor is a device check."""
+scraper itself is test_asgard_scrape.py, and real art arriving on a Thor is a device check. Also the ScreenScraper sign-in row,
+which saves the login asgard-scrape.py hands to Skyscraper."""
 import json
 import os
 import shutil
@@ -11,7 +12,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "../../../tools/test"))
 import home_harness as hh  # noqa: E402
-from home_harness import Root  # noqa: E402
+from home_harness import CFG, Root  # noqa: E402
 
 SCRAPE = "start down down a down down a"   # Settings, Library (3rd category), its 3rd row: Scrape missing
 
@@ -59,4 +60,15 @@ with Root() as r:
     r.write("storage/ES-DE/downloaded_media/nds/covers/Mario.png", "png")
     res = run(r, {})
     assert not scraped(res) and res.shows("Every game has a cover"), res.log
+
+# ScreenScraper account: username, then password, on the on-screen keyboard (A types its first key, q; Start is Done)
+ACCOUNT = "start down down a down down down a"
+with Root() as r:
+    r.library()
+    shown = r.run(ACCOUNT.rsplit(" ", 1)[0], ms=300)
+    assert shown.shows("ScreenScraper account") and shown.shows("Not signed in"), shown.texts
+    r.run(ACCOUNT + " a start a start", ms=300)
+    cfg = dict(line.split("=", 1) for line in r.read(CFG).splitlines() if "=" in line)
+    assert cfg.get("screenscraper.username") == "q" and cfg.get("screenscraper.password") == "q", cfg
+    assert r.run(ACCOUNT.rsplit(" ", 1)[0], ms=300).shows("q  ·  descriptions and Switch art")
 print("ok")
