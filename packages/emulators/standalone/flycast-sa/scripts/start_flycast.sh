@@ -6,11 +6,6 @@
 . /etc/profile
 set_kill set "-9 flycast"
 
-#load gptokeyb support files
-control-gen_init.sh
-source /storage/.config/gptokeyb/control.ini
-get_controls
-
 # Conf files vars
 SOURCE_DIR="/usr/config/flycast"
 CONF_DIR="/storage/.config/flycast"
@@ -40,12 +35,7 @@ fi
 ln -sf "/storage/roms/bios/dc" "/storage/roms/dreamcast/data"
 
 
-#Make sure flycast gptk config exists
-if [ ! -f "${CONF_DIR}/flycast.gptk" ]; then
-  cp -r "/usr/config/flycast/flycast.gptk" "${CONF_DIR}/flycast.gptk"
-fi
-
-#Make sure flycast gptk SDL_Keyboard.cfg exists
+#Make sure flycast SDL_Keyboard.cfg exists
 if [ ! -f "${CONF_DIR}/mappings/SDL_Keyboard.cfg" ]; then
   cp -r "/usr/config/flycast/mappings/SDL_Keyboard.cfg" "${CONF_DIR}/mappings/SDL_Keyboard.cfg"
 fi
@@ -185,7 +175,6 @@ esac
   echo "VSYNC set to: ${VSYNC}"
   echo "Launching /usr/bin/flycast ${1}"
 
-#Run flycast emulator
-$GPTOKEYB "flycast" -c "${CONF_DIR}/flycast.gptk" &
+# Run flycast emulator. Its pad file (mappings/) has the Home combos itself, so no gptokeyb: run beside it, the two
+# pressed each one twice (GAME-11).
 ${EMUPERF} /usr/bin/flycast "${1}"
-kill -9 "$(pidof gptokeyb)"

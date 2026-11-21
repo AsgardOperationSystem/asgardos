@@ -86,6 +86,21 @@ def aethersx2():
     pcsx2("AetherSX2", read("aethersx2-sa", "config", "InputPlumber", "aethersx2", "inis", "PCSX2.ini"))
 
 
+FLYCAST_PAD = ("flycast-sa", "config", "InputPlumber", "SDL_Sony Interactive Entertainment DualSense Wireless Controller.cfg")
+
+
+def flycast():
+    """Flycast's pad file holds the Home combos (menu, load, save, quit, fast-forward). A gptokeyb beside it pressed
+    each of them a second time, which toggled fast-forward straight back off."""
+    combos = section(read(*FLYCAST_PAD), "combo").values()
+    for action in ("btn_menu", "btn_jump_state", "btn_quick_save", "btn_escape", "btn_fforward"):
+        if not any(v.startswith(f"{HOME},") and f":{action}:" in v for v in combos):
+            failures.append(f"Flycast: no Home combo for {action}")
+    launcher = read("flycast-sa", "scripts", "start_flycast.sh")
+    if re.search(r"^[^#]*(GPTOKEYB|gptokeyb)", launcher, re.M):
+        failures.append("Flycast: start_flycast.sh runs gptokeyb beside the pad file's own Home combos")
+
+
 def drastic():
     """DraStic numbers joystick buttons 1024 + n. The d-pad is a hat, which reaches it as keys from gptokeyb."""
     cfg = keys(read("drastic-sa", "config", "SM8550", "drastic.cfg"))
@@ -110,7 +125,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast):
         try:
             check()
         except (KeyError, OSError) as e:
