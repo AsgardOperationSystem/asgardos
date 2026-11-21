@@ -25,6 +25,9 @@ CONVERTED = {
     ".config/drastic/drastic.gptk": ("up = \\\\\ndown = w\nleft=\\\\\n", "up = i\ndown = w\nleft=j\n"),
     ".config/duckstation/settings.ini": ("[Pad1]\nRLeft = SDL-0/+RightX\nRRight = SDL-0/-RightX\n",
                                          "[Pad1]\nRLeft = SDL-0/-RightX\nRRight = SDL-0/+RightX\n"),
+    ".config/aethersx2/inis/PCSX2.ini": ("[Hotkeys]\nOpenPauseMenu = SDL-0/Guide & SDL-0/Y\n[Pad1]\nAnalog = SDL-0/Guide\n",
+                                         "[Hotkeys]\nOpenPauseMenu = Keyboard/Escape\nOpenPauseMenu = SDL-0/Guide & SDL-0/Y\n"
+                                         "[Pad1]\nAnalog = \n"),
 }
 
 IMAGE = {

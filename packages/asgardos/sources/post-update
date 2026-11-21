@@ -151,6 +151,14 @@ done
 convert_value /storage/.config/duckstation/settings.ini RLeft SDL-0/+RightX SDL-0/-RightX
 convert_value /storage/.config/duckstation/settings.ini RRight SDL-0/-RightX SDL-0/+RightX
 
+# AetherSX2: Home also pressed the PS2's Analog button, so every tap of it flipped the pad's analog mode, and Home's Esc
+# (thor_ayn_button.py) wasn't bound to its pause menu, as it is in ARMSX2's.
+AETHERSX2_INI=/storage/.config/aethersx2/inis/PCSX2.ini
+convert_value "${AETHERSX2_INI}" Analog SDL-0/Guide ""
+if [ -f "${AETHERSX2_INI}" ] && ! grep -q "^OpenPauseMenu = Keyboard/Escape$" "${AETHERSX2_INI}"; then
+  sed -i '/^\[Hotkeys\]$/a OpenPauseMenu = Keyboard/Escape' "${AETHERSX2_INI}"
+fi
+
 # Copy aethersx2 bios files for armsx2 for convenience
 if [ -d "/storage/roms/bios/aethersx2/bios" ] && [ ! -d "/storage/roms/bios/armsx2" ]; then
   cp -rf /storage/roms/bios/aethersx2/bios /storage/roms/bios/armsx2

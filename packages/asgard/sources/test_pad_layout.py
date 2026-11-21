@@ -61,6 +61,31 @@ def duckstation():
     sticks("DuckStation", pad, lambda sign, side, xy: f"SDL-0/{sign}{side}{xy}")
 
 
+def pcsx2(what, text):
+    """ARMSX2 and AetherSX2 (PCSX2's ini): Cross is south, and Home alone opens the pause menu through the Esc that
+    thor_ayn_button.py sends, and does nothing in the game."""
+    pad = section(text, "Pad1")
+    for button, names in (("Cross", ("A", "FaceSouth")), ("Circle", ("B", "FaceEast")),
+                          ("Triangle", ("Y", "FaceNorth")), ("Square", ("X", "FaceWest"))):
+        if pad[button] not in (f"SDL-0/{n}" for n in names):
+            failures.append(f"{what} {button}: {pad[button]!r}, want south/east/north/west by position")
+    sticks(what, pad, lambda sign, side, xy: f"SDL-0/{sign}{side}{xy}")
+    for k, v in pad.items():
+        if v == "SDL-0/Guide":
+            failures.append(f"{what}: the PS2's {k} is bound to Home alone")
+    hotkeys = re.search(r"^\[Hotkeys\]\n(.*?)(?=^\[|\Z)", text, re.M | re.S).group(1)
+    if "OpenPauseMenu = Keyboard/Escape" not in hotkeys.splitlines():
+        failures.append(f"{what}: Esc (Home's tap) doesn't open the pause menu")
+
+
+def armsx2():
+    pcsx2("ARMSX2", read("armsx2-sa", "config", "inputplumber", "ARMSX2", "inis", "PCSX2.ini"))
+
+
+def aethersx2():
+    pcsx2("AetherSX2", read("aethersx2-sa", "config", "InputPlumber", "aethersx2", "inis", "PCSX2.ini"))
+
+
 def drastic():
     """DraStic numbers joystick buttons 1024 + n. The d-pad is a hat, which reaches it as keys from gptokeyb."""
     cfg = keys(read("drastic-sa", "config", "SM8550", "drastic.cfg"))
@@ -85,7 +110,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation):
+    for check in (drastic, duckstation, armsx2, aethersx2):
         try:
             check()
         except (KeyError, OSError) as e:
