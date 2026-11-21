@@ -42,6 +42,9 @@ A release is the image step's output plus a signature, published by hand (DEV-22
    `<name>.tar.sig` with the release key, then checks the signature with the key the image ships.
 3. `gh release create vX.Y.Z` with the `.img.gz`, the `.tar` and their `.sha256`, and the `.tar.sig`. Thors offer a
    release only when its tag is `vX.Y.Z` and the `.tar`, `.sha256` and `.sig` are all there.
+4. Point the "latest image" links at the new `.img.gz` and its `.sha256`: `README.md` (Get it) and the wiki's
+   `Install.md` (What you need). Releases are pre-releases with versioned names, so GitHub's `releases/latest` can't
+   stand in for them.
 
 The key pair: `scripts/release --keygen` writes the private key to `~/.config/asgard/release-key/asgard-release.key`
 (or `$ASGARD_RELEASE_KEY`) and the public one to `packages/asgard/sources/release-key.pem`, which the image ships as
