@@ -313,7 +313,8 @@ fi
   fi
 
   # Wii Controller Hotkey Enable
-  if [ "$HKEY" = "mode" ]; then
+  # Asgard: Home is the modifier unless hotkey_enable_button is select (MENU-1): Select is a game button (the Wii's -).
+  if [ "$HKEY" != "select" ]; then
     sed -i '/^Buttons\/Hotkey =/c\Buttons\/Hotkey = Guide' ${CONF_DIR}/GCPadNew.ini
   else
     sed -i '/^Buttons\/Hotkey =/c\Buttons\/Hotkey = Back' ${CONF_DIR}/GCPadNew.ini
@@ -360,7 +361,8 @@ fi
 sed -i '/SkipIPL/c\SkipIPL = True' ${CONF_DIR}/${DOLPHIN_INI}
 
   # GC Controller Hotkey Enable
-  if [ "$HKEY" = "mode" ]; then
+  # Asgard: Home is the modifier unless hotkey_enable_button is select (MENU-1): Select is a game button (the Wii's -).
+  if [ "$HKEY" != "select" ]; then
     sed -i '/^Buttons\/Hotkey =/c\Buttons\/Hotkey = Guide' ${CONF_DIR}/${GC_CONTROLLER_INI}
   else
     sed -i '/^Buttons\/Hotkey =/c\Buttons\/Hotkey = Back' ${CONF_DIR}/${GC_CONTROLLER_INI}
@@ -369,7 +371,7 @@ sed -i '/SkipIPL/c\SkipIPL = True' ${CONF_DIR}/${DOLPHIN_INI}
   # Qt reads its combos from Hotkeys.ini instead of Buttons/Hotkey, so the same
   # setting has to be swapped into the modifier half of every binding there.
   if [ -f "${CONF_DIR}/Hotkeys.ini" ]; then
-    if [ "$HKEY" = "mode" ]; then
+    if [ "$HKEY" != "select" ]; then
       sed -i 's/`Back`/`Guide`/g' ${CONF_DIR}/Hotkeys.ini
     else
       sed -i 's/`Guide`/`Back`/g' ${CONF_DIR}/Hotkeys.ini

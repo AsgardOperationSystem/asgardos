@@ -173,6 +173,20 @@ def dolphin_gc():
         failures.append("Dolphin Wii: the GameCube pad isn't the east profile")
 
 
+def dolphin_hotkey():
+    """Dolphin's hotkey modifier is Home unless hotkey_enable_button is select: Select is a game button (the Wii's -),
+    and Home held with another button is the modifier everywhere (MENU-1)."""
+    for launcher in ("start_dolphin_gc.sh", "start_dolphin_wii.sh"):
+        text = read("dolphin-sa", "scripts", launcher)
+        blocks = re.findall(r'if \[ "\$HKEY" (=|!=) "(\w+)" \]; then\n\s*sed -i [^\n]*Hotkey = (\w+)', text)
+        if not blocks:
+            failures.append(f"Dolphin {launcher}: no hotkey modifier block found")
+        for op, value, button in blocks:
+            unset_takes_branch = (op == "!=")      # HKEY unset: "" != value holds, "" = value doesn't
+            got = button if unset_takes_branch else ("Back" if button == "Guide" else "Guide")
+            expect(f"Dolphin {launcher}: the modifier with nothing set", got, "Guide")
+
+
 def dolphin_wii():
     """The Wii remote's motion: every shipped profile binds the accelerometer and gyroscope to the DSU device the Wii
     launcher sets up, by its name, on asgard-motiond's port (INP-1)."""
@@ -219,7 +233,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, mupen64plus, dolphin_gc, dolphin_wii):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, mupen64plus, dolphin_gc, dolphin_hotkey, dolphin_wii):
         try:
             check()
         except (KeyError, OSError) as e:
