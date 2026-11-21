@@ -4,4 +4,7 @@ ACTION=="add", SUBSYSTEMS=="input", ATTRS{name}=="*PLAYSTATION(R)3Conteroller-PA
 ACTION=="add", SUBSYSTEMS=="input", ATTRS{name}=="*PS(R) Gamepad", TAG+="systemd", ENV{SYSTEMD_WANTS}="sixaxis@%E{DEVNAME}.service", ENV{ID_INPUT_KEY}=""
 ACTION=="add", SUBSYSTEMS=="input", ATTRS{name}=="*PS3 GamePad", TAG+="systemd", ENV{SYSTEMD_WANTS}="sixaxis@%E{DEVNAME}.service", ENV{ID_INPUT_KEY}=""
 ACTION=="add", SUBSYSTEMS=="input", ATTRS{name}=="Sony Interactive Entertainment Wireless Controller", TAG+="systemd", ENV{SYSTEMD_WANTS}="sixaxis@%E{DEVNAME}.service", ENV{ID_INPUT_KEY}=""
-ACTION=="add", SUBSYSTEMS=="input", ENV{DEVNAME}=="/dev/input/event*", ATTRS{name}=="*Motion Sensors", RUN+="/bin/rm %E{DEVNAME}", ENV{ID_INPUT_JOYSTICK}="", ENV{ID_INPUT_KEY}=""
+# Asgard: not InputPlumber's virtual DualSense (a uhid device): its motion node is where SDL reads its gyro
+# (INP-1), and with ID_INPUT_JOYSTICK cleared nothing takes it for a pad.
+ACTION=="add", SUBSYSTEMS=="input", ENV{DEVNAME}=="/dev/input/event*", ATTRS{name}=="*Motion Sensors", ENV{ID_INPUT_JOYSTICK}="", ENV{ID_INPUT_KEY}=""
+ACTION=="add", SUBSYSTEMS=="input", ENV{DEVNAME}=="/dev/input/event*", ATTRS{name}=="*Motion Sensors", DEVPATH!="/devices/virtual/misc/uhid/*", RUN+="/bin/rm %E{DEVNAME}"

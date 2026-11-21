@@ -55,7 +55,7 @@ User guides for each feature are in the [wiki](https://github.com/AsgardOperatio
 | Stick lights, fan | ✅ | Fan modes and fixed speeds survive game launches. |
 | Gyro (DSU / cemuhook) | ✅ | From the ADSP sensor core; Azahar uses it (aiming in Ocarina of Time 3D works). On per game: it keeps the DSP awake. |
 | Gyro set up with no copying | ✅ | Its files are built at first boot from the Thor's own Android partitions. Checked 2026-11-21 on 0.0.1: with no `sensors-root/`, one boot built it and Ocarina of Time 3D's gyro aiming worked from it. |
-| Gyro for Steam and SDL games | 🧪 | On InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
+| Gyro for Steam and SDL games | 🧪 | On InputPlumber's virtual DualSense; only tested against a fake InputPlumber. Until 2026-11-21 a ROCKNIX udev rule deleted the pad's motion node, so SDL couldn't read it; the node is kept now (built, not checked on a Thor). |
 | **Power** | | |
 | Sleep (s2idle) | ✅ | Full SoC sleep (CX, AOSS, DDR), 20–30 mA (~0.3 %/h). Pad, Wi-Fi, audio and storage resume. Emulators don't replay the time asleep. A lid opened again while it's going down cancels the sleep (checked 2026-11-06). 🧪 The game stays silent through every lid-shut wake, aborted sleeps included (host-tested; not yet checked on a Thor). |
 | Sleep drain below ~23 mA | ⏸️ | Same ~22 mA floor on 7.2 and 7.3. Suspects: audio codec rails, devices on vph_pwr. See [docs/sleep.md](sleep.md). |
