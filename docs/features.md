@@ -52,6 +52,7 @@ User guides for each feature are in the [wiki](https://github.com/AsgardOperatio
 | Bottom screen flicker | ⚠️ | Android's panel timings (`9046`) didn't cure it. |
 | Stick lights, fan | ✅ | Fan modes and fixed speeds survive game launches. |
 | Gyro (DSU / cemuhook) | ✅ | From the ADSP sensor core; Azahar uses it (aiming in Ocarina of Time 3D works). On per game: it keeps the DSP awake. |
+| Gyro set up with no copying | 🧪 | Its files are built at first boot from the Thor's own Android partitions. The built tree matched a working hand-made one on a Thor (2026-11-21); the gyro running from it isn't checked yet. |
 | Gyro for Steam and SDL games | 🧪 | On InputPlumber's virtual DualSense; only tested against a fake InputPlumber. |
 | **Power** | | |
 | Sleep (s2idle) | ✅ | Full SoC sleep (CX, AOSS, DDR), 20–30 mA (~0.3 %/h). Pad, Wi-Fi, audio and storage resume. Emulators don't replay the time asleep. A lid opened again while it's going down cancels the sleep (checked 2026-11-06). 🧪 The game stays silent through every lid-shut wake, aborted sleeps included (host-tested; not yet checked on a Thor). |

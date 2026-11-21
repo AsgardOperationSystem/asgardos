@@ -1,0 +1,15 @@
+# Gyro (INP-1): build the sensors PD's HexagonFS root from the Thor's own Android partitions (read-only), so the gyro
+# works with no files copied by hand. Once: skipped when the root is there, and a no-op without Android's partitions.
+[Unit]
+Description=Build the gyro's sensors root from Android's partitions
+ConditionPathExists=!/storage/.config/asgard/sensors-root/hexagonrpc.json
+Before=thor-sensorspd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/share/asgard/asgard-sensors-root.py
+StandardOutput=append:/var/log/asgard-sensors-root.log
+StandardError=append:/var/log/asgard-sensors-root.log
+
+[Install]
+WantedBy=multi-user.target

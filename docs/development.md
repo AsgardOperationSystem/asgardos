@@ -50,10 +50,13 @@ overlay/ on a pinned ROCKNIX; each old patch is now one commit ("Asgard patch NN
 ## Gyro: ADSP sensors root
 
 The gyro and accelerometer (SH5001) live in the ADSP's sensor core. `thor-sensorspd.service` (hexagonrpcd) serves
-it a HexagonFS root that can't ship in the image (Android blobs plus this unit's calibration). Copy it to
-`/storage/.config/asgard/sensors-root/` once: `hexagonrpc.json`, `dsp/` from the Thor's `dsp_a`,
-`vendor/etc/sensors`, `vendor/lib/rfsa/adsp`, `odm/etc`, a writable copy of `persist/sensors`, and `socinfo/`.
-The service starts only when it's there.
+it a HexagonFS root that can't ship in the image (Android blobs plus this unit's calibration). It lives in
+`/storage/.config/asgard/sensors-root/`: `hexagonrpc.json`, `dsp/` from the Thor's `dsp_a`,
+`vendor/etc/sensors`, three libraries from `vendor/lib/rfsa/adsp`, `odm/etc`, a writable copy of `persist/sensors`, and
+`socinfo/` (Android's `soc0` values). `asgard-sensors-root.service` builds it once at boot from Android's partitions
+(`vendor` and `odm` are ext4 images in `super`, found through its liblp metadata), all mounted read-only; log
+`/var/log/asgard-sensors-root.log`. A root already there, such as one copied by hand, is never replaced. The service
+starts only when it's there.
 
 
 ## Asgard Home

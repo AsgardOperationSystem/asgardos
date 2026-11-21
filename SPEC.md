@@ -189,7 +189,7 @@ on other systems run at stock, and their row reads `OS (100%)`. None of this aff
 - **CFG-4** Settings live in `system.cfg`. Writes are atomic, keep comments, and replace in place. A per-game key (`<system>["<rom>"].<key>`) doesn't affect the system key.
 - **CFG-5** New Asgard settings use the `asgard.` prefix. ROCKNIX's existing key names stay.
 - **CFG-6** New Asgard state goes in `/storage/.config/asgard/`. Logs and reports go in `/storage/.config/thor/`.
-- **CFG-7** Every setting has a safe default, and the system runs when the setting or its file is missing. A feature whose data can't ship stays off rather than failing: the gyro's service starts only when `sensors-root/` is there.
+- **CFG-7** Every setting has a safe default, and the system runs when the setting or its file is missing. A feature whose data can't ship stays off rather than failing: the gyro's service starts only when `sensors-root/` is there, and with Android's partitions gone it isn't built.
 - **CFG-8** The default root password is `asgardos`, in both `distribution/options` (`ROOT_PASSWORD`) and `system.cfg` (`root.password`), and it's documented in the README. `root.password` is the source of truth: every boot applies it to the root login, Samba and the Syncthing GUI. It's a public default, not a secret.
 
 ## 5. AYN button: Thor Panel
@@ -235,7 +235,7 @@ Touch and sticks vary between units, so a user can correct their own on the devi
 
 Motion aiming for the games that use it, and stick lights as a personal touch or a battery indicator.
 
-- **INP-1** The gyro serves both as the DualSense's motion and as a DSU server on `127.0.0.1:26760`. It needs a HexagonFS root copied to `/storage/.config/asgard/sensors-root/`, because Android's blobs and the unit's calibration can't ship.
+- **INP-1** The gyro serves both as the DualSense's motion and as a DSU server on `127.0.0.1:26760`. It needs a HexagonFS root in `/storage/.config/asgard/sensors-root/`, because Android's blobs and the unit's calibration can't ship. Asgard builds it once at boot from the Thor's own Android partitions (`dsp`, `persist`, and `vendor` and `odm` inside `super`), mounted read-only, so the gyro needs no files copied by hand while Android is there; a root that already exists is never replaced.
 - **INP-2** Stick lights offer colour, brightness or battery level.
 
 ## 7. Sound

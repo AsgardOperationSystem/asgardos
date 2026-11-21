@@ -1,10 +1,13 @@
 # Gyro, step 2: serve the ADSP sensors PD its files so the sensor core's QMI service (svc 400) comes up.
 # The HexagonFS root holds Android's DSP libraries, sensor configs and this unit's own calibration, so it's not in
-# the image: copy it to /storage/.config/asgard/sensors-root (see the README). Without it the unit doesn't start.
+# the image: asgard-sensors-root.service builds /storage/.config/asgard/sensors-root from Android's partitions, or it's
+# copied by hand. Without it the unit doesn't start.
 # Disable it if the ADSP (audio, charging) misbehaves.
 [Unit]
 Description=Thor ADSP sensors PD FastRPC server (hexagonrpcd)
 ConditionPathExists=/storage/.config/asgard/sensors-root/hexagonrpc.json
+# The condition is checked when the job runs: after the builder, so a first boot already has the gyro.
+After=asgard-sensors-root.service
 # ponytail: stopped for sleep and not restarted after resume; whether the PD survives a sleep is untested.
 Conflicts=suspend.target
 Before=suspend.target
