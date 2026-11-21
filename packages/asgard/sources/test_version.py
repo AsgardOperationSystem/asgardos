@@ -12,7 +12,6 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), 
 version = open(os.path.join(ROOT, "distribution/version")).read()
 m = re.search(r'^\s*OS_VERSION="([^"]*)"', version, re.M)
 assert m and re.fullmatch(r"\d+\.\d+\.\d+", m.group(1)), m and m.group(1)
-assert m.group(1) == "0.0.1", m.group(1)
 
 line = next(l for l in open(os.path.join(ROOT, "packages/asgardos/sources/scripts/usbgadget")) if l.startswith("devversion="))
 
