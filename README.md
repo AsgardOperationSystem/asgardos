@@ -34,6 +34,8 @@ screenshots, troubleshooting.
 - **Battery:** deep sleep that works, screens-off mode, a charge limit with bypass charging, a battery report.
 - **Audio:** a speaker EQ tuned for the Thor, AutoEQ for headphones, Bluetooth headphones with their battery and codec.
 - **RetroAchievements and cheats** from Home, and **calibration** for sticks, triggers and touch.
+- **Downloads finish before sleep:** close the lid during an update download or a scrape and the Thor waits, screens
+  off, until it's done, then sleeps. New, 🧪.
 
 What works today, feature by feature: **[features](docs/features.md)** and **[emulators](docs/emulators.md)**.
 

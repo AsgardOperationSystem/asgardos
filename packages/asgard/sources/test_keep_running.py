@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-# spec: BAT-3
+# spec: BAT-3 XFER-3
 # requires: cmd:bash cmd:setsid cmd:flock cmd:timeout
 # sleep_mode=screen, through the real scripts with their paths in a temp dir and fake system tools: asgard-perf-profile.sh holds the
 # inhibitor and marker for the game's run only, power-handler hands the power key and lid to asgard-screens-off.sh, which turns the
-# screens off and doesn't suspend or stop the game. That music keeps playing is a human check.
+# screens off and doesn't suspend or stop the game. That music keeps playing is a human check. XFER-3: asgard-transfers.py's
+# standby is the same screens-off with Wi-Fi left on even when set off, the running game's caps back after it, and before a
+# suspend the screens come back with their backlights at 0.
 import os
 import re
 import subprocess
@@ -23,7 +25,7 @@ offline_types() { :; }; write_affinity() { :; }
 def rewrite(path, t):
     paths = {". /etc/profile.d/001-functions": f". {t}/functions", ". /etc/profile": f". {t}/functions",
              ". /usr/share/asgard/asgard-cpu-lib.sh": f". {t}/lib", "/usr/share/asgard/": f"{t}/asgard/", "/usr/bin/": f"{t}/bin/",
-             "/run/": f"{t}/run/", "/storage/": f"{t}/storage/"}
+             "/run/": f"{t}/run/", "/storage/": f"{t}/storage/", "/sys/class/backlight/": f"{t}/backlight/"}
     with open(path) as f:
         return re.sub("|".join(map(re.escape, paths)), lambda m: paths[m.group(0)], f.read())
 
@@ -34,7 +36,7 @@ class Fixture:
         t = self.t = self._tmp.name
         for d in ("asgard", "bin", "run", "storage/.config/system/configs"):
             os.makedirs(f"{t}/{d}")
-        self.write("functions", f'get_setting() {{ [ "$1" = sleep_mode ] && cat "{t}/sleep_mode" 2>/dev/null; [ "$1" = sleep_bt ] && cat "{t}/sleep_bt" 2>/dev/null; [ "$1" = asgard.sleep_bt ] && cat "{t}/os_sleep_bt" 2>/dev/null; [ "$1" = system.suspendmode ] && echo off; }}\n'
+        self.write("functions", f'get_setting() {{ [ "$1" = sleep_mode ] && cat "{t}/sleep_mode" 2>/dev/null; [ "$1" = sleep_bt ] && cat "{t}/sleep_bt" 2>/dev/null; [ "$1" = asgard.sleep_bt ] && cat "{t}/os_sleep_bt" 2>/dev/null; [ "$1" = asgard.sleep_wifi ] && cat "{t}/os_sleep_wifi" 2>/dev/null; [ "$1" = system.suspendmode ] && echo off; }}\n'
                                 f'export PATH="{t}/bin:$PATH"\n')
         self.write("lib", LIB)
         self.write("storage/.config/system/configs/system.cfg", "")
@@ -233,4 +235,23 @@ with Fixture() as f:
     start = time.monotonic()
     f.run("power-handler", "lid", "close")
     assert time.monotonic() - start < 3, "a child held the lock"
+
+# XFER-3: a standby: screens off, Bluetooth off as set, Wi-Fi on whatever it's set to (the work needs it); ended, everything back
+# with the game's caps (from what runemu.sh started: no sleep_mode=screen marker); ended dark, the backlights go to 0 first.
+for end in ("standby-end", "standby-dark"):
+    with Fixture() as f:
+        f.write("os_sleep_wifi", "off\n")
+        f.write("os_sleep_bt", "off\n")
+        f.write("asgard/asgard-perf-profile.sh", RECORD, True)
+        f.write("run/thor-playing.json", '{"rom": "/storage/roms/gba/Zelda Minish.gba", "sys": "gba"}')
+        os.makedirs(f"{f.t}/backlight/panel0")
+        f.write("backlight/panel0/brightness", "200\n")
+        calls = f.run("asgard/asgard-screens-off.sh", "standby")
+        assert "swaymsg -q output DSI-2 power off" in calls and "rfkill block bluetooth" in calls, calls
+        assert not any("rfkill block wlan" in c for c in calls), calls
+        calls = f.run("asgard/asgard-screens-off.sh", end)
+        assert "swaymsg -q output DSI-2 power on, output DSI-2 dpms on" in calls, calls
+        assert "asgard-perf-profile.sh cpu gba Zelda Minish.gba" in calls and "rfkill unblock bluetooth" in calls, calls
+        assert f.read("backlight/panel0/brightness").strip() == ("0" if end == "standby-dark" else "200")
+        assert not f.has("run/asgard-screens-off.active")
 print("ok")

@@ -107,7 +107,8 @@ QtObject {
         if (!g) return
         const q = v => "'" + String(v).replace(/'/g, "'\\''") + "'"
         m.status = "Scraping " + g.name + "…"
-        backend.exec("python3 /usr/share/asgard/asgard-scrape.py " + [g.sys, g.path, g.stem].map(q).join(" "), out => {
+        // Through the transfers queue (XFER-1): next in line, its result printed when it's done.
+        backend.exec("python3 /usr/share/asgard/asgard-transfers.py run scrape " + [g.sys, g.path, g.stem].map(q).join(" "), out => {
             let r
             try { r = JSON.parse(out) } catch (e) { r = { error: "The scraper failed" } }
             const got = (r.media || []).concat(r.details && r.details.length ? ["details"] : [])
@@ -232,7 +233,7 @@ QtObject {
             asked(o.version)
             bottom.confirmPanel.open("Asgard " + o.version + " is available",
                                      "You have " + (o.current || "an older version") + ". Download it now? It installs when you restart.",
-                                     "Download", () => backend.shell("systemd-run --unit=asgard-update-download --collect " + ota + "download"),
+                                     "Download", () => backend.shell("python3 /usr/share/asgard/asgard-transfers.py add update"),
                                      { no: "Later", other: "Skip this version",
                                        otherRun: () => { backend.setSetting("asgard.update.skip", o.version); backend.shell(ota + "check") } })
         }

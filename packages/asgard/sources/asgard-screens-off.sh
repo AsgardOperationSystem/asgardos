@@ -5,20 +5,28 @@
 # lights off, Wi-Fi / Bluetooth off when the game's sleep_wifi / sleep_bt, else asgard.sleep_*, is "off". The game keeps running (music keeps
 # playing on the headphone jack). Lid open / another press: all back, and the game's own CPU profile again.
 #   asgard-screens-off.sh power | lid close | lid open | release
+#   asgard-screens-off.sh standby | standby-end | standby-dark   asgard-transfers.py's standby (XFER-3): the same "off",
+#     with Wi-Fi kept on whatever the settings say, since the work it waits for needs it. standby-end is "on";
+#     standby-dark is "on" with the backlights at 0 first, just before a suspend, which restores their brightness.
 #   asgard-screens-off.sh reconnect <address>...   started by "on": see reconnect()
 . /etc/profile.d/001-functions
 . /usr/share/asgard/asgard-cpu-lib.sh
 STATE=/run/asgard-screens-off.active   # what was changed, for "on"
 KEEP=/run/asgard-keep-running          # "<platform>\t<rom>" of the running game (asgard-perf-profile.sh)
+PLAYING=/run/thor-playing.json         # the game runemu.sh started (playlog.py)
 LITTLE_CAP=50                          # ponytail: A510 share while off, enough for music decoding; tune if it stutters
 export SWAYSOCK=${SWAYSOCK:-$(ls /run/0-runtime-dir/sway-ipc.* 2>/dev/null | head -1)}
 
 off() {
   [ -e $STATE ] && return
-  local platform game wanted
+  local platform game wanted keep_wifi=$1
   IFS=$'\t' read -r platform game < $KEEP 2>/dev/null
+  # A standby pauses any game, not only a sleep_mode=screen one: its caps come back from what runemu.sh started.
+  [ -z "$platform" ] && [ -n "$keep_wifi" ] && [ -e $PLAYING ] && IFS=$'\t' read -r platform game < <(python3 -c \
+    'import json,os,sys; p=json.load(open(sys.argv[1])); print(p["sys"]+"\t"+os.path.basename(p["rom"]))' $PLAYING 2>/dev/null)
   # Lit outputs and enabled touch inputs, so "on" restores exactly those.
   swaymsg -t get_outputs -r | python3 -c 'import json,sys; [print("output="+o["name"]) for o in json.load(sys.stdin) if o.get("power")]' > $STATE
+  [ -n "$platform" ] && printf 'game=%s\t%s\n' "$platform" "$game" >> $STATE
   swaymsg -t get_inputs -r | python3 -c 'import json,sys; [print("touch="+i["identifier"]) for i in json.load(sys.stdin) if i.get("type")=="touch" and i.get("libinput",{}).get("send_events")=="enabled"]' >> $STATE
   for o in $(sed -n 's/^output=//p' $STATE); do swaymsg -q output "$o" power off; done
   for i in $(sed -n 's/^touch=//p' $STATE); do swaymsg -q input "$i" events disabled; done
@@ -27,6 +35,7 @@ off() {
   echo "led=$(get_setting led.color)" >> $STATE
   ledcontrol off >/dev/null 2>&1 9>&-
   for r in wifi:wlan bt:bluetooth; do
+    [ "${r%%:*}" = wifi ] && [ -n "$keep_wifi" ] && continue
     wanted=$(get_setting "sleep_${r%%:*}" "$platform" "$game")   # the game's or system's, else Settings > Performance
     [ "${wanted:-$(get_setting "asgard.sleep_${r%%:*}")}" = off ] || continue
     rfkill list "${r#*:}" | grep -q "Soft blocked: yes" && continue   # already off: leave it so on "on"
@@ -44,7 +53,8 @@ off() {
 on() {
   [ -e $STATE ] || return
   local platform game led devices
-  IFS=$'\t' read -r platform game < $KEEP 2>/dev/null
+  IFS=$'\t' read -r platform game < <(sed -n 's/^game=//p' $STATE)   # noted by "off" (a standby's game)...
+  [ -z "$platform" ] && IFS=$'\t' read -r platform game < $KEEP 2>/dev/null   # ...else the sleep_mode=screen game's
   /usr/share/asgard/asgard-cpu-cap.sh 9>&-                                    # all cores, global settings
   # and the game's, unless it's waiting in the background and this is Home
   [ -n "$platform" ] && [ ! -e /run/asgard-perf.home ] && /usr/share/asgard/asgard-perf-profile.sh cpu "$platform" "$game" 9>&-
@@ -101,4 +111,9 @@ case "$1" in
   power) if [ -e $STATE ]; then on; else off; fi ;;
   lid) if [ "$2" = close ]; then off; else on; fi ;;
   release) ;;   # power-handler's pre-suspend call: nothing of ours can be suspended under (the inhibitor holds)
+  standby) off keep-wifi ;;
+  standby-end) on ;;
+  standby-dark)
+    for bl in /sys/class/backlight/*/brightness; do [ -f "$bl" ] && echo 0 > "$bl"; done
+    on ;;
 esac

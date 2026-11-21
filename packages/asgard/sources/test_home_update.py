@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# spec: SET-3 UPD-9 UPD-10
+# spec: SET-3 UPD-9 UPD-10 XFER-1
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Home's side of the OTA, pressed through on the host with asgard-update.py's answers faked (the script itself is
 test_asgard_update.py). Settings > About > Updates: what a check found, Download, the progress and Cancel, the release
@@ -82,14 +82,14 @@ with Root() as r:
         assert page.shows(text), text
     assert "asgard-update.py check" in press(r, keys(UPDATES_PAGE, "a"), ASKED).log
     started = press(r, keys(UPDATES_PAGE, down(1)), ASKED)
-    assert "shell: systemd-run --unit=asgard-update-download --collect python3 /usr/share/asgard/asgard-update.py download" \
-        in started.log
+    assert "shell: python3 /usr/share/asgard/asgard-transfers.py add update" in started.log   # through the queue (XFER-1)
     # Downloading: its progress and Cancel, no Download
     busy = dict(ASKED, download={"state": "downloading", "version": "0.0.2", "done": 855045120, "total": 1710090240})
     shown = press(r, UPDATES_PAGE, busy)
     assert shown.shows("Downloading 0.0.2") and shown.shows("50%") and shown.shows("Cancel download")
     assert not shown.shows("Download 0.0.2")
-    assert "asgard-update.py cancel" in press(r, keys(UPDATES_PAGE, down(2)), busy).log
+    cancelled = press(r, keys(UPDATES_PAGE, down(2)), busy).log
+    assert "asgard-update.py cancel" in cancelled and "asgard-transfers.py cancel update" in cancelled, cancelled[-800:]
     # A failed or interrupted download: Resume, with the reason
     failed = dict(ASKED, download={"state": "error", "error": "The download doesn't match its checksum"})
     shown = press(r, UPDATES_PAGE, failed)
@@ -128,7 +128,7 @@ with Root() as r:
     assert shown.shows("Later") and shown.shows("Skip this version") and shown.shows("Download")
     assert "shell: echo '0.0.2' > /run/asgard-update-asked" in shown.log            # once a boot
     assert "asgard-update.py download" not in shown.log
-    assert "shell: systemd-run --unit=asgard-update-download" in press(r, "a", FOUND).log        # Download: the default
+    assert "shell: python3 /usr/share/asgard/asgard-transfers.py add update" in press(r, "a", FOUND).log   # Download: the default, queued (XFER-1)
     later = press(r, "b", FOUND)
     assert not later.shows("is available") and "download" not in later.log.split("asked")[-1]
     skipped = press(r, "left a", FOUND)                                             # Skip this version

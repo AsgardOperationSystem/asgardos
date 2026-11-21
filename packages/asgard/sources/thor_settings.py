@@ -702,7 +702,7 @@ def page_device(ui):
                 conf.set("system.hostname", v)
                 ui.message("Hostname", ["Saved. Applies after a restart."])
         elif label == "Sleep now":
-            run_cmd("systemctl suspend")
+            run_cmd("python3 /usr/share/asgard/asgard-transfers.py sleep")   # XFER-3: a standby while transfers run
         elif label == "Restart" and ui.confirm("Restart the Thor"):
             run_cmd("systemctl reboot")
         elif label == "Power off" and ui.confirm("Power off the Thor"):

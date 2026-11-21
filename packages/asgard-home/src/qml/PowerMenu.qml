@@ -9,7 +9,7 @@ Item {
     property real anchorRight: 0          // x of the button's right edge, so the card hangs under it
     property string status: ""
     property var items: [
-        { icon: "moon", title: "Sleep", run: () => backend.shell("systemctl suspend") },
+        { icon: "moon", title: "Sleep", run: () => backend.shell("python3 /usr/share/asgard/asgard-transfers.py sleep") },   // XFER-3
         { icon: "refresh", title: "Restart", run: () => backend.shell("systemctl reboot") },
         { icon: "power", title: "Power off", run: () => backend.shell("systemctl poweroff") }
     ]

@@ -1,4 +1,4 @@
-# spec: HOME-1 HOME-2 HOME-3 HOME-4 HOME-5 HOME-6 OLED-1
+# spec: HOME-1 HOME-2 HOME-3 HOME-4 HOME-5 HOME-6 OLED-1 XFER-3
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_nav.py  (no Thor): Asgard Home's browsing, offscreen on a fake root, driven by pad presses.
 HOME-1: the buttons, and the pad decoding table for A east, B south; holding L+R as one press is a human check.
@@ -171,7 +171,7 @@ with Root() as r:
     env = qml_copy(r, tap)
     menu = r.run("", env=env)
     assert all(menu.shows(item) for item in ("Sleep", "Restart", "Power off")), menu.log
-    assert "shell: systemctl suspend" in r.run("a", env=env).log
+    assert "shell: python3 /usr/share/asgard/asgard-transfers.py sleep" in r.run("a", env=env).log   # XFER-3: via the queue
     # The gear button beside it opens Settings.
     assert not r.run("").shows("Device name")
     gear = {"Main.qml": [("TapHandler { onTapped: { backend.sound(\"open\"); settingsPanel.show() } }",

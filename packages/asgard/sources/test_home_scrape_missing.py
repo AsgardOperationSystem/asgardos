@@ -1,9 +1,9 @@
-# spec: SCRAPE-1
+# spec: SCRAPE-1 XFER-1 XFER-2
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_scrape_missing.py  (no Thor): Settings > Library > Scrape missing, offscreen. A QML copy answers
-backend.exec with canned asgard-scrape.py output, so this checks which games it scrapes, in turn, and what it says; the
-scraper itself is test_asgard_scrape.py, and real art arriving on a Thor is a device check. Also the ScreenScraper sign-in row,
-which saves the login asgard-scrape.py hands to Skyscraper."""
+backend.exec with canned asgard-transfers.py output, so this checks which games it queues, in one go, and what the row says as the
+queue runs, pauses and ends; the queue itself is test_asgard_transfers.py, the scraper test_asgard_scrape.py, and real art arriving
+on a Thor is a device check. Also the ScreenScraper sign-in row, which saves the login asgard-scrape.py hands to Skyscraper."""
 import json
 import os
 import shutil
@@ -17,49 +17,60 @@ from home_harness import CFG, Root  # noqa: E402
 SCRAPE = "start down down a down down a"   # Settings, Library (3rd category), its 3rd row: Scrape missing
 
 
-def run(root, answers):
-    """Home with backend.exec in Settings answering {regex: output}, each command logged as "exec: <cmd>"."""
+def run(root, answers, ms=600):
+    """Home with backend.exec in Settings answering {regex: output, or [outputs] in turn}, each command logged as "exec: <cmd>"."""
     out = f"{root.path}/.qml"
     shutil.rmtree(out, ignore_errors=True)
     shutil.copytree(f"{hh.SRC}/qml", out)
     text = open(f"{out}/Settings.qml").read()
     old = "    function close() {"
     assert "backend.exec(" in text and old in text
-    text = text.replace("backend.exec(", "fakeExec(").replace(old, """    readonly property var answers: %s
+    text = text.replace("backend.exec(", "fakeExec(").replace(old, """    property var answers: %s
     function fakeExec(cmd, done) {
         console.log("exec: " + cmd)
         let out = ""
-        for (const k in answers) if (new RegExp(k).test(cmd)) out = answers[k]
+        for (const k in answers) if (new RegExp(k).test(cmd)) {
+            const a = answers[k]
+            out = Array.isArray(a) ? (a.length > 1 ? a.shift() : a[0]) : a
+        }
         if (done) Qt.callLater(done, out)
     }
 """ % json.dumps(answers) + old, 1)
     open(f"{out}/Settings.qml", "w").write(text)
-    return root.run(SCRAPE, env={"ASGARD_HOME_QML": out}, ms=600)
+    return root.run(SCRAPE, env={"ASGARD_HOME_QML": out}, ms=ms)
 
 
-def scraped(res):
-    return [line.split("asgard-scrape.py ", 1)[1] for line in res.log.splitlines() if "exec: python3" in line and "asgard-scrape.py" in line]
+def queued(res):
+    return [line.split("add scrape ", 1)[1] for line in res.log.splitlines() if "exec: " in line and "asgard-transfers.py add scrape" in line]
 
 
-FOUND = json.dumps({"source": "libretro", "matched": "Zelda (USA)", "by": "name", "media": ["covers"], "details": []})
+def status(done, found, total, jobs=(), paused=""):
+    current = {"id": 1, "kind": "scrape", "label": jobs[0], "args": []} if jobs else None
+    return json.dumps({"busy": bool(jobs), "paused": paused, "current": None if paused else current,
+                       "queue": [{"id": 2, "kind": "scrape", "label": j, "args": []} for j in jobs[0 if paused else 1:]],
+                       "scrape": {"done": done, "found": found, "total": total}})
+
+
 with Root() as r:
     r.library()                                                       # gba: Metroid, Zelda; nds: Mario
     r.write("storage/ES-DE/downloaded_media/gba/covers/Metroid.png", "png")   # Metroid already has its cover
-    res = run(r, {"Zelda": FOUND, "Mario": json.dumps({"error": "No match found for this game"})})
-    assert scraped(res) == ["'gba' '/storage/roms/gba/Zelda.gba' 'Zelda'", "'nds' '/storage/roms/nds/Mario.nds' 'Mario'"], res.log
+    # one add for both games without a cover, then the row follows the queue: Zelda first, then done
+    res = run(r, {"status": [status(0, 0, 2, ["Zelda", "Mario"]), status(2, 1, 2)]}, ms=2600)
+    assert queued(res) == ["'gba' '/storage/roms/gba/Zelda.gba' 'Zelda' 'nds' '/storage/roms/nds/Mario.nds' 'Mario'"], res.log
+    assert "asgard-scrape.py" not in res.log                          # nothing scraped behind the queue's back
     assert res.shows("Done: found 1 of 2 games"), res.texts
-    assert res.log.count("library:") >= 2                             # rescanned after, so the art shows
+    res = run(r, {"status": status(0, 0, 2, ["Zelda", "Mario"])})
+    assert res.shows("1 of 2 · Zelda"), res.texts
 
-    # no internet: it stops at the first game and says so, instead of trying every game
-    res = run(r, {"Zelda": json.dumps({"error": "No internet connection: scraping needs it"})})
-    assert scraped(res) == ["'gba' '/storage/roms/gba/Zelda.gba' 'Zelda'"], res.log
-    assert res.shows("No internet connection: scraping needs it"), res.texts
+    # no internet: the queue pauses, the row says so and that A carries on
+    res = run(r, {"status": status(0, 0, 2, ["Zelda", "Mario"], paused="offline")})
+    assert res.shows("No internet: paused at 0 of 2  ·  A carries on"), res.texts
 
     # nothing to do
     r.write("storage/ES-DE/downloaded_media/gba/covers/Zelda.png", "png")
     r.write("storage/ES-DE/downloaded_media/nds/covers/Mario.png", "png")
     res = run(r, {})
-    assert not scraped(res) and res.shows("Every game has a cover"), res.log
+    assert not queued(res) and res.shows("Every game has a cover"), res.log
 
 # ScreenScraper account: username, then password, on the on-screen keyboard (A types its first key, q; Start is Done)
 ACCOUNT = "start down down a down down down a"

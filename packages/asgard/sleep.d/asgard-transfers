@@ -1,0 +1,7 @@
+#!/bin/sh
+# systemd-sleep hook: after every wake, the transfers queue carries on if it paused for no internet or a low battery
+# (asgard-transfers.py woke, XFER-4). Not in the background: systemd-sleep kills what its hooks leave behind. It only
+# sends the service one request, and timeout keeps a service that doesn't answer from holding up the resume.
+[ "$1" = post ] || exit 0
+timeout 5 python3 /usr/share/asgard/asgard-transfers.py woke >/dev/null 2>&1
+exit 0

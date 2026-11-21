@@ -488,6 +488,7 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         m_game->deleteLater();
         m_game = nullptr;
         m_background = false;
+        m_standby = m_standbyPaused = false;   // nothing of a game that's gone to continue
         QFile::remove("/run/asgard-bg.json");   // asgard-background.py's state: no game in the background now
         setGameMenu(false);
         // ROCKNIX's Steam/Heroic launchers set seat1 as a fallback seat and only undo it on a clean exit. Left on,
@@ -555,8 +556,28 @@ void Backend::command(const QString &cmd)
     // from there instead of replaying the whole sleep (emulators reset their timing on unpause; a clock that kept
     // counting through the sleep otherwise has them race through every missed frame, frozen for minutes). Not a
     // game already paused (the in-game menu) or frozen in the background, and only ours to unpause.
-    if (cmd == "sleep" && playing() && !m_gameMenu && !m_sleepPaused)
+    if (cmd == "sleep" && playing() && !m_gameMenu && !m_sleepPaused && !m_standby)
         m_sleepPaused = togglePause();
+    // asgard-transfers.py's standby (XFER-3): the screens go off while downloads finish, and the game waits as it would
+    // asleep: its own pause, else frozen. It continues when the standby ends early (standby-end: the lid or the power
+    // key), or after the sleep the standby turns into once the work is done (wake). Already paused by the sleep above:
+    // that sleep's wake continues it.
+    if (cmd == "standby" && playing() && !m_gameMenu && !m_standby) {
+        m_standby = true;
+        m_standbyPaused = togglePause();
+        if (!m_standbyPaused)
+            freezeGame(true);
+    }
+    if ((cmd == "standby-end" || cmd == "wake") && m_standby) {
+        m_standby = false;
+        if (m_standbyPaused) {
+            m_standbyPaused = false;
+            if (playing())
+                togglePause();
+        } else {
+            freezeGame(false);
+        }
+    }
     // The battery at once, not at the next 5 s poll, which the sleep only paused (PWR-14). Again a moment later, in case
     // the charger firmware's link was still coming back.
     if (cmd == "wake") {

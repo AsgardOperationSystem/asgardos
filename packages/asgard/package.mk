@@ -78,7 +78,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  for unit in asgard-bootanim asgard-charge-limit asgard-gamma asgard-cores asgard-events asgard-lastboot asgard-sensors-root asgard-update-check essway thor-ayn-button thor-battery-log thor-bottom-touch thor-display-sleep thor-idle-blank thor-sensorspd; do
+  for unit in asgard-bootanim asgard-charge-limit asgard-gamma asgard-cores asgard-events asgard-lastboot asgard-sensors-root asgard-transfers asgard-update-check essway thor-ayn-button thor-battery-log thor-bottom-touch thor-display-sleep thor-idle-blank thor-sensorspd; do
     enable_service ${unit}.service
   done
 }

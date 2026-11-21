@@ -1,10 +1,11 @@
-# spec: GAME-1 GAME-2 GAME-4 GAME-5 GAME-6 GAME-7 GAME-10 MENU-6 OVR-3 PORT-2
+# spec: GAME-1 GAME-2 GAME-4 GAME-5 GAME-6 GAME-7 GAME-10 MENU-6 OVR-3 PORT-2 XFER-3
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """The fake emulator (docs/testing.md, TEST-8): Asgard Home offscreen starting a script that follows the launcher contract and
 exits with any code, crashes or hangs. Home's half of each rule: GAME-1 the command line and what it does for .desktop apps;
 GAME-2 Quit's signal and names from the kill data; GAME-4 playlog around the launcher (test_playlog.py: the file); GAME-6 and 7
 Home's side of Back to Home and sleep (test_asgard_background.py: the freezing; audio, input and real timing: human checks);
-GAME-10 the focus on the top screen; OVR-3 the chosen emulator and core reach the launcher; PORT-2 Exec= and X-Asgard-Kill=."""
+GAME-10 the focus on the top screen; OVR-3 the chosen emulator and core reach the launcher; PORT-2 Exec= and X-Asgard-Kill=;
+XFER-3 the game waiting through a standby (asgard-transfers.py: when it's sent)."""
 import os
 import socket
 import stat
@@ -186,6 +187,32 @@ assert udp_toggles(OPEN_GAME, 1500, 'cmd menu; sleep 0.3; cmd sleep; sleep 0.3; 
 assert udp_toggles(f"{OPEN_GAME} {WAIT} down down down down a a", 800,
                    'cmd menu; until grep -q asgard-background "$FAKE_DIR/trace"; do sleep 0.1; done; cmd sleep; sleep 0.2; cmd wake; hang',
                    "retroarch") == 2
+
+# XFER-3: a standby pauses the game as a sleep does, and ending it early continues it; the standby turning into a sleep
+# once the work's done leaves it paused through that sleep (no toggle for "sleep") and its wake continues it.
+assert udp_toggles(OPEN_GAME, 1200, 'sleep 0.3; cmd standby; sleep 0.3; cmd standby-end; hang', "retroarch") == 2
+assert udp_toggles(OPEN_GAME, 1500, 'sleep 0.3; cmd standby; sleep 0.2; cmd sleep; sleep 0.2; cmd wake; hang', "retroarch") == 2
+assert udp_toggles(OPEN_GAME, 1200, 'sleep 0.3; cmd standby-end; hang', "retroarch") == 0   # nothing of ours to continue
+
+# XFER-3: with no pause Home can drive, a standby freezes the game, and ending it continues it.
+STANDBY = r"""cp /bin/sh "$FAKE_DIR/bin/frozen-emu"
+"$FAKE_DIR/bin/frozen-emu" -c 'sleep 30 & echo $! >"$FAKE_DIR/child"; wait' & echo $! >"$FAKE_DIR/parent"
+states() { for p in $(cat "$FAKE_DIR/parent" "$FAKE_DIR/child"); do awk '{printf "%s ", $3}' /proc/$p/stat; done; echo; }
+sleep 0.3; cmd standby; sleep 0.6; states >"$FAKE_DIR/open"; cmd standby-end; sleep 0.6; states >"$FAKE_DIR/closed"; hang"""
+with Root() as r:
+    r.library()
+    fake = Rig(r, behaviour=STANDBY, kill="frozen-emu")
+    res = fake.run(OPEN_GAME, ms=2000)
+    for n in ("parent", "child"):
+        try:
+            p = int(open(f"{fake.dir}/{n}").read())
+            os.kill(p, 18)
+            os.kill(p, 9)
+        except (ProcessLookupError, OSError, ValueError):
+            pass
+    opened, closed = (open(f"{fake.dir}/{n}").read().split() for n in ("open", "closed"))
+    assert opened == ["T", "T"], (opened, res.log[-800:])
+    assert "T" not in closed and len(closed) == 2, (closed, res.log[-800:])
 
 # GAME-5: an emulator with no pause Home can drive is frozen while the menu is open, its children too (Steam's games are),
 # and continues when the menu closes (Resume, its first tile). The launcher itself isn't part of the game: it isn't frozen.

@@ -109,6 +109,8 @@ private:
     qint64 m_framesAt = 0;            // ms, 0 = no sample yet
     int m_fps = -1;
     bool m_sleepPaused = false;   // we paused the game for a sleep ("sleep"), to unpause on "wake"
+    bool m_standby = false;       // asgard-transfers.py's standby ("standby"): the game waits, paused or frozen
+    bool m_standbyPaused = false; // ...by its own pause (else frozen)
     QList<int> m_frozen;          // the processes the in-game menu froze (freezeGame), continued when it closes
     int m_keys = -1;   // uinput keyboard for emulator hotkeys
     int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu"), the sleep hook ("sleep", "wake")

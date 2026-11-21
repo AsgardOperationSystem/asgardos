@@ -46,6 +46,16 @@ if [ -e /run/asgard-keep-running ]; then
   exec /usr/share/asgard/asgard-screens-off.sh "$@"
 fi
 
+# Asgard: downloads and scrapes still running (asgard-transfers.py, XFER-3) turn a sleep into a standby, which suspends
+# once they're done. While one lasts, the power key and the lid opening end it, the work carrying on awake. Its
+# inhibitor keeps logind off the lid, so a close comes to us (below).
+TRANSFERS="python3 /usr/share/asgard/asgard-transfers.py"
+TRANSFERS_BUSY="/run/asgard-transfers.busy"
+if [ -e /run/asgard-standby ] && { [ "$1" = power ] || [ "$1 $2" = "lid open" ]; }; then
+  ${TRANSFERS} wake >/dev/null
+  [ "$1" = power ] && exit 0
+fi
+
 # Devices where deep suspend is not validated keep the old behaviour exactly:
 # 030-suspend_mode leaves system.suspendmode off for them, and fake suspend is
 # still the right owner. Delegating rather than reimplementing keeps those
@@ -129,6 +139,12 @@ case "$1" in
       exit 0
     fi
 
+    if [ -e "${TRANSFERS_BUSY}" ]; then
+      ${DEBUG} && log $0 "Transfers running: standby until they're done."
+      ${TRANSFERS} sleep >/dev/null
+      exit 0
+    fi
+
     ${DEBUG} && log $0 "Suspending."
     if [ -d "${POWER_LED}" ]; then
       echo none >"${POWER_LED}/trigger"
@@ -167,6 +183,8 @@ case "$1" in
     # from the menu with the lid open later isn't taken for one. Not after "Input sense: stop": that's the hooks' job.
     if [ "$2" = close ]; then
       cut -d. -f1 /proc/uptime >/run/.lid-closed-at
+      # Transfers hold logind's lid handling off: the close is a standby, which suspends when they're done.
+      [ -e "${TRANSFERS_BUSY}" ] && ${TRANSFERS} sleep >/dev/null
     elif ! busctl get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager \
            PreparingForSleep 2>/dev/null | grep -qx 'b true'; then
       rm -f /run/.lid-closed-at

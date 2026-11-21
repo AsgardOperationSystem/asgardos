@@ -1,0 +1,17 @@
+# One queue for update downloads and scrapes, and the standby that lets them finish before a sleep (XFER-1, XFER-3).
+# Idle, it waits on its socket and wakes nothing (PWR-9).
+[Unit]
+Description=Asgard transfers: downloads and scrapes, finished before sleeping
+RequiresMountsFor=/storage
+# Scrapes still queued from before a restart start right away: after the network, or the first meets no internet and
+# the queue pauses (XFER-4) until the next wake.
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/share/asgard/asgard-transfers.py serve
+Restart=on-failure
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

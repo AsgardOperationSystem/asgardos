@@ -1,4 +1,4 @@
-# spec: SET-1 SET-6 SET-3 SET-4 SET-5 NET-1 NET-2 NET-3 LOOK-2 LOOK-3 OLED-2 SND-4
+# spec: SET-1 SET-6 SET-3 SET-4 SET-5 NET-1 NET-2 NET-3 LOOK-2 LOOK-3 OLED-2 SND-4 XFER-3
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_settings.py  (no Thor): Settings on the host, offscreen, driven by pad presses. On a host commands
 are logged, not run, and a QML copy answers backend.exec with canned output, so this checks what is offered and what it
@@ -117,7 +117,7 @@ with Root() as r:
     assert cfg(r, "global.retroachievements.hardcore") == "1"
     # Debug, sleep
     assert press(r, keys(cat(ABOUT), row(6))).shows("Sleep audit")
-    assert "shell: systemctl suspend" in press(r, keys(cat(POWER), row(0))).log
+    assert "shell: python3 /usr/share/asgard/asgard-transfers.py sleep" in press(r, keys(cat(POWER), row(0))).log   # XFER-3
 
 # ---- SET-3: restart and power off ask first. The update row: only with something to install, and it asks too.
 with Root() as r:

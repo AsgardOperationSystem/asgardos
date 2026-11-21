@@ -96,6 +96,7 @@ Item {
     }
     // --- Updates (SET-3, UPD-9, UPD-10): asgard-update.py checks GitHub, downloads, checks and stages; we show it ---
     readonly property string ota: "python3 /usr/share/asgard/asgard-update.py "
+    readonly property string transfers: "python3 /usr/share/asgard/asgard-transfers.py "   // XFER-1: downloads and scrapes
     function otaParse(o) { try { return JSON.parse(o) } catch (e) { return {} } }
     function otaRefresh() {
         sh("ota", ota + "status", otaParse)
@@ -135,11 +136,12 @@ Item {
                            : (d.total ? Math.floor(100 * d.done / d.total) + "%  ·  " + mb(d.done) + " of " + mb(d.total)
                                       : mb(d.done)) + (d.retry ? "  ·  reconnecting" : "")),
                       action("broom", "Cancel download", "Deletes what was downloaded",
-                             () => backend.exec(ota + "cancel; " + ota + "status", out => note("ota", otaParse(out)))))
+                             () => backend.exec(transfers + "cancel update; " + ota + "cancel; " + ota + "status",
+                                                out => note("ota", otaParse(out)))))
         else if (o.version && !live.update)
             rows.push(action("load", (d.state === "stopped" || d.state === "error" ? "Resume " : "Download ") + o.version,
                              (d.state === "error" ? d.error + "  ·  " : "") + mb(o.size) + "  ·  installs when you restart",
-                             () => { backend.shell("systemd-run --unit=asgard-update-download --collect " + ota + "download")
+                             () => { backend.shell(transfers + "add update")
                                      note("ota", Object.assign({}, o, { download: { state: "downloading", version: o.version } })) }))
         if (live.update) rows.push(installRow())
         const out = [rows]
@@ -354,7 +356,7 @@ Item {
                     [link("terminal", "Debug", "Sleep audit and experiments", debugPage)]]
         }
         case "Power": return [
-            [action("moon", "Sleep", "Suspend now", () => { close(); backend.shell("systemctl suspend") }),
+            [action("moon", "Sleep", "Suspend now", () => { close(); backend.shell(transfers + "sleep") }),   // XFER-3
              action("refresh", "Restart", "Reboot the Thor",
                     () => confirm("Restart", "Restart the Thor now?", "Restart", () => backend.shell("systemctl reboot"))),
              action("power", "Power off", "Shut the Thor down",
@@ -1000,39 +1002,49 @@ Item {
 
     // RetroAchievements sign-in: ROCKNIX's RetroArch launcher builds cheevos_username/password from these keys on
     // every launch. An empty password keeps the saved one (changing only the username).
-    // Library > Scrape missing (SCRAPE-1): asgard-scrape.py for each game without a cover, one at a time, in the
-    // background (Settings can close). A again stops it. Home rescans every 10 games, so the art shows as it comes.
-    property var scrapeQueue: []
+    // Library > Scrape missing (SCRAPE-1, XFER-1): every game without a cover goes into the transfers queue, which scrapes
+    // them one at a time in the background, Settings open or not, finishes them before a sleep (XFER-3), and has Home
+    // rescan as the art comes. This row follows the queue every 2 s once started. A while it runs stops it; paused (no
+    // internet), A carries on.
+    property var scrapeNow: ({})
+    property bool scrapeWatch: false
     function scrapeMissing() {
-        if (scrapeQueue.length) { scrapeQueue = []; note("scrape", "Stopped"); return }
+        if (scrapeNow.paused) { backend.exec(transfers + "resume", scrapePoll); return }
+        if (scrapeNow.running) {
+            backend.exec(transfers + "cancel scrape", () => { scrapeWatch = false; scrapeNow = {}; note("scrape", "Stopped") })
+            return
+        }
         const todo = []
         for (const s of backend.systems)
             for (const g of backend.games(s.name))
-                if (!g.cover) todo.push(g)
+                if (!g.cover) todo.push([g.sys, g.path, g.stem])
         if (!todo.length) { note("scrape", "Every game has a cover"); return }
-        scrapeQueue = todo
-        scrapeNext({ done: 0, got: 0, total: todo.length })
+        note("scrape", "Starting…")
+        // 100 at a time, one after the other: one shell command line can't take thousands of games.
+        const add = i => backend.exec(transfers + "add scrape " + [].concat(...todo.slice(i, i + 100)).map(q).join(" "),
+                                      () => { if (i + 100 < todo.length) add(i + 100); else { scrapeWatch = true; scrapePoll() } })
+        add(0)
     }
-    function scrapeNext(n) {
-        const g = scrapeQueue[0]
-        note("scrape", (n.done + 1) + " of " + n.total + " · " + g.name)
-        backend.exec("python3 /usr/share/asgard/asgard-scrape.py " + [g.sys, g.path, g.stem].map(q).join(" "), out => {
-            let r
-            try { r = JSON.parse(out) } catch (e) { r = { error: "The scraper failed" } }
-            if (!scrapeQueue.length) { backend.rescan(); return }          // stopped meanwhile
-            n.done++
-            if (!r.error) n.got++
-            const offline = !!r.error && r.error.startsWith("No internet")
-            scrapeQueue = offline ? [] : scrapeQueue.slice(1)
-            if (scrapeQueue.length) {
-                if (n.done % 10 === 0) backend.rescan()
-                scrapeNext(n)
-                return
+    function scrapePoll() {
+        backend.exec(transfers + "status", out => {
+            let st
+            try { st = JSON.parse(out) } catch (e) { return }
+            const jobs = (st.current ? [st.current] : []).concat(st.queue || []).filter(j => j.kind === "scrape")
+            const n = st.scrape || {}
+            const was = scrapeNow.running
+            scrapeNow = { running: jobs.length > 0, paused: jobs.length > 0 && !!st.paused }
+            if (scrapeNow.paused)
+                note("scrape", (st.paused === "offline" ? "No internet" : "Battery low") + ": paused at " + n.done + " of " +
+                               n.total + "  ·  A carries on")
+            else if (jobs.length)
+                note("scrape", (n.done + 1) + " of " + n.total + " · " + jobs[0].label)
+            else if (was || scrapeWatch) {
+                scrapeWatch = false
+                note("scrape", "Done: found " + n.found + " of " + n.total + " games")
             }
-            note("scrape", offline ? r.error : "Done: found " + n.got + " of " + n.total + " games")
-            backend.rescan()
         })
     }
+    Timer { interval: 2000; repeat: true; running: settings.scrapeWatch; onTriggered: settings.scrapePoll() }
 
     // ScreenScraper sign-in (SCRAPE-1): asgard-scrape.py passes it to Skyscraper. An empty password keeps the saved one;
     // an empty username signs out.

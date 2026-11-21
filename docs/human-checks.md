@@ -37,6 +37,7 @@ coverage, but a row here is a check waiting to be done, not a pass.
 | OLED-1 | Press X in Home: both panels and the stick lights go dark. Press A: they light up and no tile opened. | |
 | OLED-2 | Switch Ultra Black in Settings: the top screen cycles once and blacks visibly change. Restart and it stays as set. | |
 | OLED-3 | Set Screens off after to 2 min, leave the Thor idle in a game: both screens go dark. Touch a button: they come back. Set it to Never: they stay on. | |
+| XFER-3 | On an idle Thor with the owner's go (TEST-6): start Scrape missing with a few dozen games, close the lid. The screens go off and stay off, the LED doesn't show sleep, and the scrape keeps going (`asgard-transfers.py status` over SSH); when it's done the Thor sleeps (a `suspend` in the journal). Again, opening the lid halfway: the screens come back and the scrape carries on. Again in a game: it's paused through the standby and continues after. | |
 | TXT-1 | In Eden Duo, reach a game's name prompt: the keyboard fills the bottom screen, and what's typed reaches the game. Cancel it once too. | |
 | TXT-3 | With the bottom screen off, open that prompt: the screen lights, and goes dark again after it. Quit the game from Home with the keyboard open: it's gone and the pad works in Home. | |
 | SND-4 | Switch menu sounds off and on, and change their volume: moving in Home is silent, then audible at the new level. Plug the charger in with chimes on and off. | |
