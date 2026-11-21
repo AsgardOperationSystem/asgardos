@@ -28,6 +28,13 @@ CONVERTED = {
     ".config/aethersx2/inis/PCSX2.ini": ("[Hotkeys]\nOpenPauseMenu = SDL-0/Guide & SDL-0/Y\n[Pad1]\nAnalog = SDL-0/Guide\n",
                                          "[Hotkeys]\nOpenPauseMenu = Keyboard/Escape\nOpenPauseMenu = SDL-0/Guide & SDL-0/Y\n"
                                          "[Pad1]\nAnalog = \n"),
+    ".config/eden/qt-config.ini": (
+        '[Controls]\nplayer_8_motionleft\\default=false\nplayer_8_motionleft="engine:keyboard,code:55,toggle:0"\n'
+        'player_8_motionright="engine:keyboard,code:56,toggle:0"\nplayer_0_motionleft="engine:sdl,motion:0"\n',
+        '[Controls]\nplayer_8_motionleft\\default=false\nplayer_8_motionleft='
+        '"engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
+        'player_8_motionright="engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
+        'player_0_motionleft="engine:sdl,motion:0"\n'),
 }
 
 IMAGE = {

@@ -159,6 +159,15 @@ if [ -f "${AETHERSX2_INI}" ] && ! grep -q "^OpenPauseMenu = Keyboard/Escape$" "$
   sed -i '/^\[Hotkeys\]$/a OpenPauseMenu = Keyboard/Escape' "${AETHERSX2_INI}"
 fi
 
+# Eden and Eden Duo had no motion bound (Eden's default puts it on the keys 7 and 8): now asgard-motiond's DSU server.
+EDEN_DSU='"engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"'
+for cfg in /storage/.config/eden/qt-config.ini /storage/.config/eden/sdl2-config.ini; do
+  for player in 0 8; do
+    convert_value "${cfg}" "player_${player}_motionleft" '"engine:keyboard,code:55,toggle:0"' "${EDEN_DSU}"
+    convert_value "${cfg}" "player_${player}_motionright" '"engine:keyboard,code:56,toggle:0"' "${EDEN_DSU}"
+  done
+done
+
 # Copy aethersx2 bios files for armsx2 for convenience
 if [ -d "/storage/roms/bios/aethersx2/bios" ] && [ ! -d "/storage/roms/bios/armsx2" ]; then
   cp -rf /storage/roms/bios/aethersx2/bios /storage/roms/bios/armsx2

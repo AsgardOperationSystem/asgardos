@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# spec: GAME-11
+# spec: GAME-11 INP-1
 # Reads the emulators' shipped pad configs and checks each against the pad games see: InputPlumber's virtual DualSense
 # (GAME-9), as SDL2 numbers it through evdev (GUID 0300fd57...11810000, checked on a Thor 2026-11-21). The emulated A is
 # the Thor's printed A (east), B is B (south), X is X (north), Y is Y (west); a PlayStation's Cross is south. Home alone
@@ -101,6 +101,23 @@ def flycast():
         failures.append("Flycast: start_flycast.sh runs gptokeyb beside the pad file's own Home combos")
 
 
+def eden():
+    """Eden (SDL2, by GUID and button number): the Switch's A on the Thor's A, and its motion from asgard-motiond's DSU
+    server (INP-1) for player 1 and the handheld; Eden's default leaves motion on the keys 7 and 8. Eden Duo's config
+    is seeded from this one."""
+    cfg = section(read("eden-sa", "config", "qt-config.ini"), "Controls")
+    motiond = read("..", "..", "asgard", "sources", "asgard-motiond.py")
+    port = re.search(r"^PORT\s*=\s*(\d+)", motiond, re.M)
+    for player in (0, 8):
+        for button, want in (("a", THOR_A), ("b", THOR_B), ("x", THOR_X), ("y", THOR_Y)):
+            m = re.search(r"button:(\d+)", cfg[f"player_{player}_button_{button}"])
+            expect(f"Eden player {player} {button.upper()}", m and int(m.group(1)), want)
+        for side in ("left", "right"):
+            motion = cfg.get(f"player_{player}_motion{side}", "")
+            if "engine:cemuhookudp" not in motion or not port or f"port:{port.group(1)}" not in motion:
+                failures.append(f"Eden player {player} motion{side}: {motion!r} isn't asgard-motiond's DSU server")
+
+
 def drastic():
     """DraStic numbers joystick buttons 1024 + n. The d-pad is a hat, which reaches it as keys from gptokeyb."""
     cfg = keys(read("drastic-sa", "config", "SM8550", "drastic.cfg"))
@@ -125,7 +142,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden):
         try:
             check()
         except (KeyError, OSError) as e:
