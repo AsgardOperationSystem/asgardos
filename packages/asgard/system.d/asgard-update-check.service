@@ -1,0 +1,16 @@
+# OTA (UPD-9): once a boot, ask GitHub whether a newer Asgard release is out; Home offers it. Off with
+# asgard.update.check_at_boot=0. Without network it tries again every minute for ten minutes, then stops for this boot.
+# Type=exec, not oneshot: waiting for Wi-Fi mustn't hold up the boot.
+[Unit]
+Description=Check GitHub for a newer Asgard OS release
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=exec
+ExecStart=/usr/bin/python3 /usr/share/asgard/asgard-update.py boot
+StandardOutput=append:/var/log/asgard-update.log
+StandardError=append:/var/log/asgard-update.log
+
+[Install]
+WantedBy=multi-user.target

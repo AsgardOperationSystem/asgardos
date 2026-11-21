@@ -129,6 +129,7 @@ with Root() as r:
         assert not cancelled.shows("the Thor now?") and command not in cancelled.log
         assert f"shell: {command}" in press(r, keys(cat(POWER), row(n), "a")).log
     assert not press(r, cat(ABOUT)).shows("Install update")
+    r.write("sys/class/power_supply/battery/capacity", "80\n")   # installing needs 30% or the charger (test_home_update.py)
     update = {"ls /storage/.update": "/storage/.update/AsgardOS.tar"}
     assert press(r, cat(ABOUT), update).shows("Install update")
     asked = press(r, keys(cat(ABOUT), row(5)), update)

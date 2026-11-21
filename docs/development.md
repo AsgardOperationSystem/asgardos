@@ -33,6 +33,22 @@ cd asgardos && ./build.sh      # docker build of the SM8550 image -> build/targe
 To put Asgard on a Thor, see [Install](https://github.com/AsgardOperationSystem/asgardos/wiki/Install) in the wiki.
 
 
+## Releases
+
+A release is the image step's output plus a signature, published by hand (DEV-22):
+
+1. Raise `OS_VERSION` in `distribution/version`, build, and check the image on a Thor.
+2. `scripts/release` (default `build/target`): checks each `.tar` against its `.sha256` and signs that file into
+   `<name>.tar.sig` with the release key, then checks the signature with the key the image ships.
+3. `gh release create vX.Y.Z` with the `.img.gz`, the `.tar` and their `.sha256`, and the `.tar.sig`. Thors offer a
+   release only when its tag is `vX.Y.Z` and the `.tar`, `.sha256` and `.sig` are all there.
+
+The key pair: `scripts/release --keygen` writes the private key to `~/.config/asgard/release-key/asgard-release.key`
+(or `$ASGARD_RELEASE_KEY`) and the public one to `packages/asgard/sources/release-key.pem`, which the image ships as
+`/usr/share/asgard/release-key.pem`. Keep the private key backed up off the build machine. If it's lost, a new key
+can only reach Thors through an update copied by hand, since they won't take a release signed with a key they don't
+have.
+
 ## Kernel
 
 The kernel is its own repo, [AsgardOperationSystem/linux](https://github.com/AsgardOperationSystem/linux) (branch `asgard`): Linux

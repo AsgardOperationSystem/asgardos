@@ -202,6 +202,38 @@ QtObject {
             Qt.callLater(() => backend.launch(g))
         }
     }
+    // OTA (UPD-9, UPD-10): when the check at startup found a newer release, ask once a boot whether to download it, and
+    // once more when it's downloaded and checked, whether to restart and install it. Never over a game, a dialog or
+    // Settings; the restart only on the charger or at 30% or more. Settings > About > Updates has the rest.
+    readonly property string ota: "python3 /usr/share/asgard/asgard-update.py "
+    property Timer updateOffer: Timer {
+        interval: 30000; running: true; repeat: true; triggeredOnStart: true
+        onTriggered: if (app.canOffer()) backend.exec(app.ota + "status", app.offerUpdate)
+    }
+    function canOffer() { return !backend.playing && !bottom.confirmPanel.ask && !bottom.settingsPanel.open }
+    function offerUpdate(out) {
+        let o
+        try { o = JSON.parse(out) } catch (e) { return }
+        const d = o.download || {}
+        if (!o.version || !canOffer()) return
+        const asked = v => backend.shell("echo '" + v + "' > /run/asgard-update-asked")
+        if (d.state === "ready") {
+            if (o.asked === "ready " + o.version || !(backend.charging || backend.battery >= 30)) return
+            asked("ready " + o.version)
+            const bg = backend.background
+            bottom.confirmPanel.open("Asgard " + o.version + " is ready", "Restart now to install it?" +
+                                     (bg.path ? " " + bg.name + " is open in the background and closes without saving." : ""),
+                                     "Restart", () => backend.shell("systemctl reboot"), { no: "Later" })
+        } else if (d.state !== "downloading" && d.state !== "verifying" && o.asked !== o.version
+                   && o.asked !== "ready " + o.version) {
+            asked(o.version)
+            bottom.confirmPanel.open("Asgard " + o.version + " is available",
+                                     "You have " + (o.current || "an older version") + ". Download it now? It installs when you restart.",
+                                     "Download", () => backend.shell("systemd-run --unit=asgard-update-download --collect " + ota + "download"),
+                                     { no: "Later", other: "Skip this version",
+                                       otherRun: () => { backend.setSetting("asgard.update.skip", o.version); backend.shell(ota + "check") } })
+        }
+    }
     property Connections padInput: Connections { target: pad; function onPressed(button) { app.nav(button) } }
     property Connections library: Connections {
         target: backend

@@ -1,0 +1,49 @@
+#!/bin/bash
+# Asgard OS: sign a release's update for the Thor's OTA (UPD-10, DEV-22).
+#   scripts/release [<dir>]   for each <name>.tar in <dir> (default build/target): check it against its .sha256, sign
+#                             that .sha256 into <name>.tar.sig, and check the signature with the key the image ships
+#   scripts/release --keygen  make the key pair: the private key outside the repo, the public one in the image
+# It doesn't upload: publishing (gh release) is a separate, manual step.
+# The signature is Ed25519 over the .sha256 file, not over the .tar: Ed25519 signs a message whole, and a 1.7 GB .tar
+# would have to be read into memory to sign or check. The Thor checks the .tar against the .sha256, and the .sha256
+# against the signature.
+# The private key: $ASGARD_RELEASE_KEY, else ~/.config/asgard/release-key/asgard-release.key. Back it up off this
+# machine: without it, a release can't be signed for the Thors already out there (see docs/development.md).
+set -euo pipefail
+cd "$(dirname "$0")/.."
+KEY=${ASGARD_RELEASE_KEY:-$HOME/.config/asgard/release-key/asgard-release.key}
+PUB=${ASGARD_RELEASE_PUB:-packages/asgard/sources/release-key.pem}   # the override is for tests
+
+if [ "${1:-}" = "--keygen" ]; then
+  [ ! -e "$KEY" ] || { echo "release: $KEY exists; not replacing a release key" >&2; exit 1; }
+  mkdir -p "$(dirname "$KEY")"
+  chmod 700 "$(dirname "$KEY")"
+  (umask 077; openssl genpkey -algorithm ed25519 -out "$KEY")
+  openssl pkey -in "$KEY" -pubout -out "$PUB"
+  echo "private key: $KEY (back it up off this machine)"
+  echo "public key:  $PUB (commit it; the image ships it)"
+  exit 0
+fi
+
+DIR=${1:-build/target}
+[ -r "$KEY" ] || { echo "release: no private key at $KEY (scripts/release --keygen makes one)" >&2; exit 1; }
+# The key must be the one the image checks against, or every Thor would refuse this release.
+[ "$(openssl pkey -in "$KEY" -pubout)" = "$(cat "$PUB")" ] \
+  || { echo "release: $KEY isn't the key in $PUB" >&2; exit 1; }
+
+shopt -s nullglob
+tars=("$DIR"/*.tar)
+[ ${#tars[@]} -gt 0 ] || { echo "release: no .tar in $DIR" >&2; exit 1; }
+for tar in "${tars[@]}"; do
+  name=${tar##*/}
+  sum=$tar.sha256
+  [ -r "$sum" ] || { echo "release: $name has no .sha256" >&2; exit 1; }
+  # The .sha256 must name this file and match it: it's what the signature vouches for.
+  read -r hash file <"$sum"
+  [ "$file" = "$name" ] || { echo "release: $name.sha256 names '$file'" >&2; exit 1; }
+  [ "$(sha256sum "$tar" | cut -d' ' -f1)" = "$hash" ] || { echo "release: $name doesn't match its .sha256" >&2; exit 1; }
+  openssl pkeyutl -sign -inkey "$KEY" -rawin -in "$sum" -out "$tar.sig"
+  openssl pkeyutl -verify -pubin -inkey "$PUB" -rawin -in "$sum" -sigfile "$tar.sig" >/dev/null \
+    || { rm -f "$tar.sig"; echo "release: $name's signature doesn't check" >&2; exit 1; }
+  echo "signed $name.sig"
+done

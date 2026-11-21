@@ -78,6 +78,7 @@ Item {
         sh("ip", "ip -4 -o addr show wlan0 | awk '{print $4}' | cut -d/ -f1")
         sh("usb", "usbgadget")
         sh("update", "ls /storage/.update/*.tar 2>/dev/null | head -1")
+        sh("ota", ota + "status", otaParse)
         sh("eq", "python3 /usr/share/asgard/asgard-eq.py status", JSON.parse)
         sh("chargeRecal", "cat /run/asgard-charge-recal 2>/dev/null")
         sh("kernel", "uname -r")
@@ -92,6 +93,63 @@ Item {
             return { mac: a("id"), name: a("name") || a("id"), connected: a("connected") === "yes", type: a("type"), battery: a("battery"), codec: a("codec"), codecs: a("codecs") }
         })
     }
+    // --- Updates (SET-3, UPD-9, UPD-10): asgard-update.py checks GitHub, downloads, checks and stages; we show it ---
+    readonly property string ota: "python3 /usr/share/asgard/asgard-update.py "
+    function otaParse(o) { try { return JSON.parse(o) } catch (e) { return {} } }
+    function otaRefresh() {
+        sh("ota", ota + "status", otaParse)
+        sh("update", "ls /storage/.update/*.tar 2>/dev/null | head -1")
+    }
+    function otaSummary() {
+        const o = live.ota || {}, d = o.download || {}
+        if (d.state === "downloading") return "Downloading " + o.version + "…"
+        if (o.version) return "Asgard " + o.version + " is available"
+        return "Check GitHub for a newer release"
+    }
+    // The restart to install: on the charger or at 30% or more, so the install can't run the battery flat.
+    function installReady() { return backend.charging || backend.battery >= 30 }
+    function installRow() {
+        const name = live.update.split("/").pop()
+        if (!installReady())
+            return info("refresh", "Install update", name + "  ·  plug in the charger or charge to 30% to install")
+        const bg = backend.background
+        return action("refresh", "Install update", name + "  ·  restarts to install",
+                      () => confirm("Install update", "The Thor restarts and installs " + name + "." +
+                                    (bg.path ? " " + bg.name + " is open in the background and closes without saving." : ""),
+                                    "Restart", () => backend.shell("systemctl reboot")))
+    }
+    function updatesPage() {
+        const o = live.ota || {}, d = o.download || {}
+        const busy = d.state === "downloading" || d.state === "verifying"
+        const mb = n => Math.round((n || 0) / 1048576) + " MB"
+        const found = o.version
+            ? "Asgard " + o.version + (o.prerelease ? " (pre-release)" : "") + " is available"
+            : o.error ? o.error : o.checked ? "Up to date" : "Not checked since the Thor started"
+        const rows = [action("refresh", "Check for updates", found,
+                             () => { note("ota", Object.assign({}, o, { error: "Checking…", version: "" }))
+                                     backend.exec(ota + "check; " + ota + "status", out => note("ota", otaParse(out))) })]
+        if (busy)
+            rows.push(info("refresh", d.state === "verifying" ? "Checking the download" : "Downloading " + d.version,
+                           d.state === "verifying" ? "Its checksum and signature"
+                           : (d.total ? Math.floor(100 * d.done / d.total) + "%  ·  " + mb(d.done) + " of " + mb(d.total)
+                                      : mb(d.done)) + (d.retry ? "  ·  reconnecting" : "")),
+                      action("broom", "Cancel download", "Deletes what was downloaded",
+                             () => backend.exec(ota + "cancel; " + ota + "status", out => note("ota", otaParse(out)))))
+        else if (o.version && !live.update)
+            rows.push(action("load", (d.state === "stopped" || d.state === "error" ? "Resume " : "Download ") + o.version,
+                             (d.state === "error" ? d.error + "  ·  " : "") + mb(o.size) + "  ·  installs when you restart",
+                             () => { backend.shell("systemd-run --unit=asgard-update-download --collect " + ota + "download")
+                                     note("ota", Object.assign({}, o, { download: { state: "downloading", version: o.version } })) }))
+        if (live.update) rows.push(installRow())
+        const out = [rows]
+        if (o.version && o.notes) out.push([info("list", "What's new in " + o.version, o.notes)])
+        out.push([info("info", "Installed", "Asgard " + (o.current || backend.osInfo().OS_VERSION || "unknown")),
+                  toggle("refresh", "Check at startup", "Ask GitHub once each time the Thor starts", "asgard.update.check_at_boot", "1"),
+                  toggle("refresh", "Pre-releases", "Offer test releases too", "asgard.update.prerelease", "1"),
+                  info("info", "By hand", "Or copy an Asgard .tar into /storage/.update")])
+        return out
+    }
+
     function q(v) { return "'" + String(v).replace(/'/g, "'\\''") + "'" }      // shell quote
     function confirm(title, text, yes, run) { dialog.open(title, text, yes, run) }
 
@@ -289,11 +347,7 @@ Item {
                      info("gamepad", "Library", backend.systems.length + " systems"),
                      link("list", "Emulators", emus.length ? emus.length + " emulators and their versions" : "Versions unknown",
                           emulatorVersionsPage)],
-                    [live.update
-                     ? action("refresh", "Install update", live.update.split("/").pop() + "  ·  restarts to install",
-                              () => confirm("Install update", "The Thor restarts and installs " + live.update.split("/").pop() + ".",
-                                            "Restart", () => backend.shell("systemctl reboot")))
-                     : info("refresh", "Updates", "Copy an Asgard .tar into /storage/.update to install it")],
+                    [live.update ? installRow() : link("refresh", "Updates", otaSummary(), updatesPage, otaRefresh)],
                     [link("terminal", "Debug", "Sleep audit and experiments", debugPage)]]
         }
         case "Power": return [
