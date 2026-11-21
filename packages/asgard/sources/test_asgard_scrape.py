@@ -118,7 +118,7 @@ case " $* " in *" -f esde "*) ;; *) exit 0 ;; esac
 while [ $# -gt 0 ]; do case $1 in -g) gl=$2; shift ;; -o) med=$2; shift ;; esac; shift; done
 mkdir -p "$gl" "$med/covers" "$med/marquees"
 [ -n "$SKY_FIND" ] || exit 0
-printf '<?xml version="1.0"?>\n<gameList>\n<game><path>./Other.iso</path><name>Other</name></game>\n<game><path>./%s</path><name>Wind Waker</name><desc>Sail.</desc><developer>Nintendo EAD</developer><releasedate>20030324T000000</releasedate><players>1</players></game>\n</gameList>\n' "$SKY_FIND" > "$gl/gamelist.xml"
+printf '<?xml version="1.0"?>\n<gameList>\n<game><path>./Other.iso</path><name>Other</name></game>\n<game><path>%s</path><name>Wind Waker</name><desc>Sail.</desc><developer>Nintendo EAD</developer><releasedate>20030324T000000</releasedate><players>1</players></game>\n</gameList>\n' "$SKY_FIND" > "$gl/gamelist.xml"
 echo marquee > "$med/marquees/Zelda (USA).png"
 [ -z "$SKY_COVER" ] || echo cover > "$med/covers/Zelda (USA).png"
 """
@@ -137,7 +137,7 @@ with tempfile.TemporaryDirectory() as d:
     open(sc.CFG, "w").write("screenscraper.username=me\nscreenscraper.password=p@ss word\n")
     sc.gamelist("gamecube", "Zelda (USA).rvz", {"name": "My Zelda"})
     sc.gamelist("gamecube", "Mario.iso", {"name": "Mario", "desc": "kept"})
-    os.environ["SKY_FIND"], os.environ["SKY_COVER"] = "Zelda (USA).rvz", "1"
+    os.environ["SKY_FIND"], os.environ["SKY_COVER"] = rom, "1"          # Skyscraper writes absolute paths
     r = sc.main(["x", "gamecube", rom, "Zelda (USA)"])
     assert r == {"source": "ScreenScraper", "matched": "Wind Waker", "media": ["covers", "marquees"],
                  "details": ["desc", "developer", "players", "releasedate"]}, r
@@ -145,7 +145,7 @@ with tempfile.TemporaryDirectory() as d:
     assert "-p gc -i " + os.path.dirname(rom) in log and "p@ss" not in log, log                 # its name for GameCube
     assert 'userCreds="me:p@ss word"' in open(f"{d}/sky.log.cfg").read()
     x = open(f"{sc.ROOT}/gamelists/gamecube/gamelist.xml").read()
-    assert "<name>My Zelda</name>" in x and "<desc>Sail.</desc>" in x and "<desc>kept</desc>" in x and "Other" not in x, x
+    assert "<name>My Zelda</name>" in x and "Wind Waker" not in x and "<desc>Sail.</desc>" in x and "<desc>kept</desc>" in x and "Other" not in x, x
     assert open(f"{sc.ROOT}/downloaded_media/gamecube/marquees/Zelda (USA).png").read() == "marquee\n"
     # ScreenScraper had no cover: libretro adds one (index fixture: this game by name)
     sc.INDEX = f"{d}/idx"
@@ -159,7 +159,7 @@ with tempfile.TemporaryDirectory() as d:
     sc.fetch = offline
     assert sc.main(["x", "gamecube", rom, "Zelda (USA)"])["source"] == "ScreenScraper"
     # Switch has no libretro source, but a signed-in user gets ScreenScraper's
-    os.environ["SKY_FIND"] = "Pokemon Violet"
+    os.environ["SKY_FIND"] = "./Pokemon Violet"                      # an ES-DE style path matches too
     os.makedirs(f"{d}/roms/switch/Pokemon Violet")
     r = sc.main(["x", "switch", f"{d}/roms/switch/Pokemon Violet", "Pokemon Violet"])
     assert r["source"] == "ScreenScraper" and "desc" in r["details"], r

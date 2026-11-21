@@ -8,7 +8,7 @@
 #    yet: written against its documented API v2, untested).
 # 2. ScreenScraper through Skyscraper, when the user signed in (Settings > Library > ScreenScraper account:
 #    screenscraper.username / .password). Skyscraper carries its own developer ID. Description, developer, publisher,
-#    date, genre, players, cover, screenshot, marquee; Switch too. It writes into a scratch folder and only this game's
+#    date, genre, players, cover, screenshot, marquee; Switch too. It reads every ROM whole to checksum it (~20 s/GB). It writes into a scratch folder and only this game's
 #    entry and art are copied over, since it rewrites a whole gamelist.
 # 3. libretro, for a game the others didn't find or gave no cover: the game is found in an index of
 # libretro-database shipped in the image (by CRC, else by name), which gives its exact No-Intro/Redump name and its
@@ -353,8 +353,9 @@ def skyscraper(system, rom, stem, media):
         except (OSError, subprocess.SubprocessError):
             return None
         try:
+            # Skyscraper writes the ROM's absolute path, ES-DE a ./ one: either is this game
             entry = next((g for g in ET.parse(f"{tmp}/gamelist/gamelist.xml").getroot().iter("game")
-                          if g.findtext("path") == "./" + rel), None)
+                          if g.findtext("path") in ("./" + rel, rom)), None)
         except (OSError, ET.ParseError):
             entry = None
         if entry is None:
@@ -370,10 +371,9 @@ def skyscraper(system, rom, stem, media):
                 got.append(kind)
     if not got and not meta:
         return None
+    # Its name is the file's with the brackets squashed ("Tetris (World)(Rev 1)"), no better than Home's own: not written.
     name = meta.pop("name", "")
     gamelist(system, rel, meta)                       # ScreenScraper's details replace older ones
-    if name:
-        gamelist(system, rel, {"name": name}, keep=True)   # a name the user set stays
     return {"source": "ScreenScraper", "matched": name, "media": got, "details": sorted(meta)}
 
 
