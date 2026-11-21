@@ -168,7 +168,9 @@ Item {
                     () => Theme.animations = get("asgard.animations", "1") === "1")]]
         case "Library": return [
             [link("gamepad", "Consoles", "Emulator and core for each system", consolesPage)],
-            [action("refresh", "Rescan library", backend.systems.length + " systems", () => backend.rescan())]]
+            [action("refresh", "Rescan library", backend.systems.length + " systems", () => backend.rescan()),
+             action("refresh", "Scrape missing", live.scrape || "Art and details for every game without a cover; A again stops",
+                    scrapeMissing)]]
         case "Achievements": return [
             [toggle("trophy", "RetroAchievements", "In supported emulators", "global.retroachievements", "0"),
              toggle("trophy", "Hardcore mode", "No savestates, rewind or cheats; earns hardcore unlocks",
@@ -929,6 +931,40 @@ Item {
 
     // RetroAchievements sign-in: ROCKNIX's RetroArch launcher builds cheevos_username/password from these keys on
     // every launch. An empty password keeps the saved one (changing only the username).
+    // Library > Scrape missing (SCRAPE-1): asgard-scrape.py for each game without a cover, one at a time, in the
+    // background (Settings can close). A again stops it. Home rescans every 10 games, so the art shows as it comes.
+    property var scrapeQueue: []
+    function scrapeMissing() {
+        if (scrapeQueue.length) { scrapeQueue = []; note("scrape", "Stopped"); return }
+        const todo = []
+        for (const s of backend.systems)
+            for (const g of backend.games(s.name))
+                if (!g.cover) todo.push(g)
+        if (!todo.length) { note("scrape", "Every game has a cover"); return }
+        scrapeQueue = todo
+        scrapeNext({ done: 0, got: 0, total: todo.length })
+    }
+    function scrapeNext(n) {
+        const g = scrapeQueue[0]
+        note("scrape", (n.done + 1) + " of " + n.total + " · " + g.name)
+        backend.exec("python3 /usr/share/asgard/asgard-scrape.py " + [g.sys, g.path, g.stem].map(q).join(" "), out => {
+            let r
+            try { r = JSON.parse(out) } catch (e) { r = { error: "The scraper failed" } }
+            if (!scrapeQueue.length) { backend.rescan(); return }          // stopped meanwhile
+            n.done++
+            if (!r.error) n.got++
+            const offline = !!r.error && r.error.startsWith("No internet")
+            scrapeQueue = offline ? [] : scrapeQueue.slice(1)
+            if (scrapeQueue.length) {
+                if (n.done % 10 === 0) backend.rescan()
+                scrapeNext(n)
+                return
+            }
+            note("scrape", offline ? r.error : "Done: found " + n.got + " of " + n.total + " games")
+            backend.rescan()
+        })
+    }
+
     function raSignIn() {
         keyboard.ask("RetroAchievements username", get("global.retroachievements.username"), false, u => {
             if (!u) return
