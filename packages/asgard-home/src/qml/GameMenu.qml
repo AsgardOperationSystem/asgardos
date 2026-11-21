@@ -20,6 +20,7 @@ Item {
     readonly property bool retroarch: game.indexOf("retroarch") >= 0
     readonly property bool steam: game.indexOf("steam") >= 0
     readonly property bool wwhd: game.indexOf("wwhd") >= 0
+    readonly property bool gbaDs: game.indexOf("gba-ds") >= 0
 
     property real openedAt: 0
     onOpenChanged: {
@@ -189,6 +190,13 @@ Item {
         // Wind Waker HD's settings overlay (F1 in its TV window: graphics, display, GamePad screen, save states).
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
         { icon: "gear", title: "Wind Waker HD settings", sub: "Opens on the top screen", run: () => resume(["F1"]) }
+    ], null, quitGame) : gbaDs ? withExit([
+        // GBA DS: F1 is its Home (patch 0001: the pad's Home alone is this menu); F1 with S or A is Home+R / Home+L,
+        // its quick state hotkeys.
+        { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() },
+        { icon: "list", title: "GBA DS menu", sub: "Opens on the bottom screen", run: () => resume(["F1"]) },
+        { icon: "save", title: "Quick save", sub: "Save state to the quick slot", run: () => resume(["F1+S"]) },
+        { icon: "load", title: "Quick load", sub: "Load the quick slot", run: () => resume(["F1+A"]) }
     ], null, quitGame) : withExit([
         { icon: "gamepad", title: "Resume", sub: "Back to the game", run: () => resume() }
     ], null, quitGame)

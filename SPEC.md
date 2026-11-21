@@ -94,7 +94,7 @@ Controls the running game without leaving it, with the same button in every emul
 
 - **MENU-1** Home tapped alone opens the in-game menu on the bottom screen. Held with other buttons, it stays the hotkey modifier.
 - **GAME-5** Every game gets Resume and Quit game, and a game with kill data also gets Back to Home and Quit and save log. The game pauses while the menu is open: by the emulator's own pause where Home drives one (RetroArch, Azahar, Eden), otherwise frozen with everything it started, Steam and PC games too. Closing the menu continues it, before any key the menu sends it.
-- **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access) and Wind Waker HD (its settings).
+- **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access), Wind Waker HD (its settings) and GBA DS (its menu, quick save and load).
 - **MENU-3** PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus instead.
 - **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
 - **MENU-5** A game's menu has a Performance tile with its CPU cap per core type and its GPU cap, and each screen's overrides on pages of their own, the same values as its Settings page. D-pad left and right step a value, and A steps forward. A change is saved to the game's own keys, so the next launch loads it, and applies to the running game on leaving the page or the menu. A core type turned back on may need a game restart, because launchers pin emulators to the cores online at launch.
@@ -118,6 +118,7 @@ Puts the second screen to use during a game: for a second display, controls or a
 - **COMP-2** Eden Duo shows live companion windows on the bottom screen.
 - **COMP-3** RetroArch games can have save-state and brightness controls on the bottom screen (ROCKNIX's lowerdeck), with focus kept on the top. The setting `asgardos.bottomscreen.type` turns them on (`vc`, the default) or off.
 - **COMP-4** Asgard has window rules for ports the user installs in `/storage`, which aren't in the image: the Wind Waker HD GamePad window, Dusklight's second screen, Gen1 Recomp's secondary display, and Lumi-Dex, a Pokédex companion that opens with Brilliant Diamond.
+- **COMP-6** GBA DS (gba-ds-sa) shows a GBA game's map or HUD on the bottom screen, in its second window "GBA DS map", with focus kept on the game window. Games it has no map support for play on the top screen.
 - **COMP-5** A DS game in RetroArch (melonDS, melonDS DS or DeSmuME) uses both screens: RetroArch's one window spans them, with the bottom panel placed below the top one (ROCKNIX's `vertical-check`), so the DS's top screen is on the top panel and its touch screen on the bottom one. These games don't get COMP-3's controls. Each launch sets the core to match: melonDS DS's viewport by ROCKNIX, and for melonDS and DeSmuME top/bottom, a 31 px gap and touch input, with RetroArch's aspect from the core and no integer scaling.
 
 ### Text prompts
@@ -398,7 +399,7 @@ Asgard's reason to exist is playing games, so the image ships every ROCKNIX syst
 | GameCube, Wii, Triforce | **dolphin-sa** |
 | Wii U | **cemu-sa** |
 | Nintendo DS | **melonds-sa**, drastic-sa, dsperate-sa, skyemu-sa |
-| Game Boy, Color, Advance | nanoboyadvance-sa (GBA), skyemu-sa, mednafen, ares-sa (default: RetroArch) |
+| Game Boy, Color, Advance | nanoboyadvance-sa (GBA), gba-ds-sa (GBA), skyemu-sa, mednafen, ares-sa (default: RetroArch) |
 | Nintendo 64 | gopher64-sa, mupen64plus-sa, daedalusx64-sa, ares-sa (default: RetroArch) |
 | PlayStation | duckstation-sa, mednafen (default: RetroArch) |
 | PlayStation 2 | **armsx2-sa**, aethersx2-sa |

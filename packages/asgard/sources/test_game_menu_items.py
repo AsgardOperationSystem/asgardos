@@ -22,7 +22,7 @@ const backend = { retroarch: log("ra"), gameKeys: log("key"), padChord: log("cho
                   toBackground: log("background"), set gameMenu(v) { sent.push(["menu", v]) } }
 function menuFor(game, launched) {
     const azahar = game.includes("azahar"), eden = game.includes("eden"), edenDuo = game.includes("eden-duo-cli"), retroarch = game.includes("retroarch"),
-          steam = game.includes("steam"), wwhd = game.includes("wwhd")
+          steam = game.includes("steam"), wwhd = game.includes("wwhd"), gbaDs = game.includes("gba-ds")
     const hasPerf = () => false
     const networkTile = () => ({ title: "Wi-Fi and Bluetooth", items: [{ title: "Wi-Fi" }, { title: "Bluetooth" }] })  // MENU-6
     const settings = {}, soundTile = { title: "Sound", page: () => [] }  // SND-7: its page is test_game_menu_sound.py
@@ -37,7 +37,7 @@ function menuFor(game, launched) {
     return show(items)
 }
 const out = {}
-for (const g of ["azahar", "eden", "eden-duo-cli", "retroarch", "steam", "wwhd", "melonds"]) out[g] = menuFor([g], { path: "/r/x", sys: "s" })
+for (const g of ["azahar", "eden", "eden-duo-cli", "retroarch", "steam", "wwhd", "gba-ds", "melonds"]) out[g] = menuFor([g], { path: "/r/x", sys: "s" })
 out.tool = menuFor([], {})
 console.log(JSON.stringify(out))
 """ % (resume, list_src)
@@ -63,7 +63,8 @@ OWN = {"retroarch": {"RetroArch menu", "Quick save", "Quick load", "Screenshot",
        "azahar": {"Quick save", "Quick load", "Swap screens", "Change layout", "Screenshot", "Restart"},
        "eden": {"Docked mode", "Speed limit", "Performance overlay", "Screenshot", "Restart"},
        "steam": {"Steam overlay", "Quick Access"},
-       "wwhd": {"Wind Waker HD settings"}}
+       "wwhd": {"Wind Waker HD settings"},
+       "gba-ds": {"GBA DS menu", "Quick save", "Quick load"}}
 for name, items in OWN.items():
     assert items <= titles(name), (name, items - titles(name))
 assert not any(items <= titles("melonds") for items in OWN.values())
@@ -94,6 +95,10 @@ sends("eden", "Restart", ["key", "F6"])
 sends("steam", "Steam overlay", ["chord", ["Gamepad:Button:Guide"]])
 sends("steam", "Quick Access", ["chord", ["Gamepad:Button:QuickAccess"]])
 sends("wwhd", "Wind Waker HD settings", ["key", "F1"])
+sends("gba-ds", "GBA DS menu", ["key", "F1"])                       # its Home, as a key (patch 0001)
+sends("gba-ds", "Quick save", ["key", "F1+S"])                      # Home+R
+sends("gba-ds", "Quick load", ["key", "F1+A"])                      # Home+L
+assert re.search(r'\{"A", KEY_A\}', open(os.path.join(HERE, "../../asgard-home/src/backend.cpp")).read())   # gameKeys knows A
 
 # GAME-5: every game Resume and Quit; with kill data also Back to Home and Quit and save log. Resume unpauses what can pause.
 for name in menus:

@@ -85,6 +85,7 @@ Status (2026-10-26, from each emulator's source; the sleep test on the device is
 | gopher64 | Rust `Instant` | stops in sleep; skips missed deadlines: OK | Alt+P |
 | mednafen | blocking audio, CLOCK_MONOTONIC | OK; 75 ms catch-up clamp | Pause key |
 | NanoBoyAdvance (SDL) | vsync | OK (no clock limiter) | none |
+| GBA DS | SDL performance counter | stops in sleep; re-anchors when 4 frames behind: OK | none (frozen under the menu) |
 | Steam / PC games | each game its own | unknown: Home can't pause them | none |
 
 ## 5. In-game menu (Home button)

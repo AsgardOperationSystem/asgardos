@@ -16,6 +16,7 @@ name() {
     cemu-sa) echo Cemu ;;               daedalusx64-sa) echo DaedalusX64 ;; dolphin-sa) echo Dolphin ;;
     drastic-sa) echo DraStic ;;         dsperate-sa) echo DSperate ;;      duckstation-sa) echo DuckStation ;;
     eden-duo-sa) echo "Eden Duo" ;;     eden-sa) echo Eden ;;              flycast-sa) echo Flycast ;;
+    gba-ds-sa) echo "GBA DS" ;;
     gopher64-sa) echo gopher64 ;;       gzdoom-sa) echo GZDoom ;;          hatarisa) echo Hatari ;;
     hypseus-singe) echo "Hypseus Singe" ;; mednafen) echo Mednafen ;;      melonds-sa) echo melonDS ;;
     mupen64plus-sa) echo Mupen64Plus ;; nanoboyadvance-sa) echo NanoBoyAdvance ;; openbor) echo OpenBOR ;;

@@ -1,0 +1,55 @@
+--- a/src/game.c
++++ b/src/game.c
+@@ -8651,7 +8651,12 @@
+ 				}
+ 			}
+ 		}
+-		if (btn_released(B_HOME) && !(modBtn == B_HOME && comboUsed)) {
++		/* Asgard OS (GBADS_PAD_HOME_MENU=0): the pad's HOME tapped alone is
++		 * the system's in-game menu, not this one; it stays the hotkey
++		 * button, and the F1 key (sent by the system's menu) opens this one */
++		static int padHomeMenu = -1;
++		if (padHomeMenu < 0) padHomeMenu = !getenv("GBADS_PAD_HOME_MENU") || strcmp(getenv("GBADS_PAD_HOME_MENU"), "0");
++		if (btn_released(B_HOME) && !(modBtn == B_HOME && comboUsed) && (padHomeMenu || uiHomeFromKey)) {
+ 			if (menuOpen) menuOpen = false;
+ 			else open_menu();
+ 		}
+--- a/src/ui.c
++++ b/src/ui.c
+@@ -34,6 +34,7 @@
+ Screen screens[2];
+ int nScreens;
+ bool btnNow[B_COUNT], btnPrev[B_COUNT];
++bool uiHomeFromKey;
+ volatile int uiQuit;
+ 
+ static Config* cfg;
+@@ -1239,10 +1240,13 @@
+ 	if (k[SDL_SCANCODE_TAB]) btnNow[B_L2] = true;
+ 	if (k[SDL_SCANCODE_SPACE]) btnNow[B_R2] = true;
+ 	if (k[SDL_SCANCODE_Q]) btnNow[B_L3] = true;
+-	if (k[SDL_SCANCODE_ESCAPE] || k[SDL_SCANCODE_F1] || k[SDL_SCANCODE_HOME] || k[SDL_SCANCODE_AC_HOME] ||
+-	    k[SDL_SCANCODE_MENU] || k[SDL_SCANCODE_APPLICATION]) {
+-		btnNow[B_HOME] = true;
+-	}
++	bool kbHome = k[SDL_SCANCODE_ESCAPE] || k[SDL_SCANCODE_F1] || k[SDL_SCANCODE_HOME] || k[SDL_SCANCODE_AC_HOME] ||
++	              k[SDL_SCANCODE_MENU] || k[SDL_SCANCODE_APPLICATION];
++	if (kbHome) btnNow[B_HOME] = true;
++	/* Asgard OS: whether this HOME press came from a key (F1 from the
++	 * system's own menu), held until HOME is let go */
++	if (kbHome) uiHomeFromKey = true;
++	else if (!btnNow[B_HOME] && !btnPrev[B_HOME]) uiHomeFromKey = false;
+ #ifdef __ANDROID__
+ 	if (k[SDL_SCANCODE_AC_BACK]) btnNow[B_HOME] = true; /* Android keeps HOME; BACK stands in */
+ #endif
+--- a/src/ui.h
++++ b/src/ui.h
+@@ -46,6 +46,8 @@
+ 	B_UP, B_DOWN, B_LEFT, B_RIGHT, B_COUNT
+ };
+ extern bool btnNow[B_COUNT], btnPrev[B_COUNT];
++/* Asgard OS: the HOME being held (or just let go) came from a key, not the pad */
++extern bool uiHomeFromKey;
+ static inline bool btn_pressed(int b) {
+ 	return btnNow[b] && !btnPrev[b];
+ }

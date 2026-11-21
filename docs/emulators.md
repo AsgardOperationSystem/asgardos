@@ -10,7 +10,7 @@ in a game.
 | System | Default | Also available | Status | Menu | Notes |
 |---|---|---|---|---|---|
 | Game Boy / Color | RetroArch (Gambatte) | mednafen, SameBoy, mGBA, SkyEmu, ares... | ✅ | Full | |
-| Game Boy Advance | RetroArch (mGBA) | NanoBoyAdvance, mednafen, gpSP, SkyEmu... | ✅ | Full | lowerdeck (bottom-screen companion) touch fix 🧪. |
+| Game Boy Advance | RetroArch (mGBA) | NanoBoyAdvance, GBA DS 1.5.6, mednafen, gpSP, SkyEmu... | ✅ | Full | lowerdeck (bottom-screen companion) touch fix 🧪. GBA DS 🧪 (built, host-tested, not run on a Thor yet): the game on the top screen and its map or HUD on the bottom one for the games it supports (about 64); the in-game menu opens its own menu and does quick save and load; battery saves are `.srm` beside the ROM, shared with RetroArch's mGBA. |
 | NES / SNES | RetroArch (Nestopia / Snes9x) | Mesen, FCEUmm, bsnes, mednafen, ares... | ✅ | Full | |
 | Nintendo 64 | RetroArch (Mupen64Plus-Next) | gopher64 1.1.42, mupen64plus, ares | ✅ | Full | N64 A on the Thor's A and B on its B (a remap) 🧪. |
 | Nintendo DS | melonDS | DraStic, DSperate 3.0.5, RetroArch cores | ✅ | Resume / Quit | One window per screen, no menu bar. RetroArch's DS cores span both screens ✅ (checked on a Thor 2026-11-14; more testing to come). DraStic and SkyEmu draw one window, on the top screen. DraStic's Start, Select, d-pad and touch press fixed for the virtual DualSense 🧪. |

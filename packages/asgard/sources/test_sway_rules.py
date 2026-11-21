@@ -111,6 +111,11 @@ assert to_bottom(cmds) and powers_on(cmds) and "fullscreen enable, focus output 
 cmds = applied("Dusklight — Second Screen", "dusklight")           # Dusklight
 assert "assign: output DSI-1" in cmds and "fullscreen enable, output DSI-1 power on, focus output DSI-2" in cmds, cmds
 assert "thor-bottom-rotate.sh 1.5" in cmds and 'events enabled' in cmds
+cmds = applied("GBA DS map", "gba-ds")                               # GBA DS's map window (gba-ds-sa)
+assert "assign: output DSI-1" in cmds and "fullscreen enable, output DSI-1 power on, focus output DSI-2" in cmds, cmds
+assert "thor-bottom-rotate.sh 1.5" in cmds and 'events enabled' in cmds
+cmds = applied("GBA DS", "gba-ds")                                   # and its game window stays on top, full screen
+assert "fullscreen enable" in cmds and not to_bottom(cmds) and not powers_on(cmds), cmds
 cmds = applied("gen1recomp Secondary Display", cls="love.aarch64")   # Gen1 Recomp's secondary display, under XWayland
 assert to_bottom(cmds) and powers_on(cmds), cmds
 assert 'fullscreen enable, exec swaymsg \'[class="^love\\.aarch64$" title="^(?!.*Secondary)"] focus\'' in cmds, cmds

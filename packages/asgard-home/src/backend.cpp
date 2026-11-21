@@ -691,7 +691,7 @@ void Backend::gameKeys(const QString &combo)
     // Waker HD's settings open in its TV window; Azahar's shortcuts are application-wide).
     QProcess::execute("/bin/sh", {"-c", "swaymsg \"[pid=$(pidof -s " + names.first() + ") title=\\\"^(?!GamePad)\\\"] focus\" >/dev/null 2>&1"});
     static const QHash<QString, int> codes = {{"Alt", KEY_LEFTALT}, {"Ctrl", KEY_LEFTCTRL}, {"Shift", KEY_LEFTSHIFT},
-        {"F1", KEY_F1}, {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L},
+        {"F1", KEY_F1}, {"F4", KEY_F4}, {"F6", KEY_F6}, {"F7", KEY_F7}, {"F9", KEY_F9}, {"F10", KEY_F10}, {"S", KEY_S}, {"L", KEY_L}, {"A", KEY_A},
         {"P", KEY_P}, {"M", KEY_M}, {"U", KEY_U}, {"V", KEY_V}, {"Esc", KEY_ESC}};
     QList<int> keys;
     for (const QString &k : combo.split('+'))

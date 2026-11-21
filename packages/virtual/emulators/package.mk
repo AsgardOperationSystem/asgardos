@@ -37,7 +37,7 @@ fi
 
 ### Emulators or cores for specific devices
 [ "${ENABLE_32BIT}" == "true" ] && EMUS_32BIT="box86 daedalusx64-sa desmume-lr gpsp-lr pcsx_rearmed-lr"
-PKG_EMUS+=" aethersx2-sa ares-sa azahar-sa bigpemu-sa cemu-sa dolphin-sa drastic-sa eden-sa eden-duo-sa gopher64-sa heroic mednafen melonds-sa nanoboyadvance-sa rpcs3-sa supermodel-sa \
+PKG_EMUS+=" aethersx2-sa ares-sa azahar-sa bigpemu-sa cemu-sa dolphin-sa drastic-sa eden-sa eden-duo-sa gba-ds-sa gopher64-sa heroic mednafen melonds-sa nanoboyadvance-sa rpcs3-sa supermodel-sa \
             xemu-sa skyemu-sa steam vita3k-sa armsx2-sa"
 LIBRETRO_CORES+=" beetle-psx-lr beetle-saturn-lr bsnes-lr bsnes-hd-lr dolphin-lr kronos-lr uae4arm-lr"
 
@@ -347,6 +347,7 @@ makeinstall_target() {
   add_emu_core gba mednafen gba false
   add_emu_core gba skyemu skyemu-sa false
   add_emu_core gba ares ares-sa false
+  add_emu_core gba gba-ds gba-ds-sa false
   add_es_system gba
 
   ### Nintendo GameBoy Advance Hacks

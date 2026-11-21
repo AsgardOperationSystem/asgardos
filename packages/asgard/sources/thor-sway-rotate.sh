@@ -80,6 +80,13 @@ grep -q '^# thor-dusklight' "$C" || printf '%s\n' '# thor-dusklight' \
   'for_window [title="^Dusklight — Second Screen$"] fullscreen enable, output DSI-1 power on, focus output DSI-2' \
   'for_window [title="^Dusklight — Second Screen$"] exec swaymsg input "0:0:bottom_touchscreen" events enabled' \
   'for_window [title="^Dusklight — Second Screen$"] exec /usr/share/asgard/thor-bottom-rotate.sh 1.5' >> "$C"
+# GBA DS (gba-ds-sa) draws the game's map or HUD in a second window, "GBA DS map": on the bottom screen like
+# Dusklight's, focus back to the game window ("GBA DS"), touch on for its quick bar (2026-11-21).
+grep -q '^# thor-gba-ds' "$C" || printf '%s\n' '# thor-gba-ds' \
+  'assign [title="^GBA DS map$"] output DSI-1' \
+  'for_window [title="^GBA DS map$"] fullscreen enable, output DSI-1 power on, focus output DSI-2' \
+  'for_window [title="^GBA DS map$"] exec swaymsg input "0:0:bottom_touchscreen" events enabled' \
+  'for_window [title="^GBA DS map$"] exec /usr/share/asgard/thor-bottom-rotate.sh 1.5' >> "$C"
 # Wind Waker HD (ZeldaWWHDRecomp): ROCKNIX's "GamePad" rules put its "GamePad — Vulkan" window on the bottom screen; fill
 # it and hand focus back to the TV window (2026-10-17).
 grep -q '^# thor-wwhd' "$C" || printf '%s\n' '# thor-wwhd' \

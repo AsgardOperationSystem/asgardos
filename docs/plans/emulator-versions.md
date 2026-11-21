@@ -37,6 +37,7 @@ Exceptions:
 | ScummVM | `scummvm-sa` | 2026.1.0 | 2026.4.0 | ⚠️ 3 releases behind |
 | GZDoom | `gzdoom-sa` | g4.14.2 | g4.14.2 | ✅ |
 | Amiberry | `amiberry` | commit of 2023-12 | v8.5.0 (2026-10-27) | ❌ ~3 years (4,975 commits) |
+| GBA DS | `gba-ds-sa` | v1.5.6 (added 2026-11-21) | v1.5.6 (2026-11-19) | ✅ (its mGBA, `gba-ds-mgba`, is the commit its `scripts/mgba-options.sh` names: bump the two together) |
 
 Not checked: mupen64plus, hatari, the other small standalones.
 
