@@ -23,6 +23,8 @@ CONVERTED = {
         "controls_a[CONTROL_INDEX_UP] = 105\ncontrols_a[CONTROL_INDEX_MENU] = 65535\n"
         "controls_b[CONTROL_INDEX_START] = 1033\ncontrols_b[CONTROL_INDEX_SELECT] = 1028\n"),
     ".config/drastic/drastic.gptk": ("up = \\\\\ndown = w\nleft=\\\\\n", "up = i\ndown = w\nleft=j\n"),
+    ".config/duckstation/settings.ini": ("[Pad1]\nRLeft = SDL-0/+RightX\nRRight = SDL-0/-RightX\n",
+                                         "[Pad1]\nRLeft = SDL-0/-RightX\nRRight = SDL-0/+RightX\n"),
 }
 
 IMAGE = {

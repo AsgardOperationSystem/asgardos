@@ -39,6 +39,28 @@ def expect(what, got, want):
         failures.append(f"{what}: {got!r}, want {want!r}")
 
 
+def section(text, name):
+    """key = value lines of one [name] section of an ini."""
+    m = re.search(rf"^\[{re.escape(name)}\]\n(.*?)(?=^\[|\Z)", text, re.M | re.S)
+    if not m:
+        raise KeyError(f"[{name}]")
+    return keys(m.group(1))
+
+
+def sticks(what, pad, axis):
+    """Both sticks point the way they're pushed: left/up on the axis' minus side. axis(name) gives the binding."""
+    for stick, side in (("L", "Left"), ("R", "Right")):
+        for direction, sign, xy in (("Left", "-", "X"), ("Right", "+", "X"), ("Up", "-", "Y"), ("Down", "+", "Y")):
+            expect(f"{what} {stick}{direction}", pad[f"{stick}{direction}"], axis(sign, side, xy))
+
+
+def duckstation():
+    pad = section(read("duckstation-sa", "config", "InputPlumber", "settings.ini"), "Pad1")
+    for button, name in (("Cross", "A"), ("Circle", "B"), ("Triangle", "Y"), ("Square", "X")):  # SDL names: by position
+        expect(f"DuckStation {button}", pad[button], f"SDL-0/{name}")
+    sticks("DuckStation", pad, lambda sign, side, xy: f"SDL-0/{sign}{side}{xy}")
+
+
 def drastic():
     """DraStic numbers joystick buttons 1024 + n. The d-pad is a hat, which reaches it as keys from gptokeyb."""
     cfg = keys(read("drastic-sa", "config", "SM8550", "drastic.cfg"))
@@ -63,7 +85,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic,):
+    for check in (drastic, duckstation):
         try:
             check()
         except (KeyError, OSError) as e:

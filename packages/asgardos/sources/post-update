@@ -147,6 +147,10 @@ for c in up:i down:k left:j right:h; do  # the d-pad reaches DraStic as keys, th
   convert_value /storage/.config/drastic/drastic.gptk "${c%%:*}" '\\' "${c##*:}"
 done
 
+# DuckStation's right stick had left and right swapped.
+convert_value /storage/.config/duckstation/settings.ini RLeft SDL-0/+RightX SDL-0/-RightX
+convert_value /storage/.config/duckstation/settings.ini RRight SDL-0/-RightX SDL-0/+RightX
+
 # Copy aethersx2 bios files for armsx2 for convenience
 if [ -d "/storage/roms/bios/aethersx2/bios" ] && [ ! -d "/storage/roms/bios/armsx2" ]; then
   cp -rf /storage/roms/bios/aethersx2/bios /storage/roms/bios/armsx2
