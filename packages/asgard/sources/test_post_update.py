@@ -15,6 +15,15 @@ SCRIPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "a
 SYSTEM_CFG = ".config/system/configs/system.cfg"
 CORE_OPTIONS = ".config/retroarch/retroarch-core-options.cfg"
 MELONDS_INI = ".config/melonDS/melonDS.ini"
+# Shipped values that were wrong: each converts where the user still has it, and stays where they changed it (UPD-4).
+CONVERTED = {
+    ".config/drastic/config/drastic.cfg": (
+        "controls_a[CONTROL_INDEX_UP] = 1035\ncontrols_a[CONTROL_INDEX_MENU] = 1032\n"
+        "controls_b[CONTROL_INDEX_START] = 1031\ncontrols_b[CONTROL_INDEX_SELECT] = 1028\n",
+        "controls_a[CONTROL_INDEX_UP] = 105\ncontrols_a[CONTROL_INDEX_MENU] = 65535\n"
+        "controls_b[CONTROL_INDEX_START] = 1033\ncontrols_b[CONTROL_INDEX_SELECT] = 1028\n"),
+    ".config/drastic/drastic.gptk": ("up = \\\\\ndown = w\nleft=\\\\\n", "up = i\ndown = w\nleft=j\n"),
+}
 
 IMAGE = {
     "system/configs/system.cfg": "system.hostname=ASGARD\nwifi.enabled=0\n",
@@ -135,6 +144,10 @@ def check(tmp, storage, failures):
     if not os.path.isfile(os.path.join(storage, ".config/melonDS/new.qss")):
         failures.append("melonDS: a new shipped file wasn't added")
 
+    for name, (_, want) in CONVERTED.items():
+        if read(storage, name) != want:
+            failures.append(f"{name}: wrong after the conversion:\n{read(storage, name)}")
+
 
 def image_defaults(failures):
     """Each one-time default in post-update is also in the image's system.cfg, with the same value, so a new install and
@@ -157,6 +170,7 @@ def main():
         write(storage, {SYSTEM_CFG: USER_SYSTEM_CFG,
                         CORE_OPTIONS: 'kept_core = "mine"',  # no newline at the end: a new key must not join this line
                         MELONDS_INI: "Key_A=7\nMy_Own=1\n"})
+        write(storage, {name: old for name, (old, _) in CONVERTED.items()})
         script = prepared_script(tmp)
 
         output = update(tmp, script)

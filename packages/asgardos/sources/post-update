@@ -72,6 +72,17 @@ merge_new_keys() {  # merge_new_keys <shipped> <user>, for key=value and key = "
            NR == FNR { have[key($1)] = 1; next }
            { k = key($1) } k != "" && !(k in have) { print }' "${2}" "${1}" >>"${2}"
 }
+### A shipped value that was wrong changes only where the user still has that old value; one they set stays (UPD-4).
+convert_value() {  # convert_value <file> <key> <old> <new>, for key=value and key = value lines; the spacing is kept
+  [ -f "${1}" ] || return 0
+  KEY="${2}" OLD="${3}" NEW="${4}" awk '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    { i = index($0, "=") }
+    i && trim(substr($0, 1, i - 1)) == ENVIRON["KEY"] && trim(substr($0, i + 1)) == ENVIRON["OLD"] {
+      v = substr($0, i + 1); match(v, /^[ \t]*/); print substr($0, 1, i) substr(v, 1, RLENGTH) ENVIRON["NEW"]; next }
+    { print }' "${1}" >"${1}.new"
+  if cmp -s "${1}" "${1}.new"; then rm -f "${1}.new"; else mv -f "${1}.new" "${1}"; fi
+}
 merge_new_keys /usr/config/retroarch/retroarch-core-options.cfg /storage/.config/retroarch/retroarch-core-options.cfg
 rsync -a --ignore-existing /usr/config/melonDS /storage/.config/
 merge_new_keys /usr/config/melonDS/melonDS.ini /storage/.config/melonDS/melonDS.ini
@@ -122,6 +133,19 @@ fi
 
 ### Add items below this line that are safe to remove after a period of time.
 ################################################################################
+
+# DraStic's controls were numbered for the raw AYN pad, not the virtual DualSense games see (GAME-9, GAME-11): DS Start
+# and Select sat on R2 and L2, the d-pad on L3/R3, Home opened DraStic's menu and R3 didn't press the touch cursor.
+DRASTIC_CFG=/storage/.config/drastic/config/drastic.cfg
+for c in a:UP:1035:105 a:DOWN:1036:107 a:LEFT:1037:106 a:RIGHT:1038:104 a:UI_UP:1035:105 a:UI_DOWN:1036:107 \
+         a:UI_LEFT:1037:106 a:UI_RIGHT:1038:104 a:MENU:1032:65535 a:SWAP_SCREENS:1039:109 \
+         b:START:1031:1033 b:SELECT:1030:1032 b:TOUCH_CURSOR_PRESS:1034:1036; do
+  IFS=: read -r set name old new <<<"${c}"
+  convert_value "${DRASTIC_CFG}" "controls_${set}[CONTROL_INDEX_${name}]" "${old}" "${new}"
+done
+for c in up:i down:k left:j right:h; do  # the d-pad reaches DraStic as keys, through gptokeyb
+  convert_value /storage/.config/drastic/drastic.gptk "${c%%:*}" '\\' "${c##*:}"
+done
 
 # Copy aethersx2 bios files for armsx2 for convenience
 if [ -d "/storage/roms/bios/aethersx2/bios" ] && [ ! -d "/storage/roms/bios/armsx2" ]; then
