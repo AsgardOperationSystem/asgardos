@@ -140,6 +140,24 @@ def retroarch_n64():
         failures.append("RetroArch N64: setsettings.sh doesn't seed the remap")
 
 
+def mupen64plus():
+    """mupen64plus standalone (SDL2 joystick numbers): the N64's A and B on the Thor's A and B, the C-buttons' extra
+    face buttons on neither, and every hotkey a combo with Home (button 10), never with a game button."""
+    base = os.path.join("mupen64plus-sa", "mupen64plus-sa-input-sdl", "config", "InputPlumber", "default.ini")
+    pad = section(read(base).replace("\r", ""), "Sony Interactive Entertainment DualSense Wireless Controller")
+    expect("mupen64plus N64 A", pad["A Button"], f"button({THOR_A})")
+    expect("mupen64plus N64 B", pad["B Button"], f"button({THOR_B})")
+    for k, v in pad.items():
+        if k.startswith("C Button") and re.search(rf"button\(({THOR_A}|{THOR_B})\)", v):
+            failures.append(f"mupen64plus: {k} also presses the Thor's A or B")
+    cfg = keys(read("mupen64plus-sa", "mupen64plus-sa-core", "config", "SM8550", "mupen64plus.cfg"))
+    for k, v in cfg.items():
+        if k.startswith("Joy Mapping ") and v.strip('"'):
+            buttons = re.findall(r"B(\d+)", v)
+            if len(buttons) != 2 or int(buttons[0]) != HOME:
+                failures.append(f"mupen64plus: {k} = {v} isn't Home plus a button")
+
+
 def dolphin_gc():
     """GameCube (Dolphin, SDL gamepad names by position): with no profile set, A is the Thor's A (east). The Wii
     launcher's GameCube pad (its hotkeys) uses the same profile."""
@@ -201,7 +219,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, dolphin_gc, dolphin_wii):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, retroarch_n64, mupen64plus, dolphin_gc, dolphin_wii):
         try:
             check()
         except (KeyError, OSError) as e:

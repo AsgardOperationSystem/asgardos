@@ -38,6 +38,9 @@ CONVERTED = {
     ".config/flycast/mappings/SDL_Sony Interactive Entertainment DualSense Wireless Controller.cfg": (
         "[combo]\nbind0 = 10,2:btn_menu:0\n[digital]\nbind0 = 0:btn_a\nbind1 = 1:btn_b\nbind2 = 2:btn_d\n",
         "[combo]\nbind0 = 10,2:btn_menu:0\n[digital]\nbind0 = 0:btn_b\nbind1 = 1:btn_a\nbind2 = 2:btn_d\n"),
+    ".config/mupen64plus/mupen64plus.cfg": (
+        '[CoreEvents]\nJoy Mapping Stop = "J0B7/B8"\nJoy Mapping Reset = "J0B6/B0"\nJoy Mapping Pause = "J0B11/B1"\n',
+        '[CoreEvents]\nJoy Mapping Stop = "J0B10/B9"\nJoy Mapping Reset = "J0B10/B0"\nJoy Mapping Pause = "J0B11/B1"\n'),
     ".config/dolphin-emu/WiiControllerProfiles/classic.ini": (
         "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button S`\nClassic/Buttons/B = `Button E`\nClassic/Buttons/X = `Button E`\n",
         "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button E`\nClassic/Buttons/B = `Button S`\nClassic/Buttons/X = `Button E`\n"),

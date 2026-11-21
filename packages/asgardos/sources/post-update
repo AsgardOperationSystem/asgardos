@@ -185,6 +185,14 @@ for pad in "DualSense Wireless Controller" "DualSense Edge Wireless Controller";
   done
 done
 
+# mupen64plus's hotkeys were numbered for an Xbox pad: on the virtual DualSense their modifier, button 6, is L2 (the
+# N64's Z), so Z+A reset the game and Z+L/R loaded or saved a state. Home (button 10) is the modifier now (GAME-11).
+for c in Stop:J0B7/B8:J0B10/B9 "Save State:J0B6/B5:J0B10/B5" "Load State:J0B6/B4:J0B10/B4" Reset:J0B6/B0:J0B10/B0 \
+         Screenshot:J0B6/B3:J0B10/B3 Pause:J0B12/B1:J0B10/B1; do
+  IFS=: read -r name old new <<<"${c}"
+  convert_value /storage/.config/mupen64plus/mupen64plus.cfg "Joy Mapping ${name}" "\"${old}\"" "\"${new}\""
+done
+
 # Dolphin's Wii remote had no motion bound: the shipped profiles gained IMU lines on asgard-motiond's DSU server. An
 # install's copies of them (not custom.ini, the user's own) get the lines the image's copy has, if they have none.
 for profile in classic hremote nunchuck vremote; do
