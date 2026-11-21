@@ -238,6 +238,25 @@ QtObject {
                                        otherRun: () => { backend.setSetting("asgard.update.skip", o.version); backend.shell(ota + "check") } })
         }
     }
+    // Library Manager pairing (LIB-2): asgard-library.py sends the code, shown here while Home is on screen. Writing it
+    // back tells the service it's on screen (with a game in front it isn't, and the browser is told to go to Home).
+    // Refuse (or B) ends the pairing; OK only closes this. The service ends it too (pair-end), paired or run out.
+    property Connections pairing: Connections {
+        target: backend
+        function onPairCode(code, client) {
+            if (backend.playing) return
+            backend.screensOff = false
+            bottom.confirmPanel.open("Code  " + code.slice(0, 3) + " " + code.slice(3),
+                                     "A browser at " + client + " wants to manage your games: type this code there. " +
+                                     "Refuse if it isn't yours.", "OK", () => {},
+                                     { no: "Refuse", noRun: () => backend.shell("touch /run/asgard-library-pair.cancel"), tag: "pair" })
+            backend.shell("echo " + code + " > /run/asgard-library-pin")
+        }
+        function onPairEnd() {
+            if (bottom.confirmPanel.ask && bottom.confirmPanel.ask.tag === "pair")
+                bottom.confirmPanel.ask = null
+        }
+    }
     property Connections padInput: Connections { target: pad; function onPressed(button) { app.nav(button) } }
     property Connections library: Connections {
         target: backend

@@ -531,6 +531,18 @@ void Backend::command(const QString &cmd)
             emit osd(p[1], p[2].toInt());
         return;
     }
+    // The Library Manager's pairing (LIB-2): "pair <code> <client>" shows the code, "pair-end" takes it away. Before the
+    // log line: the code mustn't reach the journal.
+    if (cmd.startsWith("pair ")) {
+        const QStringList p = cmd.split(' ', Qt::SkipEmptyParts);
+        if (p.size() >= 2)
+            emit pairCode(p[1], p.value(2));
+        return;
+    }
+    if (cmd == "pair-end") {
+        emit pairEnd();
+        return;
+    }
     qInfo("command: %s", qPrintable(cmd));
     if (cmd == "screens-on") {   // power-handler: the power key woke the screens X turned off
         setScreensOff(false);

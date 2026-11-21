@@ -198,7 +198,8 @@ with Root() as r:
                                                '<device id="CC:DD" name="Headphones" type="audio"/>'}
     network = hardware(NETWORK)
     shown = press(r, network, answers).window("Asgard Home")
-    for title in ("Wi-Fi", "Bluetooth", "USB connection", "SSH", "Samba", "Syncthing", "Tailscale", "ZeroTier", "WireGuard"):
+    for title in ("Wi-Fi", "Bluetooth", "USB connection", "SSH", "Samba", "Syncthing", "Library Manager", "Tailscale", "ZeroTier",
+                  "WireGuard"):
         assert title in shown, title
     wifi = keys(network, "a")
     assert "HomeNet" in press(r, wifi, answers).window("Asgard Home")  # scanned on opening
@@ -246,19 +247,20 @@ with Root() as r:
     r.write(CFG, "system.hostname=TEST\ntailscale.up=1\nzerotier.up=1\n")
     network = hardware(NETWORK)
     tailscale = {"tailscale status": json.dumps({"BackendState": "NeedsLogin", "AuthURL": "https://login.tailscale.com/a/x1"})}
-    page = press(r, keys(network, row(7)), tailscale)
+    # rows: Wi-Fi, Bluetooth, USB, IP, SSH, Samba, Syncthing, Library Manager (LIB-5), then the VPNs
+    page = press(r, keys(network, row(8)), tailscale)
     assert page.shows("login.tailscale.com/a/x1")                      # the sign-in link, on screen
-    assert " up --hostname=" in press(r, keys(network, row(7), row(1)), tailscale).log
-    zerotier = keys(network, row(8), row(2))                           # the switch, node ID, then Join a network
+    assert " up --hostname=" in press(r, keys(network, row(8), row(1)), tailscale).log
+    zerotier = keys(network, row(9), row(2))                           # the switch, node ID, then Join a network
     ident = " ".join(["up"] + ["a"] * 16 + ["start"])                  # up: the digits row; 16 times the 1
     assert press(r, zerotier).shows("ZeroTier network ID")
     assert "join 1111111111111111" in press(r, keys(zerotier, ident)).log
     bad = press(r, keys(zerotier, "up a start"))                       # one character: not an ID, and said so
     assert bad.shows("Not a network ID") and " join " not in bad.log
     wireguard = {"wireguard": "F:home\nC:office:wireguard:activated"}
-    page = press(r, keys(network, row(9)), wireguard)
+    page = press(r, keys(network, row(10)), wireguard)
     assert page.shows("home") and page.shows("office") and page.shows("/storage/.config/wireguard")
-    imported = press(r, keys(network, row(9), "a"), wireguard)
+    imported = press(r, keys(network, row(10), "a"), wireguard)
     assert "nmcli connection import type wireguard file '/storage/.config/wireguard/home.conf'" in imported.log
     # NET-3: the command it ran, run here against a fake nmcli: a split tunnel loses the catch-all DNS, a full one keeps it
     cmd = re.search(r"exec: (\(set --.*\) 2>&1)", imported.log).group(1)

@@ -139,7 +139,7 @@ are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files a
 - **SET-4** A change takes effect without a restart where it can. A setting that needs one says so on its row.
 - **SET-5** Storage shows the free, total and used space of the internal storage and the SD card (or that no card is in), whether the games folder is on the card or inside, and the system partition.
 - **SET-6** About shows the Asgard version (the release number, major.minor.patch, from `OS_VERSION` in `distribution/version`), build and date, the Linux kernel's version, and a page with each shipped emulator's version. The image step writes that list (`scripts/emulator-versions`) from each installed package's `PKG_VERSION` (EMU-6), a tag in its trailing comment before a bare commit; no emulator binary is run to read it.
-- **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting, and a connected device's battery when it reports one and its audio codec while it plays, which can be switched to another the device offers; USB mode; and SSH, Samba and Syncthing.
+- **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting, and a connected device's battery when it reports one and its audio codec while it plays, which can be switched to another the device offers; USB mode; SSH, Samba and Syncthing; and the Library Manager (LIB-1).
 - **NET-2** VPN offers Tailscale (sign-in link on screen), ZeroTier (join by network ID) and WireGuard (`.conf` files).
 - **NET-3** A WireGuard tunnel that doesn't carry all traffic doesn't take all DNS: its DNS server is asked beside the network's, so the Thor still resolves names, the tunnel's own endpoint among them, while the tunnel is down or not yet connected.
 
@@ -281,7 +281,7 @@ Close the lid and come back later to the same moment in the game, having lost as
 An update download or a library's scraping takes minutes, and a handheld gets put down halfway. This lets the work finish
 with the screens off and then sleeps as asked, instead of losing the work or leaving the Thor awake on the table.
 
-- **XFER-1** Update downloads and scrapes (Select → Scrape this game, Settings → Library → Scrape missing) go through one queue, `asgard-transfers.service`, one job at a time. An update download goes first. Waiting scrapes survive a restart; an update download is asked for again after one, because the check it downloads from lives in `/run`. Home rescans every 10 games scraped and after the last.
+- **XFER-1** Update downloads and scrapes (Select → Scrape this game, Settings → Library → Scrape missing, the Library Manager) go through one queue, `asgard-transfers.service`, one job at a time. An update download goes first. Waiting scrapes survive a restart; an update download is asked for again after one, because the check it downloads from lives in `/run`. Home rescans every 10 games scraped and after the last.
 - **XFER-2** Settings → Library → Scrape missing follows the queue: the game it's on out of how many, that it paused and why, and when it's done how many were found. A stops it, or carries on after a pause.
 - **XFER-3** A sleep asked for while the queue has work (the lid, the power key, Home's and Settings' Sleep) becomes a standby: the game pauses as for a sleep (GAME-7), the screens, touch and stick lights go off and the mid and prime cores go offline as in BAT-3's screens off, and Wi-Fi and storage stay on whatever the radio settings say. When the queue empties, the Thor suspends as it was asked to. The lid opening or the power key ends a standby early, and the work carries on with the Thor awake. With the lid shut, work starting or ending leads to a standby or a suspend, never to a Thor left lit.
 - **XFER-4** A standby suspends when the battery reaches 15 % off the charger, and the job running goes back in the queue. No internet pauses the queue rather than failing every game. A paused queue has no work, so a sleep then suspends at once. After every wake the queue carries on, after a low battery only on the charger or above 20 %.
@@ -331,6 +331,17 @@ Makes the Thor useful beyond emulators: music, files, a browser, a terminal, gam
 - **PORT-1** PortMaster is the Ports system's launcher.
 - **PORT-2** A `.desktop` file in the PC system runs its own `Exec=` command. `X-Asgard-Kill=` names the process Quit stops, if it isn't the command's own name.
 - **PORT-3** LÖVE ports run outside PortMaster, such as Gen1 Recomp, find the `libtheoradec` they need. Gen1 Recomp runs under XWayland, because it gets no input on native Wayland.
+
+### Library Manager
+
+Adds and removes games from a computer or phone on the same network, with no cable, no Samba and no folder names to know.
+The web app is its own repository, `AsgardOperationSystem/asgard-library-manager`, and the image ships it.
+
+- **LIB-1** `asgard-library.service` serves the web app and its API over HTTP on port 8467, on by default; `asgard.library_manager=0` turns it off. The web app also works opened from disk, so the API allows any origin, and its token travels in a header, never in a cookie.
+- **LIB-2** A browser pairs once. The Thor shows six random digits while Home is on its screen, not over a game, and the browser has three tries. After three wrong ones the Thor shows new digits, and each failed round makes the next wait twice as long, 10 s up to 15 min. Wrong tries count until a right one, across new codes and cancels. Refuse on the Thor ends it. The token is kept hashed in `/storage/.config/asgard/library-manager.json`. Without one, only hello and pairing answer. The code never reaches a log.
+- **LIB-3** It reads and writes only inside the ROM folders `es_systems.cfg` names. Each name is checked one component at a time, and one that leads elsewhere, through `..` or a symlink, is refused. An upload arrives in chunks into `<name>.asgard-part`, which becomes the game only when whole, resumes from what arrived, and is refused up front without room for it plus 256 MB. Delete removes the game file only: its saves and art stay. Uploads keep the Thor out of sleep while they arrive (XFER-3).
+- **LIB-4** An upload goes to its console by extension. When several take it, the game's CRC32 (a `.zip`'s from its central directory) is looked up in the scraper's libretro index, and failing that the user picks. Scrapes asked for there, or after an upload, go through the transfers queue (XFER-1).
+- **LIB-5** Settings → Hardware → Network → Library Manager turns it on and off, shows the address to open and how many browsers are paired, and forgets them all.
 
 ## 11. Graphics
 

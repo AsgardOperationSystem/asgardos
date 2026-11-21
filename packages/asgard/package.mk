@@ -5,7 +5,7 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc asgardos-splash turnip-extra asgard-cheats-db switch-cheats-db ps2-cheats-db libretro-database skyscraper"
+PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc asgardos-splash turnip-extra asgard-cheats-db asgard-library-manager switch-cheats-db ps2-cheats-db libretro-database skyscraper"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
@@ -78,7 +78,7 @@ makeinstall_target() {
 }
 
 post_install() {
-  for unit in asgard-bootanim asgard-charge-limit asgard-gamma asgard-cores asgard-events asgard-lastboot asgard-sensors-root asgard-transfers asgard-update-check essway thor-ayn-button thor-battery-log thor-bottom-touch thor-display-sleep thor-idle-blank thor-sensorspd; do
+  for unit in asgard-bootanim asgard-charge-limit asgard-gamma asgard-cores asgard-events asgard-lastboot asgard-library asgard-sensors-root asgard-transfers asgard-update-check essway thor-ayn-button thor-battery-log thor-bottom-touch thor-display-sleep thor-idle-blank thor-sensorspd; do
     enable_service ${unit}.service
   done
 }

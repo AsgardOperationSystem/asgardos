@@ -339,6 +339,8 @@ Item {
              info("info", "IP address", [live.ip, live.usb === "network" ? "USB 169.254.170.2" : ""].filter(x => x).join("  ·  ") || "—")],
             services.map(sv => toggle("terminal", sv[0], sv[3], sv[1], "0",
                     () => backend.shell("systemctl " + (get(sv[1]) === "1" ? "start " : "stop ") + sv[2]))),
+            [link("list", "Library Manager", get("asgard.library_manager", "1") !== "1" ? "Off"
+                  : "Manage games from a browser" + (live.ip ? "  ·  http://" + live.ip + ":8467" : ""), libraryManagerPage, libraryRefresh)],
             [link("shield", "Tailscale", get("tailscale.up") !== "1" ? "Off" : "On", tailscalePage, tsRefresh),
              link("shield", "ZeroTier", get("zerotier.up") !== "1" ? "Off" : "On", zerotierPage, ztRefresh),
              link("shield", "WireGuard", "Tunnels from .conf files", wireguardPage, wgRefresh)]]
@@ -541,6 +543,23 @@ Item {
         return "set --; f=" + q(wgDir + "/" + n + ".conf") + "; [ -f \"$f\" ] && ! grep -qiE " +
                "'^[[:space:]]*AllowedIPs[[:space:]]*=.*(0[.]0[.]0[.]0/0|::/0)' \"$f\" && set -- ipv4.dns-search '' ipv6.dns-search '' ipv4.never-default yes ipv6.never-default yes; "
     }
+    // Library Manager (LIB-1, LIB-2): asgard-library.service on port 8467, and the browsers paired with it.
+    function libraryManagerPage() {
+        const rows = [toggle("list", "Library Manager", "Manage games from a browser on this network", "asgard.library_manager", "1",
+                             () => backend.shell("systemctl " + (get("asgard.library_manager", "1") === "1" ? "start" : "stop") + " asgard-library"))]
+        if (get("asgard.library_manager", "1") === "1") {
+            const n = live.libPaired
+            rows.push(info("wifi", "Address", live.ip ? "http://" + live.ip + ":8467  ·  open it in a browser" : "Connect to Wi-Fi first"),
+                      action("broom", "Forget paired browsers",
+                             (n === undefined ? "…" : n + (n === 1 ? " browser" : " browsers") + " paired") + "  ·  each needs a new code",
+                             () => confirm("Forget paired browsers", "Every browser will need a new code from this screen to manage games.",
+                                           "Forget", () => sh("libPaired", "python3 /usr/share/asgard/asgard-library.py forget", libParse))))
+        }
+        return [rows]
+    }
+    function libParse(o) { try { return JSON.parse(o).paired } catch (e) { return undefined } }
+    function libraryRefresh() { sh("libPaired", "python3 /usr/share/asgard/asgard-library.py sessions", libParse) }
+
     function wireguardPage() {
         const w = live.wg
         if (!w) return [[info("refresh", "Loading…", "")]]

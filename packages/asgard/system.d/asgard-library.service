@@ -1,0 +1,17 @@
+# Library Manager (LIB-1): manage the games from a browser on the same network, at http://<the Thor>:8467. Pairing
+# needs the code the Thor's screen shows (LIB-2). Off with asgard.library_manager=0 (Settings > Network > Library
+# Manager). Idle, it waits on its socket and wakes nothing (PWR-9).
+[Unit]
+Description=Asgard Library Manager: manage games from a browser
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/storage
+
+[Service]
+ExecCondition=/bin/bash -c '. /etc/profile.d/001-functions; [ "$(get_setting asgard.library_manager)" != 0 ]'
+ExecStart=/usr/bin/python3 /usr/share/asgard/asgard-library.py serve
+Restart=on-failure
+Nice=10
+
+[Install]
+WantedBy=multi-user.target

@@ -34,6 +34,10 @@ screenshots, troubleshooting.
 - **Battery:** deep sleep that works, screens-off mode, a charge limit with bypass charging, a battery report.
 - **Audio:** a speaker EQ tuned for the Thor, AutoEQ for headphones, Bluetooth headphones with their battery and codec.
 - **RetroAchievements and cheats** from Home, and **calibration** for sticks, triggers and touch.
+- **Library Manager:** add, rename and delete games from a browser on your network at `http://<your Thor>:8467`, with
+  scraped art and details, after pairing once with a code the Thor shows
+  ([how to use it](https://github.com/AsgardOperationSystem/asgardos/wiki/Library-Manager);
+  [its repository](https://github.com/AsgardOperationSystem/asgard-library-manager)). New, 🧪.
 - **Downloads finish before sleep:** close the lid during an update download or a scrape and the Thor waits, screens
   off, until it's done, then sleeps. New, 🧪.
 

@@ -77,6 +77,8 @@ signals:
     void settingsChanged();
     void gameMenuChanged();
     void osd(const QString &what, int value);   // volume/brightness changed (asgard-osd): show the slider
+    void pairCode(const QString &code, const QString &client);   // asgard-library.py: show this code (LIB-2)
+    void pairEnd();                                              // ...and stop showing it
 
 private:
     void scan();
