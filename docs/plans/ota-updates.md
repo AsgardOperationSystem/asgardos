@@ -1,7 +1,7 @@
 # OTA updates from GitHub releases
 
-Status: built and host-tested (2026-11-21); not checked on a Thor. The release key pair isn't made yet
-(`scripts/release --keygen`), so no release is signed and no Thor offers one.
+Status: built and host-tested (2026-11-21); not checked on a Thor. The release key pair exists (2026-11-21); no
+published release is signed yet, so no Thor offers one.
 
 The Thor finds a newer Asgard release on GitHub, offers it, downloads it, checks it and stages it. It installs
 through the existing boot-time installer (`packages/sysutils/busybox/scripts/init`), which takes any `*.tar` in
