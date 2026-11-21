@@ -377,12 +377,13 @@ fi
     SHOULDERS="stacked"
   fi
 
-  if [ "$CON" = "east" ]; then
-    cp -r ${CONF_DIR}/GamecubeControllerProfiles/GCPadNew.ini.east.${SHOULDERS} ${CONF_DIR}/${CONTROLLER_INI}
+  # Asgard: unset is east, the GameCube's A on the Thor's A as printed (GAME-11); south puts A on the bottom button.
+  if [ "$CON" = "south" ]; then
+    cp -r ${CONF_DIR}/GamecubeControllerProfiles/GCPadNew.ini.south.${SHOULDERS} ${CONF_DIR}/${CONTROLLER_INI}
   elif [ "$CON" = "custom" ]; then
     cp -r ${CONF_DIR}/GamecubeControllerProfiles/GCPadNew.ini.custom ${CONF_DIR}/${CONTROLLER_INI}
   else
-    cp -r ${CONF_DIR}/GamecubeControllerProfiles/GCPadNew.ini.south.${SHOULDERS} ${CONF_DIR}/${CONTROLLER_INI}
+    cp -r ${CONF_DIR}/GamecubeControllerProfiles/GCPadNew.ini.east.${SHOULDERS} ${CONF_DIR}/${CONTROLLER_INI}
   fi
 
   # GC Controller Rumble

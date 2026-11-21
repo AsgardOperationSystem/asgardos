@@ -118,6 +118,21 @@ def eden():
                 failures.append(f"Eden player {player} motion{side}: {motion!r} isn't asgard-motiond's DSU server")
 
 
+def dolphin_gc():
+    """GameCube (Dolphin, SDL gamepad names by position): with no profile set, A is the Thor's A (east). The Wii
+    launcher's GameCube pad (its hotkeys) uses the same profile."""
+    profile = section(read("dolphin-sa", "config", "controllers", "GamecubeControllerProfiles", "GCPadNew.ini.east.stacked"),
+                      "GCPad1")
+    for button, side in (("A", "E"), ("B", "S"), ("X", "N"), ("Y", "W")):
+        expect(f"Dolphin GC east profile {button}", profile[f"Buttons/{button}"], f"`Button {side}`")
+    gc = read("dolphin-sa", "scripts", "start_dolphin_gc.sh")
+    default = re.search(r"^\s*else\n\s*cp -r \S*/GCPadNew\.ini\.(\w+)\.", gc, re.M)
+    expect("Dolphin GC launcher's default profile", default and default.group(1), "east")
+    wii = read("dolphin-sa", "scripts", "start_dolphin_wii.sh")
+    if not re.search(r"^\s*cp -r \S*GCPadNew\.ini\.east\.stacked\S* \S*/GCPadNew\.ini", wii, re.M):
+        failures.append("Dolphin Wii: the GameCube pad isn't the east profile")
+
+
 def dolphin_wii():
     """The Wii remote's motion: every shipped profile binds the accelerometer and gyroscope to the DSU device the Wii
     launcher sets up, by its name, on asgard-motiond's port (INP-1)."""
@@ -161,7 +176,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, dolphin_wii):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, dolphin_gc, dolphin_wii):
         try:
             check()
         except (KeyError, OSError) as e:

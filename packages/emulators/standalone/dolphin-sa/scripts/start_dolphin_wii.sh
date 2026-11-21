@@ -65,7 +65,7 @@ fi
 
 # Gamecube controller profile needed for hotkeys to work on SA
 if [ "${DOLPHIN_CORE}" = 'dolphin-emu-nogui' ]; then
-  cp -r "/storage/.config/dolphin-emu/GamecubeControllerProfiles/GCPadNew.ini.south.stacked" "/storage/.config/dolphin-emu/GCPadNew.ini"
+  cp -r "/storage/.config/dolphin-emu/GamecubeControllerProfiles/GCPadNew.ini.east.stacked" "/storage/.config/dolphin-emu/GCPadNew.ini"
 else
   rm -r "/storage/.config/dolphin-emu/GCPadNew.ini"
 fi
