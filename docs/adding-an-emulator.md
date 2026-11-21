@@ -125,7 +125,7 @@ already frozen), so here only the clock (4.2) protects it.
   binds by GUID and button number needs its config fixed **on every start** from the launcher, as
   `start_eden-duo.sh` does, because configs get seeded from other emulators.
 - Motion: `asgard-motiond.py` reads the Thor's gyro and accelerometer and serves them two ways: as the DualSense's motion
-  (SDL and Steam Input read it there) and as a cemuhook/DSU server on `127.0.0.1:26760` (Azahar, Eden and Eden Duo use that).
+  (SDL and Steam Input read it there) and as a cemuhook/DSU server on `127.0.0.1:26760` (Azahar, Eden, Eden Duo and Dolphin's Wii remote use that).
 - **Test:** every button, both sticks (centred at rest), triggers, d-pad in menus, and motion if the system uses it.
 
 ## 9. PC/Steam apps (`.desktop`)

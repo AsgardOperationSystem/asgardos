@@ -57,6 +57,12 @@ if [ ! -f "${CONF_DIR}/WiiControllerProfiles/custom.ini" ]; then
         cp -r "${CONF_DIR}/WiiControllerProfiles/vremote.ini" "${CONF_DIR}/WiiControllerProfiles/custom.ini"
 fi
 
+# Asgard: the Wii remote's motion (the profiles' IMU lines) comes from asgard-motiond's DSU server (INP-1), which the
+# profiles name "Asgard". Added only where Dolphin's DSU settings have no [Server] yet, so a user's own stay.
+if ! grep -qs "^\[Server\]" "${CONF_DIR}/DSUClient.ini"; then
+  printf '[Server]\nEnabled = True\nEntries = Asgard:127.0.0.1:26760;\n' >>"${CONF_DIR}/DSUClient.ini"
+fi
+
 # Gamecube controller profile needed for hotkeys to work on SA
 if [ "${DOLPHIN_CORE}" = 'dolphin-emu-nogui' ]; then
   cp -r "/storage/.config/dolphin-emu/GamecubeControllerProfiles/GCPadNew.ini.south.stacked" "/storage/.config/dolphin-emu/GCPadNew.ini"

@@ -118,6 +118,25 @@ def eden():
                 failures.append(f"Eden player {player} motion{side}: {motion!r} isn't asgard-motiond's DSU server")
 
 
+def dolphin_wii():
+    """The Wii remote's motion: every shipped profile binds the accelerometer and gyroscope to the DSU device the Wii
+    launcher sets up, by its name, on asgard-motiond's port (INP-1)."""
+    launcher = read("dolphin-sa", "scripts", "start_dolphin_wii.sh")
+    entry = re.search(r"Entries = (\w+):127\.0\.0\.1:(\d+);", launcher)
+    port = re.search(r"^PORT\s*=\s*(\d+)", read("..", "..", "asgard", "sources", "asgard-motiond.py"), re.M)
+    if not entry or not port or entry.group(2) != port.group(1):
+        failures.append("Dolphin Wii: the launcher doesn't point Dolphin's DSU client at asgard-motiond")
+        return
+    for name in ("classic", "hremote", "nunchuck", "vremote"):
+        profile = section(read("dolphin-sa", "config", "controllers", "WiiControllerProfiles", f"{name}.ini"), "Wiimote1")
+        for group, controls, source in (
+                ("IMUAccelerometer", ("Up", "Down", "Left", "Right", "Forward", "Backward"), "Accel"),
+                ("IMUGyroscope", ("Pitch Up", "Pitch Down", "Roll Left", "Roll Right", "Yaw Left", "Yaw Right"), "Gyro")):
+            for control in controls:
+                expect(f"Dolphin Wii {name} {group}/{control}", profile.get(f"{group}/{control}"),
+                       f"`DSUClient/0/{entry.group(1)}:{source} {control}`")
+
+
 def drastic():
     """DraStic numbers joystick buttons 1024 + n. The d-pad is a hat, which reaches it as keys from gptokeyb."""
     cfg = keys(read("drastic-sa", "config", "SM8550", "drastic.cfg"))
@@ -142,7 +161,7 @@ def drastic():
 
 
 def main():
-    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden):
+    for check in (drastic, duckstation, armsx2, aethersx2, flycast, eden, dolphin_wii):
         try:
             check()
         except (KeyError, OSError) as e:

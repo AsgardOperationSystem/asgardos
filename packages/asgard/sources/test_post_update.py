@@ -35,6 +35,9 @@ CONVERTED = {
         '"engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
         'player_8_motionright="engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
         'player_0_motionleft="engine:sdl,motion:0"\n'),
+    ".config/dolphin-emu/WiiControllerProfiles/hremote.ini": (
+        "[Wiimote1]\nDevice = SDL/0/mine\nButtons/A = `b`\n",
+        "[Wiimote1]\nDevice = SDL/0/mine\nIMUGyroscope/Yaw Left = `g`\nButtons/A = `b`\n"),
 }
 
 IMAGE = {
@@ -50,6 +53,7 @@ IMAGE = {
     "melonDS/melonDS.gptk": "shipped\n",
     "melonDS/new.qss": "shipped\n",
     "dolphin-emu/Hotkeys.ini": "shipped\n",
+    "dolphin-emu/WiiControllerProfiles/hremote.ini": "[Wiimote1]\nDevice = SDL/0/x\nIMUGyroscope/Yaw Left = `g`\nButtons/A = `a`\n",
 }
 
 # Must come out byte for byte as they went in.
@@ -65,6 +69,7 @@ USER_FILES = {
     ".config/system/configs/asgardos-boot.conf": "mine\n",
     ".config/melonDS/melonDS.gptk": "mine\n",
     ".config/dolphin-emu/Hotkeys.ini": "mine\n",
+    ".config/dolphin-emu/WiiControllerProfiles/custom.ini": "[Wiimote1]\nDevice = SDL/0/mine\n",
     ".config/game/mine": "mine\n",
     ".config/ppsspp/assets/ui_images/a": "shipped\n",
     ".config/ppsspp/assets/NotoSansJP-Regular.ttf": "shipped\n",

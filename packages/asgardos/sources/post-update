@@ -168,6 +168,17 @@ for cfg in /storage/.config/eden/qt-config.ini /storage/.config/eden/sdl2-config
   done
 done
 
+# Dolphin's Wii remote had no motion bound: the shipped profiles gained IMU lines on asgard-motiond's DSU server. An
+# install's copies of them (not custom.ini, the user's own) get the lines the image's copy has, if they have none.
+for profile in classic hremote nunchuck vremote; do
+  user="/storage/.config/dolphin-emu/WiiControllerProfiles/${profile}.ini"
+  [ -f "${user}" ] && ! grep -q "^IMU" "${user}" || continue
+  grep "^IMU" "/usr/config/dolphin-emu/WiiControllerProfiles/${profile}.ini" >"${user}.imu" || { rm -f "${user}.imu"; continue; }
+  awk -v imu="${user}.imu" '{ print } /^Device = / && !done { while ((getline l < imu) > 0) print l; done = 1 }' \
+    "${user}" >"${user}.new" && mv -f "${user}.new" "${user}"
+  rm -f "${user}.imu"
+done
+
 # Copy aethersx2 bios files for armsx2 for convenience
 if [ -d "/storage/roms/bios/aethersx2/bios" ] && [ ! -d "/storage/roms/bios/armsx2" ]; then
   cp -rf /storage/roms/bios/aethersx2/bios /storage/roms/bios/armsx2
