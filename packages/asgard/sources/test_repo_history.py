@@ -3,7 +3,7 @@
 # requires: cmd:git file:packages/linux/src/Makefile
 # Tree check over git's own data, with no network: remote branches are read from the local tracking refs, so they're as
 # of the last fetch. What this can't see is in docs/human-checks.md: that fixes come in one at a time (DEV-1), that each
-# patch is one commit (DEV-6), and that force-push is limited to `asgard` (DEV-7, a GitLab setting).
+# patch is one commit (DEV-6), and that force-push is limited to `asgard` (DEV-7, a repository setting on GitHub).
 import os
 import re
 import subprocess

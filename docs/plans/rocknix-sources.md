@@ -3,15 +3,15 @@
 Goal: no build download depends on ROCKNIX's GitHub. Today ten packages and the fallback mirror still do; if ROCKNIX
 moves or deletes a file, a clean build breaks (a `build/sources` cache hides it until then).
 
-**Status (2026-10-31):** private copies of the six ROCKNIX source repos are in the `asgardos` GitLab group, but the
-tree isn't repointed at them, because private GitLab redirects anonymous downloads to its sign-in page.
-Where the mirror should live is undecided, so the plan below is only one option.
+**Status (2026-11-21):** the six ROCKNIX source repos are public forks in the `AsgardOperationSystem` GitHub org, but
+the tree isn't repointed at them yet. Where the source mirror should live is undecided, so the plan below is only one
+option.
 
 ## What still fetches from ROCKNIX
 
 Package paths are relative to `packages/`.
 
-ROCKNIX's own projects (forkable into the `asgardos` GitLab group):
+ROCKNIX's own projects (forked into the `AsgardOperationSystem` GitHub org):
 
 | Package | URL |
 |---|---|
