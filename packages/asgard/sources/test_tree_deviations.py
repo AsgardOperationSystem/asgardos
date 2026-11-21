@@ -45,7 +45,7 @@ ROCKNIX_DOWNLOADS = {
 }
 
 # DEV-11. Git-ignored things a person or a tool outside the build keeps at the root, and what a build leaves there.
-ROOT_LOCAL = {"build", "thor", "asgard.yml", "CLAUDE.local.md", "personal-patterns.local", ".git"}
+ROOT_LOCAL = {"build", "thor", "asgard.yml", "CLAUDE.local.md", ".claude", "personal-patterns.local", ".git"}
 ROOT_BUILD_LEFTOVERS = {
     ".cache", ".config",  # SPEC 16: a Go package's build
     "target",  # SPEC 16: scripts/image's RELEASE_DIR, empty after a build. Reported.
