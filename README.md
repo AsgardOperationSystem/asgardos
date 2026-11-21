@@ -46,7 +46,7 @@ What works today, feature by feature: **[features](docs/features.md)** and **[em
 
 ## Get it
 
-1. Download the latest image, **[AsgardOS-SM8550.aarch64-0.0.5.img.gz](https://github.com/AsgardOperationSystem/asgardos/releases/download/v0.0.5/AsgardOS-SM8550.aarch64-0.0.5.img.gz)** ([.sha256](https://github.com/AsgardOperationSystem/asgardos/releases/download/v0.0.5/AsgardOS-SM8550.aarch64-0.0.5.img.gz.sha256)); older
+1. Download the latest image, **[AsgardOS-SM8550.aarch64-0.0.6.img.gz](https://github.com/AsgardOperationSystem/asgardos/releases/download/v0.0.6/AsgardOS-SM8550.aarch64-0.0.6.img.gz)** ([.sha256](https://github.com/AsgardOperationSystem/asgardos/releases/download/v0.0.6/AsgardOS-SM8550.aarch64-0.0.6.img.gz.sha256)); older
    ones and release notes are on [Releases](https://github.com/AsgardOperationSystem/asgardos/releases).
 2. Follow [Install](https://github.com/AsgardOperationSystem/asgardos/wiki/Install): OpenABL, the SD card, internal
    storage, updates and recovery.
