@@ -181,6 +181,16 @@ function mount_games() {
       exit 0
 }
 
+# UPD-8: a partition an install boots from or keeps its /storage on is never a games card: Asgard's internal
+# (ASGARDOS, STORAGE) and card (ASGARDSD, STORAGESD) labels, and ROCKNIX's (ROCKNIX, STORAGE). The search below also
+# looks at the internal disk, so a card would otherwise take an internal install's STORAGE as its games storage.
+function os_partition() {
+  case "$(blkid -o export ${1} | awk 'BEGIN {FS="="} $1 == "LABEL" {print $2}')" in
+    ASGARDOS|STORAGE|ASGARDSD|STORAGESD|ROCKNIX) return 0 ;;
+  esac
+  return 1
+}
+
 function find_games() {
   if /usr/bin/busybox mountpoint -q /storage
   then
@@ -188,6 +198,11 @@ function find_games() {
     do
       ROOTDEV=$(echo ${DEV} | sed -e "s#^/.*/##g" -e "s#p[0-9].*\$##g")
       log $0 "Inspecting ${DEV}."
+      if os_partition ${DEV}
+      then
+        log $0 "${DEV} belongs to an installed system, ignoring."
+        continue
+      fi
       SIZE=$(awk '/'${ROOTDEV}'$/ {print $3}' /proc/partitions)
       if (( ${SIZE} <= 8388608 ))
       then
