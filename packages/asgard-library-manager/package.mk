@@ -2,8 +2,8 @@
 # Copyright (C) 2026-present Asgard OS
 
 PKG_NAME="asgard-library-manager"
-PKG_VERSION="b9c85d49b0bd91d330d887732ac0c5f5ff7103d5" # main, 2026-11-21
-PKG_SHA256="d4e6d7b00f3f3848969c23bdf3456541f52a5144b4ad138d04ce588175e2f50c"
+PKG_VERSION="a79ea5177f67d5e9fdef216ab586b6bc852888c3" # main, 2026-11-21
+PKG_SHA256="b7e09cb45c7d32c7188a141f79561065c22483b3f8e1207f55d6a260b4b1ae49"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgard-library-manager"
 PKG_URL="${PKG_SITE}/archive/${PKG_VERSION}.tar.gz"
