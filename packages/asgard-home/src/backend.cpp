@@ -17,6 +17,7 @@
 #include <functional>
 
 #include <cerrno>
+#include <csignal>
 #include <cstring>
 #include <fcntl.h>
 #include <linux/input.h>
@@ -512,6 +513,8 @@ void Backend::setGameMenu(bool on)
 {
     if (on == m_gameMenu)
         return;
+    if (!on)
+        freezeGame(false);   // a game the menu froze continues before anything else reaches it (keys, quit)
     m_gameMenu = on;
     // A tool's touch keyboard on the bottom screen (Firefox, start_firefox.sh) is a layer above the menu: hide it
     // while the menu is open (wvkbd: SIGUSR1 hides, SIGUSR2 shows).
@@ -542,7 +545,9 @@ void Backend::command(const QString &cmd)
             setGameMenu(false);  // Home again: close, then unpause below (keys go to the game)
         else
             sampleFps();         // the rate up to now, while the game still runs
-        togglePause();
+        // Paused while the menu is open (GAME-5): the emulator's own pause, or frozen (closing the menu continues it).
+        if (!togglePause() && open)
+            freezeGame(true);
         if (open)
             setGameMenu(true);
     }
@@ -578,6 +583,58 @@ bool Backend::togglePause()
         return true;
     }
     return false;
+}
+
+// The in-game menu's pause for every game whose emulator has none we can drive (melonDS, Dolphin, PPSSPP, ports, Steam
+// and its games...): the kill data's processes and all their descendants (Steam's games are its children) stop, as
+// "Back to Home" freezes them. MENU_FROZEN tells thor_ayn_button.py the game is ours: the Thor Panel leaves it frozen.
+static const char *MENU_FROZEN = "/run/asgard-frozen";
+
+void Backend::freezeGame(bool stop)
+{
+    if (!stop) {
+        for (int pid : std::as_const(m_frozen))
+            ::kill(pid, SIGCONT);
+        m_frozen.clear();
+        QFile::remove(path(MENU_FROZEN));
+        return;
+    }
+    const QStringList names = runningGame();
+    if (!m_frozen.isEmpty() || names.isEmpty() || m_background)
+        return;
+    QProcess pidof;
+    pidof.start("pidof", names);
+    pidof.waitForFinished(2000);
+    QSet<int> family;
+    for (const QString &p : QString::fromUtf8(pidof.readAllStandardOutput()).split(' ', Qt::SkipEmptyParts))
+        family.insert(p.toInt());
+    QHash<int, int> parent;
+    for (const QString &p : QDir("/proc").entryList(QDir::Dirs | QDir::NoDotAndDotDot)) {
+        QFile stat("/proc/" + p + "/stat");
+        if (p.toInt() > 0 && stat.open(QIODevice::ReadOnly)) {
+            const QByteArray s = stat.readAll();   // pid (comm) state ppid ...: comm may hold spaces and parentheses
+            const QList<QByteArray> f = s.mid(s.lastIndexOf(')') + 2).split(' ');
+            if (f.size() > 1)
+                parent[p.toInt()] = f[1].toInt();
+        }
+    }
+    for (bool grew = true; grew;) {
+        grew = false;
+        for (auto it = parent.cbegin(); it != parent.cend(); ++it)
+            if (family.contains(it.value()) && !family.contains(it.key())) {
+                family.insert(it.key());
+                grew = true;
+            }
+    }
+    family.remove(getpid());
+    family.remove(0);
+    for (int pid : std::as_const(family))
+        if (::kill(pid, SIGSTOP) == 0)
+            m_frozen << pid;
+    QFile marker(path(MENU_FROZEN));
+    if (!m_frozen.isEmpty() && marker.open(QIODevice::WriteOnly))
+        marker.write(names.join(' ').toUtf8() + "\n");
+    qInfo("froze %lld processes of %s", qlonglong(m_frozen.size()), qPrintable(names.join(' ')));
 }
 
 QStringList Backend::runningGame() const

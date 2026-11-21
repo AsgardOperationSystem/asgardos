@@ -42,6 +42,7 @@ MENU_FIFO = "/run/asgard-home.cmd"
 FPS_FILE = "/run/thor-fps"         # the game's FPS just before the panel froze it; thor_panel.py shows it meanwhile
 OSK_PID = "/run/asgard-osk.pid"     # start_firefox.sh: its touch keyboard (wvkbd) on the bottom screen
 BACKGROUND = "/run/asgard-bg.json"   # asgard-background.py: a game is frozen behind Asgard Home ("Back to Home")
+MENU_FROZEN = "/run/asgard-frozen"   # Asgard Home's in-game menu froze the game: it continues it when the menu closes
 
 
 def find_device(want):
@@ -97,7 +98,8 @@ def freeze_game(stop, env=None):
             os.remove(FPS_FILE)
         except OSError:
             pass
-    if not names or "steam" in running_game() or os.path.exists(BACKGROUND):  # a background game stays frozen
+    # a game frozen behind Home, or by its in-game menu, stays frozen: Home continues it
+    if not names or "steam" in running_game() or os.path.exists(BACKGROUND) or os.path.exists(MENU_FROZEN):
         return False
     if stop and env:
         save_fps(env)

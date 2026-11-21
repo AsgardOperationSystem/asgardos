@@ -92,7 +92,7 @@ A game behaves the same whichever emulator runs it: the same launch, quit, crash
 Controls the running game without leaving it, with the same button in every emulator, so nobody has to learn each emulator's hotkeys. The AYN button's panel (section 5) controls the device instead.
 
 - **MENU-1** Home tapped alone opens the in-game menu on the bottom screen. Held with other buttons, it stays the hotkey modifier.
-- **GAME-5** Every game gets Resume and Quit game, and a game with kill data also gets Back to Home and Quit and save log. The game pauses while the menu is open if the emulator can pause.
+- **GAME-5** Every game gets Resume and Quit game, and a game with kill data also gets Back to Home and Quit and save log. The game pauses while the menu is open: by the emulator's own pause where Home drives one (RetroArch, Azahar, Eden), otherwise frozen with everything it started, Steam and PC games too. Closing the menu continues it, before any key the menu sends it.
 - **MENU-2** These get their own items too: RetroArch (its menu, quick save and load, screenshot, restart), Azahar (quick save and load, screen controls, screenshot, restart), Eden (docked mode, speed limit, overlay, screenshot, restart), Steam (overlay, Quick Access) and Wind Waker HD (its settings).
 - **MENU-3** PPSSPP, ARMSX2, AetherSX2 and Flycast open their own menus instead.
 - **MENU-4** Rarer and riskier actions sit in sub-grids, so a menu fits the bottom screen's 5 rows.
@@ -402,7 +402,7 @@ mednafen and ares-sa also cover many older systems, as alternatives to RetroArch
 
 | System | Packages |
 |---|---|
-| Steam | **steam**: the ARM64 client, with x86 games through FEX and Proton. Pad settings survive reboots. Home can't pause Steam or PC games. |
+| Steam | **steam**: the ARM64 client, with x86 games through FEX and Proton. Pad settings survive reboots. The in-game menu freezes Steam and its game while it's open (GAME-5). |
 | Heroic | **heroic** |
 | Windows | **wine**, with box64 |
 | Ports | **portmaster** |

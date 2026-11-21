@@ -87,6 +87,7 @@ private:
     void topScreenOn();
     void command(const QString &cmd);
     bool togglePause();                 // the running game's own pause, if we know it; false otherwise
+    void freezeGame(bool stop);         // SIGSTOP / SIGCONT the game and its children: the menu's pause for the rest
     void run(const QString &script, const QStringList &args, const QProcessEnvironment &env);
     QString setting(const QString &sys, const QString &file, const QString &key, const QString &fallback) const;
     QString path(const QString &p) const { return m_root + p; }
@@ -108,6 +109,7 @@ private:
     qint64 m_framesAt = 0;            // ms, 0 = no sample yet
     int m_fps = -1;
     bool m_sleepPaused = false;   // we paused the game for a sleep ("sleep"), to unpause on "wake"
+    QList<int> m_frozen;          // the processes the in-game menu froze (freezeGame), continued when it closes
     int m_keys = -1;   // uinput keyboard for emulator hotkeys
     int m_cmd = -1;    // /run/asgard-home.cmd: commands from thor-ayn-button ("menu"), the sleep hook ("sleep", "wake")
 };

@@ -58,6 +58,7 @@ btn.frontend_env = lambda: {"WAYLAND_DISPLAY": "x"}
 btn.running_game = lambda: game
 btn.park = btn.unpark = btn.osk = btn.save_fps = lambda *_: None
 btn.BACKGROUND = f"{tmp}/no-background"
+btn.MENU_FROZEN = f"{tmp}/no-menu-frozen"
 btn.FPS_FILE = f"{tmp}/fps"
 btn.guide_tap = lambda keyboard: taps.append(time.monotonic())
 btn.subprocess.Popen = FakePanel
@@ -124,15 +125,17 @@ send(AYN, EV_KEY, btn.KEY_F24, 1)
 wait_for(lambda: len(panels) == 2 and "killall -STOP azahar" in ran, "the panel didn't reopen")
 panels[1].done = True
 wait_for(lambda: "killall -CONT azahar" in ran, "closing by itself didn't continue the game")
-# Nothing running, nothing to freeze; Steam isn't frozen; a game already frozen behind Home stays frozen
-for names, background in (([], False), (["steam"], False), (["azahar"], True)):
+# Nothing running, nothing to freeze; Steam isn't frozen; a game already frozen behind Home, or by Home's in-game menu
+# (GAME-5), stays frozen
+for names, marker in (([], None), (["steam"], None), (["azahar"], btn.BACKGROUND), (["melonDS"], btn.MENU_FROZEN)):
     ran.clear()
     game[:] = names
-    if background:
-        open(btn.BACKGROUND, "w").close()
+    if marker:
+        open(marker, "w").close()
     assert real_freeze(True) is False and real_freeze(False) is False and not ran, names
+    if marker:
+        os.remove(marker)
 game[:] = ["azahar"]
-os.remove(btn.BACKGROUND)
 
 # MENU-3: their own menus, by their own keys, and never Home's menu; everything else gets Home's
 pressed, opened = [], []

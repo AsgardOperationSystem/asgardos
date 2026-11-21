@@ -1,9 +1,10 @@
 import QtQuick
 
 // In-game menu on the bottom screen (Home tapped while a game runs; backend.gameMenu). The game is paused while it
-// is open. Azahar and Eden get their hotkeys (quick save/load, screens, docked mode...), RetroArch its network
-// commands and its own menu (on the top screen, in its window), Steam its overlay and Quick Access (not paused: Steam
-// has no pause); others get Resume and Quit.
+// is open: Azahar, Eden and RetroArch by their own pause, everything else (Steam too) frozen by Backend, which continues
+// it as the menu closes (gameMenu = false), before any key or chord below reaches it. Azahar and Eden get their hotkeys
+// (quick save/load, screens, docked mode...), RetroArch its network commands and its own menu (on the top screen, in
+// its window), Steam its overlay and Quick Access; others get Resume and Quit.
 Item {
     id: menu
     property bool open: backend.gameMenu

@@ -1,4 +1,4 @@
-# spec: GAME-1 GAME-2 GAME-4 GAME-6 GAME-7 GAME-10 MENU-6 OVR-3 PORT-2
+# spec: GAME-1 GAME-2 GAME-4 GAME-5 GAME-6 GAME-7 GAME-10 MENU-6 OVR-3 PORT-2
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """The fake emulator (docs/testing.md, TEST-8): Asgard Home offscreen starting a script that follows the launcher contract and
 exits with any code, crashes or hangs. Home's half of each rule: GAME-1 the command line and what it does for .desktop apps;
@@ -186,6 +186,28 @@ assert udp_toggles(OPEN_GAME, 1500, 'cmd menu; sleep 0.3; cmd sleep; sleep 0.3; 
 assert udp_toggles(f"{OPEN_GAME} {WAIT} down down down down a a", 800,
                    'cmd menu; until grep -q asgard-background "$FAKE_DIR/trace"; do sleep 0.1; done; cmd sleep; sleep 0.2; cmd wake; hang',
                    "retroarch") == 2
+
+# GAME-5: an emulator with no pause Home can drive is frozen while the menu is open, its children too (Steam's games are),
+# and continues when the menu closes (Resume, its first tile). The launcher itself isn't part of the game: it isn't frozen.
+FROZEN = r"""cp /bin/sh "$FAKE_DIR/bin/frozen-emu"
+"$FAKE_DIR/bin/frozen-emu" -c 'sleep 30 & echo $! >"$FAKE_DIR/child"; wait' & echo $! >"$FAKE_DIR/parent"
+states() { for p in $(cat "$FAKE_DIR/parent" "$FAKE_DIR/child"); do awk '{printf "%s ", $3}' /proc/$p/stat; done; echo; }
+sleep 0.3; cmd menu; sleep 1; states >"$FAKE_DIR/open"; sleep 2.2; states >"$FAKE_DIR/closed"; hang"""
+with Root() as r:
+    r.library()
+    fake = Rig(r, behaviour=FROZEN, kill="frozen-emu")
+    res = fake.run(f"{OPEN_GAME} {WAIT} a", ms=1800)
+    pids = [int(open(f"{fake.dir}/{n}").read()) for n in ("parent", "child")]
+    for p in pids:
+        try:
+            os.kill(p, 18)   # SIGCONT, then gone, whatever the test found
+            os.kill(p, 9)
+        except ProcessLookupError:
+            pass
+    opened, closed = (open(f"{fake.dir}/{n}").read().split() for n in ("open", "closed"))
+    assert opened == ["T", "T"], (opened, res.log[-800:])
+    assert "T" not in closed and len(closed) == 2, (closed, res.log[-800:])
+    assert not r.exists("run/asgard-frozen"), "the marker outlived the menu"
 
 # GAME-1, PORT-2: a .desktop app skips the launcher, runs its own Exec= with its output in exec.log, gets play time, and is
 # named for Quit by X-Asgard-Kill=, else by the command's own name.

@@ -110,10 +110,13 @@ sends("azahar", "Resume", ["key", "F4"])
 sends("eden", "Resume", ["key", "F4"])
 sends("eden-duo-cli", "Resume", ["key", "F4"])                              # Eden Duo: its kill-data name isn't "eden"
 sends("retroarch", "Resume", ["ra", "PAUSE_TOGGLE"])
-assert not [s for s in tile("melonds", "Resume")["sent"] if s[0] != "menu"]   # no pause of its own: nothing to undo
+assert not [s for s in tile("melonds", "Resume")["sent"] if s[0] != "menu"]   # frozen: closing the menu continues it
 
 backend = open(os.path.join(HERE, "../../asgard-home/src/backend.cpp")).read()
-assert re.search(r'cmd == "menu" && playing\(\).*?togglePause\(\);\s*if \(open\)\s*setGameMenu\(true\)', backend, re.S)
+# GAME-5: the emulator's own pause, else frozen; closing the menu continues a frozen game first (test_fake_emulator.py runs it)
+assert re.search(r'cmd == "menu" && playing\(\).*?if \(!togglePause\(\) && open\)\s*freezeGame\(true\);\s*if \(open\)\s*setGameMenu\(true\)',
+                 backend, re.S)
+assert re.search(r'void Backend::setGameMenu\(bool on\)\n\{.*?if \(!on\)\s*freezeGame\(false\);.*?m_gameMenu = on;', backend, re.S)
 pause = re.search(r"bool Backend::togglePause\(\)\n\{.*?\n\}", backend, re.S).group(0)
 assert re.search(r'"azahar".*"eden".*"eden-duo-cli".*gameKeys\("F4"\)', pause, re.S) and 'retroarch("PAUSE_TOGGLE")' in pause
 
