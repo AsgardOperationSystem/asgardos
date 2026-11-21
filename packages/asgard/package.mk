@@ -5,7 +5,7 @@ PKG_NAME="asgard"
 PKG_VERSION="1"
 PKG_LICENSE="GPL-2.0"
 PKG_SITE="https://github.com/AsgardOperationSystem/asgardos"
-PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc asgardos-splash turnip-extra asgard-cheats-db switch-cheats-db ps2-cheats-db"
+PKG_DEPENDS_TARGET="toolchain wayland Python3 SDL2 SDL2_ttf SDL2_image asgard-home firefox moonlight-qt hexagonrpc asgardos-splash turnip-extra asgard-cheats-db switch-cheats-db ps2-cheats-db libretro-database"
 PKG_LONGDESC="Asgard OS layer for the AYN Thor"
 PKG_TOOLCHAIN="manual"
 
@@ -24,6 +24,11 @@ makeinstall_target() {
   # Host tests (./test.sh) don't ship.
   rm -f ${INSTALL}/usr/share/asgard/test_*
   chmod 0755 ${INSTALL}/usr/share/asgard/*.sh ${INSTALL}/usr/share/asgard/*.py
+
+  # The scraper's game index (SCRAPE-1): names, CRCs and details from libretro-database's dats, which the image doesn't
+  # ship (about 600 MB); the index is about 13 MB.
+  ${TOOLCHAIN}/bin/python3 ${PKG_DIR}/sources/asgard-scrape.py --index $(get_build_dir libretro-database) \
+    ${INSTALL}/usr/share/asgard/scrape-index
 
   # ROCKNIX's emulator option catalogue (Thor Settings → Game/System Options), without installing ROCKNIX ES.
   cp $(get_pkg_directory emulationstation)/config/common/es_features.cfg ${INSTALL}/usr/share/asgard/

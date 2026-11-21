@@ -101,7 +101,7 @@ QtObject {
         backend.setSetting("asgard.order", order.join(","))
     }
 
-    // asgard-scrape.py: cover + screenshot (libretro; ScreenScraper once a developer ID is set) into ES-DE's media.
+    // asgard-scrape.py: cover, screenshot and details (libretro; ScreenScraper once a developer ID is set), ES-DE's layout.
     function scrape() {
         const g = current && current.game, m = bottom.gameActionsPanel
         if (!g) return
@@ -110,7 +110,8 @@ QtObject {
         backend.exec("python3 /usr/share/asgard/asgard-scrape.py " + [g.sys, g.path, g.stem].map(q).join(" "), out => {
             let r
             try { r = JSON.parse(out) } catch (e) { r = { error: "The scraper failed" } }
-            m.status = r.error || "Got the " + r.media.join(" and ") + " from " + r.source + (r.matched ? " (" + r.matched + ")" : "")
+            const got = (r.media || []).concat(r.details && r.details.length ? ["details"] : [])
+            m.status = r.error || "Got the " + got.join(" and ") + " from " + r.source + (r.matched ? " (" + r.matched + ")" : "")
             if (!r.error) backend.rescan()
         })
     }
