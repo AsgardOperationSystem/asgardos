@@ -140,6 +140,7 @@ are what's defined to come from outside: `asgard.yml`, WireGuard `.conf` files a
 - **SET-6** About shows the Asgard version (the release number, major.minor.patch, from `OS_VERSION` in `distribution/version`), build and date, the Linux kernel's version, and a page with each shipped emulator's version. The image step writes that list (`scripts/emulator-versions`) from each installed package's `PKG_VERSION` (EMU-6), a tag in its trailing comment before a bare commit; no emulator binary is run to read it.
 - **NET-1** Wi-Fi scan and join with the on-screen keyboard; Bluetooth pairing and forgetting, and a connected device's battery when it reports one and its audio codec while it plays, which can be switched to another the device offers; USB mode; and SSH, Samba and Syncthing.
 - **NET-2** VPN offers Tailscale (sign-in link on screen), ZeroTier (join by network ID) and WireGuard (`.conf` files).
+- **NET-3** A WireGuard tunnel that doesn't carry all traffic doesn't take all DNS: its DNS server is asked beside the network's, so the Thor still resolves names, the tunnel's own endpoint among them, while the tunnel is down or not yet connected.
 
 ### Personal configuration: asgard.yml
 

@@ -1,4 +1,4 @@
-# spec: SET-1 SET-6 SET-3 SET-4 SET-5 NET-1 NET-2 LOOK-2 LOOK-3 OLED-2 SND-4
+# spec: SET-1 SET-6 SET-3 SET-4 SET-5 NET-1 NET-2 NET-3 LOOK-2 LOOK-3 OLED-2 SND-4
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_home_settings.py  (no Thor): Settings on the host, offscreen, driven by pad presses. On a host commands
 are logged, not run, and a QML copy answers backend.exec with canned output, so this checks what is offered and what it
@@ -11,6 +11,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -258,6 +259,23 @@ with Root() as r:
     assert page.shows("home") and page.shows("office") and page.shows("/storage/.config/wireguard")
     imported = press(r, keys(network, row(9), "a"), wireguard)
     assert "nmcli connection import type wireguard file '/storage/.config/wireguard/home.conf'" in imported.log
+    # NET-3: the command it ran, run here against a fake nmcli: a split tunnel loses the catch-all DNS, a full one keeps it
+    cmd = re.search(r"exec: (\(set --.*\) 2>&1)", imported.log).group(1)
+    for allowed, split in (("192.168.50.0/24, 192.168.49.0/24", True), ("0.0.0.0/0, ::/0", False), ("10.0.0.0/8,::/0", False)):
+        d = f"{r.path}/net3"
+        shutil.rmtree(d, ignore_errors=True)
+        os.makedirs(f"{d}/bin")
+        r.write("net3/home.conf", f"[Interface]\nDNS = 10.0.0.1\n[Peer]\nEndpoint = vpn.example:51820\nAllowedIPs = {allowed}\n")
+        r.write("net3/bin/nmcli", 'for a in "$@"; do printf "<%s>" "$a"; done >> "$NMLOG"; echo >> "$NMLOG"\n')
+        os.chmod(f"{d}/bin/nmcli", 0o755)
+        subprocess.run(["sh", "-c", cmd.replace("/storage/.config/wireguard", d)], check=True, capture_output=True,
+                       env={"PATH": f"{d}/bin:/usr/bin:/bin", "NMLOG": f"{d}/log"})
+        calls = open(f"{d}/log").read().splitlines()
+        assert calls[0].startswith("<connection><import>") and calls[-1] == "<connection><up><home>", calls
+        modify = calls[1]
+        assert modify.startswith("<connection><modify><home><connection.autoconnect><yes>"), calls
+        assert ("<ipv4.dns-search><><ipv6.dns-search><><ipv4.never-default><yes><ipv6.never-default><yes>" in modify) == split, \
+            (allowed, modify)
 
 # ---- SET-5: Storage, from df (the Thor's own answer, 2026-11-08): internal, SD card, games folder, system; no card
 DF = "df -PkT"

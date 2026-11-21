@@ -472,6 +472,16 @@ Item {
             return r
         })
     }
+    // NET-3: NetworkManager makes an imported tunnel the DNS default route (a .conf with DNS = also gets the catch-all
+    // routing domain ~.), taking it from the Wi-Fi: every lookup goes through the tunnel. A tunnel whose Endpoint is a
+    // hostname, up at boot before it resolved it, then sends that lookup into itself and every lookup on the Thor fails
+    // (seen 2026-11-21). A split tunnel (no 0.0.0.0/0 or ::/0 in AllowedIPs) gets neither: never-default and no
+    // catch-all, which on a Thor left the Wi-Fi the DNS default and lookups working with the tunnel dead. Sets "$@"
+    // for the modify that follows.
+    function wgSplitDns(n) {
+        return "set --; f=" + q(wgDir + "/" + n + ".conf") + "; [ -f \"$f\" ] && ! grep -qiE " +
+               "'^[[:space:]]*AllowedIPs[[:space:]]*=.*(0[.]0[.]0[.]0/0|::/0)' \"$f\" && set -- ipv4.dns-search '' ipv6.dns-search '' ipv4.never-default yes ipv6.never-default yes; "
+    }
     function wireguardPage() {
         const w = live.wg
         if (!w) return [[info("refresh", "Loading…", "")]]
@@ -482,8 +492,8 @@ Item {
             return { kind: "toggle", icon: "shield", title: n, on: up,
                      sub: up ? "Connected" + (w.ips[n] ? "  ·  " + w.ips[n] : "") : n in w.conns ? "Off" : "Off  ·  not imported yet",
                      activate: () => run(up ? "nmcli connection modify " + q(n) + " connection.autoconnect no; nmcli connection down " + q(n)
-                                            : (n in w.conns ? "" : "nmcli connection import type wireguard file " + q(wgDir + "/" + n + ".conf") + " && ") +
-                                              "nmcli connection modify " + q(n) + " connection.autoconnect yes && nmcli connection up " + q(n)) }
+                                            : wgSplitDns(n) + (n in w.conns ? "" : "nmcli connection import type wireguard file " + q(wgDir + "/" + n + ".conf") + " && ") +
+                                              "nmcli connection modify " + q(n) + " connection.autoconnect yes \"$@\" && nmcli connection up " + q(n)) }
         })
         const rows = [tunnels.length ? tunnels : [info("info", "No tunnels yet", "Add a WireGuard .conf file first (below)")]]
         if (live.wgMsg) rows[0].push(info("info", "Could not connect", live.wgMsg))
