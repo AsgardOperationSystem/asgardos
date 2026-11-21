@@ -35,6 +35,9 @@ CONVERTED = {
         '"engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
         'player_8_motionright="engine:cemuhookudp,guid:0000000000000000000000007f000001,port:26760,pad:0,motion:0"\n'
         'player_0_motionleft="engine:sdl,motion:0"\n'),
+    ".config/flycast/mappings/SDL_Sony Interactive Entertainment DualSense Wireless Controller.cfg": (
+        "[combo]\nbind0 = 10,2:btn_menu:0\n[digital]\nbind0 = 0:btn_a\nbind1 = 1:btn_b\nbind2 = 2:btn_d\n",
+        "[combo]\nbind0 = 10,2:btn_menu:0\n[digital]\nbind0 = 0:btn_b\nbind1 = 1:btn_a\nbind2 = 2:btn_d\n"),
     ".config/dolphin-emu/WiiControllerProfiles/classic.ini": (
         "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button S`\nClassic/Buttons/B = `Button E`\nClassic/Buttons/X = `Button E`\n",
         "[Wiimote1]\nIMU = x\nClassic/Buttons/A = `Button E`\nClassic/Buttons/B = `Button S`\nClassic/Buttons/X = `Button E`\n"),

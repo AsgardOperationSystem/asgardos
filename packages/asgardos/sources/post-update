@@ -175,6 +175,16 @@ for c in A:S:E B:E:S X:W:N Y:N:W; do
     "\`Button ${new}\`"
 done
 
+# Flycast put the Dreamcast's A on the Thor's B and Y on X: now the printed letters (GAME-11). Only the [digital] binds
+# hold these values, so the other sections' bindN keys are left alone.
+for pad in "DualSense Wireless Controller" "DualSense Edge Wireless Controller"; do
+  for c in bind0:0:btn_a:btn_b bind1:1:btn_b:btn_a bind2:2:btn_y:btn_x bind3:3:btn_x:btn_y; do
+    IFS=: read -r key button old new <<<"${c}"
+    convert_value "/storage/.config/flycast/mappings/SDL_Sony Interactive Entertainment ${pad}.cfg" "${key}" \
+      "${button}:${old}" "${button}:${new}"
+  done
+done
+
 # Dolphin's Wii remote had no motion bound: the shipped profiles gained IMU lines on asgard-motiond's DSU server. An
 # install's copies of them (not custom.ini, the user's own) get the lines the image's copy has, if they have none.
 for profile in classic hremote nunchuck vremote; do

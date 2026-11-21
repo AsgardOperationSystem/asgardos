@@ -96,6 +96,9 @@ def flycast():
     for action in ("btn_menu", "btn_jump_state", "btn_quick_save", "btn_escape", "btn_fforward"):
         if not any(v.startswith(f"{HOME},") and f":{action}:" in v for v in combos):
             failures.append(f"Flycast: no Home combo for {action}")
+    digital = {v.split(":")[1]: int(v.split(":")[0]) for v in section(read(*FLYCAST_PAD), "digital").values()}
+    for button, want in (("btn_a", THOR_A), ("btn_b", THOR_B), ("btn_x", THOR_X), ("btn_y", THOR_Y)):
+        expect(f"Flycast Dreamcast {button[4:].upper()}", digital.get(button), want)
     launcher = read("flycast-sa", "scripts", "start_flycast.sh")
     if re.search(r"^[^#]*(GPTOKEYB|gptokeyb)", launcher, re.M):
         failures.append("Flycast: start_flycast.sh runs gptokeyb beside the pad file's own Home combos")

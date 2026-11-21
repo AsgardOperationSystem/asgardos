@@ -19,7 +19,7 @@ in a game.
 | Switch | Eden 0.2.1 | Eden Duo 1.3.2.2 | ✅ | Full | Docked toggle, speed, overlay, GPU options. Tested: TWEWY, Legends Arceus, Legends Z-A, Violet. `.nsz` unsupported. Eden Duo: live companion windows on the bottom screen; its pause under the in-game menu (F4, patch 0005) is built and host-tested, not checked on a Thor yet. Gyro from the game's Gyro override (DSU), in Eden and Eden Duo 🧪. Eden's thread priorities (GPU, CPU cores, audio) now take effect on Linux 🧪. A game's controller screen counts the handheld pad as one player, and with only that pad Eden's dialog for it doesn't show, so Echoes of Wisdom no longer asks forever, waits on a greyed-out OK or crashes 🧪. |
 | PlayStation 2 | ARMSX2 2.8.4 | AetherSX2 | ✅ | Its own | |
 | PSP | PPSSPP | RetroArch (PPSSPP) | 🧪 | Its own | |
-| Dreamcast | Flycast | RetroArch (Flycast) | 🧪 | Its own | |
+| Dreamcast | Flycast | RetroArch (Flycast) | 🧪 | Its own | Dreamcast A on the Thor's A (printed letters) 🧪. |
 | **Steam** | Steam (ARM64 client) | | ✅ | Full | x86 games through FEX + Proton, in a window on the top screen. Pad settings survive reboots; covers and store details fetched. Tested: Baba Is You, Hollow Knight, Undertale. Can't be paused. |
 | **PC** (`.desktop` apps) | | | 🧪 | Resume / Quit | Steam plus native apps. |
 | Gen1 Recomp | | | ⚠️ | Resume / Quit | Pokémon Red/Blue/Yellow (LÖVE). No input on native Wayland; runs under XWayland. |
