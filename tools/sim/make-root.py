@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import time
+import xml.etree.ElementTree as ET
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 PKG = f"{REPO}/build/AsgardOS-SM8550.aarch64/install_pkg"
@@ -153,16 +154,22 @@ def answers():
 
 
 def art(root, games):
-    """Covers, screenshots and details from libretro, by name, for games that have no cover yet."""
+    """Covers, screenshots and details from libretro, by name, for games without a cover or a name yet."""
     spec = importlib.util.spec_from_file_location("asgard_scrape", f"{REPO}/packages/asgard/sources/asgard-scrape.py")
     scrape = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(scrape)
     scrape.ROOT, scrape.CFG = f"{root}/{KEEP}", f"{root}/{CFG}"
     scrape.INDEX = built("asgard-*/usr/share/asgard/scrape-index")
+    named = set()   # (system, "./file") with a <name> already: scraped before
+    for gamelist in glob.glob(f"{scrape.ROOT}/gamelists/*/gamelist.xml"):
+        system = os.path.basename(os.path.dirname(gamelist))
+        for game in ET.parse(gamelist).getroot().findall("game"):
+            if (game.findtext("name") or "").strip():
+                named.add((system, game.findtext("path")))
     for system, name in games:
         stem = os.path.splitext(name)[0]
         media = f"{scrape.ROOT}/downloaded_media/{system}"
-        if glob.glob(f"{media}/covers/{glob.escape(stem)}.*"):
+        if glob.glob(f"{media}/covers/{glob.escape(stem)}.*") and (system, "./" + name) in named:
             continue
         try:
             r = scrape.libretro(system, f"{root}/storage/roms/{system}/{name}", stem, media)
