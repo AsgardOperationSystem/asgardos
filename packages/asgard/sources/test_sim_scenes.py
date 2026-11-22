@@ -34,6 +34,10 @@ with tempfile.TemporaryDirectory() as tmp:
     assert not any(host in t for t in shown.texts), host
     assert shown.shows("●  Thor") and shown.shows("AYN Thor  ·  SM8550"), shown.texts
 
+    # A game in play: the launcher Home started asked for the menu as RetroArch, whose pause stays off the network
+    missing, shown = shots.shoot("ingame")
+    assert not missing and "sim retroarch: PAUSE_TOGGLE" in shown.log, shown.log
+
     # Drawn on the GPU path (Vulkan on lavapipe) where there's one: the software renderer leaves every tile empty
     if os.path.exists(shots.LAVAPIPE):
         missing, shown = shots.shoot("home", extra={"QSG_INFO": "1"})

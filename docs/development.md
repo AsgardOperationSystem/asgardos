@@ -93,8 +93,13 @@ Qt Quick on the image's Qt 6, two windows: top 1920×1080 (grid, dock) and botto
   scenes: Home, a game list and card, Trophies, Settings' pages, Files, the Thor Panel). Home runs with `ASGARD_SIM`:
   it runs no command, `exec` answers from the root's `sim/exec.json` (Wi-Fi, Bluetooth, battery report, storage...),
   the name, version and free space are the root's, and `tools/sim/fake_panel.py` stands in for `thor_panel.py`.
-  Each scene must show a text, so `test_sim_scenes.py` runs them all. Not simulated yet: a running game and the
-  in-game menu. It draws on Vulkan through lavapipe (Mesa's CPU driver, `mesa-vulkan-drivers`) with the
+  Each scene must show a text, so `test_sim_scenes.py` runs them all. The `ingame` scene starts a game through
+  `tools/sim/runemu.sh` (Home's `ASGARD_RUNEMU`), which plays it headless in a real libretro core
+  (`tools/sim/build-core.sh snes9x` builds the image's pinned one for this machine into `build/sim/cores`) with
+  `tools/sim/libretro_frame.py`, writes the last frame as `ingame-Game.png` (the top screen, 4:3 on black) and asks
+  Home for its in-game menu as RetroArch. The game is a row of your list with two more columns: a real ROM to copy
+  (it stays in `build/`) and `<frames> button@first-last ...` to play; without one the scraped screenshot stands in.
+  It draws on Vulkan through lavapipe (Mesa's CPU driver, `mesa-vulkan-drivers`) with the
   toolchain Qt's `vkkhrdisplay` platform, input off, and the image's fonts: that Qt has no OpenGL, and its software
   renderer draws no `MultiEffect`, so every rounded tile, the glow and the blurred backdrop come out empty. Without
   lavapipe it falls back to software and says so.

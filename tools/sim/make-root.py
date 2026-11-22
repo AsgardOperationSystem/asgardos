@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Builds the simulated Thor's /storage and /usr for Asgard Home on the host (ASGARD_ROOT), so its screens can be
 rendered without a Thor. Nothing comes from a real device: the games are empty stubs, named in library.local.tsv
-(git-ignored, as it says what is in a library; ASGARD_SIM_LIBRARY names another) or placeholders without one; the
+(git-ignored, as it says what is in a library; ASGARD_SIM_LIBRARY names another) or placeholders without one, but
+for a real ROM the list may name to copy and play (see real_roms); the
 settings carry no account, network or password; the system files are the build's own.
     python3 -I tools/sim/make-root.py [--art] [--out DIR]
 DIR defaults to build/sim/root (DEV-11). The image must be built: the systems list, the theme's console art and Home's
@@ -49,9 +50,24 @@ def library(path=None):
     with open(path, encoding="utf-8") as f:
         for line in f:
             if line.strip() and not line.startswith("#"):
-                system, name = line.rstrip("\n").split("\t")
+                system, name = line.rstrip("\n").split("\t")[:2]
                 games.append((system, name))
     return games
+
+
+def real_roms(path=None):
+    """{(system, file name): (ROM to copy, play script)} from the list's optional third and fourth columns: a real ROM
+    copied in place of the stub (it stays in this machine's build/), and "<frames> button@first-last ..." for
+    tools/sim/runemu.sh, which plays it that far for the top screen of an in-game screenshot."""
+    path = path or os.environ.get("ASGARD_SIM_LIBRARY", LOCAL)
+    out = {}
+    if os.path.exists(path):
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                cols = line.rstrip("\n").split("\t")
+                if not line.startswith("#") and len(cols) >= 3 and cols[2]:
+                    out[(cols[0], cols[1])] = (cols[2], cols[3] if len(cols) > 3 else "600")
+    return out
 
 
 def played(games):
@@ -91,8 +107,14 @@ def build(root, games):
     os.symlink(built("es-theme-art-book-next-*/usr/share/themes"), f"{root}/usr/share/themes")
     os.symlink(built("asgard-home-*/usr/share/asgard-home/media"), f"{root}/usr/share/asgard-home/media")
 
-    for system, name in games:   # empty stubs: Home lists a game by its file name
-        write(root, f"storage/roms/{system}/{name}")
+    real = real_roms()
+    for system, name in games:   # empty stubs: Home lists a game by its file name; real ROMs where the list names one
+        if (system, name) in real:
+            os.makedirs(f"{root}/storage/roms/{system}", exist_ok=True)
+            shutil.copy(os.path.expanduser(real[(system, name)][0]), f"{root}/storage/roms/{system}/{name}")
+        else:
+            write(root, f"storage/roms/{system}/{name}")
+    write(root, "sim/play.tsv", "".join(f"{s}\t{n}\t{play}\n" for (s, n), (_, play) in real.items()))
     write(root, CFG, "system.hostname=Thor\nwifi.enabled=1\nbluetooth.enabled=1\n")
     write(root, "sim/exec.json", answers())
     write(root, "sim/space", "285 GB free of 476 GB\n")   # Files' free space (the answers' df for /storage)
@@ -154,7 +176,7 @@ def answers():
 
 
 def art(root, games):
-    """Covers, screenshots and details from libretro, by name, for games without a cover or a name yet."""
+    """Covers, screenshots and details from libretro, by name, for games without a cover (an image) or a name yet."""
     spec = importlib.util.spec_from_file_location("asgard_scrape", f"{REPO}/packages/asgard/sources/asgard-scrape.py")
     scrape = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(scrape)
@@ -169,7 +191,9 @@ def art(root, games):
     for system, name in games:
         stem = os.path.splitext(name)[0]
         media = f"{scrape.ROOT}/downloaded_media/{system}"
-        if glob.glob(f"{media}/covers/{glob.escape(stem)}.*") and (system, "./" + name) in named:
+        covers = glob.glob(f"{media}/covers/{glob.escape(stem)}.*")
+        real = covers and open(covers[0], "rb").read(4) in (b"\x89PNG", b"\xff\xd8\xff\xe0", b"\xff\xd8\xff\xe1")
+        if real and (system, "./" + name) in named:   # an image, not a saved libretro link, and a name: done
             continue
         try:
             r = scrape.libretro(system, f"{root}/storage/roms/{system}/{name}", stem, media)

@@ -749,6 +749,10 @@ void Backend::resumeGame()
 // MENU_TOGGLE, SAVE_STATE, LOAD_STATE, SCREENSHOT, RESET. ASGARD_RA_PORT: another port, for a test's own listener.
 void Backend::retroarch(const QString &cmd)
 {
+    if (m_sim) {   // a RetroArch on the desktop would take it
+        qInfo("sim retroarch: %s", qPrintable(cmd));
+        return;
+    }
     const int s = ::socket(AF_INET, SOCK_DGRAM, 0);
     if (s < 0)
         return;
