@@ -91,6 +91,12 @@ def title(name):
     return re.sub(r"^\d+\s*-\s*", "", re.sub(r"\([^)]*\)|\[[^]]*\]", "", name).strip())   # "0171 - Golden Sun"
 
 
+def display_title(name):
+    """The title Home shows for a libretro name: 'Legend of Zelda, The - A Link Between Worlds (USA) (En,Fr,Es)' ->
+    'The Legend of Zelda - A Link Between Worlds'. Without it Home showed the ROM's file name, tags and all."""
+    return re.sub(r"^(.+?), The(?= - |$)", r"The \1", title(name))
+
+
 def base(name):
     """Title without tags or punctuation: 'Legend of Zelda, The - A Link to the Past (U) [!]' -> 'legendofzeldathealinktothepast'."""
     name = title(name).lower()
@@ -263,7 +269,7 @@ def thumb_url(playlist, folder, name):
 
 def details(r):
     month = r.get("month", "").zfill(2) if r.get("month", "").isdigit() else "01"
-    return {"developer": r.get("developer", ""), "publisher": r.get("publisher", ""), "genre": r.get("genre", ""),
+    return {"name": display_title(r.get("name", "")), "developer": r.get("developer", ""), "publisher": r.get("publisher", ""), "genre": r.get("genre", ""),
             "players": r.get("players", ""), "desc": r.get("desc", ""),
             "releasedate": f"{r['year']}{month}01T000000" if r.get("year", "").isdigit() else ""}
 

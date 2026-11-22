@@ -91,13 +91,14 @@ with tempfile.TemporaryDirectory() as d:
     sc.gamelist("gb", "my tetris.gb", {"desc": "mine", "developer": "Me"})               # what the user wrote
     r = sc.main(["x", "gb", rom, "my tetris"])
     assert r == {"source": "libretro", "matched": "Tetris (World) (Rev 1)", "by": "checksum",
-                 "media": ["covers", "screenshots"], "details": ["developer", "genre", "releasedate"]}, r
+                 "media": ["covers", "screenshots"], "details": ["developer", "genre", "name", "releasedate"]}, r
     media = f"{sc.ROOT}/downloaded_media/gb"
     assert b"Japan" in open(f"{media}/covers/my tetris.png", "rb").read()
     assert b"Named_Snaps/Tetris%20%28World%29" in open(f"{media}/screenshots/my tetris.png", "rb").read()
     x = open(f"{sc.ROOT}/gamelists/gb/gamelist.xml").read()
     assert x.count("<game>") == 1 and "<desc>mine</desc>" in x and "<developer>Me</developer>" in x, x   # kept
     assert "<genre>Puzzle</genre>" in x                                                 # filled
+    assert "<name>Tetris</name>" in x   # the title, without tags: Home showed "my tetris" (the file) until 2026-11-22
     assert "<releasedate>19890101T000000</releasedate>" in x
 
     # no internet: said so, not "no match"
@@ -166,6 +167,11 @@ with tempfile.TemporaryDirectory() as d:
 
 with tempfile.TemporaryDirectory() as d:
     sc.ROOT = d
+    # the title libretro's name gives, for Home: tags and release numbers off, a trailing article in front
+    assert sc.display_title("Legend of Sample, The - A Test Quest (USA) (En,Fr,Es)") == \
+        "The Legend of Sample - A Test Quest"
+    assert sc.display_title("Legend of Sample, The (USA)") == "The Legend of Sample"
+    assert sc.display_title("Sample Game - Blue Version (USA, Europe) (Rev 1)") == "Sample Game - Blue Version"
     sc.gamelist("snes", "Zelda (U).smc", {"name": "Zelda", "desc": "A & B <c>"})
     sc.gamelist("snes", "Zelda (U).smc", {"desc": "new"})                              # update, not a second entry
     sc.gamelist("snes", "Mario.smc", {"name": "Mario"})
