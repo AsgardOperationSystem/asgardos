@@ -12,7 +12,8 @@ SRC = f"{REPO}/packages/asgard-home/src"
 OUT = f"{REPO}/build/test/asgard-home"  # DEV-11: output stays under build/
 CFG = "storage/.config/system/configs/system.cfg"
 HOST_COMMANDS = ("systemctl", "reboot", "poweroff", "shutdown", "halt", "swaymsg", "ledcontrol", "rfkill", "nmcli", "iwctl",
-                 "bluetoothctl", "pw-play", "pactl", "wpctl", "suspendmode", "killall", "pkill", "kill-game")
+                 "bluetoothctl", "pw-play", "pactl", "wpctl", "suspendmode", "killall", "pkill", "kill-game",
+                 "busctl", "pidof")
 
 
 def binary():

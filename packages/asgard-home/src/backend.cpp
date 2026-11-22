@@ -41,6 +41,13 @@ static QString killDataPath() { return qEnvironmentVariable("ASGARD_KILL_DATA", 
 Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     : QObject(parent), m_root(qEnvironmentVariable("ASGARD_ROOT")), m_gameEnv(gameEnv)
 {
+    if (m_sim) {
+        QFile f(path("/sim/exec.json"));
+        if (f.open(QIODevice::ReadOnly))
+            for (const QJsonValue &v : QJsonDocument::fromJson(f.readAll()).array())
+                m_simAnswers.append({QRegularExpression(v["match"].toString()), v["out"].toString()});
+        qInfo("sim: %lld exec answers", qsizetype(m_simAnswers.size()));
+    }
     scan();
     readPlaytime();
     readStatus();
@@ -88,7 +95,8 @@ Backend::Backend(const QProcessEnvironment &gameEnv, QObject *parent)
     t->start(5000);
 }
 
-QString Backend::hostname() const { return QSysInfo::machineHostName(); }
+// Simulated: the root's name, not the desktop's (the screenshots would show it).
+QString Backend::hostname() const { return m_sim ? getSetting("system.hostname", "Thor") : QSysInfo::machineHostName(); }
 
 static QString text(QXmlStreamReader &x) { return x.readElementText(QXmlStreamReader::IncludeChildElements).trimmed(); }
 
@@ -878,7 +886,7 @@ void Backend::stickcal(bool on)
 QVariantMap Backend::osInfo() const
 {
     QVariantMap info;
-    QFile f("/etc/os-release");
+    QFile f(path("/etc/os-release"));   // the fixture's under ASGARD_ROOT (the desktop's own would show)
     if (f.open(QIODevice::ReadOnly))
         for (const QByteArray &line : f.readAll().split('\n')) {
             const int eq = line.indexOf('=');
@@ -899,7 +907,7 @@ QVariantList Backend::emulators(const QString &system) const
 // Settings actions (volume, brightness, services...): a shell command in the frontend's environment.
 void Backend::shell(const QString &command)
 {
-    if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop
+    if (m_sim || !QFile::exists("/usr/bin/runemu.sh")) {  // simulated, desktop
         qInfo("shell: %s", qPrintable(command));
         return;
     }
@@ -933,6 +941,17 @@ void Backend::exec(const QString &command, const QJSValue &done)
             cb.call({QString::fromUtf8(p->readAll())});
         p->deleteLater();
     });
+    if (m_sim) {   // a canned answer, never a command
+        QString out;
+        for (const auto &[re, answer] : m_simAnswers)
+            if (re.match(command).hasMatch()) {
+                out = answer;
+                break;
+            }
+        qInfo("sim exec: %s (%lld bytes)", qPrintable(command), qsizetype(out.size()));
+        p->start("/bin/echo", {"-n", out});
+        return;
+    }
     if (!QFile::exists("/usr/bin/runemu.sh")) {  // desktop: log it, answer with nothing
         qInfo("exec: %s", qPrintable(command));
         p->start("/bin/true");

@@ -12,6 +12,7 @@ import importlib.util
 import json
 import os
 import shutil
+import subprocess
 import sys
 import time
 
@@ -91,7 +92,11 @@ def build(root, games):
 
     for system, name in games:   # empty stubs: Home lists a game by its file name
         write(root, f"storage/roms/{system}/{name}")
-    write(root, CFG, "system.hostname=Thor\n")
+    write(root, CFG, "system.hostname=Thor\nwifi.enabled=1\nbluetooth.enabled=1\n")
+    write(root, "sim/exec.json", answers())
+    write(root, "sim/space", "285 GB free of 476 GB\n")   # Files' free space (the answers' df for /storage)
+    release = f"{REPO}/build/AsgardOS-SM8550.aarch64/image/system/etc/os-release"   # Settings > About: the build's
+    write(root, "etc/os-release", open(release).read() if os.path.exists(release) else 'OS_NAME="AsgardOS"\n')
     now = time.time()
     write(root, "storage/.config/thor/playtime.jsonl", "".join(
         json.dumps({"rom": f"/storage/roms/{s}/{n}", "sys": s, "start": now - hours * 3600, "secs": minutes * 60}) + "\n"
@@ -100,6 +105,45 @@ def build(root, games):
     write(root, "sys/class/power_supply/battery/capacity", "78\n")
     write(root, "sys/class/power_supply/battery/status", "Discharging\n")
     write(root, "sys/class/power_supply/qcom-battmgr-usb/online", "0\n")
+
+
+def answers():
+    """sim/exec.json: what each command Home asks (Settings, the in-game menu) answers on the simulated Thor, in the
+    format its parser reads. First match wins; anything else answers "". Home runs none of them (ASGARD_SIM)."""
+    now = int(time.time())
+    kernel = os.path.basename(built("linux-[0-9]*")).split("-", 1)[1]
+    versions = subprocess.run([f"{REPO}/scripts/emulator-versions"], capture_output=True, text=True).stdout
+    battery = {"now": {"pct": 78, "charging": False, "ma": 610, "hours_left": 6.4},
+               "session": {"start": now - 4 * 3600, "from_pct": 100, "to_pct": 78, "hours": 4.0, "activities": [
+                   {"name": "Sample game", "hours": 1.6, "pct": 12, "ma": 690},
+                   {"name": "Home", "hours": 0.7, "pct": 4, "ma": 480},
+                   {"name": "Sleep", "hours": 1.7, "pct": 1, "ma": 24}]}}
+    eq = {"speaker": "thor", "headphones": "thor", "saved": [], "tone": {"speaker": [0, 0, 0], "headphones": [0, 0, 0]}}
+    df = lambda path, dev, kind, total, used, mount: \
+        f"{path} {dev} {kind} {total} {used} {total - used} {used * 100 // total}% {mount}"
+    storage = "\n".join([df("/storage", "/dev/sda15", "ext4", 467_000_000, 182_000_000, "/storage"),
+                         df("/storage/games-external", "/dev/mmcblk0p1", "exfat", 487_000_000, 301_000_000, "/storage/games-external"),
+                         df("/flash", "/dev/sda14", "vfat", 2_096_000, 610_000, "/flash"),
+                         df("/storage/roms", "/dev/sda15", "ext4", 467_000_000, 182_000_000, "/storage")])
+    rows = [(r"nmcli -t -f DEVICE,STATE,CONNECTION dev", "wlan0:connected:Asgard Wi-Fi"),
+            (r"^ip -4 -o addr show wlan0", "192.168.1.42"),
+            (r"^usbgadget", "disabled"),
+            (r"^uname -r", kernel),
+            (r"emulator-versions", versions),
+            (r"asgard-eq\.py status", json.dumps(eq)),
+            (r"battery-report\.py", json.dumps(battery)),
+            (r"df -PkT", storage),
+            (r"^asgardos-bluetooth list", '<device id="00:00:5E:00:53:01" name="BT Headphones" connected="yes" '
+                                         'type="audio-headset" battery="80" codec="LDAC" codecs="SBC AAC LDAC"/>'),
+            (r"^asgardos-bluetooth scan_list", '<device id="00:00:5E:00:53:02" name="8BitDo Ultimate 2C" connected="no" '
+                                              'type="input-gaming"/>'),
+            (r"^wifictl list", "Asgard Wi-Fi\nValhalla 5G\nBifrost"),
+            (r"asgard-update\.py", "{}"),
+            (r"asgard-transfers\.py", "{}"),
+            (r"asgard-library\.py", json.dumps({"paired": 0})),
+            (r"(tailscale|zerotier).* -j |status --json", "{}"),
+            (r"/usr/share/zoneinfo/", "Africa/Cairo\nAmerica/New_York\nAsia/Tokyo\nEurope/Berlin\nEurope/London")]
+    return json.dumps([{"match": m, "out": o} for m, o in rows], indent=1)
 
 
 def art(root, games):

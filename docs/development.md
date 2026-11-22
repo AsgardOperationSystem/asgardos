@@ -89,7 +89,12 @@ Qt Quick on the image's Qt 6, two windows: top 1920×1080 (grid, dock) and botto
   `tools/sim/library.local.tsv` (yours, git-ignored: one `<system>\t<file name>` a line) or placeholders without it.
   It adds a play log, a battery at 78 % and settings with no account or network in them. `--art` scrapes covers,
   screenshots and details from libretro by name; they're kept across rebuilds. `test_sim_root.py` checks it.
-  Offscreen, Home's tiles render empty for now: the toolchain's Qt has no OpenGL offscreen, so Qt Quick falls back to
+  `python3 -I tools/sim/shots.py [scene ...]` renders Home's screens on it into `build/sim/shots` (`--list` names the
+  scenes: Home, a game list and card, Trophies, Settings' pages, Files, the Thor Panel). Home runs with `ASGARD_SIM`:
+  it runs no command, `exec` answers from the root's `sim/exec.json` (Wi-Fi, Bluetooth, battery report, storage...),
+  the name, version and free space are the root's, and `tools/sim/fake_panel.py` stands in for `thor_panel.py`.
+  Each scene must show a text, so `test_sim_scenes.py` runs them all. Not simulated yet: a running game and the
+  in-game menu. Offscreen, Home's tiles render empty for now: the toolchain's Qt has no OpenGL offscreen, so Qt Quick falls back to
   its software renderer, which draws no `MultiEffect`.
 - `dev.sh shot ["keys"]` renders both screens offscreen on the desktop, on the simulated Thor; `THOR=root@<thor> dev.sh thor ["keys"]`
   cross-builds, copies to the Thor and renders there. The screenshots above come from running the installed

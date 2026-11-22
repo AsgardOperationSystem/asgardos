@@ -78,6 +78,10 @@ void Files::open(const QString &path)
                                  {"modified", fi.lastModified().toMSecsSinceEpoch()}};
     const QStorageInfo st(d);
     m_space = st.isValid() ? human(st.bytesAvailable()) + " free of " + human(st.bytesTotal()) : QString();
+    // A simulated Thor (tools/sim) on a desktop: its root's figure, not the desktop disk's.
+    QFile simSpace(host("/sim/space"));
+    if (qEnvironmentVariableIsSet("ASGARD_SIM") && simSpace.open(QIODevice::ReadOnly))
+        m_space = QString::fromUtf8(simSpace.readAll()).trimmed();
     m_path = p;
     emit changed();
 }

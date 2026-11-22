@@ -2,6 +2,7 @@
 #include <QHash>
 #include <QJSValue>
 #include <QObject>
+#include <QRegularExpression>
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QSocketNotifier>
@@ -95,6 +96,10 @@ private:
     QString path(const QString &p) const { return m_root + p; }
 
     QString m_root;
+    // ASGARD_SIM (tools/sim): a simulated Thor on a desktop. Commands run nothing; exec answers from the root's
+    // sim/exec.json, [{"match": regex, "out": text}], first match wins, else "".
+    const bool m_sim = !qEnvironmentVariable("ASGARD_SIM").isEmpty();
+    QList<QPair<QRegularExpression, QString>> m_simAnswers;
     QProcessEnvironment m_gameEnv;  // the environment we were started with, without our own Qt settings
     QVariantList m_systems, m_recent;
     QHash<QString, QVariantList> m_games;
