@@ -84,26 +84,12 @@ Qt Quick on the image's Qt 6, two windows: top 1920×1080 (grid, dock) and botto
 - `backend.cpp`: library from ROCKNIX's `es_systems.cfg`, ROM dirs and ES-DE-format scraped media; play time;
   launching through `runemu.sh`; the pad from evdev (the Thor's Nintendo layout: A east, B south).
 - `qml/`: `Main.qml` (state and navigation), `HeroCard`, `Tile`, `Dock`, `Settings`, `GameMenu`, small parts.
-- The simulated Thor, for running Home with no Thor: `python3 -I tools/sim/make-root.py [--art]` builds
-  `build/sim/root` from the built image's systems list, theme and Home media. The games are empty stubs, named in
-  `tools/sim/library.local.tsv` (yours, git-ignored: one `<system>\t<file name>` a line) or placeholders without it.
-  It adds a play log, a battery at 78 % and settings with no account or network in them. `--art` scrapes covers,
-  screenshots and details from libretro by name; they're kept across rebuilds. `test_sim_root.py` checks it.
-  `python3 -I tools/sim/shots.py [scene ...]` renders Home's screens on it into `build/sim/shots` (`--list` names the
-  scenes: Home, a game list and card, Trophies, Settings' pages, Files, the Thor Panel). Home runs with `ASGARD_SIM`:
-  it runs no command, `exec` answers from the root's `sim/exec.json` (Wi-Fi, Bluetooth, battery report, storage...),
-  the name, version and free space are the root's, and `tools/sim/fake_panel.py` stands in for `thor_panel.py`.
-  Each scene must show a text, so `test_sim_scenes.py` runs them all. The `ingame` scene starts a game through
-  `tools/sim/runemu.sh` (Home's `ASGARD_RUNEMU`), which plays it headless in a real libretro core
-  (`tools/sim/build-core.sh snes9x` builds the image's pinned one for this machine into `build/sim/cores`) with
-  `tools/sim/libretro_frame.py`, writes the last frame as `ingame-Game.png` (the top screen, 4:3 on black) and asks
-  Home for its in-game menu as RetroArch. The game is a row of your list with two more columns: a real ROM to copy
-  (it stays in `build/`) and `<frames> button@first-last ...` to play; without one the scraped screenshot stands in.
-  It draws on Vulkan through lavapipe (Mesa's CPU driver, `mesa-vulkan-drivers`) with the
-  toolchain Qt's `vkkhrdisplay` platform, input off, and the image's fonts: that Qt has no OpenGL, and its software
-  renderer draws no `MultiEffect`, so every rounded tile, the glow and the blurred backdrop come out empty. Without
-  lavapipe it falls back to software and says so.
-- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop, on the simulated Thor; `THOR=root@<thor> dev.sh thor ["keys"]`
+- The simulated Thor, for running Home and rendering its screens with no Thor, is its own repository,
+  [asgard-simulator](https://github.com/AsgardOperationSystem/asgard-simulator), with this one as a submodule. Home's
+  side is `ASGARD_SIM`: it runs no command, `exec` answers from the root's `sim/exec.json`, RetroArch's network
+  commands are logged, and the name, version and free space are the root's (`test_home_sim_mode.py`). The harness
+  takes `ASGARD_BUILD` (a built image elsewhere) and `ASGARD_HARNESS_OUT` for it.
+- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop, on the simulator's root; `THOR=root@<thor> dev.sh thor ["keys"]`
   cross-builds, copies to the Thor and renders there. The screenshots above come from running the installed
   `asgard-home` with `ASGARD_SHOT`/`ASGARD_KEYS` on the Thor.
 

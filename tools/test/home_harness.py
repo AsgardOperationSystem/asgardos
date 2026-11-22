@@ -7,9 +7,11 @@ import subprocess
 import tempfile
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-QT = f"{REPO}/build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6"
+# ASGARD_BUILD and ASGARD_HARNESS_OUT: for a checkout that isn't the one built, such as asgard-simulator's submodule,
+# the built image's toolchain and a Home build outside this tree
+QT = os.environ.get("ASGARD_BUILD", f"{REPO}/build/AsgardOS-SM8550.aarch64") + "/toolchain/usr/local/qt6"
 SRC = f"{REPO}/packages/asgard-home/src"
-OUT = f"{REPO}/build/test/asgard-home"  # DEV-11: output stays under build/
+OUT = os.environ.get("ASGARD_HARNESS_OUT", f"{REPO}/build/test/asgard-home")  # DEV-11: output stays under build/
 CFG = "storage/.config/system/configs/system.cfg"
 HOST_COMMANDS = ("systemctl", "reboot", "poweroff", "shutdown", "halt", "swaymsg", "ledcontrol", "rfkill", "nmcli", "iwctl",
                  "bluetoothctl", "pw-play", "pactl", "wpctl", "suspendmode", "killall", "pkill", "kill-game",
