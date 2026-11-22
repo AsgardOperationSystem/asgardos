@@ -101,6 +101,24 @@ with tempfile.TemporaryDirectory() as d:
     assert "<name>Tetris</name>" in x   # the title, without tags: Home showed "my tetris" (the file) until 2026-11-22
     assert "<releasedate>19890101T000000</releasedate>" in x
 
+    # libretro-thumbnails keeps some images as git symlinks, which GitHub serves as the target's name: the scraper
+    # saved that text as the cover (Home: "Unsupported image format", an empty tile) until 2026-11-22. Followed now.
+    os.remove(f"{media}/covers/my tetris.png")
+    def linked(url, binary=False):
+        if "Named_Boxarts" in url and "World" in url:
+            return b"Tetris (Japan) (En).png"                                     # the link, as raw.githubusercontent serves it
+        return b"\x89PNG real " + url.encode()
+    sc.fetch = linked
+    r = sc.libretro("gb", rom, "my tetris", media)
+    cover = open(f"{media}/covers/my tetris.png", "rb").read()
+    assert cover.startswith(b"\x89PNG") and b"Tetris%20%28Japan%29%20%28En%29.png" in cover, cover
+    def loop(url, binary=False):   # a link to a link to...: given up on, like a missing image
+        return b"Tetris (World) (Rev 1).png" if "Named_Boxarts" in url else b"\x89PNG " + url.encode()
+    sc.fetch = loop
+    os.remove(f"{media}/covers/my tetris.png")
+    sc.libretro("gb", rom, "my tetris", media)
+    assert not os.path.exists(f"{media}/covers/my tetris.png"), "a link saved as the cover"
+
     # no internet: said so, not "no match"
     def offline(url, binary=False):
         raise urllib.error.URLError("Temporary failure in name resolution")

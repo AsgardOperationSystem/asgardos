@@ -267,6 +267,21 @@ def thumb_url(playlist, folder, name):
             + urllib.parse.quote(re.sub(r'[&*/:`<>?\\|"]', "_", name)) + ".png")
 
 
+def thumbnail(playlist, folder, name, hops=2):
+    """An image from libretro-thumbnails. Some are git symlinks to another name in the same folder, which GitHub
+    serves as that name's text ("Pokemon - Crystal Version (USA).png"): followed, a few hops at most; a link left
+    over counts as missing (HTTPError), like a 404."""
+    url = thumb_url(playlist, folder, name)
+    data = fetch(url, True)
+    link = data.strip()
+    if not data.startswith(b"\x89PNG") and len(link) < 512 and link.endswith(b".png") and b"/" not in link \
+            and b"\n" not in link:
+        if not hops:
+            raise urllib.error.HTTPError(url, 404, "libretro-thumbnails link loop", {}, None)
+        return thumbnail(playlist, folder, link[:-4].decode("utf-8", "replace"), hops - 1)
+    return data
+
+
 def details(r):
     month = r.get("month", "").zfill(2) if r.get("month", "").isdigit() else "01"
     return {"name": display_title(r.get("name", "")), "developer": r.get("developer", ""), "publisher": r.get("publisher", ""), "genre": r.get("genre", ""),
@@ -286,7 +301,7 @@ def libretro(system, rom, stem, media):
     for kind, folder in (("covers", "Named_Boxarts"), ("screenshots", "Named_Snaps")):
         for r in cands[:4]:   # the match first, then the same game's other regions
             try:
-                save(fetch(thumb_url(playlist, folder, r["name"]), True), f"{media}/{kind}/{stem}.png")
+                save(thumbnail(playlist, folder, r["name"]), f"{media}/{kind}/{stem}.png")
                 got.append(kind)
                 break
             except urllib.error.HTTPError:
