@@ -1,6 +1,6 @@
 #!/bin/bash
 # Asgard Home development loop. Screenshots are rendered offscreen (no window opens) at the Thor's panel sizes.
-#   ./dev.sh shot ["right a"]   desktop build on the fixture ($REPO/frontend-dev/root) -> /tmp/asgard-shot-*.png
+#   ./dev.sh shot ["right a"]   desktop build on the simulated Thor (build/sim/root: python3 -I tools/sim/make-root.py --art) -> /tmp/asgard-shot-*.png
 #   THOR=user@host ./dev.sh thor ["right a"]   cross-build, copy to the Thor (/storage/asgard-dev), render there -> /tmp/asgard-thor-*.png
 # Keys are button names (up down left right a b x y lb rb select start) replayed before the shot.
 # ASGARD_ARGS: the mode to render (--files, --panel ...); the panel's thor_panel.py is the source tree's.
@@ -14,7 +14,7 @@ case "${1:-shot}" in
   shot)
     cmake -S "$HERE" -B "$OUT/asgard-home-host" -DCMAKE_BUILD_TYPE=Debug >/dev/null
     cmake --build "$OUT/asgard-home-host" -j"$(nproc)" | grep -E "error|warning" || true
-    QT_FORCE_STDERR_LOGGING=1 ASGARD_ROOT="$REPO/frontend-dev/root" ASGARD_HOME_QML="$HERE/qml" ASGARD_SHOT="$OUT/asgard-shot-" \
+    QT_FORCE_STDERR_LOGGING=1 ASGARD_ROOT="$REPO/build/sim/root" ASGARD_HOME_QML="$HERE/qml" ASGARD_SHOT="$OUT/asgard-shot-" \
       ASGARD_KEYS="${2:-}" \
       ASGARD_PANEL="$HERE/../../asgard/sources/thor_panel.py" "$OUT/asgard-home-host/asgard-home" ${ASGARD_ARGS:-}
     ls "$OUT"/asgard-shot-*.png ;;

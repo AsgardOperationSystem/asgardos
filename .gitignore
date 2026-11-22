@@ -15,3 +15,5 @@ personal-patterns.local
 /.config/
 mkpkg-temp
 __pycache__/
+# The simulated Thor's own game list (tools/sim/make-root.py): personal, never committed
+/tools/sim/library.local.tsv

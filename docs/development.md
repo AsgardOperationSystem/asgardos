@@ -84,7 +84,14 @@ Qt Quick on the image's Qt 6, two windows: top 1920×1080 (grid, dock) and botto
 - `backend.cpp`: library from ROCKNIX's `es_systems.cfg`, ROM dirs and ES-DE-format scraped media; play time;
   launching through `runemu.sh`; the pad from evdev (the Thor's Nintendo layout: A east, B south).
 - `qml/`: `Main.qml` (state and navigation), `HeroCard`, `Tile`, `Dock`, `Settings`, `GameMenu`, small parts.
-- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop; `THOR=root@<thor> dev.sh thor ["keys"]`
+- The simulated Thor, for running Home with no Thor: `python3 -I tools/sim/make-root.py [--art]` builds
+  `build/sim/root` from the built image's systems list, theme and Home media. The games are empty stubs, named in
+  `tools/sim/library.local.tsv` (yours, git-ignored: one `<system>\t<file name>` a line) or placeholders without it.
+  It adds a play log, a battery at 78 % and settings with no account or network in them. `--art` scrapes covers,
+  screenshots and details from libretro by name; they're kept across rebuilds. `test_sim_root.py` checks it.
+  Offscreen, Home's tiles render empty for now: the toolchain's Qt has no OpenGL offscreen, so Qt Quick falls back to
+  its software renderer, which draws no `MultiEffect`.
+- `dev.sh shot ["keys"]` renders both screens offscreen on the desktop, on the simulated Thor; `THOR=root@<thor> dev.sh thor ["keys"]`
   cross-builds, copies to the Thor and renders there. The screenshots above come from running the installed
   `asgard-home` with `ASGARD_SHOT`/`ASGARD_KEYS` on the Thor.
 
