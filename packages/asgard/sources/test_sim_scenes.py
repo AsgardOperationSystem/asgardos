@@ -2,7 +2,8 @@
 # requires: file:build/AsgardOS-SM8550.aarch64/toolchain/usr/local/qt6/lib/libQt6Quick.so cmd:cmake
 """Run: python -I test_sim_scenes.py  (no Thor, no network): every scene of tools/sim/shots.py renders on a simulated
 Thor and shows what it should, with Asgard Home in ASGARD_SIM. In it Home runs no command (each exec is answered from
-the root's sim/exec.json), and shows the root's name, version and free space, never the desktop's (DEV-16)."""
+the root's sim/exec.json), and shows the root's name, version and free space, never the desktop's (DEV-16). Where
+lavapipe is installed it renders on Vulkan, the only renderer that draws Home's rounded art."""
 import os
 import socket
 import subprocess
@@ -32,4 +33,9 @@ with tempfile.TemporaryDirectory() as tmp:
     host = socket.gethostname()
     assert not any(host in t for t in shown.texts), host
     assert shown.shows("●  Thor") and shown.shows("AYN Thor  ·  SM8550"), shown.texts
+
+    # Drawn on the GPU path (Vulkan on lavapipe) where there's one: the software renderer leaves every tile empty
+    if os.path.exists(shots.LAVAPIPE):
+        missing, shown = shots.shoot("home", extra={"QSG_INFO": "1"})
+        assert "Creating QRhi with backend Vulkan" in shown.log, shown.log
 print("ok")

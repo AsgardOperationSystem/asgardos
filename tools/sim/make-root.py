@@ -95,6 +95,12 @@ def build(root, games):
     write(root, CFG, "system.hostname=Thor\nwifi.enabled=1\nbluetooth.enabled=1\n")
     write(root, "sim/exec.json", answers())
     write(root, "sim/space", "285 GB free of 476 GB\n")   # Files' free space (the answers' df for /storage)
+    # The image's fonts, flat (QT_QPA_FONTDIR isn't searched recursively): symbols Home's own font lacks, as on the Thor
+    os.makedirs(f"{root}/sim/fonts")
+    for font in sorted(glob.glob(f"{REPO}/build/AsgardOS-SM8550.aarch64/image/system/usr/share/fonts/**/*.[ot]tf",
+                                 recursive=True)):
+        if not os.path.exists(f"{root}/sim/fonts/{os.path.basename(font)}"):
+            os.symlink(font, f"{root}/sim/fonts/{os.path.basename(font)}")
     release = f"{REPO}/build/AsgardOS-SM8550.aarch64/image/system/etc/os-release"   # Settings > About: the build's
     write(root, "etc/os-release", open(release).read() if os.path.exists(release) else 'OS_NAME="AsgardOS"\n')
     now = time.time()

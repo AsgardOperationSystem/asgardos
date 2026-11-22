@@ -15,6 +15,12 @@ import home_harness as hh  # noqa: E402
 
 ROOT = os.environ.get("ASGARD_SIM_ROOT", f"{REPO}/build/sim/root")
 OUT = os.environ.get("ASGARD_SIM_SHOTS", f"{REPO}/build/sim/shots")
+LAVAPIPE = "/usr/share/vulkan/icd.d/lvp_icd.json"
+# Qt Quick on Vulkan through lavapipe (Mesa's CPU driver): the toolchain's Qt has no OpenGL, and its software renderer
+# draws no MultiEffect, which every rounded tile, the glow and the blurred backdrop are. vkkhrdisplay is the toolchain's
+# one platform with Vulkan; windows are never shown (ASGARD_SHOT), so it needs no display, and input stays off.
+GPU = {"QT_QPA_PLATFORM": "vkkhrdisplay", "QSG_RHI_BACKEND": "vulkan", "VK_ICD_FILENAMES": LAVAPIPE,
+       "QT_QPA_DISABLE_INPUT": "1"}
 HARDWARE = "start down down down down a"
 NETWORK = HARDWARE + " down down down a"
 # name: (button presses, Home's mode arguments, a text the scene must show)
@@ -38,7 +44,7 @@ SCENES = {
 }
 
 
-def shoot(name, ms=1500):
+def shoot(name, ms=1500, extra=None):
     """Renders one scene; returns (missing expected text or None, Home's result)."""
     keys, args, expect = SCENES[name]
     if not os.path.exists(f"{ROOT}/.asgard-sim-root"):
@@ -46,8 +52,14 @@ def shoot(name, ms=1500):
     os.makedirs(OUT, exist_ok=True)
     root = hh.Root()
     root.path = ROOT
-    shown = root.run(keys, args=args, ms=ms, env={"ASGARD_SIM": "1", "ASGARD_SHOT": f"{OUT}/{name}-",
-                                                    "ASGARD_PANEL": f"{REPO}/tools/sim/fake_panel.py"})
+    env = {"ASGARD_SIM": "1", "ASGARD_SHOT": f"{OUT}/{name}-", "ASGARD_PANEL": f"{REPO}/tools/sim/fake_panel.py",
+           "QT_QPA_FONTDIR": f"{ROOT}/sim/fonts"}
+    if os.path.exists(LAVAPIPE):
+        env.update(GPU)
+    else:
+        print(f"shots: no lavapipe ({LAVAPIPE}, Mesa's Vulkan CPU driver): software rendering, the tiles come out empty",
+              file=sys.stderr)
+    shown = root.run(keys, args=args, ms=ms, env={**env, **(extra or {})})
     return (None if shown.shows(expect) else expect), shown
 
 

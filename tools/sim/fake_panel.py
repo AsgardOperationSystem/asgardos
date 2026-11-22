@@ -7,7 +7,7 @@ import sys
 
 GAUGE = lambda name, value, unit, frac: {"name": name, "value": value, "unit": unit, "frac": frac}  # noqa: E731
 STATUS = {
-    "temp": 41.0, "fan": 30, "bat": "78", "charging": False, "net": "12.4 KB/s", "fps": 60,
+    "temp": 41.0, "fan": 30, "bat": "78", "charging": False, "net": 12.4, "fps": 60,
     "gauges": [GAUGE("CPU", "1.80", "GHz", 0.56), GAUGE("GPU", "443", "MHz", 0.66), GAUGE("PWR", "3.10", "W", 0.26),
                GAUGE("RAM", "3.42", "GB", 0.29)],
     "toggles": [{"key": "wifi", "label": "Wi-Fi", "on": True}, {"key": "airplane", "label": "Airplane mode", "on": False},
