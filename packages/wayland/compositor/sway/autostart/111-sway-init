@@ -251,3 +251,10 @@ if [ "${QUIRK_DEVICE}" = "Retroid Pocket Duo Lite" ]; then
   echo "exec_always swaymsg '[app_id=\"emulationstation\"]' seat seat1 attach \"4660:22136:InputPlumber_Keyboard\"" >> $SWAY_HOME/config
   echo "exec_always swaymsg '[app_id=\"emulationstation\"]' seat seat1 fallback yes" >> $SWAY_HOME/config
 fi
+
+# Asgard: the Thor's rules and panel settings (thor-sway-rotate.sh) go on every config this writes. It runs twice a boot:
+# in sway's ExecStartPre (asgard-rotate.conf) and again from autostart once sway is up. The second run used to leave a
+# config without any of them; sway kept the ones it had loaded, but a reload would have dropped them (2026-11-28).
+if [ "${QUIRK_DEVICE}" = "AYN Thor" ] && [ -x /usr/share/asgard/thor-sway-rotate.sh ]; then
+  /usr/share/asgard/thor-sway-rotate.sh
+fi

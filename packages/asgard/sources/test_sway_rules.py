@@ -227,3 +227,14 @@ for core, width in (("melondsds", "1440"), ("melonds", "1240"), ("desmume", "124
     assert "output DSI-1 power on pos 340 1080" in sway, (core, sway)
     assert f"floating enable, fullscreen disable, resize set {width} 2160, move to output DSI-2" in sway, (core, sway)
 print("ok")
+
+# GAME-10: 111-sway-init ends every config it writes on a Thor with thor-sway-rotate.sh's rules. It runs twice a boot (sway's
+# ExecStartPre, then autostart once sway is up), and the second run left a config without them (2026-11-28).
+init = open(f"{PACKAGES}/wayland/compositor/sway/autostart/111-sway-init").read()
+tail = init[init.index("# Asgard: the Thor's rules and panel settings"):]
+for device, runs in (("AYN Thor", True), ("AYN Thor Lite", False)):
+    with tempfile.TemporaryDirectory() as d:
+        executable(f"{d}/rotate", f'#!/bin/sh\ntouch "{d}/ran"\n')
+        subprocess.run(["bash", "-c", f'QUIRK_DEVICE="{device}"\n' + tail.replace("/usr/share/asgard/thor-sway-rotate.sh",
+                                                                                   f"{d}/rotate")], check=True)
+        assert os.path.exists(f"{d}/ran") == runs, device
