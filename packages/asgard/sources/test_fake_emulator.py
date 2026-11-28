@@ -137,6 +137,22 @@ focus, start, stop = ["swaymsg", "focus output DSI-2"], ["python3", "/usr/share/
 game = next(t for t in trace if t[0] == "fake")
 assert where(focus) < where(game) and where(start) < where(game) < where(stop), trace
 
+# GAME-10: the focus waits for Home's windows to leave sway's tree; one sent while they still unmapped was undone by
+# them, and a GBC game opened on the bottom screen (2026-11-28). This sway lists them for its first three tree reads.
+UNMAPPING = RECORDER + """[ "$1" = -t ] && [ "$2" = get_tree ] || exit 0
+n=$(cat "$FAKE_DIR/tree-reads" 2>/dev/null || echo 0); echo $((n + 1)) >"$FAKE_DIR/tree-reads"
+[ "$n" -lt 3 ] && echo '{"nodes": [{"name": "Asgard Home"}, {"name": "Asgard Home (Bottom)"}]}'
+exit 0
+"""
+with Root() as r:
+    r.library()
+    fake = Rig(r)
+    fake.write("bin/swaymsg", UNMAPPING, True)
+    fake.run(OPEN_GAME)
+    trace = fake.trace()
+reads = [i for i, t in enumerate(trace) if t == ["swaymsg", "-t", "get_tree"]]
+assert len(reads) >= 4 and reads[3] < trace.index(focus), trace
+
 # However the game ends, Home comes back and can start another: exit codes, a crash, a kill.
 AGAIN = OPEN_GAME + " " + " ".join(["up"] * 12) + " a"   # a game list stays open: A starts the game again
 for ending in ("exit 0", "exit 143", "exit 250", "kill -SEGV $$", "kill -KILL $$"):

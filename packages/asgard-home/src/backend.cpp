@@ -507,10 +507,14 @@ void Backend::run(const QString &script, const QStringList &args, const QProcess
         emit playingChanged();
     });
     m_game->start("/bin/bash", QStringList{"-c",
-        // Our windows are hidden by now, but sway's focus may still be on the bottom screen (our bottom window
-        // maps last), and a new window opens on the focused output: focus the top screen, or it lands on the
-        // bottom panel. The bottom panel goes dark a few seconds later unless the program opened a window there
+        // A new window opens on sway's focused output, and our windows leave it there as they unmap (the bottom
+        // one may go last): focus the top screen, or the game lands on the bottom panel. Only once they're gone:
+        // they hide on playingChanged, emitted after this starts, and a focus sent before their unmap was undone
+        // by it (a GBC game on the bottom screen, 2026-11-28, right after a big game quit). Up to 2 s.
+        // The bottom panel goes dark a few seconds later unless the program opened a window there
         // (not at once: a dual-screen game would power it straight back on, two modesets that can hang the top panel).
+        "for ((i = 0; i < 40; i++)); do swaymsg -t get_tree 2>/dev/null | grep -q '\"name\": \"Asgard Home' || break; "
+        "sleep 0.05; done; "
         "swaymsg 'focus output DSI-2' >/dev/null 2>&1; (/usr/share/asgard/thor-bottom-idle-off.sh 3 >/dev/null 2>&1 &); " + script,
         "run"} + args);
     emit playingChanged();
